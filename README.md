@@ -93,10 +93,8 @@ We use the Git Flow branch structure specified [here](https://www.atlassian.com/
 ## TODOs
 
 ### Known Issues:
-- Merge Frederic's ADAM with David's ADAM
 - Unify data preprocessing (stacking of variables)
 - Add more explanations in the examples
-- better treatment of variable groups in LayeredFeatureMap (store copy within the class) -> DKR-AK
 - Wrapper for all qiskit feature maps
 - clean up kernel examples (e.g. there are some files name test...)
 - qgpr_optimization_workflow.ipynb has error messages in the notbeook (only KeyboardInterrupts, check anyway)
@@ -111,7 +109,5 @@ We use the Git Flow branch structure specified [here](https://www.atlassian.com/
 - Testjobs + pipeline for testing
 - Distribution via pip
 - Extend PQK class -> JSL
-    - k-RDMs (check if compatible with DKRs code)
-    - Flexibility in definition
     - implement shadow kernel
 - Neural tangent kernels may be worth to work on
