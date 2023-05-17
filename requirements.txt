@@ -1,0 +1,7 @@
+numpy>=1.17
+scipy>=1.5
+scikit-learn>=1.0
+qiskit>=0.42.1
+qiskit-machine-learning>=0.6.0
+qiskit-ibm-runtime>=0.9
+dill>=0.3
