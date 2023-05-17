@@ -4,15 +4,14 @@ from typing import Optional, Sequence
 from .kernel_optimization_base import KernelOptimizerBase
 from .kernel_loss_base import KernelLossBase
 from ..ml.helper_functions import stack_input
-from qiskit.utils.algorithm_globals import algorithm_globals
-from qiskit.algorithms.optimizers import Optimizer
+from ...optimizers import OptimizerBase
 
 
 class KernelOptimizer(KernelOptimizerBase):
     def __init__(
         self,
         loss: KernelLossBase = None,
-        optimizer: Optimizer = None,
+        optimizer: OptimizerBase = None,
         initial_parameters: Optional[Sequence[float]] = None,
     ) -> None:
         super().__init__(loss, optimizer, initial_parameters)
@@ -35,7 +34,6 @@ class KernelOptimizer(KernelOptimizerBase):
         # Perform kernel optimization
         loss_function = partial(self._loss.compute, data=x, labels=y)
         opt_result = self._optimizer.minimize(fun=loss_function, x0=self._initial_parameters)
-        self._optimier_evals = opt_result.nfev
         self._optimal_value = opt_result.fun
         self._optimal_point = opt_result.x
         self._opt_result = opt_result

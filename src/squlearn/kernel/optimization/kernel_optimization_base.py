@@ -1,15 +1,14 @@
 import numpy as np
 from typing import Optional, Sequence
 from .kernel_loss_base import KernelLossBase
-from qiskit.algorithms.optimizers import Optimizer
+from ...optimizers import OptimizerBase
 
 
 class KernelOptimizerBase:
     def __init__(
         self,
         loss: KernelLossBase = None,
-        # @DKR probably change this to inheritance from scipy's optimizer to be independent from qiskit?
-        optimizer: Optimizer = None,
+        optimizer: OptimizerBase = None,
         initial_parameters: Optional[Sequence[float]] = None,
     ) -> None:
         self._loss = loss
