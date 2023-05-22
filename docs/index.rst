@@ -10,6 +10,8 @@ Welcome to sQUlearn's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   tutorials/install
+   tutorials/index
 
 
 Indices and tables
