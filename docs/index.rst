@@ -6,12 +6,15 @@
 Welcome to sQUlearn's documentation!
 ====================================
 
+Here comes some description of the sQUlearn package and the documentation.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    tutorials/install
-   tutorials/index
+   tutorials/use_executor
+   tutorials/pqk
 
 
 Indices and tables
