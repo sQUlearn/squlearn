@@ -8,14 +8,14 @@ with open("requirements.txt", "r") as f:
 
 setup(
     name="squlearn",
-    version="0.1.0",
+    version="0.0.1",
     packages=find_packages('src'),
     package_dir={'': 'src'},
     author="Fraunhofer IPA",
     description="A library for quantum machine learning following the sklearn standard.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.cc-asp.fraunhofer.de/cci/code/quantum/squlearn",
+    url="https://github.com/sQUlearn/squlearn",
     install_requires=requirements,
     python_requires=">=3.9",
 )

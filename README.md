@@ -1,59 +1,37 @@
-# sQUlearn
+# sQUlearn 0.0.1
 
+<font size="4"><span style="color:red">Note that this is an early access version! Not everything that is described is already working 100%.</span></font>
 ## Prerequisites
 
-The package is written and tested in python 3.10
-The following python packages are required:
-
-```bash
-pip install qiskit
-pip install numpy
-```
+The package requires **at least Python 3.9**. The installation will also install the packages in [the requirements file](./requirements.txt).
 ## Installation
 
-If access to the repository is granted the package can be installed via:
+### Stable Release
 
-https access:
+To install the stable release version of sQUlearn, run the following command:
 ```bash
-pip install git+https://gitlab.cc-asp.fraunhofer.de/cci/code/quantum/squlearn
+pip install squlearn
 ```
 
-or with ssh access:
+Alternatively, you can install sQUlearn directly from GitHub via
 ```bash
-pip install git+ssh://git@gitlab.cc-asp.fraunhofer.de/cci/code/quantum/squlearn.git 
-```
-
-## Uninstall
-
-The package can be removed by the following command:
-
-```bash
-pip uninstall squlearn
-```
-
-## Update
-
-The package can be update by
-
-https access:
-```bash
-pip install git+https://gitlab.cc-asp.fraunhofer.de/cci/code/quantum/squlearn --upgrade
-```
-or for ssh access:
-```bash
-pip install git+ssh://git@gitlab.cc-asp.fraunhofer.de/cci/code/quantum/squlearn.git --upgrade
+pip install git+ssh://git@github.com:sQUlearn/squlearn.git
 ```
 
 ## Examples
-
-There are several examples available in the folder ``./examples`` which displaying the features of this package.
-
-## Documentation:
-
-TODO
+There are several more elaborate examples available in the folder ``./examples`` which display the features of this package.
+Tutorials for beginners can be found at ``./examples/tutorials``.
 
 ## Contribution
 If you plan to contribute to this project, please read this section carefully and check that your contribution fits the desired process and style.
+
+### Install development version
+To contribute to sQUlearn install the package from the source code:
+
+```bash
+git clone https://github.com/sQUlearn/squlearn.git && cd squlearn
+pip install -e .
+```
 
 ### Devtools
 Install the recommended tools with
@@ -87,31 +65,18 @@ For methods we furthermore expect
  - A list of arguments, and
  - A list of return values.
 
-### Git Flow (starting with GitHub)
+### Git Flow
 We use the Git Flow branch structure specified [here](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) except for release branches.
 
-## TODOs
+---
 
-### Known Issues:
-- Merge Frederic's ADAM with David's ADAM
-- Unify data preprocessing (stacking of variables)
-- Add more explanations in the examples
-- better treatment of variable groups in LayeredFeatureMap (store copy within the class) -> DKR-AK
-- Wrapper for all qiskit feature maps
-- clean up kernel examples (e.g. there are some files name test...)
-- qgpr_optimization_workflow.ipynb has error messages in the notbeook (only KeyboardInterrupts, check anyway)
-- replace pqk_impedance.ipynb and pqk_impedance_real_backend.ipynb notebooks with better examples (rely on measurement data) -> JSL
-- installation does not install required dependencys (qiskit_machine_learning did not update to the required version)
+## License
 
-### Bigger Projects
-- Sklearn interfaces
-    - batch based training for QNNs -> MOW
-    - wrapper for kernel methods
-- Unified documentation and documentation framework (https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html, https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-- Testjobs + pipeline for testing
-- Distribution via pip
-- Extend PQK class -> JSL
-    - k-RDMs (check if compatible with DKRs code)
-    - Flexibility in definition
-    - implement shadow kernel
-- Neural tangent kernels may be worth to work on
+[Apache License 2.0](https://github.com/sQUlearn/squlearn/blob/main/LICENSE.txt)
+
+## Imprint
+This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA. It started as a collection of implementations of quantum machine learning methods.
+
+https://www.ipa.fraunhofer.de/en/expertise/cyber-cognitive-intelligence-cci/quantencomputing.html
+
+---
