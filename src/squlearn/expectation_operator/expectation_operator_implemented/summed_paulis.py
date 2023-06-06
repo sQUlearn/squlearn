@@ -27,7 +27,7 @@ class SummedPaulis(ExpectationOperatorBase):
         num_qubits (int): Number of qubits.
         op_str (Union[list[str],str,tuple[str]]): Pauli operator string to be measured.
             Also list or tuples of strings are allowed for multiple Pauli operators.
-        full_sum (bool): If False, the coeffients of the Pauli operators are excluded from the sum.
+        full_sum (bool): If False, the parameters are excluded from the sum.
             (i.e. the sum is :math:`b\sum_i \hat{Z}_i` instead of :math:`\sum_i b_i \hat{Z}_i`)
 
     """
@@ -55,14 +55,14 @@ class SummedPaulis(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
-        Function for generating the PauliOp expression of the summed pauli operator.
+        Function for generating the PauliOp expression of the summed Paulis operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): parameters of the summed
-                pauli operator.
+                Paulis operator.
 
         Returns:
-            PauliOp expression of the specified summed pauli operator.
+            PauliOp expression of the specified summed Paulis operator.
         """
 
         def gen_string(i, op_str):
