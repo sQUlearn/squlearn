@@ -9,30 +9,52 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 
 class SingleAmplitude(ExpectationOperatorBase):
-    """Initialization
+    r"""
+    Expectation operator for measuring the probability of being in state 0 or 1 of
+    a specified qubit.
 
-    Operator for measuring the probability of being in state 0 or 1 of a qubit.
-    Implemented by |0><0| = 0.5*(I+Z) and |1><1| = 0.5*(I-Z)
+    Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`
 
     Args:
-        number_of_qubits: Number of qubits.
-        qubits: index of the qubit for which the probability is measured
-        one_state: if false the |0><0| state is measured, if true the |1><1| state is measured
+        num_qubits (int): Number of qubits.
+        qubit (int): Qubit to measure.
+        one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
+        parameterized (bool): If True, the operator is parameterized.
     """
 
-    def __init__(self, num_qubits: int, qubit=0, one_state=False) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        qubit: int = 0,
+        one_state: bool = False,
+        parameterized: bool = False,
+    ) -> None:
+
         super().__init__(num_qubits)
+
         self.qubit = qubit
         self.one_state = one_state
+        self.parameterized = parameterized
 
     @property
     def num_parameters(self):
-        return 0
+        """Returns the number of free parameters in the single amplitude operator"""
+
+        if self.parameterized:
+            return 1
+        else:
+            return 0
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
+        Function for generating the PauliOp expression of the single amplitude operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): parameters of the single
+                amplitude operator.
+
         Returns:
-            Return PauliOp expression of the specified Expectation operator.
+            PauliOp expression of the specified single amplitude operator.
         """
 
         i = self.qubit
@@ -45,5 +67,8 @@ class SingleAmplitude(ExpectationOperatorBase):
             H = 0.5 * PauliOp(Pauli(I)) - 0.5 * PauliOp(Pauli(Z))
         else:
             H = 0.5 * PauliOp(Pauli(I)) + 0.5 * PauliOp(Pauli(Z))
+
+        if self.parameterized:
+            H = H * parameters[0]
 
         return H.reduce()

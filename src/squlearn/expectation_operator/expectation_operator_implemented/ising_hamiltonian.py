@@ -9,7 +9,7 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class IsingHamiltonian(ExpectationOperatorBase):
 
-    """
+    r"""
     Implementation of Ising type Hamiltonians:
 
     .. math::
@@ -24,13 +24,13 @@ class IsingHamiltonian(ExpectationOperatorBase):
         num_qubits (int): number of qubits
         I (str): parameter options for identity term. 'S' trainable parameter, 'N' for zero
         Z (str): parameter options for Z term. 'S' same parameter in the
-            sum (:math:`\\forall ~i:~ b_i=b`), 'N' for zero,
+            sum (:math:`\forall ~i:~ b_i=b`), 'N' for zero,
             'F' all :math:`b_i` values are considered
         X (str): parameter options for X term. 'S' same parameter in the
-            sum (:math:`\\forall~ i: ~c_i=c`), 'N' for zero,
+            sum (:math:`\forall~ i: ~c_i=c`), 'N' for zero,
             'F' all :math:`c_i` values are considered
         ZZ (str): parameter options for ZZ term. 'S' same parameter in the
-            sum (:math:`\\forall~ i,j: ~d_{ij}=d`), 'N' for zero,
+            sum (:math:`\forall~ i,j: ~d_{ij}=d`), 'N' for zero,
             'F' all :math:`d_{ij}` values are considered
 
     The default Ising Hamiltonian reads:
