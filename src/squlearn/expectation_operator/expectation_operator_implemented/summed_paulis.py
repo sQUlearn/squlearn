@@ -58,7 +58,7 @@ class SummedPaulis(ExpectationOperatorBase):
         Function for generating the PauliOp expression of the summed Paulis operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the summed
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
                 Paulis operator.
 
         Returns:

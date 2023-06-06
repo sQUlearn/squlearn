@@ -53,7 +53,7 @@ class SinglePauli(ExpectationOperatorBase):
         Function for generating the PauliOp expression of the single pauli operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the single
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
                 pauli operator.
 
         Returns:

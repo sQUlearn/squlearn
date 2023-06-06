@@ -59,7 +59,7 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         Function for generating the PauliOp expression of the custom operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the custom operator.
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the custom operator.
 
         Returns:
             PauliOp expression of the specified custom operator.

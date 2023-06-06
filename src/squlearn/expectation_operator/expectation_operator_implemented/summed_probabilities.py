@@ -8,9 +8,9 @@ from qiskit.quantum_info import Pauli
 from ..expectation_operator_base import ExpectationOperatorBase
 
 
-class SummedAmplitudes(ExpectationOperatorBase):
+class SummedProbabilities(ExpectationOperatorBase):
     r"""
-    Operator for summed probabilites of being in state 0 or 1.
+    Operator for summed probabilities of being in state 0 or 1.
 
     Operator reads:
 
@@ -22,7 +22,7 @@ class SummedAmplitudes(ExpectationOperatorBase):
 
     Args:
         num_qubits (int): Number of qubits.
-        one_state: if false the :math:`\ket{0}\bra{0}` state is measured,
+        one_state: If false the :math:`\ket{0}\bra{0}` state is measured,
             if true the :math:`\ket{1}\bra{1}` state is measured
         full_sum (bool): If False, the parameters are excluded from the sum.
             (i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
@@ -38,7 +38,7 @@ class SummedAmplitudes(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the summed amplitudes operator"""
+        """Returns the number of free parameters in the summed probabilities operator"""
         if self.full_sum:
             return 1 + self.num_qubits
         else:
@@ -46,14 +46,14 @@ class SummedAmplitudes(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
-        Function for generating the PauliOp expression of the summed amplitudes operator.
+        Function for generating the PauliOp expression of the summed probabilities operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the summed
-                amplitudes operator.
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+                probabilities operator.
 
         Returns:
-            PauliOp expression of the specified summed amplitudes operator.
+            PauliOp expression of the specified summed probabilities operator.
         """
 
         nparam = len(parameters)

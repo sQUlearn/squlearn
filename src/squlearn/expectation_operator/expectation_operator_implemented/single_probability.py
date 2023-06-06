@@ -8,7 +8,7 @@ from qiskit.quantum_info import Pauli
 from ..expectation_operator_base import ExpectationOperatorBase
 
 
-class SingleAmplitude(ExpectationOperatorBase):
+class SingleProbability(ExpectationOperatorBase):
     r"""
     Expectation operator for measuring the probability of being in state 0 or 1 of
     a specified qubit.
@@ -38,7 +38,7 @@ class SingleAmplitude(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the single amplitude operator"""
+        """Returns the number of free parameters in the single probability operator"""
 
         if self.parameterized:
             return 1
@@ -47,14 +47,14 @@ class SingleAmplitude(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
-        Function for generating the PauliOp expression of the single amplitude operator.
+        Function for generating the PauliOp expression of the single probability operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the single
-                amplitude operator.
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
+                probability operator.
 
         Returns:
-            PauliOp expression of the specified single amplitude operator.
+            PauliOp expression of the specified single probability operator.
         """
 
         i = self.qubit
