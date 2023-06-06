@@ -14,7 +14,7 @@ class Adam(OptimizerBase, SGDMixin):
         super(SGDMixin, self).__init__()  #  set-up of self.iterations=0
 
         if options is None:
-            options={}
+            options = {}
 
         self.tol = options.get("tol", 1e-6)
         self.lr = options.get("lr", 0.05)
