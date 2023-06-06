@@ -1,9 +1,10 @@
 # sQUlearn 0.1.0
 
-<font size="4"><span style="color:red">Note that this is an early access version! Not everything that is described is already working 100%.</span></font>
+<span style="color:red;font-size:20px">Note that this is an early access version! Not everything that is described is already working 100%.</span>
+
 ## Prerequisites
 
-The package requires **at least Python 3.9**. The installation will also install the packages in [the requirements file](./requirements.txt).
+The package requires **at least Python 3.9**.
 ## Installation
 
 ### Stable Release
@@ -36,12 +37,12 @@ pip install -e .
 ### Devtools
 Install the recommended tools with
 ```bash
-pip install -r requirements_dev.txt
+pip install -e .[dev]
 ```
 
 ### Style Guide
 #### Code Style
-We try to match all of our python code closely to the [PEP8 style guide](https://pep8.org/) with the exception of using a line length of `99`. To ensure this we use the [Black formater](https://black.readthedocs.io/en/stable/index.html) with the configuration specified in [pyproject.toml](`pyproject.toml`). To format your code, run
+We try to match all of our python code closely to the [PEP8 style guide](https://pep8.org/) with the exception of using a line length of `99`. To ensure this we use the [Black formater](https://black.readthedocs.io/en/stable/index.html) with the configuration specified in [pyproject.toml](https://github.com/sQUlearn/squlearn/blob/main/pyproject.toml). To format your code, run
 ```bash
 black path/to/folder/or/file.py
 ```
