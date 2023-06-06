@@ -7,8 +7,40 @@ from qiskit.quantum_info import Pauli
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
-
 class IsingHamiltonian(ExpectationOperatorBase):
+
+    """
+    Implementation of Ising type Hamiltonians:
+
+    .. math::
+        \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i + \sum_i c_i \hat{X}_i +
+        \sum_{i>j} d_{ij} \hat{Z}_i \hat{Z}_j
+
+    where a, b_i, c_i, and d_{ij} are trainable parameters.
+
+    Options allow to set the parameters additionally to be equal or zero.
+
+    Args:
+        num_qubits (int): number of qubits
+        I (str): parameter options for identity term. 'S' trainable parameter, 'N' for zero
+        Z (str): parameter options for Z term. 'S' same parameter in the
+            sum (:math:`\\forall ~i:~ b_i=b`), 'N' for zero,
+            'F' all :math:`b_i` values are considered
+        X (str): parameter options for X term. 'S' same parameter in the
+            sum (:math:`\\forall~ i: ~c_i=c`), 'N' for zero,
+            'F' all :math:`c_i` values are considered
+        ZZ (str): parameter options for ZZ term. 'S' same parameter in the
+            sum (:math:`\\forall~ i,j: ~d_{ij}=d`), 'N' for zero,
+            'F' all :math:`d_{ij}` values are considered
+
+    The default Ising Hamiltonian reads:
+
+    .. math::
+        \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i +
+        \sum_{i>j} d_{ij} \hat{Z}_i \hat{Z}_j
+
+    """
+
     def __init__(
         self, num_qubits: int, I: str = "S", Z: str = "F", X: str = "N", ZZ: str = "F"
     ) -> None:
@@ -35,7 +67,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the Expectation operator"""
+        """Returns the number of free parameters in the expectation operator"""
 
         num_parameters = 0
         if self.I == "S":
@@ -60,8 +92,13 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
+        Function for generating the PauliOp expression of the Ising Hamiltonian.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): parameters of the Ising Hamiltonian.
+
         Returns:
-            Return PauliOp expression of the specified Expectation operator.
+            PauliOp expression of the specified Ising Hamiltonian.
         """
 
         def gen_double_ising_string(i, j):
