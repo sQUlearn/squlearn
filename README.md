@@ -1,4 +1,4 @@
-# sQUlearn 0.0.1
+# sQUlearn 0.1.0
 
 <font size="4"><span style="color:red">Note that this is an early access version! Not everything that is described is already working 100%.</span></font>
 ## Prerequisites

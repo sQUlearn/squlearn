@@ -1,3 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "squlearn"
+version = "0.1.0"
+description = "A library for quantum machine learning following the sklearn standard."
+readme = "README.md"
+authors = [
+    {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
+    {name = "Frederic Rapp", email = "frederic.rapp@ipa.fraunhofer.de"},
+    {name = "Marco Roth", email = "marco.roth@ipa.fraunhofer.de"},
+    {name = "Jan Schnabel", email = "jan.schnabel@ipa.fraunhofer.de"},
+    {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
+]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["quantum", "machine learning", "qml"]
+dependencies = [
+    "numpy>=1.17",
+    "scipy>=1.5",
+    "scikit-learn>=1.0",
+    "qiskit>=0.42.1",
+    "qiskit-machine-learning>=0.6.0",
+    "qiskit-ibm-runtime>=0.9",
+    "dill>=0.3",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["pylint", "black", "pytest", "pip-tools"]
+
+[project.urls]
+Homepage = "https://github.com/sQUlearn/squlearn"
+
 [tool.black]
 line-length=99
 
