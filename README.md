@@ -37,7 +37,7 @@ pip install -e .
 ### Devtools
 Install the recommended tools with
 ```bash
-pip install -r requirements_dev.txt
+pip install -e .[dev]
 ```
 
 ### Style Guide
