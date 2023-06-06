@@ -13,6 +13,9 @@ class Adam(OptimizerBase, SGDMixin):
     def __init__(self, options: dict = None) -> None:  # TODO: kwargs?
         super(SGDMixin, self).__init__()  #  set-up of self.iterations=0
 
+        if options is None:
+            options={}
+
         self.tol = options.get("tol", 1e-6)
         self.lr = options.get("lr", 0.05)
         self.beta_1 = options.get("beta_1", 0.9)
