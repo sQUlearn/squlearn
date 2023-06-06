@@ -18,7 +18,7 @@ class SummedPaulis(ExpectationOperatorBase):
     .. math::
         \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i
 
-    Multiple Pauli operators can be specified by list or tuple of strings, e.g. op_str=['X','Z']."]:
+    Multiple Pauli operators can be specified by list or tuple of strings, e.g. ``op_str=['X','Z']``.
 
     .. math::
         \hat{H} = a\hat{I} + \sum_i b_i \hat{X}_i + \sum_i c_i \hat{Z}_i

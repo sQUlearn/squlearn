@@ -13,7 +13,9 @@ class SummedAmplitudes(ExpectationOperatorBase):
     Operator for summed probabilites of being in state 0 or 1.
 
     Operator reads:
+
     .. math::
+
         \hat{H} = a\hat{I} + \sum_i b_i (\ket{0}\bra{0})_i
 
     Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`

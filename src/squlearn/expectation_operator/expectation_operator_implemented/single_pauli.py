@@ -12,10 +12,13 @@ class SinglePauli(ExpectationOperatorBase):
     r"""
     Expectation operator for evaluating the expectation value of a single Pauli operator.
 
+
+    Example :math:`\hat{Z_i}`.
+
     Args:
         num_qubits (int): Number of qubits.
         qubit (int): Qubit for which the Pauli expectation value is obtained.
-        op_str (str): Pauli operator to measure. Must be one of "I", "X", "Y", "Z".
+        op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``.
         parameterized (bool): If True, the operator is parameterized.
 
     """
