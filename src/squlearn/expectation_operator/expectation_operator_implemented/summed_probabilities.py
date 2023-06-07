@@ -8,24 +8,37 @@ from qiskit.quantum_info import Pauli
 from ..expectation_operator_base import ExpectationOperatorBase
 
 
-class SummedAmplitudes(ExpectationOperatorBase):
-    """
-    Operator for a + sum_i b_i |0_i><0_i|
-    Implemented by |0><0| = 0.5*(I+Z) and |1><1| = 0.5*(I-Z)
+class SummedProbabilities(ExpectationOperatorBase):
+    r"""
+    Operator for summed probabilities of being in state 0 or 1.
+
+    Operator reads:
+
+    .. math::
+
+        \hat{H} = a\hat{I} + \sum_i b_i (\ket{0}\bra{0})_i
+
+    Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`
 
     Args:
-        num_qubits: Number of qubits.
-        one_state: if false the |0><0| state is measured, if true the |1><1| state is measured
+        num_qubits (int): Number of qubits.
+        one_state: If false the :math:`\ket{0}\bra{0}` state is measured,
+            if true the :math:`\ket{1}\bra{1}` state is measured
+        full_sum (bool): If False, the parameters are excluded from the sum.
+            (i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
+            instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i)`
 
     """
 
     def __init__(self, num_qubits: int, one_state=False, full_sum: bool = True) -> None:
+
         super().__init__(num_qubits)
         self.one_state = one_state
         self.full_sum = full_sum
 
     @property
     def num_parameters(self):
+        """Returns the number of free parameters in the summed probabilities operator"""
         if self.full_sum:
             return 1 + self.num_qubits
         else:
@@ -33,8 +46,14 @@ class SummedAmplitudes(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
+        Function for generating the PauliOp expression of the summed probabilities operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+                probabilities operator.
+
         Returns:
-            Return PauliOp expression of the specified Expectation operator.
+            PauliOp expression of the specified summed probabilities operator.
         """
 
         nparam = len(parameters)

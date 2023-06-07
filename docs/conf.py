@@ -58,5 +58,5 @@ latex_engine = 'xelatex'
 latex_elements = {
     'preamble': r'''
     \usepackage{braket}
-    '''
+    ''',
 }

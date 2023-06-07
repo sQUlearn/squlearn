@@ -9,14 +9,45 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 
 class SummedPaulis(ExpectationOperatorBase):
-    def __init__(self, num_qubits: int, op_str: str = "Z", full_sum: bool = True) -> None:
+    r"""
+
+    Operator for summed Pauli expectation values.
+
+    For example, if Z operator is specified, the operator is given by
+
+    .. math::
+        \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i
+
+    Multiple Pauli operators can be specified by list or tuple of strings, e.g. ``op_str=['X','Z']``.
+
+    .. math::
+        \hat{H} = a\hat{I} + \sum_i b_i \hat{X}_i + \sum_i c_i \hat{Z}_i
+
+    Args:
+        num_qubits (int): Number of qubits.
+        op_str (Union[list[str],str,tuple[str]]): Pauli operator string to be measured.
+            Also list or tuples of strings are allowed for multiple Pauli operators.
+        full_sum (bool): If False, the parameters are excluded from the sum.
+            (i.e. the sum is :math:`b\sum_i \hat{Z}_i` instead of :math:`\sum_i b_i \hat{Z}_i`)
+
+    """
+
+    def __init__(self,
+                 num_qubits: int,
+                 op_str: Union[list[str],str,tuple[str]] = "Z",
+                 full_sum: bool = True) -> None:
+
         super().__init__(num_qubits)
         self.op_str = op_str
         self.full_sum = full_sum
 
+        for s in self.op_str:
+            if s not in ["I", "X", "Y", "Z"]:
+                raise ValueError("Only Pauli operators I, X, Y, Z are allowed.")
+
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the Expectation operator"""
+        """Returns the number of free parameters in the summed pauli operator"""
         if self.full_sum:
             return 1 + len(self.op_str) * self.num_qubits
         else:
@@ -24,8 +55,14 @@ class SummedPaulis(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
+        Function for generating the PauliOp expression of the summed Paulis operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+                Paulis operator.
+
         Returns:
-            Return PauliOp expression of the specified Expectation operator.
+            PauliOp expression of the specified summed Paulis operator.
         """
 
         def gen_string(i, op_str):
