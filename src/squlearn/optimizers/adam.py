@@ -10,8 +10,11 @@ from .approximated_gradients import FiniteDiffGradient
 class Adam(OptimizerBase, SGDMixin):
     """sQUlearn's implementation of the ADAM optimizer"""
 
-    def __init__(self, options: dict) -> None:  # TODO: kwargs?
+    def __init__(self, options: dict = None) -> None:  # TODO: kwargs?
         super(SGDMixin, self).__init__()  #  set-up of self.iterations=0
+
+        if options is None:
+            options = {}
 
         self.tol = options.get("tol", 1e-6)
         self.lr = options.get("lr", 0.05)
