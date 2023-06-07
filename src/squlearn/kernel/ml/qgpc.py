@@ -4,6 +4,7 @@ from ..matrix import KernelMatrixBase
 from .kernel_util import kernel_wrapper
 from sklearn.gaussian_process import GaussianProcessClassifier
 
+
 class QGPC(GaussianProcessClassifier):
     """Quantum Gaussian process regression (QGPC).
 
@@ -13,11 +14,7 @@ class QGPC(GaussianProcessClassifier):
     (either a fidelity kernel or the PQK must be provided)
     """
 
-    def __init__(
-            self,
-            quantum_kernel: KernelMatrixBase,
-            **kwargs
-    ):
+    def __init__(self, quantum_kernel: KernelMatrixBase, **kwargs):
         self._quantum_kernel = quantum_kernel
         super().__init__(**kwargs)
         self.kernel = kernel_wrapper(quantum_kernel)

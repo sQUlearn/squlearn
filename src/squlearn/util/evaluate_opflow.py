@@ -46,7 +46,7 @@ def evaluate_opflow_qi(QuantumInstance, opflow, mitigation_func=None):
     # Execute circuits
     start = time.time()
     results = QuantumInstance.execute(circuit_list, had_transpiled=True)
-    #print("exec:", time.time() - start)
+    # print("exec:", time.time() - start)
 
     # build StateFns from the results (copied from qiskit source code)
     sampled_statefn_dicts = {}
@@ -98,7 +98,7 @@ def evaluate_opflow_qi(QuantumInstance, opflow, mitigation_func=None):
     start = time.time()
     eval_circs = replace_circuits_with_dicts(opflow)
     return_val = np.real(eval_circs.eval())
-    #print("eval:", time.time() - start)
+    # print("eval:", time.time() - start)
 
     return return_val
 
@@ -153,13 +153,13 @@ def evaluate_opflow_estimator(estimator, opflow):
     try:
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
-        #print("exec:", time.time() - start)
+        # print("exec:", time.time() - start)
         job_result = job.result()
     except:
         # second try
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
-        #print("exec:", time.time() - start)
+        # print("exec:", time.time() - start)
         job_result = job.result()
 
     sampled_statefn_dicts = {}
@@ -224,13 +224,13 @@ def evaluate_opflow_sampler(sampler, opflow):
         start = time.time()
         job = sampler.run(circuit_list)
         results = job.result()
-        #print("exec:", time.time() - start)
+        # print("exec:", time.time() - start)
     except:
         # second try
         start = time.time()
         job = sampler.run(circuit_list)
         results = job.result()
-        #print("exec:", time.time() - start)
+        # print("exec:", time.time() - start)
 
     # build StateFns from the results (copied from qiskit source code)
     sampled_statefn_dicts = {}
@@ -258,5 +258,5 @@ def evaluate_opflow_sampler(sampler, opflow):
     start = time.time()
     eval_circs = replace_circuits_with_dicts(opflow)
     return_val = np.real(eval_circs.eval())
-    #print("eval:", time.time() - start)
+    # print("eval:", time.time() - start)
     return return_val
