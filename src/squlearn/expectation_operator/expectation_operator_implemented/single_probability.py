@@ -29,7 +29,6 @@ class SingleProbability(ExpectationOperatorBase):
         one_state: bool = False,
         parameterized: bool = False,
     ) -> None:
-
         super().__init__(num_qubits)
 
         self.qubit = qubit
