@@ -116,7 +116,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             self._label_binarizer = LabelBinarizer()
             self._label_binarizer.fit(y)
 
-        y = self._label_binarizer.transform(y)
+        if len(y.shape) == 1:
+            y = self._label_binarizer.transform(y).ravel()
+        else:
+            y = self._label_binarizer.transform(y)
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
