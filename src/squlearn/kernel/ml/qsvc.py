@@ -18,8 +18,8 @@ class QSVC(SVC):
         quantum_kernel: The quantum kernel matrix to be used in the SVC.
 
     """
-    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
 
+    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
         self.quantum_kernel = quantum_kernel
         super().__init__(kernel=self.quantum_kernel.evaluate, **kwargs)
 

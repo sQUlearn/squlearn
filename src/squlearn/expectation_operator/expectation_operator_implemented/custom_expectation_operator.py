@@ -21,14 +21,12 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         parameterized (bool): If True, the operator is parameterized.
     """
 
-
     def __init__(
         self,
         num_qubits: int,
         operator_string: Union[str, list[str], tuple[str]],
-        parameterized: bool=False
+        parameterized: bool = False,
     ) -> None:
-
         super().__init__(num_qubits)
 
         self.operator_string = operator_string
