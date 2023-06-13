@@ -24,9 +24,9 @@ class SummedProbabilities(ExpectationOperatorBase):
         num_qubits (int): Number of qubits.
         one_state: If false the :math:`\ket{0}\bra{0}` state is measured,
             if true the :math:`\ket{1}\bra{1}` state is measured
-        full_sum (bool): If False, the parameters are excluded from the sum.
-            (i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
-            instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i)`
+        full_sum (bool): If False, the parameters are excluded from the sum,
+            i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
+            instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i`
 
     """
 
