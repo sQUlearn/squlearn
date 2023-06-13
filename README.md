@@ -23,6 +23,11 @@ pip install git+ssh://git@github.com:sQUlearn/squlearn.git
 There are several more elaborate examples available in the folder ``./examples`` which display the features of this package.
 Tutorials for beginners can be found at ``./examples/tutorials``.
 
+To install the required packages, run
+```bash
+pip install .[examples]
+```
+
 ## Contribution
 If you plan to contribute to this project, please read this section carefully and check that your contribution fits the desired process and style.
 
