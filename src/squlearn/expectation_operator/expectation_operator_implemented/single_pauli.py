@@ -24,12 +24,8 @@ class SinglePauli(ExpectationOperatorBase):
     """
 
     def __init__(
-        self, num_qubits: int,
-        qubit: int,
-        op_str: str = "Z",
-        parameterized: bool = False
+        self, num_qubits: int, qubit: int, op_str: str = "Z", parameterized: bool = False
     ) -> None:
-
         super().__init__(num_qubits)
 
         self.qubit = qubit

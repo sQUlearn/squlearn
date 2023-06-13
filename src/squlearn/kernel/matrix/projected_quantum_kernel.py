@@ -26,6 +26,7 @@ class OuterKernelBase:
     """
     Class for creating outer kernels for the projected quantum kernel
     """
+
     def __init__(self):
         self._num_hyper_parameters = 0
         self._name_hyper_parameters = []
@@ -52,7 +53,7 @@ class OuterKernelBase:
         raise NotImplementedError()
 
     @abstractmethod
-    def set_params(self,**kwarg):
+    def set_params(self, **kwarg):
         """Sets the hyper parameters of the outer kernel"""
         raise NotImplementedError()
 
@@ -67,13 +68,14 @@ class OuterKernelBase:
         return self._name_hyper_parameters
 
     @classmethod
-    def from_sklearn_kernel(cls,kernel:SklearnKernel,**kwarg):
+    def from_sklearn_kernel(cls, kernel: SklearnKernel, **kwarg):
         """Converts a sklearn kernel into a squlearn kernel
 
         Args:
             kernel: sklearn kernel
             kwarg: arguments for the sklearn kernel parameters
         """
+
         class SklearnOuterKernel(BaseException):
             """
             Class for creating outer kernels for the projected quantum kernel from sklearn kernels
@@ -82,13 +84,17 @@ class OuterKernelBase:
                 kernel: sklearn kernel
                 kwarg: arguments for the sklearn kernel parameters
             """
-            def __init__(self, kernel:SklearnKernel, **kwarg):
+
+            def __init__(self, kernel: SklearnKernel, **kwarg):
                 super().__init__()
                 self._kernel = kernel(**kwarg)
-                self._name_hyper_parameters = [ p.name for p in self._kernel.hyperparameters]
+                self._name_hyper_parameters = [p.name for p in self._kernel.hyperparameters]
                 self._num_hyper_parameters = len(self._name_hyper_parameters)
-            def __call__(self, qnn: QNN, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
-                """ Evaluates the outer kernel
+
+            def __call__(
+                self, qnn: QNN, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
+            ) -> np.ndarray:
+                """Evaluates the outer kernel
 
                 Args:
                     qnn: QNN object
@@ -106,19 +112,21 @@ class OuterKernelBase:
                     y_result = None
                 # Evaluate kernel
                 return self._kernel(x_result, y_result)
+
             def get_params(self) -> dict:
-                """ Returns the hyper parameters of the outer kernel as a dictionary. """
+                """Returns the hyper parameters of the outer kernel as a dictionary."""
                 return self._kernel.get_params()
-            def set_params(self,**kwarg):
-                """ Sets the hyper parameters of the outer kernel. """
+
+            def set_params(self, **kwarg):
+                """Sets the hyper parameters of the outer kernel."""
                 self._kernel.set_params(**kwarg)
 
-        return SklearnOuterKernel(kernel,**kwarg)
+        return SklearnOuterKernel(kernel, **kwarg)
 
 
 class ProjectedQuantumKernel(KernelMatrixBase):
 
-    """ Projected Quantum Kernel
+    """Projected Quantum Kernel
 
     The projected quantum kernel embeds classical data into a quantum Hilbert space and
     than projects down into a real space by measurements. The kernel is than evaluated in the
@@ -200,7 +208,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters: np.ndarray = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters)
 
@@ -236,15 +244,17 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             if outer_kernel.lower() == "gaussian":
                 self._outer_kernel = GaussianOuterKernel(**kwargs)
             elif outer_kernel.lower() == "matern":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(Matern,**kwargs)
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(Matern, **kwargs)
             elif outer_kernel.lower() == "expsinesquared":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(ExpSineSquared,**kwargs)
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(ExpSineSquared, **kwargs)
             elif outer_kernel.lower() == "rationalquadratic":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(RationalQuadratic,**kwargs)
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(
+                    RationalQuadratic, **kwargs
+                )
             elif outer_kernel.lower() == "dotproduct":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(DotProduct,**kwargs)
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(DotProduct, **kwargs)
             elif outer_kernel.lower() == "pairwisekernel":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(PairwiseKernel,**kwargs)
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(PairwiseKernel, **kwargs)
             else:
                 raise ValueError("Unknown outer kernel: {}".format(outer_kernel))
         elif isinstance(outer_kernel, OuterKernelBase):
@@ -304,7 +314,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """Returns the hyper parameters of the outer kernel"""
         return self._outer_kernel.get_params()
 
-    def set_params(self,**kwarg):
+    def set_params(self, **kwarg):
         """Sets the hyper parameters of the outer kernel"""
         self._outer_kernel.set_params(**kwarg)
 
@@ -317,6 +327,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     def name_hyper_parameters(self) -> List[str]:
         """Returns the names of the hyper parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
+
 
 class GaussianOuterKernel(OuterKernelBase):
     """
@@ -359,12 +370,12 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = None
 
-        return RBF(length_scale = 1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
+        return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
 
     def get_params(self) -> dict:
-        """ Returns the hyper parameters of the outer kernel. """
-        return {'gamma': self._gamma}
+        """Returns the hyper parameters of the outer kernel."""
+        return {"gamma": self._gamma}
 
     def set_params(self, gamma) -> None:
-        """ Sets the hyper parameters of the outer kernel. """
+        """Sets the hyper parameters of the outer kernel."""
         self._gamma = gamma

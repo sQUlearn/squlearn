@@ -21,17 +21,18 @@ class FidelityKernel(KernelMatrixBase):
 
     Args:
         mit_depol_noise (Union[str, None]), default=None:
-            Option for mitigating depolarizing noise ('msplit' or 'mmean') after 
-            `http://arxiv.org/pdf/2105.02276v1´. Only meaningful for 
+            Option for mitigating depolarizing noise ('msplit' or 'mmean') after
+            `http://arxiv.org/pdf/2105.02276v1´. Only meaningful for
             FQKs computed on a real backend.
     """
+
     def __init__(
         self,
         feature_map: FeatureMapBase,
         executor: Executor,
         initial_parameters=None,
         evaluate_duplicates: str = "off_diagonal",
-        mit_depol_noise: Union[str, None] = None
+        mit_depol_noise: Union[str, None] = None,
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters)
 
@@ -52,12 +53,12 @@ class FidelityKernel(KernelMatrixBase):
         if self._executor.execution == "Sampler":
             fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
             if self._parameter_vector is None:
-                    # Fidelity Quantum Kernel without any parameters
-                    self._quantum_kernel = FidelityQuantumKernel(
-                        feature_map=self._fmap_circuit,
-                        fidelity=fidelity,
-                        evaluate_duplicates=self._evaluate_duplicates,
-                    )
+                # Fidelity Quantum Kernel without any parameters
+                self._quantum_kernel = FidelityQuantumKernel(
+                    feature_map=self._fmap_circuit,
+                    fidelity=fidelity,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                )
             else:
                 # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
                 self._quantum_kernel = TrainableFidelityQuantumKernel(
@@ -85,43 +86,53 @@ class FidelityKernel(KernelMatrixBase):
                 )
 
             self._quantum_kernel.assign_training_parameters(self._parameters)
-        
+
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
         if self._mit_depol_noise is not None:
             print("WARNING: Adavnced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
-                raise ValueError("Mitigating depolarizing noise works only for square matrices computed on real backend")
+                raise ValueError(
+                    "Mitigating depolarizing noise works only for square matrices computed on real backend"
+                )
             else:
-                if self._mit_depol_noise == 'msplit':
+                if self._mit_depol_noise == "msplit":
                     kernel_matrix = self._get_msplit_kernel(kernel_matrix)
-                elif self._mit_depol_noise == 'mmean':
+                elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
         return kernel_matrix
-        #return self._quantum_kernel.evaluate(x, y)
+        # return self._quantum_kernel.evaluate(x, y)
 
     ###########
-    ## Mitigating depolarizing noise after http://arxiv.org/pdf/2105.02276v1 
+    ## Mitigating depolarizing noise after http://arxiv.org/pdf/2105.02276v1
     ###########
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
         msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob = self._survival_probability(kernel)
         for i in range(kernel.shape[0]):
             for j in range(kernel.shape[1]):
-                msplit_kernel_matrix[i, j] = (kernel[i, j] - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob[i] * survival_prob[j]) ) / (survival_prob[i] * survival_prob[j])
+                msplit_kernel_matrix[i, j] = (
+                    kernel[i, j]
+                    - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob[i] * survival_prob[j])
+                ) / (survival_prob[i] * survival_prob[j])
         return msplit_kernel_matrix
 
     def _get_mmean_kernel(self, kernel: np.ndarray) -> np.ndarray:
         mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob_mean = self._survival_probability_mean(kernel)
-        mmean_kernel_matrix = (kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean ** 2) ) / survival_prob_mean ** 2
+        mmean_kernel_matrix = (
+            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean**2)
+        ) / survival_prob_mean**2
         return mmean_kernel_matrix
-    
+
     def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:
         kernel_diagonal = np.diag(kernel)
-        surv_prob = np.sqrt( (kernel_diagonal - 2 ** (-1.0 * self._num_qubits)) / (1 - 2 ** (-1.0 * self._num_qubits)) )
+        surv_prob = np.sqrt(
+            (kernel_diagonal - 2 ** (-1.0 * self._num_qubits))
+            / (1 - 2 ** (-1.0 * self._num_qubits))
+        )
         return surv_prob
-    
+
     def _survival_probability_mean(self, kernel: np.ndarray) -> float:
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)

@@ -6,5 +6,4 @@ from .qsvr import QSVR
 from .qsvc import QSVC
 
 
-
 __all__ = ["KernelMlBase", "QGPR", "QKRR", "QGPC", "QSVR", "QSVC"]

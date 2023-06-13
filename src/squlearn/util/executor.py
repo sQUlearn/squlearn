@@ -235,7 +235,7 @@ class Executor:
             self._caching = self._remote
 
         if self._caching:
-            self._cache = ExecutorCache(self._logger,cache_dir)
+            self._cache = ExecutorCache(self._logger, cache_dir)
 
         self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
         self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
@@ -502,7 +502,6 @@ class Executor:
             )
 
         if self._caching and not cached:
-
             job_pickle = copy.copy(job)
             # remove _future and _function from job since this creates massive file sizes
             # and the information is not really needed.
@@ -597,14 +596,14 @@ class Executor:
         Returns a Estimator primitive that uses the Executor for running jobs.
         Includes caching and automatic session handling.
         """
-        return ExecutorEstimator(executor=self,options=self._options_estimator)
+        return ExecutorEstimator(executor=self, options=self._options_estimator)
 
     def get_sampler(self):
         """
         Returns a Sampler primitive that uses the Executor for running jobs.
         Includes caching and automatic session handling.
         """
-        return ExecutorSampler(executor=self,options=self._options_sampler)
+        return ExecutorSampler(executor=self, options=self._options_sampler)
 
     def opflow_exec(self, opflow: OperatorBase):
         """
@@ -801,7 +800,6 @@ class ExecutorEstimator(BaseEstimator):
     """
 
     def __init__(self, executor: Executor, options=None):
-
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             options_ini = asdict(copy.deepcopy(options))
         else:
@@ -922,7 +920,6 @@ class ExecutorSampler(BaseSampler):
     """
 
     def __init__(self, executor: Executor, options=None):
-
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             options_ini = asdict(copy.deepcopy(options))
         else:
@@ -1023,7 +1020,7 @@ class ExecutorCache:
 
     """
 
-    def __init__(self,logger, folder: str = ""):
+    def __init__(self, logger, folder: str = ""):
         self._folder = folder
         # Check if folder exist, creates the folder otherwise
         try:

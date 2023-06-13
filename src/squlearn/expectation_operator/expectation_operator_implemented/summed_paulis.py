@@ -32,11 +32,12 @@ class SummedPaulis(ExpectationOperatorBase):
 
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 op_str: Union[list[str],str,tuple[str]] = "Z",
-                 full_sum: bool = True) -> None:
-
+    def __init__(
+        self,
+        num_qubits: int,
+        op_str: Union[list[str], str, tuple[str]] = "Z",
+        full_sum: bool = True,
+    ) -> None:
         super().__init__(num_qubits)
         self.op_str = op_str
         self.full_sum = full_sum

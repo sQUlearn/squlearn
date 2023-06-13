@@ -1,4 +1,3 @@
-
 import abc
 from collections import deque
 import numpy as np
@@ -24,9 +23,9 @@ class Adam(OptimizerBase, SGDMixin):
         self.num_average = options.get("num_average", 1)
         self.maxiter = options.get("maxiter", 100)
         self.maxiter_total = options.get("maxiter_total", self.maxiter)
-        self.log_file = options.get("log_file",None)
-        self.skip_fun = options.get("skip_fun",False)
-        self.eps = options.get("eps",0.01)
+        self.log_file = options.get("log_file", None)
+        self.skip_fun = options.get("skip_fun", False)
+        self.eps = options.get("eps", 0.01)
 
         self.gradient_deque = deque(maxlen=self.num_average)
         self.m = None
@@ -38,12 +37,24 @@ class Adam(OptimizerBase, SGDMixin):
         if self.log_file is not None:
             f = open(self.log_file, "w")
             if self.skip_fun is not None:
-                output = " %9s  %12s  %12s  %12s  %12s  %12s \n" % ("Iteration","f(x)","Gradient","Step","Eff. LR","LR")
+                output = " %9s  %12s  %12s  %12s  %12s  %12s \n" % (
+                    "Iteration",
+                    "f(x)",
+                    "Gradient",
+                    "Step",
+                    "Eff. LR",
+                    "LR",
+                )
             else:
-                output = " %9s  %12s  %12s  %12s  %12s \n" % ("Iteration","Gradient","Step","Eff. LR","LR")
+                output = " %9s  %12s  %12s  %12s  %12s \n" % (
+                    "Iteration",
+                    "Gradient",
+                    "Step",
+                    "Eff. LR",
+                    "LR",
+                )
             f.write(output)
             f.close()
-
 
     def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
         # set-up number of iterations of the current run (needed for restarts)
@@ -55,7 +66,7 @@ class Adam(OptimizerBase, SGDMixin):
         self.x = x_updated = x0
 
         if grad is None:
-            grad = FiniteDiffGradient(fun, eps = self.eps).gradient
+            grad = FiniteDiffGradient(fun, eps=self.eps).gradient
 
         while self.iteration < maxiter:
             # calculate the function value (TODO: make it skipable)
@@ -74,7 +85,7 @@ class Adam(OptimizerBase, SGDMixin):
                 x_updated = np.clip(x_updated, bounds[:, 0], bounds[:, 1])
 
             if self.log_file is not None:
-                self._log(fval,gradient,np.linalg.norm(self.x - x_updated))
+                self._log(fval, gradient, np.linalg.norm(self.x - x_updated))
 
             # check termination
             if np.linalg.norm(self.x - x_updated) < self.tol:
@@ -113,11 +124,7 @@ class Adam(OptimizerBase, SGDMixin):
             lr_val = self.lr
 
         if self.iteration <= 0:
-            self.lr_eff = (
-                lr_val
-                * np.sqrt(1 - self.beta_2 ** (1))
-                / (1 - self.beta_1 ** (1))
-            )
+            self.lr_eff = lr_val * np.sqrt(1 - self.beta_2 ** (1)) / (1 - self.beta_1 ** (1))
         else:
             self.lr_eff = (
                 lr_val
@@ -125,12 +132,25 @@ class Adam(OptimizerBase, SGDMixin):
                 / (1 - self.beta_1 ** (self.iteration))
             )
 
-    def _log(self,fval,gradient,dx):
+    def _log(self, fval, gradient, dx):
         if self.log_file is not None:
             f = open(self.log_file, "a")
             if fval is not None:
-                output = " %9d  %12.5f  %12.5f  %12.5f  %12.5f  %12.5f \n" % (self.iteration,fval,np.linalg.norm(gradient),dx,self.lr_eff,self.lr)
+                output = " %9d  %12.5f  %12.5f  %12.5f  %12.5f  %12.5f \n" % (
+                    self.iteration,
+                    fval,
+                    np.linalg.norm(gradient),
+                    dx,
+                    self.lr_eff,
+                    self.lr,
+                )
             else:
-                output = " %9d  %12.5f  %12.5f  %12.5f  %12.5f \n" % (self.iteration,np.linalg.norm(gradient),dx,self.lr_eff,self.lr)
+                output = " %9d  %12.5f  %12.5f  %12.5f  %12.5f \n" % (
+                    self.iteration,
+                    np.linalg.norm(gradient),
+                    dx,
+                    self.lr_eff,
+                    self.lr,
+                )
             f.write(output)
             f.close()

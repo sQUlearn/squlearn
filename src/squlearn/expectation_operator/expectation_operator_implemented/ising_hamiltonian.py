@@ -7,8 +7,8 @@ from qiskit.quantum_info import Pauli
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
-class IsingHamiltonian(ExpectationOperatorBase):
 
+class IsingHamiltonian(ExpectationOperatorBase):
     r"""
     Implementation of Ising type Hamiltonians:
 
