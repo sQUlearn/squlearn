@@ -27,8 +27,8 @@ class SummedPaulis(ExpectationOperatorBase):
         num_qubits (int): Number of qubits.
         op_str (Union[list[str],str,tuple[str]]): Pauli operator string to be measured.
             Also list or tuples of strings are allowed for multiple Pauli operators.
-        full_sum (bool): If False, the parameters are excluded from the sum.
-            (i.e. the sum is :math:`b\sum_i \hat{Z}_i` instead of :math:`\sum_i b_i \hat{Z}_i`)
+        full_sum (bool): If False, the parameters are excluded from the sum;
+            i.e. the sum is :math:`b\sum_i \hat{Z}_i` instead of :math:`\sum_i b_i \hat{Z}_i`
 
     """
 
