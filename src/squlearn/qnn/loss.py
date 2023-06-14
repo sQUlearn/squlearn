@@ -46,6 +46,37 @@ class LossBase(abc.ABC):
         """Calculates and returns the gradient value."""
         raise NotImplementedError()
 
+    def __add__(self, x):
+        """Adds two loss functions together."""
+        if not isinstance(x, LossBase):
+            raise ValueError("Only the addition with other feature maps is allowed!")
+
+        class AddedLoss(LossBase):
+            """Special class for composed loss functions."""
+
+            loss_args_tuple = tuple(set(self.loss_args_tuple + x.loss_args_tuple))
+
+            @staticmethod
+            def gradient_args_tuple(opt_param_op: bool = True) -> tuple:
+                return tuple(
+                    set(
+                        self.gradient_args_tuple(opt_param_op)
+                        + x.gradient_args_tuple(opt_param_op)
+                    )
+                )
+
+            @staticmethod
+            def value(value_dict: dict, **kwargs) -> float:
+                return self.value(value_dict, **kwargs) + x.value(value_dict, **kwargs)
+
+            @staticmethod
+            def gradient(
+                value_dict: dict, **kwargs
+            ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+                return self.gradient(value_dict, **kwargs) + x.gradient(value_dict, **kwargs)
+
+        return AddedLoss()
+
 
 class SquaredLoss(LossBase):
     """Squared loss for regression."""
