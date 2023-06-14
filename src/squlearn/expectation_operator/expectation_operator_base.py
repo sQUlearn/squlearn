@@ -27,7 +27,7 @@ class ExpectationOperatorBase:
         self._num_all_qubits = num_qubits
         self._qubit_map = np.linspace(0, num_qubits - 1, num_qubits, dtype=int)
 
-    def set_map(self, qubit_map: Union[list,dict], num_all_qubits: int):
+    def set_map(self, qubit_map: Union[list, dict], num_all_qubits: int):
         """
         Function for setting a qubit mapping (either a dictionary or a list).
 
@@ -93,6 +93,7 @@ class ExpectationOperatorBase:
         Returns:
             PauliOp: Expectation operator in qiskit's PauliOp class
         """
+
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:
             """ """
 
