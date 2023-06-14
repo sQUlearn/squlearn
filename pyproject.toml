@@ -33,7 +33,8 @@ dependencies = [
 requires-python = ">=3.9"
 
 [project.optional-dependencies]
-dev = ["pylint", "black", "pytest", "pip-tools"]
+dev = ["pylint", "black", "pytest", "sphinx", "sphinx-rtd-theme"]
+examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
 
 [project.urls]
 Homepage = "https://github.com/sQUlearn/squlearn"
