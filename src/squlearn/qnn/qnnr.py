@@ -105,7 +105,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     shuffle=self.shuffle,
                     weights=weights,
                     opt_param_op=True,
-                    variance=self.variance,
                 )
             else:
                 self.param = solve_minibatch(
@@ -121,7 +120,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     shuffle=self.shuffle,
                     weights=weights,
                     opt_param_op=False,
-                    variance=self.variance,
                 )
 
         else:
@@ -136,7 +134,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self.optimizer.minimize,
                     weights,
                     True,
-                    self.variance,
                 )
             else:
                 self.param = regression(
@@ -149,7 +146,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self.optimizer.minimize,
                     weights,
                     False,
-                    self.variance,
                 )
         self._is_fitted = True
 

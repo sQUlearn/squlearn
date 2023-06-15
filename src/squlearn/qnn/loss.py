@@ -103,13 +103,19 @@ class LossBase(abc.ABC):
             def value(self, value_dict: dict, **kwargs) -> float:
                 return self._l1.value(value_dict, **kwargs) + self._l2.value(value_dict, **kwargs)
 
-            @staticmethod
             def gradient(
                 self, value_dict: dict, **kwargs
             ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-                return self._l1.gradient(value_dict, **kwargs) + self._l2.gradient(
-                    value_dict, **kwargs
-                )
+
+                g1 = self._l1.gradient(value_dict, **kwargs)
+                g2 = self._l2.gradient(value_dict, **kwargs)
+
+                if isinstance(g1, tuple) and isinstance(g2, tuple):
+                    return tuple([g1[i] + g2[i] for i in range(len(g1))])
+                elif not isinstance(g1, tuple) and not isinstance(g2, tuple):
+                    return g1 + g2
+                else:
+                    raise ValueError("Gradient output structure types do not match!")
 
         return AddedLoss(self, x)
 

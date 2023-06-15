@@ -85,7 +85,7 @@ class BaseQNN(BaseEstimator, ABC):
 
         # If variance is set, modify loss function
         if variance is not None:
-            self.loss += VarianceLoss(alpha=variance)
+            self.loss = self.loss + VarianceLoss(alpha=variance)
 
         self.shot_adjusting = shot_adjusting
 
