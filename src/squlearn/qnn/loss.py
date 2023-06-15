@@ -11,6 +11,17 @@ class LossBase(abc.ABC):
     to be instanciated.
     """
 
+    def __init__(self):
+        self._opt_param_op = True
+
+    def set_optimize_param_op(self, opt_param_op: bool = True):
+        """Sets the optimize_param_op flag.
+
+        Args:
+            opt_param_op: True, if operator has trainable parameters
+        """
+        self._opt_param_op = opt_param_op
+
     @property
     @abc.abstractmethod
     def loss_args_tuple(self) -> tuple:
@@ -21,9 +32,9 @@ class LossBase(abc.ABC):
         """
         raise NotImplementedError()
 
-    @staticmethod
+    @property
     @abc.abstractmethod
-    def gradient_args_tuple(opt_param_op: bool = True) -> tuple:
+    def gradient_args_tuple(self) -> tuple:
         """Returns evaluation tuple for gradient calculation.
 
         Args:
@@ -34,16 +45,16 @@ class LossBase(abc.ABC):
         """
         raise NotImplementedError()
 
-    @staticmethod
     @abc.abstractmethod
-    def value(value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, **kwargs) -> float:
         """Calculates and returns the loss value."""
         raise NotImplementedError()
 
-    @staticmethod
     @abc.abstractmethod
-    def gradient(value_dict: dict, **kwargs) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-        """Calculates and returns the gradient value."""
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+        """Calculates and returns the gradient of the loss."""
         raise NotImplementedError()
 
     def __add__(self, x):
@@ -54,43 +65,77 @@ class LossBase(abc.ABC):
         class AddedLoss(LossBase):
             """Special class for composed loss functions."""
 
-            loss_args_tuple = tuple(set(self.loss_args_tuple + x.loss_args_tuple))
+            def __init__(self, l1, l2):
+                super().__init__()
+                self._l1 = l1
+                self._l2 = l2
 
-            @staticmethod
-            def gradient_args_tuple(opt_param_op: bool = True) -> tuple:
-                return tuple(
-                    set(
-                        self.gradient_args_tuple(opt_param_op)
-                        + x.gradient_args_tuple(opt_param_op)
-                    )
-                )
+            def set_optimize_param_op(self, opt_param_op: bool = True):
+                """Sets the optimize_param_op flag.
 
-            @staticmethod
-            def value(value_dict: dict, **kwargs) -> float:
-                return self.value(value_dict, **kwargs) + x.value(value_dict, **kwargs)
+                Args:
+                    opt_param_op: True, if operator has trainable parameters
+                """
+                self._l1.set_optimize_param_op(opt_param_op)
+                self._l2.set_optimize_param_op(opt_param_op)
+
+            @property
+            def loss_args_tuple(self) -> tuple:
+                """Returns evaluation tuple for loss calculation.
+
+                Returns:
+                    Evaluation tuple
+                """
+                return tuple(set(self._l1.loss_args_tuple + self._l2.loss_args_tuple))
+
+            @property
+            def gradient_args_tuple(self) -> tuple:
+                """Returns evaluation tuple for gradient calculation.
+
+                Args:
+                    opt_param_op: True, if operator has trainable parameters
+
+                Returns:
+                    Evaluation tuple
+                """
+                return tuple(set(self._l1.gradient_args_tuple + self._l2.gradient_args_tuple))
+
+            def value(self, value_dict: dict, **kwargs) -> float:
+                return self._l1.value(value_dict, **kwargs) + self._l2.value(value_dict, **kwargs)
 
             @staticmethod
             def gradient(
-                value_dict: dict, **kwargs
+                self, value_dict: dict, **kwargs
             ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-                return self.gradient(value_dict, **kwargs) + x.gradient(value_dict, **kwargs)
+                return self._l1.gradient(value_dict, **kwargs) + self._l2.gradient(
+                    value_dict, **kwargs
+                )
 
-        return AddedLoss()
+        return AddedLoss(self, x)
 
 
 class SquaredLoss(LossBase):
     """Squared loss for regression."""
 
-    loss_args_tuple = ("f",)
+    def __init__(self):
+        super().__init__()
 
-    @staticmethod
-    def gradient_args_tuple(opt_param_op: bool = True) -> tuple:
-        if opt_param_op:
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation.
+
+        Returns:
+            Evaluation tuple
+        """
+        return ("f",)
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        if self._opt_param_op:
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    @staticmethod
-    def value(value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, **kwargs) -> float:
         r"""Calculates the squared loss.
 
         This function calculates the squared loss between the values in value_dict and ground_truth
@@ -115,8 +160,9 @@ class SquaredLoss(LossBase):
             weights = np.ones_like(ground_truth)
         return np.sum(np.multiply(np.square(value_dict["f"] - ground_truth), weights))
 
-    @staticmethod
-    def gradient(value_dict: dict, **kwargs) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         r"""Returns the gradient of the squared loss.
 
         This function calculates the gradient of the squared loss between the values in value_dict
@@ -134,15 +180,16 @@ class SquaredLoss(LossBase):
         Returns:
             Gradient values
         """
+
         if "ground_truth" not in kwargs:
             raise AttributeError("SquaredLoss requires ground_truth.")
+
         ground_truth = kwargs["ground_truth"]
         if "weights" in kwargs and kwargs["weights"] is not None:
             weights = kwargs["weights"]
         else:
             weights = np.ones_like(ground_truth)
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
-        opt_param_op = "opt_param_op" in kwargs and kwargs["opt_param_op"]
 
         weighted_diff = np.multiply((value_dict["f"] - ground_truth), weights)
         if multiple_output:
@@ -151,7 +198,7 @@ class SquaredLoss(LossBase):
             d_p = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdp"])
 
         # Extra code for the cost operator derivatives
-        if not opt_param_op:
+        if not self._opt_param_op:
             return d_p
 
         if multiple_output:
@@ -164,77 +211,85 @@ class SquaredLoss(LossBase):
 class VarianceLoss(LossBase):
     """Variance loss for regression."""
 
-    loss_args_tuple = ("var",)
+    def __init__(self, alpha=0.005):
+        super().__init__()
+        self._alpha = alpha
 
-    @staticmethod
-    def gradient_args_tuple(opt_param_op: bool = True) -> tuple:
-        if opt_param_op:
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation.
+
+        Returns:
+            Evaluation tuple
+        """
+        return ("var",)
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        if self._opt_param_op:
             return ("var", "dvardp", "dvardop")
         return ("var", "dvardp")
 
-    @staticmethod
-    def value(value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, **kwargs) -> float:
         r"""Returns the variance.
 
         This function returns the weighted variance as
         .. math::
-            \lambda \sum_i \var_i
+            L_\text{var} = \alpha \sum_i \var_i
 
         Args:
             value_dict: Contains calculated values of the model
-            variance_factor: multiplier lambda
-            iteration: iteration number, if variance_factor is a function
+            iteration: iteration number, if alpha is a callable function
 
         Returns:
             Loss value
         """
-        if "variance_factor" not in kwargs:
-            raise AttributeError("VarianceLoss requires variance_factor.")
-        variance_factor = kwargs["variance_factor"]
-        if callable(variance_factor):
-            if "iteration" not in kwargs:
-                raise AttributeError("If variance_facrot is callable, iteration is required.")
-            variance_factor = variance_factor(kwargs["iteration"])
-        return variance_factor * np.sum(value_dict["var"])
 
-    @staticmethod
-    def gradient(value_dict: dict, **kwargs) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+        if callable(self._alpha):
+            if "iteration" not in kwargs:
+                raise AttributeError("If alpha is callable, iteration is required.")
+            alpha = self._alpha(kwargs["iteration"])
+        else:
+            alpha = self._alpha
+
+        return alpha * np.sum(value_dict["var"])
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """Returns the gradient of the variance.
 
         This function calculates the gradient of the variance values in value_dict.
 
         Args:
             value_dict: Contains calculated values of the model
-            variance_factor: multiplier lambda
             iteration: iteration number, if variance_factor is a function
             multiple_output: True if the qnn has multiple outputs
-            opt_param_op: True if qnns operators have learnable parameters
 
         Returns:
             Gradient values
         """
-        if "variance_factor" not in kwargs:
-            raise AttributeError("VarianceLoss requires variance_factor.")
-        variance_factor = kwargs["variance_factor"]
-        if callable(variance_factor):
+        if callable(self._alpha):
             if "iteration" not in kwargs:
-                raise AttributeError("If variance_facrot is callable, iteration is required.")
-            variance_factor = variance_factor(kwargs["iteration"])
+                raise AttributeError("If alpha is callable, iteration is required.")
+            alpha = self._alpha(kwargs["iteration"])
+        else:
+            alpha = self._alpha
+
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
-        opt_param_op = "opt_param_op" in kwargs and kwargs["opt_param_op"]
 
         if multiple_output:
-            d_p = variance_factor * np.sum(value_dict["dvardp"], axis=(0, 1))
+            d_p = alpha * np.sum(value_dict["dvardp"], axis=(0, 1))
         else:
-            d_p = variance_factor * np.sum(value_dict["dvardp"], axis=0)
+            d_p = alpha * np.sum(value_dict["dvardp"], axis=0)
 
         # Extra code for the cost operator derivatives
-        if not opt_param_op:
+        if not self._opt_param_op:
             return d_p
 
         if multiple_output:
-            d_op = variance_factor * np.sum(value_dict["dvardop"], axis=(0, 1))
+            d_op = alpha * np.sum(value_dict["dvardop"], axis=(0, 1))
         else:
-            d_op = variance_factor * np.sum(value_dict["dvardop"], axis=0)
+            d_op = alpha * np.sum(value_dict["dvardop"], axis=0)
 
         return d_p, d_op
