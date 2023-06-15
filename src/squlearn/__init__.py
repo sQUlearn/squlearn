@@ -1,5 +1,6 @@
 """A library for quantum machine learning following the sklearn standard."""
 from .util import Executor
+from . import expectation_operator, feature_map, kernel, optimizers, qnn, util
 
 __version__ = "0.1.0"
 
