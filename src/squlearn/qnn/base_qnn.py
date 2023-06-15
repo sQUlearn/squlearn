@@ -82,15 +82,11 @@ class BaseQNN(BaseEstimator, ABC):
         self.shuffle = shuffle
 
         self.opt_param_op = opt_param_op
-        if loss == VarianceLoss or (isinstance(loss, list) and VarianceLoss in loss):
-            if variance is None:
-                self.variance = 1.0
-            else:
-                self.variance = variance
-        else:
-            if variance is not None:
-                warn("If loss isn't or doesn't contain VarianceLoss, variance will be ignored.")
-            self.variance = None
+
+        # If variance is set, modify loss function
+        if variance is not None:
+            self.loss += VarianceLoss(alpha=variance)
+
         self.shot_adjusting = shot_adjusting
 
         self.executor = executor
