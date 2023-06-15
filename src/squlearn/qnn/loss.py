@@ -58,67 +58,256 @@ class LossBase(abc.ABC):
         raise NotImplementedError()
 
     def __add__(self, x):
-        """Adds two loss functions together."""
+        """Adds two loss functions."""
+        if isinstance(x, LossBase):
+            return _ComposedLoss(self, x, "+")
+        if isinstance(x, float) or isinstance(x, int):
+            return _ComposedLoss(self, ConstantLoss(x), "+")
+        # TODO: implement CONSTANT LOSS
+        # TODO: IMPLEMENT CORRECT DIFFERENTIATION RULES FOR MULT AND /
+        
         if not isinstance(x, LossBase):
-            raise ValueError("Only the addition with other feature maps is allowed!")
+            raise ValueError("Only the addition with another loss functions are allowed!")
 
-        class AddedLoss(LossBase):
-            """Special class for composed loss functions."""
+        
 
-            def __init__(self, l1, l2):
-                super().__init__()
-                self._l1 = l1
-                self._l2 = l2
+    def __mul__(self, x):
+        """Multiplies two loss functions."""
+        if not isinstance(x, LossBase):
+            raise ValueError("Only the multiplication with another loss functions are allowed!")
 
-            def set_optimize_param_op(self, opt_param_op: bool = True):
-                """Sets the optimize_param_op flag.
+        return _ComposedLoss(self, x, "+")
 
-                Args:
-                    opt_param_op: True, if operator has trainable parameters
-                """
-                self._l1.set_optimize_param_op(opt_param_op)
-                self._l2.set_optimize_param_op(opt_param_op)
+    def __sub__(self, x):
+        """Subtracts two loss functions."""
+        if not isinstance(x, LossBase):
+            raise ValueError("Only the subtraction with another loss functions are allowed!")
 
-            @property
-            def loss_args_tuple(self) -> tuple:
-                """Returns evaluation tuple for loss calculation.
+        return _ComposedLoss(self, x, "-")
 
-                Returns:
-                    Evaluation tuple
-                """
-                return tuple(set(self._l1.loss_args_tuple + self._l2.loss_args_tuple))
+    def __div__(self, x):
+        """Divides two loss functions."""
+        if not isinstance(x, LossBase):
+            raise ValueError("Only the division with another loss functions are allowed!")
 
-            @property
-            def gradient_args_tuple(self) -> tuple:
-                """Returns evaluation tuple for gradient calculation.
+        return _ComposedLoss(self, x, "/")
 
-                Args:
-                    opt_param_op: True, if operator has trainable parameters
+class _ComposedLoss(LossBase):
+    """Special class for composed loss functions
 
-                Returns:
-                    Evaluation tuple
-                """
-                return tuple(set(self._l1.gradient_args_tuple + self._l2.gradient_args_tuple))
+    Class for addition, multiplication, subtraction, and division of loss functions.
 
-            def value(self, value_dict: dict, **kwargs) -> float:
-                return self._l1.value(value_dict, **kwargs) + self._l2.value(value_dict, **kwargs)
+    """
 
-            def gradient(
-                self, value_dict: dict, **kwargs
-            ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    def __init__(self, l1, l2, composition: str = "+"):
+        super().__init__()
+        self._l1 = l1
+        self._l2 = l2
+        self._composition = composition
 
-                g1 = self._l1.gradient(value_dict, **kwargs)
-                g2 = self._l2.gradient(value_dict, **kwargs)
+    def set_optimize_param_op(self, opt_param_op: bool = True):
+        """Sets the optimize_param_op flag.
 
-                if isinstance(g1, tuple) and isinstance(g2, tuple):
-                    return tuple([g1[i] + g2[i] for i in range(len(g1))])
-                elif not isinstance(g1, tuple) and not isinstance(g2, tuple):
-                    return g1 + g2
+        Args:
+            opt_param_op: True, if operator has trainable parameters
+        """
+        self._l1.set_optimize_param_op(opt_param_op)
+        self._l2.set_optimize_param_op(opt_param_op)
+
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation.
+
+        Returns:
+            Evaluation tuple
+        """
+        return tuple(set(self._l1.loss_args_tuple + self._l2.loss_args_tuple))
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for gradient calculation.
+
+        Args:
+            opt_param_op: True, if operator has trainable parameters
+
+        Returns:
+            Evaluation tuple
+        """
+        return tuple(set(self._l1.gradient_args_tuple + self._l2.gradient_args_tuple))
+
+    def value(self, value_dict: dict, **kwargs) -> float:
+        """Calculates and returns the loss value."""
+
+        value_l1 = self._l1.value(value_dict, **kwargs)
+        value_l2 = self._l2.value(value_dict, **kwargs)
+
+        if self._composition == "*":
+            return value_l1 * value_l2
+        elif self._composition == "/":
+            return value_l1 / value_l2
+        elif self._composition == "+":
+            return value_l1 + value_l2
+        elif self._composition == "-":
+            return value_l1 - value_l2
+        else:
+            raise ValueError("Unknown composition: ", self._composition)
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+
+        grad_l1 = self._l1.gradient(value_dict, **kwargs)
+        grad_l2 = self._l2.gradient(value_dict, **kwargs)
+
+        if isinstance(grad_l1, tuple) and isinstance(grad_l2, tuple):
+            if self._composition == "*":
+                return tuple([np.multiply(grad_l1[i], grad_l2[i]) for i in range(len(grad_l1))])
+            elif self._composition == "/":
+                return tuple([np.divide(grad_l1[i], grad_l2[i]) for i in range(len(grad_l1))])
+            elif self._composition == "+":
+                return tuple([np.add(grad_l1[i], grad_l2[i]) for i in range(len(grad_l1))])
+            elif self._composition == "-":
+                return tuple([np.subtract(grad_l1[i], grad_l2[i]) for i in range(len(grad_l1))])
+            else:
+                raise ValueError("Unknown composition: ", self._composition)
+
+        elif not isinstance(grad_l1, tuple) and not isinstance(grad_l2, tuple):
+            if self._composition == "*":
+                return np.multiply(grad_l1, grad_l2)
+            elif self._composition == "/":
+                return np.divide(grad_l1, grad_l2)
+            elif self._composition == "+":
+                return np.add(grad_l1, grad_l2)
+            elif self._composition == "-":
+                return np.subtract(grad_l1, grad_l2)
+            else:
+                raise ValueError("Unknown composition: ", self._composition)
+
+        else:
+            raise ValueError("Gradient output structure types do not match!")
+
+
+class _ComposedLossWithFloat(LossBase):
+    """Special class for composed loss functions
+
+    Class for addition, multiplication, subtraction, and division of loss functions.
+
+    """
+
+    def __init__(self, loss:LossBase, f:float, composition: str = "+", ordering: str ="l"):
+        super().__init__()
+        self._loss = loss
+        self._f = f
+        self._composition = composition
+        self._ordering = ordering
+
+    def set_optimize_param_op(self, opt_param_op: bool = True):
+        """Sets the optimize_param_op flag.
+
+        Args:
+            opt_param_op: True, if operator has trainable parameters
+        """
+        self._loss.set_optimize_param_op(opt_param_op)
+
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation.
+
+        Returns:
+            Evaluation tuple
+        """
+        return self._loss.loss_args_tuple
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for gradient calculation.
+
+        Args:
+            opt_param_op: True, if operator has trainable parameters
+
+        Returns:
+            Evaluation tuple
+        """
+        return self._loss.gradient_args_tuple
+
+    def value(self, value_dict: dict, **kwargs) -> float:
+        """Calculates and returns the loss value."""
+
+        value_loss = self._loss.value(value_dict, **kwargs)
+
+        if self._composition == "*":
+            return value_loss * self._f
+        elif self._composition == "/":
+            if self._ordering == "l":
+                return self._f / value_loss
+            elif self._ordering == "r":
+                return value_loss / self._f
+            else:
+                raise ValueError("Unknown ordering: ", self._ordering)
+        elif self._composition == "+":
+            return value_loss + self._f
+        elif self._composition == "-":
+            if self._ordering == "l":
+                return self._f - value_loss
+            elif self._ordering == "r":
+                return value_loss - self._f
+            else:
+                raise ValueError("Unknown ordering: ", self._ordering)
+        else:
+            raise ValueError("Unknown composition: ", self._composition)
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+
+        grad_loss = self._loss.gradient(value_dict, **kwargs)
+
+
+        if isinstance(grad_loss, tuple):
+
+            if self._composition == "*":
+                return tuple([grad_loss[i]*self._f for i in range(len(grad_loss))])
+            elif self._composition == "/":
+                if self._ordering == "l":
+                    return tuple([self._f/grad_loss[i] for i in range(len(grad_loss))])
+                elif self._ordering == "r":
+                    return tuple([grad_loss[i]/self._f for i in range(len(grad_loss))])
                 else:
-                    raise ValueError("Gradient output structure types do not match!")
+                    raise ValueError("Unknown ordering: ", self._ordering)
+            elif self._composition == "+":
+                return grad_loss
+            elif self._composition == "-":
+                if self._ordering == "l":
+                    return tuple([-grad_loss[i] for i in range(len(grad_loss))])
+                elif self._ordering == "r":
+                    return grad_loss
+                else:
+                    raise ValueError("Unknown ordering: ", self._ordering)
+            else:
+                raise ValueError("Unknown composition: ", self._composition)
 
-        return AddedLoss(self, x)
+        else:
 
+            if self._composition == "*":
+                return grad_loss*self._f
+            elif self._composition == "/":
+                if self._ordering == "l":
+                    return self._f/grad_loss
+                elif self._ordering == "r":
+                    return grad_loss/self._f
+                else:
+                    raise ValueError("Unknown ordering: ", self._ordering)
+            elif self._composition == "+":
+                return grad_loss
+            elif self._composition == "-":
+                if self._ordering == "l":
+                    return -grad_loss
+                elif self._ordering == "r":
+                    return grad_loss
+                else:
+                    raise ValueError("Unknown ordering: ", self._ordering)
+            else:
+                raise ValueError("Unknown composition: ", self._composition)
 
 class SquaredLoss(LossBase):
     """Squared loss for regression."""
