@@ -10,16 +10,15 @@ from qiskit.utils import QuantumInstance
 from typing import Union
 import numpy as np
 
-from ..expectation_operator import (
-    ExpectationOperatorBase,
-    ExpectationOperatorDerivatives,
-)
-from ..feature_map import (
-    FeatureMapBase,
+from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..expectation_operator.expectation_operator_derivatives import ExpectationOperatorDerivatives
+
+from ..feature_map.feature_map_base import FeatureMapBase
+from ..feature_map.feature_map_derivatives import (
     FeatureMapDerivatives,
     measure_feature_map_derivative,
-    TranspiledFeatureMap,
 )
+from ..feature_map.transpiled_feature_map import TranspiledFeatureMap
 
 from ..util.data_preprocessing import adjust_input
 

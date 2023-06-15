@@ -1,17 +1,12 @@
-from .optimizer_base import OptimizerResult, OptimizerBase, IterativeOptimizerMixin, SGDMixin
+"""Module for optimizer implementations and wrappers."""
 from .adam import Adam
 from .optimizers_wrapper import SLSQP, SPSA, LBFGSB
-from .approximated_gradients import ApproxGradientBase, FiniteDiffGradient
+from .approximated_gradients import FiniteDiffGradient
 
 __all__ = [
-    "OptimizerResult",
-    "OptimizerBase",
-    "IterativeOptimizerMixin",
-    "SGDMixin",
     "Adam",
     "SLSQP",
     "SPSA",
     "LBFGSB",
-    "ApproxGradientBase",
     "FiniteDiffGradient",
 ]

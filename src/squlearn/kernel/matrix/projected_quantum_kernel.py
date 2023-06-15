@@ -19,7 +19,8 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util import Executor
 from ...qnn.qnn import QNN
-from ...expectation_operator import SinglePauli, ExpectationOperatorBase
+from ...expectation_operator import SinglePauli
+from ...expectation_operator.expectation_operator_base import ExpectationOperatorBase
 
 
 class OuterKernelBase:

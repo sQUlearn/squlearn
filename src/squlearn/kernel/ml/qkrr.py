@@ -1,5 +1,5 @@
 """Quantum Kernel Ridge Regressor"""
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 import scipy
 import numpy as np

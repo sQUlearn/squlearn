@@ -6,17 +6,13 @@ import numpy as np
 from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
 
-from squlearn.expectation_operator import ExpectationOperatorBase
-from squlearn.feature_map import FeatureMapBase
-from squlearn.optimizers import OptimizerBase, SGDMixin
-
 from .base_qnn import BaseQNN
 from .loss import LossBase
 from .training import solve_minibatch, regression
 
-from ..expectation_operator import ExpectationOperatorBase
-from ..feature_map import FeatureMapBase
-from ..optimizers import OptimizerBase
+from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..feature_map.feature_map_base import FeatureMapBase
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 

@@ -1,4 +1,4 @@
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 from .helper_functions import stack_input
 from .kernel_util import regularize_full_kernel, tikhonov_regularization
 

@@ -6,9 +6,9 @@ from abc import abstractmethod, ABC
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator import ExpectationOperatorBase
-from ..feature_map import FeatureMapBase
-from ..optimizers import OptimizerBase, SGDMixin
+from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..feature_map.feature_map_base import FeatureMapBase
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase, VarianceLoss

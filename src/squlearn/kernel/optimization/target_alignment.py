@@ -3,7 +3,7 @@ import numpy as np
 from typing import Sequence
 from sklearn.preprocessing._data import _handle_zeros_in_scale
 from .kernel_loss_base import KernelLossBase
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class TargetAlignment(KernelLossBase):
