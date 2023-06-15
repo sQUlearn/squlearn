@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 from .kernel_optimization_base import KernelOptimizerBase
 from .kernel_loss_base import KernelLossBase
 from ..ml.helper_functions import stack_input
-from ...optimizers import OptimizerBase
+from ...optimizers.optimizer_base import OptimizerBase
 
 
 class KernelOptimizer(KernelOptimizerBase):
