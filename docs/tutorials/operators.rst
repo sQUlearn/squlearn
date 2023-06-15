@@ -14,12 +14,12 @@ The following operators are available and implemented as standalone classes:
  * :class:`~squlearn.expectation_operator.IsingHamiltonian`: This operator provides a structure for several Ising Hamiltonians.
  * :class:`~squlearn.expectation_operator.CustomExpectationOperator`: This class can be used to implement custom expectation operators from strings.
 
-All operators follow the structure of the base class :class:`~squlearn.expectation_operator.ExpectationOperatorBase` class:
+All operators follow the structure of the base class :class:`~squlearn.expectation_operator.expectation_operator_base.ExpectationOperatorBase` class:
 
-.. autoclass:: squlearn.expectation_operator.ExpectationOperatorBase
+.. autoclass:: squlearn.expectation_operator.expectation_operator_base.ExpectationOperatorBase
   :members:
 
-Derivatives of the expectation value with respect to the parameters can be calculated using the :class:`~squlearn.expectation_operator.ExpectationOperatorDerivatives` class.
+Derivatives of the expectation value with respect to the parameters can be calculated using the :class:`~squlearn.expectation_operator.expectaion_operator_derivatives.ExpectationOperatorDerivatives` class.
 
 
 Example

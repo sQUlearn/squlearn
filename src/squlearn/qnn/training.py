@@ -6,7 +6,7 @@ from typing import Union
 
 from .loss import LossBase
 from .qnn import QNN
-from ..optimizers import OptimizerBase, SGDMixin
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 
 
 def get_variance_fac(v, a, b, offset=0):

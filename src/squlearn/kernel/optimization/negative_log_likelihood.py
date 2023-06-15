@@ -3,7 +3,7 @@ import numpy as np
 
 from typing import Sequence
 from .kernel_loss_base import KernelLossBase
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class NLL(KernelLossBase):
