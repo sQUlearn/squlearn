@@ -44,6 +44,7 @@ line-length=99
 
 [tool.pylint]
 max-line-length=99
+good-names=["X", "y", "i", "j"]
 
 [tool.pytest.ini_options]
 addopts = [
