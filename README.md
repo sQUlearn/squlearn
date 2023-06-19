@@ -83,6 +83,6 @@ We use the Git Flow branch structure specified [here](https://www.atlassian.com/
 ## Imprint
 This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA. It started as a collection of implementations of quantum machine learning methods.
 
-https://www.ipa.fraunhofer.de/en/expertise/cyber-cognitive-intelligence-cci/quantencomputing.html
+http://www.ipa.fraunhofer.de/quantum
 
 ---
