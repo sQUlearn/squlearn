@@ -11,7 +11,7 @@ from ..feature_map.feature_map_base import FeatureMapBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
-from .loss import LossBase, VarianceLoss
+from .loss import LossBase
 from .qnn import QNN
 from .training import shot_adjusting_options
 
@@ -56,6 +56,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
+        self.variance = variance
 
         if param_ini is None:
             # Todo: Set seed
@@ -82,10 +83,6 @@ class BaseQNN(BaseEstimator, ABC):
         self.shuffle = shuffle
 
         self.opt_param_op = opt_param_op
-
-        # If variance is set, modify loss function
-        if variance is not None:
-            self.loss = self.loss + VarianceLoss(alpha=variance)
 
         self.shot_adjusting = shot_adjusting
 
