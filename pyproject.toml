@@ -1,17 +1,19 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "squlearn"
-version = "0.1.0"
-description = "A library for quantum machine learning following the sklearn standard."
 readme = "README.md"
 authors = [
     {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
     {name = "Frederic Rapp", email = "frederic.rapp@ipa.fraunhofer.de"},
     {name = "Marco Roth", email = "marco.roth@ipa.fraunhofer.de"},
     {name = "Jan Schnabel", email = "jan.schnabel@ipa.fraunhofer.de"},
+    {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
+]
+maintainers = [
+    {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
     {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
 ]
 license = {file = "LICENSE.txt"}
@@ -31,9 +33,10 @@ dependencies = [
     "dill>=0.3",
 ]
 requires-python = ">=3.9"
+dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-dev = ["pylint", "black", "pytest", "sphinx", "sphinx-rtd-theme"]
+dev = ["pylint", "black", "pytest", "sphinx", "sphinx-rtd-theme", "flit"]
 examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
 
 [project.urls]
