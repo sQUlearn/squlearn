@@ -7,6 +7,9 @@ from functools import partial
 import numpy as np
 import time
 
+from qiskit.primitives import Estimator as Estimator_primitive
+from qiskit.primitives import BackendEstimator as BackendEstimator_primitive
+
 
 def evaluate_opflow_qi_slow(QuantumInstance, opflow):
     Sampler = CircuitSampler(QuantumInstance, caching="last")
@@ -155,12 +158,31 @@ def evaluate_opflow_estimator(estimator, opflow):
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
         job_result = job.result()
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(estimator, Estimator_primitive) or isinstance(
+            estimator, BackendEstimator_primitive
+        ):
+            estimator._circuits = []
+            estimator._observables = []
+            estimator._parameters = []
+            estimator._circuit_ids = {}
+
     except:
         # second try
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
         job_result = job.result()
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(estimator, Estimator_primitive) or isinstance(
+            estimator, BackendEstimator_primitive
+        ):
+            estimator._circuits = []
+            estimator._observables = []
+            estimator._parameters = []
+            estimator._circuit_ids = {}
 
     sampled_statefn_dicts = {}
 
