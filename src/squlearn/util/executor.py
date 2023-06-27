@@ -319,6 +319,17 @@ class Executor:
 
         return estimator
 
+    def clear_estimator_cache(self):
+        if self._estimator is not None:
+            if isinstance(self._estimator, qiskit_primitives_Estimator) or isinstance(
+                self._estimator, qiskit_primitives_BackendEstimator
+            ):
+                self._estimator._circuits = []
+                self._estimator._observables = []
+                self._estimator._parameters = []
+                self._estimator._circuit_ids = {}
+
+
     @property
     def sampler(self):
         """Returns the sampler primitive that is used for the execution.
@@ -895,6 +906,9 @@ class ExecutorEstimator(BaseEstimator):
             options
         """
         return self._executor.estimator.options
+
+    def clear_cache(self):
+        self._executor.clear_estimator_cache()
 
     def set_options(self, **fields):
         """Set options values for the estimator.
