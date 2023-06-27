@@ -29,7 +29,7 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 
-from .evaluate_opflow import evaluate_opflow_qi,evaluate_opflow_estimator,evaluate_opflow_sampler
+from .evaluate_opflow import evaluate_opflow_qi, evaluate_opflow_estimator, evaluate_opflow_sampler
 
 
 class Executor:
@@ -1037,6 +1037,7 @@ class ExecutorSampler(BaseSampler):
 
     def clear_cache(self):
         self._executor.clear_sampler_cache()
+
 
 class ExecutorCache:
     """Cache for jobs that are created by Primitives

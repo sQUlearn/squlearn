@@ -109,7 +109,6 @@ def evaluate_opflow_qi(QuantumInstance, opflow, mitigation_func=None):
 
 
 def evaluate_opflow_estimator(estimator, opflow):
-
     from .executor import ExecutorEstimator
 
     # build a list of circuits which have to be executed
@@ -159,7 +158,6 @@ def evaluate_opflow_estimator(estimator, opflow):
     build_CircuitStateFn_list(opflow)
 
     try:
-
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
@@ -179,7 +177,6 @@ def evaluate_opflow_estimator(estimator, opflow):
             estimator.clear_cache()
 
     except:
-
         # second try
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
@@ -198,7 +195,6 @@ def evaluate_opflow_estimator(estimator, opflow):
 
         elif isinstance(estimator, ExecutorEstimator):
             estimator.clear_cache()
-
 
     sampled_statefn_dicts = {}
 
@@ -233,7 +229,6 @@ def evaluate_opflow_estimator(estimator, opflow):
 
 
 def evaluate_opflow_sampler(sampler, opflow):
-
     from .executor import ExecutorSampler
 
     # build a list of circuits which have to be executed
@@ -294,7 +289,6 @@ def evaluate_opflow_sampler(sampler, opflow):
 
         elif isinstance(sampler, ExecutorSampler):
             sampler.clear_cache()
-
 
     # build StateFns from the results (copied from qiskit source code)
     sampled_statefn_dicts = {}
