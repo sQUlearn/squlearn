@@ -7,6 +7,11 @@ from functools import partial
 import numpy as np
 import time
 
+from qiskit.primitives import Estimator as qiskit_primitives_Estimator
+from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
+from qiskit.primitives import Sampler as qiskit_primitives_Sampler
+from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
+
 
 def evaluate_opflow_qi_slow(QuantumInstance, opflow):
     Sampler = CircuitSampler(QuantumInstance, caching="last")
@@ -104,6 +109,8 @@ def evaluate_opflow_qi(QuantumInstance, opflow, mitigation_func=None):
 
 
 def evaluate_opflow_estimator(estimator, opflow):
+    from .executor import ExecutorEstimator
+
     # build a list of circuits which have to be executed
     circuit_list = []
     measure_list = []
@@ -155,12 +162,39 @@ def evaluate_opflow_estimator(estimator, opflow):
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
         job_result = job.result()
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(estimator, qiskit_primitives_Estimator) or isinstance(
+            estimator, qiskit_primitives_BackendEstimator
+        ):
+            estimator._circuits = []
+            estimator._observables = []
+            estimator._parameters = []
+            estimator._circuit_ids = {}
+            estimator._observable_ids = {}
+
+        elif isinstance(estimator, ExecutorEstimator):
+            estimator.clear_cache()
+
     except:
         # second try
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
         job_result = job.result()
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(estimator, qiskit_primitives_Estimator) or isinstance(
+            estimator, qiskit_primitives_BackendEstimator
+        ):
+            estimator._circuits = []
+            estimator._observables = []
+            estimator._parameters = []
+            estimator._circuit_ids = {}
+            estimator._observable_ids = {}
+
+        elif isinstance(estimator, ExecutorEstimator):
+            estimator.clear_cache()
 
     sampled_statefn_dicts = {}
 
@@ -195,6 +229,8 @@ def evaluate_opflow_estimator(estimator, opflow):
 
 
 def evaluate_opflow_sampler(sampler, opflow):
+    from .executor import ExecutorSampler
+
     # build a list of circuits which have to be executed
     circuit_list = []
 
@@ -224,13 +260,35 @@ def evaluate_opflow_sampler(sampler, opflow):
         start = time.time()
         job = sampler.run(circuit_list)
         results = job.result()
-        # print("exec:", time.time() - start)
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(sampler, qiskit_primitives_Sampler) or isinstance(
+            sampler, qiskit_primitives_BackendSampler
+        ):
+            sampler._circuits = []
+            sampler._parameters = []
+            sampler._circuit_ids = {}
+            sampler._qargs_list = []
+
+        elif isinstance(sampler, ExecutorSampler):
+            sampler.clear_cache()
+
     except:
-        # second try
         start = time.time()
         job = sampler.run(circuit_list)
         results = job.result()
-        # print("exec:", time.time() - start)
+
+        # Clear cache of estimator, otherwise memory leak
+        if isinstance(sampler, qiskit_primitives_Sampler) or isinstance(
+            sampler, qiskit_primitives_BackendSampler
+        ):
+            sampler._circuits = []
+            sampler._parameters = []
+            sampler._circuit_ids = {}
+            sampler._qargs_list = []
+
+        elif isinstance(sampler, ExecutorSampler):
+            sampler.clear_cache()
 
     # build StateFns from the results (copied from qiskit source code)
     sampled_statefn_dicts = {}
