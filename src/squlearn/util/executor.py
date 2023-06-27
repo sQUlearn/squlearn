@@ -7,7 +7,7 @@ from hashlib import blake2b
 from typing import Any, Union
 import traceback
 from dataclasses import asdict
-
+import time
 import dill as pickle
 
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
@@ -29,7 +29,7 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 
-from .evaluate_opflow import *
+from .evaluate_opflow import evaluate_opflow_qi,evaluate_opflow_estimator,evaluate_opflow_sampler
 
 
 class Executor:
@@ -328,7 +328,7 @@ class Executor:
                 self._estimator._observables = []
                 self._estimator._parameters = []
                 self._estimator._circuit_ids = {}
-
+                self._estimator._observable_ids = {}
 
     @property
     def sampler(self):

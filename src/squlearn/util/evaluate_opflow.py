@@ -10,8 +10,6 @@ import time
 from qiskit.primitives import Estimator as Estimator_primitive
 from qiskit.primitives import BackendEstimator as BackendEstimator_primitive
 
-from executor import ExecutorEstimator
-
 
 def evaluate_opflow_qi_slow(QuantumInstance, opflow):
     Sampler = CircuitSampler(QuantumInstance, caching="last")
@@ -109,6 +107,9 @@ def evaluate_opflow_qi(QuantumInstance, opflow, mitigation_func=None):
 
 
 def evaluate_opflow_estimator(estimator, opflow):
+
+    from .executor import ExecutorEstimator
+
     # build a list of circuits which have to be executed
     circuit_list = []
     measure_list = []
@@ -156,6 +157,7 @@ def evaluate_opflow_estimator(estimator, opflow):
     build_CircuitStateFn_list(opflow)
 
     try:
+
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
         # print("exec:", time.time() - start)
@@ -169,10 +171,13 @@ def evaluate_opflow_estimator(estimator, opflow):
             estimator._observables = []
             estimator._parameters = []
             estimator._circuit_ids = {}
+            estimator._observable_ids = {}
+
         elif isinstance(estimator, ExecutorEstimator):
             estimator.clear_cache()
 
     except:
+
         # second try
         start = time.time()
         job = estimator.run(circuit_list, measure_list)
@@ -187,6 +192,8 @@ def evaluate_opflow_estimator(estimator, opflow):
             estimator._observables = []
             estimator._parameters = []
             estimator._circuit_ids = {}
+            estimator._observable_ids = {}
+
         elif isinstance(estimator, ExecutorEstimator):
             estimator.clear_cache()
 
