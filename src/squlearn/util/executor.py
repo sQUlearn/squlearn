@@ -379,6 +379,16 @@ class Executor:
 
         return sampler
 
+    def clear_sampler_cache(self):
+        if self._sampler is not None:
+            if isinstance(self._sampler, qiskit_primitives_Sampler) or isinstance(
+                self._sampler, qiskit_primitives_BackendSampler
+            ):
+                self._sampler._circuits = []
+                self._sampler._parameters = []
+                self._sampler._circuit_ids = {}
+                self._sampler._qargs_list = []
+
     @property
     def quantum_instance(self):
         """Returns the quantum instance that is used for the execution.
@@ -1025,6 +1035,8 @@ class ExecutorSampler(BaseSampler):
         self._executor.sampler.set_options(**fields)
         self._executor._options_sampler = self._executor.sampler.options
 
+    def clear_cache(self):
+        self._executor.clear_sampler_cache()
 
 class ExecutorCache:
     """Cache for jobs that are created by Primitives
