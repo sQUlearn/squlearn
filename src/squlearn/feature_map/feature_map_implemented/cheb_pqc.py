@@ -9,7 +9,7 @@ from ..feature_map_base import FeatureMapBase
 
 class ChebPQC(FeatureMapBase):
     """
-    Chebychev Feature Map from Reference https://arxiv.org/abs/2306.01639
+    Chebyshev Feature Map from Reference https://arxiv.org/abs/2306.01639
 
     The feature map consists of three elements:
 
@@ -138,9 +138,9 @@ class ChebPQC(FeatureMapBase):
         return QC
 
     @property
-    def chebychev_indices(self):
+    def chebyshev_indices(self):
         """
-        A nested list of the indices of the parameters involved in the Chebychev encoding.
+        A nested list of the indices of the parameters involved in the Chebyshev encoding.
         The outer list represents the layers of the feature map.
         """
         cheb_index = []
