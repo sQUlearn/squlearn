@@ -70,7 +70,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     def predict(self, X_test, return_std=True, return_cov=False):
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
-        
+
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
 
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)

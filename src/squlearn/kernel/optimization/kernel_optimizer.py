@@ -22,7 +22,6 @@ class KernelOptimizer(KernelOptimizerBase):
         self._optimal_parameters = None
 
     def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
-        
         num_params = self._quantum_kernel.num_parameters
         if num_params == 0:
             raise ValueError(

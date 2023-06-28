@@ -68,7 +68,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     def predict(self, x_test: np.ndarray) -> np.ndarray:
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
-        
+
         self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction

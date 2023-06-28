@@ -11,8 +11,11 @@ class TargetAlignment(KernelLossBase):
         self._sigma = sigma
 
     def compute(
-        self, parameter_values: Sequence[float], data: np.ndarray, labels: np.ndarray,
-        rescale_class_labels=True
+        self,
+        parameter_values: Sequence[float],
+        data: np.ndarray,
+        labels: np.ndarray,
+        rescale_class_labels=True,
     ) -> float:
         # Bind training parameters
         self._quantum_kernel.assign_parameters(parameter_values)
@@ -25,7 +28,7 @@ class TargetAlignment(KernelLossBase):
             _Y = np.array([y / nplus if y == 1 else y / nminus for y in labels])
         else:
             _Y = np.array(labels)
-        
+
         T = np.outer(_Y, _Y)
         inner_product = np.sum(kmatrix * T)
         norm = np.sqrt(np.sum(kmatrix * kmatrix) * np.sum(T * T))
