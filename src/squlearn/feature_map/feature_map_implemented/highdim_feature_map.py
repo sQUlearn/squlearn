@@ -152,7 +152,7 @@ class HighDimFeatureMap(FeatureMapBase):
             return QC
 
         def entangle_layer_iswap(QC: QuantumCircuit):
-            """ Createn of the entangeling layer by iSWAP neighboring qubits """
+            """Createn of the entangeling layer by iSWAP neighboring qubits"""
 
             # Manually build the iSWAP operator, since it is not available in Qiskit
             iswap_op = Operator(
@@ -173,7 +173,7 @@ class HighDimFeatureMap(FeatureMapBase):
             return QC
 
         def entangle_layer_cx(QC: QuantumCircuit):
-            """ Creation of a simple nearest neighbor entangling layer """
+            """Creation of a simple nearest neighbor entangling layer"""
 
             for i in range(0, self.num_qubits - 1, 2):
                 QC.cx(i, i + 1)

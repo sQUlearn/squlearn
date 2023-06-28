@@ -43,7 +43,7 @@ class ChebPQC(FeatureMapBase):
         num_layers (int): Number of layers of the Chebyshev encoding and the two qubit
                           manipulation (default: 1)
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
-        entangling_gate (str): Entangling gate to use. Either ``crz`` 
+        entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
     """
 
@@ -55,7 +55,6 @@ class ChebPQC(FeatureMapBase):
         closed: bool = True,
         entangling_gate: str = "crz",
     ) -> None:
-
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
@@ -65,7 +64,7 @@ class ChebPQC(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """ The number of trainable parameters of the ChebPQC feature map. """
+        """The number of trainable parameters of the ChebPQC feature map."""
         num_param = 2 * self.num_qubits + self.num_qubits * self.num_layers
         if self.closed:
             num_param += self.num_qubits * self.num_layers

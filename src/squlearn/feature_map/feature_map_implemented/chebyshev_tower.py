@@ -62,7 +62,7 @@ class ChebyshevTower(FeatureMapBase):
         if self.rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
 
-        if self.arrangement not in ("block","alternating"):
+        if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
     @property
@@ -89,7 +89,7 @@ class ChebyshevTower(FeatureMapBase):
         """
 
         def entangle_layer(QC: QuantumCircuit):
-            """ Creation of a simple NN entangling layer """
+            """Creation of a simple NN entangling layer"""
             for i in range(0, self.num_qubits - 1, 2):
                 QC.cx(i, i + 1)
             for i in range(1, self.num_qubits - 1, 2):
@@ -97,7 +97,7 @@ class ChebyshevTower(FeatureMapBase):
             return QC
 
         def mapping(x, i):
-            """ Non-linear mapping for x: alpha*i*arccos(x) """
+            """Non-linear mapping for x: alpha*i*arccos(x)"""
             return self.alpha * i * np.arccos(x)
 
         nfeature = len(features)
@@ -123,7 +123,6 @@ class ChebyshevTower(FeatureMapBase):
 
             for outer_ in range(outer):
                 for inner_ in range(inner):
-
                     if self.rotation_gate.lower() == "rx":
                         QC.rx(
                             mapping(features[ioff % nfeature], icheb),
@@ -141,9 +140,7 @@ class ChebyshevTower(FeatureMapBase):
                         )
                     else:
                         raise ValueError(
-                            "Rotation gate {} not supported".format(
-                                self.rotation_gate
-                            )
+                            "Rotation gate {} not supported".format(self.rotation_gate)
                         )
                     iqubit += 1
                     if self.arrangement == "block":
