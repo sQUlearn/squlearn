@@ -1,5 +1,4 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
-from .helper_functions import stack_input
 from .kernel_util import regularize_full_kernel, tikhonov_regularization
 
 import numpy as np
@@ -45,13 +44,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.regularize = regularize
 
     def fit(self, X_train, y_train):
-        # stack inpur as many times as nr_qubits
-        if self._quantum_kernel.num_features > 1:
-            self.X_train = stack_input(
-                x_vec=X_train, num_features=self._quantum_kernel.num_features
-            )
-        else:
-            self.X_train = X_train
+        self.X_train = X_train
         self.K_train = self._quantum_kernel.evaluate(x=self.X_train)
         if self.normalize_y:
             self._y_train_mean = np.mean(y_train, axis=0)
@@ -77,8 +70,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     def predict(self, X_test, return_std=True, return_cov=False):
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
-        if self._quantum_kernel.num_features > 1:
-            X_test = stack_input(x_vec=X_test, num_features=self._quantum_kernel.num_features)
+        
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
 
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
