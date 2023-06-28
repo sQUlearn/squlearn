@@ -20,17 +20,17 @@ class FeatureMapBase:
 
     @property
     def num_qubits(self) -> int:
-        """Returns the number of qubits of the feature map."""
+        """The number of qubits of the feature map."""
         return self._num_qubits
 
     @property
     def num_features(self) -> int:
-        """Returns the dimension of features of the feature map."""
+        """The dimension of the features in the feature map."""
         return self._num_features
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters of the feature map."""
+        """The number of trainable parameters of the feature map."""
         return 0
 
     def get_circuit(
@@ -65,7 +65,7 @@ class FeatureMapBase:
 
         Args:
             feature_label (str): Label for the feature vector (default:"x").
-            parameter_label (str): Label for the parameter vector (default:"θ").
+            parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
             kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
 
