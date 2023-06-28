@@ -11,12 +11,15 @@ class ChebyshevTower(FeatureMapBase):
     """
     Creates a featurmap based on Chebyshev polynomials created by Ry(arcos(x))
 
-    One layer has the following structure (for n_chebyshev = 2):
+    **Example for 4 qubits, a 2 dimensional feature vector and 2 Chebychev terms per feature:**
 
-    -H-Ry(alpha*1*arcos(x0))-.---
-    -H-Ry(alpha*2*arcos(x0))-x-.-
-    -H-Ry(alpha*1*arcos(x1))-.-x-
-    -H-Ry(alpha*2*arcos(x1))-x---
+    .. plot::
+
+       from squlearn.feature_map import ChebyshevTower
+       pqc = ChebyshevTower(4, 2, 2)
+       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt.tight_layout()
+       plt
 
     The structure of the Chebyshev feature map reads:
     0-Layer1-Layer2- ...
