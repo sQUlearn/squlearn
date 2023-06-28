@@ -44,12 +44,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.num_qubits = self._quantum_kernel.num_qubits
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
-        if self._quantum_kernel.num_features > 1:
-            self.x_train = np.repeat(
-                x_train.reshape(-1, 1), repeats=self._quantum_kernel.num_features, axis=1
-            )
-        else:
-            self.x_train = x_train
+        self.x_train = x_train
         self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
         # check if regularize argument is set and define corresponding method
         if self._regularize is not None:
@@ -73,10 +68,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     def predict(self, x_test: np.ndarray) -> np.ndarray:
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
-        if self._quantum_kernel.num_features > 1:
-            x_test = np.repeat(
-                x_test.reshape(-1, 1), repeats=self._quantum_kernel.num_features, axis=1
-            )
+
         self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction

@@ -1,7 +1,6 @@
 import numpy as np
 
 from typing import Sequence
-from sklearn.preprocessing._data import _handle_zeros_in_scale
 from .kernel_loss_base import KernelLossBase
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
@@ -12,23 +11,26 @@ class TargetAlignment(KernelLossBase):
         self._sigma = sigma
 
     def compute(
-        self, parameter_values: Sequence[float], data: np.ndarray, labels: np.ndarray
+        self,
+        parameter_values: Sequence[float],
+        data: np.ndarray,
+        labels: np.ndarray,
+        rescale_class_labels=True,
     ) -> float:
         # Bind training parameters
         self._quantum_kernel.assign_parameters(parameter_values)
-        # Training parameters are handeled differently when using QuantumInstance and PQK.
-        # This is checked here. @ JSL?
 
         # Get estimated kernel matrix
         kmatrix = self._quantum_kernel.evaluate(data)
-        # regularize ->  TODO: Check if necessary
-        kmatrix = kmatrix + self._sigma * np.eye(kmatrix.shape[0])
+        if rescale_class_labels:
+            nplus = np.count_nonzero(np.array(labels) == 1)
+            nminus = len(labels) - nplus
+            _Y = np.array([y / nplus if y == 1 else y / nminus for y in labels])
+        else:
+            _Y = np.array(labels)
 
-        labels_mean = np.mean(labels)
-        labels_std = _handle_zeros_in_scale(np.std(labels, axis=0))
-        labels = (labels - labels_mean) / labels_std
-        kmatrix_opt = labels @ labels.T
-        numerator = np.multiply(kmatrix_opt, kmatrix)
-        denominator = np.multiply(kmatrix, kmatrix)
-        alignment = np.sum(numerator) / (kmatrix.shape[0] * np.sqrt(np.sum(denominator)))
+        T = np.outer(_Y, _Y)
+        inner_product = np.sum(kmatrix * T)
+        norm = np.sqrt(np.sum(kmatrix * kmatrix) * np.sum(T * T))
+        alignment = inner_product / norm
         return -alignment
