@@ -11,11 +11,11 @@ class ChebPQC(FeatureMapBase):
     """
     Cheb PQC feature map
 
-    -Ry(p)-[-Rx(p*arcos(x))-c-----------Rz(p)-]-Ry(p)-
-    -Ry(p)-[-Rx(p*arcos(x))-Rz(p)-c-----|-----]-Ry(p)-
-    -Ry(p)-[-Rx(p*arcos(x))-c-----Rz(p)-|-----]-Ry(p)-
-    -Ry(p)-[-Rx(p*arcos(x))-Rz(p)-------c ----]-Ry(p)-
-                  repeated by num_layers
+    .. plot::
+
+       from squlearn.feature_map import ChebPQC
+       pqc = ChebPQC(4, 1, 2, closed=False)
+       pqc.draw()
 
     Args:
         num_qubits (int): Number of qubits of the ChebPQC feature map
