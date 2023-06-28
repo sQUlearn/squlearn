@@ -247,7 +247,7 @@ class ConstantLoss(LossBase):
     """Class for constant or independent loss functions.
 
     Args:
-        value (Union[int, float, Callable[[int],float]]): Constant value or function depending 
+        value (Union[int, float, Callable[[int],float]]): Constant value or function depending
             on the iterations returning a constant value.
     """
 
