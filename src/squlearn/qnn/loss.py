@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 
 class LossBase(abc.ABC):
-    """Base class implementation for Loss functions."""
+    """Base class implementation for loss functions."""
 
     def __init__(self):
         self._opt_param_op = True
@@ -22,25 +22,25 @@ class LossBase(abc.ABC):
     @property
     @abc.abstractmethod
     def loss_args_tuple(self) -> tuple:
-        """Returns evaluation tuple for Loss calculation."""
+        """Returns evaluation tuple for loss calculation."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def gradient_args_tuple(self) -> tuple:
-        """Returns evaluation tuple for Loss gradient calculation."""
+        """Returns evaluation tuple for loss gradient calculation."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def value(self, value_dict: dict, **kwargs) -> float:
-        """Calculates and returns the Loss value."""
+        """Calculates and returns the loss value."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def gradient(
         self, value_dict: dict, **kwargs
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-        """Calculates and returns the gradient of the Loss."""
+        """Calculates and returns the gradient of the loss."""
         raise NotImplementedError()
 
     def __add__(self, x):
@@ -184,7 +184,7 @@ class _ComposedLoss(LossBase):
     def gradient(
         self, value_dict: dict, **kwargs
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-        """Calculates and returns the gradient of the composed Loss.
+        """Calculates and returns the gradient of the composed loss.
 
         Args:
             value_dict (dict): Dictionary with values for the evaluation of the
@@ -384,7 +384,11 @@ class SquaredLoss(LossBase):
 
 
 class VarianceLoss(LossBase):
-    """Variance loss for regression."""
+    """Variance loss for regression.
+    
+    Args:
+        alpha (float, Callable[[int], float]): Weight value :math:`\alpha`
+    """
 
     def __init__(self, alpha: Union[float, Callable[[int], float]] = 0.005):
         super().__init__()
@@ -397,7 +401,7 @@ class VarianceLoss(LossBase):
 
     @property
     def gradient_args_tuple(self) -> tuple:
-        """Returns evaluation tuple for Loss gradient calculation."""
+        """Returns evaluation tuple for loss gradient calculation."""
         if self._opt_param_op:
             return ("var", "dvardp", "dvardop")
         return ("var", "dvardp")
