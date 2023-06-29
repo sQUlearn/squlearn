@@ -385,7 +385,7 @@ class SquaredLoss(LossBase):
 
 class VarianceLoss(LossBase):
     r"""Variance loss for regression.
-    
+
     Args:
         alpha (float, Callable[[int], float]): Weight value :math:`\alpha`
     """
