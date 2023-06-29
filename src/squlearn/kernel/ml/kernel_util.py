@@ -1,8 +1,9 @@
-# kernel util 
+# kernel util
 import numpy as np
 import scipy
 from sklearn.gaussian_process.kernels import Kernel
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
+
 
 def kernel_wrapper(kernel_matrix: KernelMatrixBase):
     class CustomKernel(Kernel):
@@ -25,9 +26,10 @@ def kernel_wrapper(kernel_matrix: KernelMatrixBase):
         @property
         def requires_vector_input(self):
             return True
-        
+
         def is_stationary(self):
             return self.kernel_matrix.is_stationary()
+
     return CustomKernel(kernel_matrix)
 
 
@@ -36,12 +38,14 @@ def regularize_kernel(gram_matrix):
     reconstruction = evecs @ np.diag(evals.clip(min=0)) @ evecs.T
     return np.real(reconstruction)
 
+
 # deprecated regularization technique
 def tikhonov_regularization(gram_matrix):
     evals = scipy.linalg.eigvals(gram_matrix)
     if np.min(np.real(evals)) < 0:
         gram_matrix -= np.min(np.real(evals)) * np.identity(gram_matrix.shape[0])
     return gram_matrix
+
 
 def regularize_full_kernel(K_train, K_testtrain, K_test):
     gram_matrix_total = np.block([[K_train, K_testtrain.T], [K_testtrain, K_test]])

@@ -6,12 +6,12 @@ from abc import abstractmethod, ABC
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator import ExpectationOperatorBase
-from ..feature_map import FeatureMapBase
-from ..optimizers import OptimizerBase, SGDMixin
+from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..feature_map.feature_map_base import FeatureMapBase
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
-from .loss import LossBase, VarianceLoss
+from .loss import LossBase
 from .qnn import QNN
 from .training import shot_adjusting_options
 
@@ -56,6 +56,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
+        self.variance = variance
 
         if param_ini is None:
             # Todo: Set seed
@@ -82,15 +83,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.shuffle = shuffle
 
         self.opt_param_op = opt_param_op
-        if loss == VarianceLoss or (isinstance(loss, list) and VarianceLoss in loss):
-            if variance is None:
-                self.variance = 1.0
-            else:
-                self.variance = variance
-        else:
-            if variance is not None:
-                warn("If loss isn't or doesn't contain VarianceLoss, variance will be ignored.")
-            self.variance = None
+
         self.shot_adjusting = shot_adjusting
 
         self.executor = executor

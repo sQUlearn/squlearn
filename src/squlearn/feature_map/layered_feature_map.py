@@ -1524,7 +1524,7 @@ def math_function({var}):
                                     featuremap_active.crx_entangling(
                                         *param_vector_list,
                                         map=map_from_string,
-                                        ent_strategy=ent_strategy
+                                        ent_strategy=ent_strategy,
                                     )
                                 else:
                                     featuremap_active.crx_entangling(
@@ -1535,7 +1535,7 @@ def math_function({var}):
                                     featuremap_active.cry_entangling(
                                         *param_vector_list,
                                         map=map_from_string,
-                                        ent_strategy=ent_strategy
+                                        ent_strategy=ent_strategy,
                                     )
                                 else:
                                     featuremap_active.cry_entangling(
@@ -1546,7 +1546,7 @@ def math_function({var}):
                                     featuremap_active.crz_entangling(
                                         *param_vector_list,
                                         map=map_from_string,
-                                        ent_strategy=ent_strategy
+                                        ent_strategy=ent_strategy,
                                     )
                                 else:
                                     featuremap_active.crz_entangling(
@@ -1645,7 +1645,7 @@ def math_function({var}):
                                 featuremap_active.cp_entangling(
                                     *param_vector_list,
                                     map=map_from_string,
-                                    ent_strategy=ent_strategy
+                                    ent_strategy=ent_strategy,
                                 )
                             else:
                                 featuremap_active.cp_entangling(
@@ -2057,7 +2057,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.cp_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def crx_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2066,7 +2066,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.crx_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def cry_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2075,7 +2075,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.cry_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def crz_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2084,7 +2084,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.crz_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def rxx_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2093,7 +2093,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.rxx_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def ryy_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2102,7 +2102,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.ryy_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def rzx_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2111,7 +2111,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.rzx_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def rzz_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2120,7 +2120,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.rzz_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
     def cu_entangling(self, *variable_str, ent_strategy="NN", map=None):
@@ -2129,7 +2129,7 @@ class LayeredFeatureMap(FeatureMapBase):
             *variable_str,
             function=self._layered_pqc.cu_entangling,
             ent_strategy=ent_strategy,
-            map=map
+            map=map,
         )
 
 

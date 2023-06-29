@@ -31,13 +31,13 @@ class ChebPQC(FeatureMapBase):
         num_features: int,
         num_layers: int = 1,
         closed: bool = True,
-        entangling_gate: str = 'crz'
+        entangling_gate: str = "crz",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.entangling_gate = entangling_gate
-        if self.entangling_gate not in ('crz','rzz'):
+        if self.entangling_gate not in ("crz", "rzz"):
             raise ValueError("Unknown value for entangling_gate: ", entangling_gate)
 
     @property

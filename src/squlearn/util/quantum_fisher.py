@@ -5,7 +5,7 @@ from qiskit.opflow.gradients import QFI
 from qiskit.opflow import CircuitStateFn
 from qiskit.opflow import CircuitSampler
 
-from ..feature_map import FeatureMapBase
+from ..feature_map.feature_map_base import FeatureMapBase
 from ..util.data_preprocessing import adjust_input, assign_all_parameters
 
 

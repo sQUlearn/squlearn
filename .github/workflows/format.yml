@@ -1,0 +1,26 @@
+name: Formatting check
+on:
+- pull_request
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cancel Workflow Action
+        uses: styfle/cancel-workflow-action@0.11.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: pip install black[jupyter]
+
+      - uses: actions/checkout@v2
+
+      - name: Run Black
+        run: |
+          black -l 99 src --check
+          black -l 99 --ipynb examples --check

@@ -1,5 +1,4 @@
-from ..matrix import KernelMatrixBase
-from .helper_functions import stack_input
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 from .kernel_util import regularize_full_kernel, tikhonov_regularization
 
 import numpy as np
@@ -25,12 +24,12 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     """
 
-    def __init__( 
+    def __init__(
         self,
         quantum_kernel: KernelMatrixBase,
         sigma=0.0,
         normalize_y=False,
-        regularize='full',
+        regularize="full",
     ):
         self._quantum_kernel = quantum_kernel
         self.X_train = None
@@ -45,13 +44,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.regularize = regularize
 
     def fit(self, X_train, y_train):
-        # stack inpur as many times as nr_qubits
-        if self._quantum_kernel.num_features > 1:
-            self.X_train = stack_input(
-                x_vec=X_train, num_features=self._quantum_kernel.num_features
-            )
-        else:
-            self.X_train = X_train
+        self.X_train = X_train
         self.K_train = self._quantum_kernel.evaluate(x=self.X_train)
         if self.normalize_y:
             self._y_train_mean = np.mean(y_train, axis=0)
@@ -74,29 +67,23 @@ class QGPR(BaseEstimator, RegressorMixin):
             setattr(self, parameter, value)
         return self
 
-
     def predict(self, X_test, return_std=True, return_cov=False):
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
-        if self._quantum_kernel.num_features > 1:
-            X_test = stack_input(x_vec=X_test, num_features=self._quantum_kernel.num_features)
+
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
 
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
 
-        if self.regularize == 'full':
+        if self.regularize == "full":
             print("Regularizing full Gram matrix")
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
             )
-        elif self.regularize == 'tikhonov':
+        elif self.regularize == "tikhonov":
             print("Regularizing Gram matrix with Tikhonov")
-            self.K_train = tikhonov_regularization(
-                self.K_train
-            )
-            self.K_test = tikhonov_regularization(
-                self.K_test
-            )
+            self.K_train = tikhonov_regularization(self.K_train)
+            self.K_test = tikhonov_regularization(self.K_test)
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])
         try:
             self._L = cholesky(self.K_train, lower=True)
