@@ -1,4 +1,4 @@
-# sQUlearn 0.1.0
+# sQUlearn 0.2.0
 
 **_Note:_** This is an early access version! Not everything that is described is already working 100%.
 
