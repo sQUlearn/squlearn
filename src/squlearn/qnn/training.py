@@ -367,11 +367,10 @@ def solve_minibatch(
     ground_truth,
     param_ini,
     param_op_ini,
-    loss: Union[LossBase, list[LossBase]],
+    loss: LossBase,
     optimizer: OptimizerBase,
     weights=None,
     opt_param_op: bool = True,
-    variance: float = 0.0,
     epochs: int = 10,
     batch_size: int = None,
     shuffle=False,
@@ -389,8 +388,6 @@ def solve_minibatch(
         weigths : Weighting of the reference values. Has to be the same size as input and
                   ground_truth (default : None)
         opt_param_op : If True, cost operator parameters are optimized as well (default: True)
-        variance: If non-zero, the variance is included in the optimization
-                  to reduce shot noise (default = 0.0)
         epochs : Number of epochs of SGD to perform
         batch_size : Number of datapoints in each batch
         shuffle : If True, datapoints get shuffled before each epoch (default: False)
@@ -411,21 +408,14 @@ def solve_minibatch(
     else:
         raise TypeError(f"Unknown weight format: {type(weights)}")
 
+    # Tell the loss function if the cost operator parameters are optimized
+    loss.set_optimize_param_op(opt_param_op)
+
     if weights_values.shape != ground_truth.shape:
         raise ValueError(
             f"Shape {weights_values.shape} of weight values doesn't match shape"
             f" {ground_truth.shape} of reference values"
         )
-
-    # Create tuple which derivatives are needed in the gradient calculation
-    if type(loss) == ABCMeta and issubclass(loss, LossBase):
-        loss_tuple = loss.loss_args_tuple
-        diff_tuple = loss.gradient_args_tuple(opt_param_op)
-    elif isinstance(loss, list):
-        loss_tuple = tuple(set(sum([l.loss_args_tuple for l in loss], ())))
-        diff_tuple = tuple(set(sum([l.gradient_args_tuple(opt_param_op) for l in loss], ())))
-    else:
-        raise TypeError("loss has to be either LossBase or list of LossBase")
 
     n_samples = len(input_values)
 
@@ -453,58 +443,28 @@ def solve_minibatch(
             idcs = np.random.permutation(idcs)
         for batch_slice in gen_batches(n_samples, batch_size):
             loss_values = qnn.evaluate(
-                loss_tuple, input_values[idcs[batch_slice]], param, param_op
+                loss.loss_args_tuple, input_values[idcs[batch_slice]], param, param_op
             )
-            if type(loss) == ABCMeta and issubclass(loss, LossBase):
-                accumulated_loss += loss.value(
-                    loss_values,
-                    ground_truth=ground_truth[idcs[batch_slice]],
-                    weights=weights_values[idcs[batch_slice]],
-                    variance_factor=variance,
-                    iteration=epoch,
-                )
-            else:
-                accumulated_loss += sum(
-                    [
-                        l.value(
-                            loss_values,
-                            ground_truth=ground_truth[idcs[batch_slice]],
-                            weights=weights_values[idcs[batch_slice]],
-                            variance_factor=variance,
-                            iteration=epoch,
-                        )
-                        for l in loss
-                    ]
-                )
+
+            accumulated_loss += loss.value(
+                loss_values,
+                ground_truth=ground_truth[idcs[batch_slice]],
+                weights=weights_values[idcs[batch_slice]],
+                iteration=epoch,
+            )
 
             diff_values = qnn.evaluate(
-                diff_tuple, input_values[idcs[batch_slice]], param, param_op
+                loss.gradient_args_tuple, input_values[idcs[batch_slice]], param, param_op
             )
-            if type(loss) == ABCMeta and issubclass(loss, LossBase):
-                grad = loss.gradient(
-                    diff_values,
-                    ground_truth=ground_truth[idcs[batch_slice]],
-                    weights=weights_values[idcs[batch_slice]],
-                    variance_factor=variance,
-                    iteration=epoch,
-                    multiple_output=qnn.multiple_output,
-                    opt_param_op=opt_param_op,
-                )
-            else:
-                grad = sum(
-                    [
-                        l.gradient(
-                            diff_values,
-                            ground_truth=ground_truth[idcs[batch_slice]],
-                            weights=weights_values[idcs[batch_slice]],
-                            variance_factor=variance,
-                            iteration=epoch,
-                            multiple_output=qnn.multiple_output,
-                            opt_param_op=opt_param_op,
-                        )
-                        for l in loss
-                    ]
-                )
+
+            grad = loss.gradient(
+                diff_values,
+                ground_truth=ground_truth[idcs[batch_slice]],
+                weights=weights_values[idcs[batch_slice]],
+                iteration=epoch,
+                multiple_output=qnn.multiple_output,
+                opt_param_op=opt_param_op,
+            )
 
             if opt_param_op:
                 updated_params = optimizer.step(
@@ -534,11 +494,10 @@ def regression(
     ref_values,
     param_ini,
     param_op_ini,
-    loss: Union[LossBase, list[LossBase]],
+    loss: LossBase,
     minimize: OptimizerBase,
     weights=None,
     opt_param_op=True,
-    variance=0.0,
     shot_adjusting: shot_adjusting_options = None,
 ):
     """Function for a simple regression of the given reference values
@@ -551,8 +510,6 @@ def regression(
         loss: Loss instance
         weigths : Weighting of the reference values. Has to be the same size as x_space and ref_values (default : None)
         opt_param_op : If true, cost operator parameters are optimized as well (default: true)
-        variance: If non-zero, the variance is included in the optimization
-                    to reduce shot noise (default = 0.0)
 
     Returns:
         optimized parameters of the PQC, and, if opt_param_op=True,
@@ -565,6 +522,9 @@ def regression(
     else:
         raise TypeError("Unknown weight format")
 
+    # Tell the loss function if the cost operator parameters are optimized
+    loss.set_optimize_param_op(opt_param_op)
+
     if weights_values.shape != ref_values.shape:
         raise ValueError(
             f"Shape {weights_values.shape} of weight values doesn't match shape"
@@ -573,65 +533,22 @@ def regression(
 
     # Loss function of the regression problem
     def loss_function(value_dict, iteration):
-        if type(loss) == ABCMeta and issubclass(loss, LossBase):
-            return loss.value(
-                value_dict,
-                ground_truth=ref_values,
-                weights=weights_values,
-                variance_factor=variance,
-                iteration=iteration,
-            )
-        else:
-            return sum(
-                [
-                    l.value(
-                        value_dict,
-                        ground_truth=ref_values,
-                        weights=weights_values,
-                        variance_factor=variance,
-                        iteration=iteration,
-                    )
-                    for l in loss
-                ]
-            )
+        return loss.value(
+            value_dict,
+            ground_truth=ref_values,
+            weights=weights_values,
+            iteration=iteration,
+        )
 
     # Gradient of the loss function
     def loss_function_gradient(value_dict, iteration):
-        if type(loss) == ABCMeta and issubclass(loss, LossBase):
-            return loss.gradient(
-                value_dict,
-                ground_truth=ref_values,
-                weights=weights_values,
-                variance_factor=variance,
-                iteration=iteration,
-                multiple_output=qnn.multiple_output,
-                opt_param_op=opt_param_op,
-            )
-        else:
-            return np.array(
-                [
-                    l.gradient(
-                        value_dict,
-                        ground_truth=ref_values,
-                        weights=weights_values,
-                        variance_factor=variance,
-                        iteration=iteration,
-                        multiple_output=qnn.multiple_output,
-                        opt_param_op=opt_param_op,
-                    )
-                    for l in loss
-                ]
-            ).sum(axis=0)
-
-    # Create tuple which derivatives are needed in the gradient calculation
-    if type(loss) == ABCMeta and issubclass(loss, LossBase):
-        loss_tuple = loss.loss_args_tuple
-        diff_tuple = loss.gradient_args_tuple(opt_param_op)
-    elif isinstance(loss, list):
-        loss_tuple = tuple(set(sum([l.loss_args_tuple for l in loss], ())))
-        diff_tuple = tuple(set(sum([l.gradient_args_tuple(opt_param_op) for l in loss], ())))
-    else:
-        raise TypeError("loss has to be either LossBase or list of LossBase")
+        return loss.gradient(
+            value_dict,
+            ground_truth=ref_values,
+            weights=weights_values,
+            iteration=iteration,
+            multiple_output=qnn.multiple_output,
+        )
 
     # Call optimization function
     return solve_all(
@@ -640,9 +557,9 @@ def regression(
         param_ini,
         param_op_ini,
         loss_function,
-        loss_tuple,
+        loss.loss_args_tuple,
         loss_function_gradient,
-        diff_tuple,
+        loss.gradient_args_tuple,
         minimize,
         (False, True, opt_param_op),
         shot_adjusting=shot_adjusting,

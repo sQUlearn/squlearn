@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.base import RegressorMixin
 
 from .base_qnn import BaseQNN
-from .loss import LossBase
+from .loss import LossBase, VarianceLoss
 from .training import solve_minibatch, regression
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
@@ -90,6 +90,11 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             y: Labels
             weights: Weights for each datapoint
         """
+
+        loss = self.loss
+        if self.variance is not None:
+            loss = loss + VarianceLoss(alpha=self.variance)
+
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
                 self.param, self.param_op = solve_minibatch(
@@ -98,14 +103,13 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     y,
                     self.param,
                     self.param_op,
-                    loss=self.loss,
+                    loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
                     weights=weights,
                     opt_param_op=True,
-                    variance=self.variance,
                 )
             else:
                 self.param = solve_minibatch(
@@ -114,14 +118,13 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     y,
                     self.param,
                     self.param_op,
-                    loss=self.loss,
+                    loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
                     weights=weights,
                     opt_param_op=False,
-                    variance=self.variance,
                 )
 
         else:
@@ -132,11 +135,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     y,
                     self.param,
                     self.param_op,
-                    self.loss,
+                    loss,
                     self.optimizer.minimize,
                     weights,
                     True,
-                    self.variance,
                 )
             else:
                 self.param = regression(
@@ -145,11 +147,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     y,
                     self.param,
                     self.param_op,
-                    self.loss,
+                    loss,
                     self.optimizer.minimize,
                     weights,
                     False,
-                    self.variance,
                 )
         self._is_fitted = True
 
