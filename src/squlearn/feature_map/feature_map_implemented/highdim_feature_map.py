@@ -19,7 +19,7 @@ class HighDimFeatureMap(FeatureMapBase):
 
        from squlearn.feature_map import HighDimFeatureMap
        pqc = HighDimFeatureMap(5, 23, num_layers=2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
        plt.tight_layout()
        plt
 
@@ -93,7 +93,7 @@ class HighDimFeatureMap(FeatureMapBase):
                                                            from which the gate inputs are obtained.
 
         Return:
-            Returns the circuit pf the high-dimensional feature map
+            The circuit of the high-dimensional feature map
         """
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, ioff: int):

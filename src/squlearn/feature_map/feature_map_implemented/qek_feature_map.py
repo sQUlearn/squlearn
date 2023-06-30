@@ -17,7 +17,7 @@ class QEKFeatureMap(FeatureMapBase):
 
        from squlearn.feature_map import QEKFeatureMap
        pqc = QEKFeatureMap(4, 2, 2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
        plt.tight_layout()
        plt
 
@@ -26,7 +26,7 @@ class QEKFeatureMap(FeatureMapBase):
     The circuit is closed by default, i.e. the last qubit is entangled with the first one.
 
     Args:
-        num_qubits (int): Number of Qubits of the feature map
+        num_qubits (int): Number of qubits of the feature map
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default:1)
         closed (bool): If true, the last and the first qubit are entangled;

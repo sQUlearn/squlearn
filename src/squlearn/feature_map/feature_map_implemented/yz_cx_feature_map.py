@@ -8,7 +8,7 @@ from ..feature_map_base import FeatureMapBase
 
 class YZ_CX_FeatureMap(FeatureMapBase):
     """
-    Creates the YZ-CX Feature Map from Reference https://arxiv.org/pdf/2108.01039v1.pdf
+    Creates the YZ-CX Feature Map from Reference https://arxiv.org/abs/2108.01039v3
 
     **Example for 4 qubits, a 4 dimensional feature vector, 2 layers and c = 2.0:**
 
@@ -16,7 +16,7 @@ class YZ_CX_FeatureMap(FeatureMapBase):
 
        from squlearn.feature_map import YZ_CX_FeatureMap
        pqc = YZ_CX_FeatureMap(4, 4, 2, c=2.0)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
        plt.tight_layout()
        plt
 

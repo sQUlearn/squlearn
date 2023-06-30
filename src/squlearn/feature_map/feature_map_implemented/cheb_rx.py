@@ -9,8 +9,7 @@ from ..feature_map_base import FeatureMapBase
 
 class ChebRx(FeatureMapBase):
     """
-    Simple Chebyshev feature map with Rx gates
-
+    Simple Chebyshev feature map build from  Rx gates
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers:**
 
@@ -18,7 +17,7 @@ class ChebRx(FeatureMapBase):
 
        from squlearn.feature_map import ChebRx
        pqc = ChebRx(4, 2, 2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
        plt.tight_layout()
        plt
 

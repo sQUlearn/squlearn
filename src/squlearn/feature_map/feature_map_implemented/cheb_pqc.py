@@ -28,7 +28,7 @@ class ChebPQC(FeatureMapBase):
 
        from squlearn.feature_map import ChebPQC
        pqc = ChebPQC(4, 2, 2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
        plt.tight_layout()
        plt
 

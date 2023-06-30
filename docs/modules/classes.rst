@@ -58,8 +58,9 @@ Implemented feature maps in squlearn
    feature_map.ChebPQC
    feature_map.HZCRxCRyCRz
    feature_map.ChebRx
-   feature_map.ZFeatureMap_CX
+   feature_map.ParamZFeatureMap
    feature_map.QiskitZFeatureMap
+   feature_map.QiskitFeatureMap
 
 Implemented tools for feature maps
 ==================================
