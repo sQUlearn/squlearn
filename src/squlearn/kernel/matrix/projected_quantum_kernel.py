@@ -126,7 +126,6 @@ class OuterKernelBase:
 
 
 class ProjectedQuantumKernel(KernelMatrixBase):
-
     r"""Projected Quantum Kernel for Quantum Kernel Algorithms
 
     The projected quantum kernel embeds classical data into a quantum Hilbert space and
@@ -216,7 +215,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         executor: Executor,
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
-        initial_parameters: Union[np.ndarray,None] = None,
+        initial_parameters: Union[np.ndarray, None] = None,
         **kwargs,
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters)
@@ -282,22 +281,22 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     @property
     def num_features(self) -> int:
-        """ Feature dimension of the feature map """
+        """Feature dimension of the feature map"""
         return self._num_features
 
     @property
     def num_parameters(self) -> int:
-        """ Number of trainable parameters of the feature map """
+        """Number of trainable parameters of the feature map"""
         return self._num_parameters
 
     @property
     def measurement(self):
-        """ Measurement operator of the Projected Quantum Kernel """
+        """Measurement operator of the Projected Quantum Kernel"""
         return self._measurement
 
     @property
     def outer_kernel(self):
-        """ Outer kernel class of the Projected Quantum Kernel """
+        """Outer kernel class of the Projected Quantum Kernel"""
         return self._outer_kernel
 
     def evaluate_qnn(self, x: np.ndarray) -> np.ndarray:
