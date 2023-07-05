@@ -258,19 +258,19 @@ class QNN:
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
         self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, opflow_caching)
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, opflow_caching)
 
-        if self.pqc.num_qubits != num_qubits_operator:
+        if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
         else:
-            self._num_qubits = self.pqc.num_qubits
+            self._num_qubits = self.pqc.num_virtual_qubits
 
         if self.executor.get_opflow_executor() in ("sampler", "quantum_instance"):
             # For Quantum Instance or the Sampler primitive, X and Y Pauli matrices have to be treated extra

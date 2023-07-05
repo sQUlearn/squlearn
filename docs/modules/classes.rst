@@ -81,6 +81,13 @@ Implemented tools for feature maps
    feature_map.feature_map_derivatives.FeatureMapDerivatives
    feature_map.transpiled_feature_map.TranspiledFeatureMap
 
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: function.rst
+
+   feature_map.automated_pruning
+   feature_map.pruning_from_QFI
 
 Implemented operators for expectation values
 ============================================

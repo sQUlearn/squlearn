@@ -1,5 +1,6 @@
 from .pruned_feature_map import PrunedFeatureMap, automated_pruning, pruning_from_QFI
 from .layered_feature_map import LayeredFeatureMap
+from .transpiled_feature_map import TranspiledFeatureMap
 from .feature_map_implemented.yz_cx_feature_map import YZ_CX_FeatureMap
 from .feature_map_implemented.highdim_feature_map import HighDimFeatureMap
 from .feature_map_implemented.qek_feature_map import QEKFeatureMap
@@ -13,6 +14,7 @@ from .feature_map_implemented.qiskit_feature_map import QiskitFeatureMap
 
 __all__ = [
     "PrunedFeatureMap",
+    "TranspiledFeatureMap",
     "automated_pruning",
     "pruning_from_QFI",
     "LayeredFeatureMap",

@@ -57,7 +57,7 @@ class HZCRxCRyCRz(FeatureMapBase):
         """The number of trainable parameters of the HZCRxCRyCRz feature map."""
         num_param = 3 * (self.num_qubits - 1) * self.num_layers
         if self.closed:
-            num_param += 3 * self.num_qubits * self.num_layers
+            num_param += 3 * self.num_layers
         return num_param
 
     def get_circuit(
@@ -88,7 +88,12 @@ class HZCRxCRyCRz(FeatureMapBase):
             for i in range(self.num_qubits):
                 QC.rz(features[i % nfeature], i)
 
-            for i in range(0, self.num_qubits - 1, 2):
+            if self.closed:
+                istop = self.num_qubits
+            else:
+                istop = self.num_qubits - 1
+
+            for i in range(0, istop,2):
                 QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
                 QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
@@ -96,13 +101,13 @@ class HZCRxCRyCRz(FeatureMapBase):
                 QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
 
-            if self.num_qubits > 2:
+            if self.num_qubits >= 2:
                 if self.closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
 
-                for i in range(1, istop, 2):
+                for i in range(1, istop,2):
                     QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                     ioff = ioff + 1
                     QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
