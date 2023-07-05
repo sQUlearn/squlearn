@@ -78,8 +78,8 @@ Implemented tools for feature maps
 
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
-   feature_map.feature_map_derivatives.FeatureMapDerivatives
-   feature_map.transpiled_feature_map.TranspiledFeatureMap
+   feature_map.FeatureMapDerivatives
+   feature_map.TranspiledFeatureMap
 
 .. autosummary::
    :nosignatures:

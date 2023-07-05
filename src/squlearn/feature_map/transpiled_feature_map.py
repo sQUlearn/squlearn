@@ -13,6 +13,26 @@ class TranspiledFeatureMap(FeatureMapBase):
     """
     Class for generated a Feature Map with a transpiled circuit.
 
+    **Example:**
+
+    .. code-block:: python
+
+       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+       from qiskit.providers.fake_provider import FakeManilaV2
+
+       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+       fm.draw()
+
+    .. plot::
+
+       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+       from qiskit.providers.fake_provider import FakeManilaV2
+       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+       plt = fm.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
+
+
     Args:
         feature_map (FeatureMapBase): Feature map to be transpiled.
         backend (Backend): Backend used for the transpilation.
