@@ -13,6 +13,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
 from qiskit.primitives import BaseSampler, BaseEstimator
+from qiskit_ibm_runtime import IBMBackend
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -50,7 +51,7 @@ class FidelityKernel(KernelMatrixBase):
             self._feature_vector, self._parameter_vector
         )
 
-        if self._executor.execution == "Sampler":
+        if self._executor.execution == "Sampler" or isinstance(self._executor.backend, IBMBackend):
             fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
             if self._parameter_vector is None:
                 # Fidelity Quantum Kernel without any parameters
