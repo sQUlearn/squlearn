@@ -25,7 +25,7 @@ from ...expectation_operator.expectation_operator_base import ExpectationOperato
 
 class OuterKernelBase:
     """
-    Class for creating outer kernels for the projected quantum kernel
+    Base Class for creating outer kernels for the projected quantum kernel
     """
 
     def __init__(self):
@@ -82,8 +82,8 @@ class OuterKernelBase:
             Class for creating outer kernels for the projected quantum kernel from sklearn kernels
 
             Args:
-                kernel: sklearn kernel
-                kwarg: arguments for the sklearn kernel parameters
+                kernel (sklearn.gaussian_process.kernels): Sklearn kernel
+                **kwarg: Arguments for the sklearn kernel parameters
             """
 
             def __init__(self, kernel: SklearnKernel, **kwarg):
@@ -126,8 +126,7 @@ class OuterKernelBase:
 
 
 class ProjectedQuantumKernel(KernelMatrixBase):
-
-    """Projected Quantum Kernel
+    r"""Projected Quantum Kernel for Quantum Kernel Algorithms
 
     The projected quantum kernel embeds classical data into a quantum Hilbert space and
     than projects down into a real space by measurements. The kernel is than evaluated in the
@@ -137,32 +136,37 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         feature_map (FeatureMapBase): PQC feature map
         executor (Executor): Executor object
         measurement (Union[str, ExpectationOperatorBase, list]): Measurements that are
-            performed on the PQC. Possible string values: "Z", "XYZ"
+            performed on the PQC. Either an operator, a list of operators or one of the
+            string values: ``Z``, ``XYZ``
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the PQC output.
-            Possible string values are: "Gaussian", "Matern", "ExpSineSquared",
-            "RationalQuadratic", "DotProduct", "PairwiseKernel"
-        initial_parameters (np.ndarray): initial parameters of the QNN
+            Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
+            ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
+        initial_parameters (np.ndarray): Initial parameters of the QNN
 
-    Outer Kernels that are implemented:
+
+    Outer Kernels are implemented as follows:
+    =========================================
+
+    :math:`d(\cdot,\cdot)` is the Euclidean distance between two vectors.
 
     Gaussian:
     ---------
     .. math::
-        k(x_i, x_j) = \text{exp}\left(-\\gamma |(QNN(x_i)- QNN(x_j)|^2 \right)
+        k(x_i, x_j) = \text{exp}\left(-\gamma |(QNN(x_i)- QNN(x_j)|^2 \right)
 
-    Args:
-        gamma (float): hyperparameter :math:`\\gamma` of the Gaussian kernel
+    Keyword Args:
+        gamma (float): hyperparameter :math:`\gamma` of the Gaussian kernel
 
     Matern:
     -------
     .. math::
-         k(x_i, x_j) =  \\frac{1}{\\Gamma(\\nu)2^{\\nu-1}}\\Bigg(
-         \\frac{\\sqrt{2\\nu}}{l} d(QNN(x_i) , QNN(x_j) )
-         \\Bigg)^\\nu K_\\nu\\Bigg(
-         \\frac{\\sqrt{2\\nu}}{l} d(QNN(x_i) , QNN(x_j) )\\Bigg)
+         k(x_i, x_j) =  \frac{1}{\Gamma(\nu)2^{\nu-1}}\Bigg(
+         \frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j) )
+         \Bigg)^\nu K_\nu\Bigg(
+         \frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j) )\Bigg)
 
-    Args:
-        nu (float): hyperparameter :math:`\\nu` of the Matern kernel (Typically 0.5, 1.5 or 2.5)
+    Keyword Args:
+        nu (float): hyperparameter :math:`\nu` of the Matern kernel (Typically 0.5, 1.5 or 2.5)
         length_scale (float): hyperparameter :math:`l` of the Matern kernel
 
     ExpSineSquared:
@@ -171,18 +175,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         k(x_i, x_j) = \text{exp}\left(-
         \frac{ 2\sin^2(\pi d(QNN(x_i), QNN(x_j))/p) }{ l^ 2} \right)
 
-    Args:
+    Keyword Args:
         periodicity (float): hyperparameter :math:`p` of the ExpSineSquared kernel
         length_scale (float): hyperparameter :math:`l` of the ExpSineSquared kernel
 
     RationalQuadratic:
     ------------------
     .. math::
-        k(x_i, x_j) = \\left(
-        1 + \\frac{d(QNN(x_i), QNN(x_j))^2 }{ 2\\alpha  l^2}\\right)^{-\\alpha}s
+        k(x_i, x_j) = \left(
+        1 + \frac{d(QNN(x_i), QNN(x_j))^2 }{ 2\alpha  l^2}\right)^{-\alpha}
 
-    Args:
-        alpha (float): hyperparameter :math:`\\alpha` of the RationalQuadratic kernel
+    Keyword Args:
+        alpha (float): hyperparameter :math:`\alpha` of the RationalQuadratic kernel
         length_scale (float): hyperparameter :math:`l` of the RationalQuadratic kernel
 
     DotProduct:
@@ -190,15 +194,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     .. math::
         k(x_i, x_j) = \sigma_0 ^ 2 + x_i \cdot x_j
 
-    Args:
+    Keyword Args:
         sigma_0 (float): hyperparameter :math:`\sigma_0` of the DotProduct kernel
 
     PairwiseKernel:
     ---------------
-    Args:
+
+    sklearn's PairwiseKernel is used.
+
+    Keyword Args:
         gamma (float): Hyperparameter gamma of the PairwiseKernel kernel, specified by the metric
-        metric (str): Metric of the PairwiseKernel kernel, can be "linear", "additive_chi2",
-              "chi2", "poly", "polynomial", "rbf", "laplacian", "sigmoid", "cosine"
+        metric (str): Metric of the PairwiseKernel kernel, can be ``linear``, ``additive_chi2``,
+              ``chi2``, ``poly``, ``polynomial``, ``rbf``, ``laplacian``, ``sigmoid``, ``cosine``
 
     """
 
@@ -208,7 +215,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         executor: Executor,
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
-        initial_parameters: np.ndarray = None,
+        initial_parameters: Union[np.ndarray, None] = None,
         **kwargs,
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters)
@@ -274,26 +281,41 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     @property
     def num_features(self) -> int:
+        """Feature dimension of the feature map"""
         return self._num_features
 
     @property
     def num_parameters(self) -> int:
+        """Number of trainable parameters of the feature map"""
         return self._num_parameters
 
     @property
     def measurement(self):
+        """Measurement operator of the Projected Quantum Kernel"""
         return self._measurement
 
     @property
     def outer_kernel(self):
+        """Outer kernel class of the Projected Quantum Kernel"""
         return self._outer_kernel
 
     def evaluate_qnn(self, x: np.ndarray) -> np.ndarray:
+        """Evaluates the QNN for the given data x.
+
+        Args:
+            x (np.ndarray): Data points x
+        Returns:
+            The evaluated output of the QNN as numpy array
+        """
+
         # Copy parameters in QNN form
+        if self._parameters is None and self.num_parameters == 0:
+            self._parameters = []
         if self._parameters is None:
             raise ValueError("Parameters have not been set yet!")
         param = self._parameters[: self._qnn.num_parameters]
         param_op = self._parameters[self._qnn.num_parameters :]
+        # Evaluate and return
         return self._qnn.evaluate_f(x, param, param_op)
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
@@ -306,6 +328,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated projected quantum kernel as numpy array
         """
+        if self._parameters is None and self.num_parameters == 0:
+            self._parameters = []
+
         if self._parameters is None:
             raise ValueError("Parameters have not been set yet!")
 
@@ -321,12 +346,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     @property
     def num_hyper_parameters(self) -> int:
-        """Returns the number of hyper parameters of the outer kernel"""
+        """The number of hyper-parameters of the outer kernel"""
         return self._outer_kernel.num_hyper_parameters
 
     @property
     def name_hyper_parameters(self) -> List[str]:
-        """Returns the names of the hyper parameters of the outer kernel"""
+        """The names of the hyper-parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
 
 
