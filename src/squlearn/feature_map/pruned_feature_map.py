@@ -21,6 +21,26 @@ class PrunedFeatureMap(FeatureMapBase):
     This class is designed to accept a feature map and selectively prune parameters
     based on a provided list of indices. The pruned feature map can be used as a usual feature map.
 
+    **Example: Pruned QEK Feature Map**
+
+    .. code-block:: python
+
+       from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
+       fm = QEKFeatureMap(4,2,2)
+       fm.draw()
+       PrunedFeatureMap(fm,[4,7,11,15]).draw()
+
+    .. plot::
+
+       from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
+       fm = QEKFeatureMap(4,2,2)
+       plt = fm.draw()
+       plt.text(0.55,0.88,'QEK Feature Map',fontsize=14,ha='center',va='center')
+       plt
+       plt2 = PrunedFeatureMap(fm,[4,7,11,15]).draw()
+       plt2.text(0.55,0.88,'Pruned Feature Map',fontsize=14,ha='center',va='center')
+       plt2
+
     Args:
         feature_map (FeatureMapBase): FeatureMap from which the parameters are removed
         pruned_parameters (list): list with indices of the redundant parameters

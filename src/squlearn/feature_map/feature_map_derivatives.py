@@ -18,6 +18,15 @@ from .feature_map_base import FeatureMapBase
 
 
 class FeatureMapDerivatives:
+    """
+    Class for automatic differentiation and other derivatives of feature maps.
+
+    Args:
+        feature_map (FeatureMapBase): Feature map to differentiate
+        opflow_caching (bool): If True, the opflow expressions are cached for faster
+                               evaluation. (default: True)
+    """
+
     def __init__(
         self,
         feature_map: FeatureMapBase,
@@ -29,11 +38,7 @@ class FeatureMapDerivatives:
         self.p = ParameterVector("p", self.feature_map.num_parameters)
 
         circuit = feature_map.get_circuit(self.x, self.p)
-
-        # TODO transpiling
-
         self.circuit_opflow = CircuitStateFn(primitive=circuit, coeff=1.0)
-
         self.num_qubits = self.circuit_opflow.num_qubits
 
         identity_measurement = StateFn(PauliOp(Pauli("I" * self.num_qubits)), is_measurement=True)
@@ -43,18 +48,26 @@ class FeatureMapDerivatives:
 
         self.opflow_cache = {}
         self.opflow_caching = opflow_caching
-
         if self.opflow_caching:
             self.opflow_cache["f"] = self.opflow
 
-        # get the instruction gates from the original circuit for transpiling the circuits back to this basis
+        # get the instruction gates from the inital circuit for transpiling the circuits
+        # back to this basis
         self.instruction_set = set()
         for instruction in circuit.data:
             self.instruction_set.add(instruction.operation.name)
         self.instruction_set = list(self.instruction_set)
 
-    def get_derivate(self, input: Union[str, tuple]):
-        """return the opflow structure of the circuit from the input"""
+    def get_derivate(self, input: Union[str, tuple]) -> OperatorBase:
+        """ Determine the derivative of the feature map circuit.
+
+        Args:
+            input (str or tuple): String or tuple of parameters for specifying the derivation.
+
+        Return:
+            Derivaitve circuit in Qiskit Opflow format.
+
+        """
         if isinstance(input, str):
             if input == "I":
                 opflow = self.opflow
@@ -91,28 +104,46 @@ class FeatureMapDerivatives:
 
         return _remove_measure(opflow)
 
-    def get_differentiation_from_tuple(self, diff_tuple: tuple):
+    def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OperatorBase:
+        """ Returns the derivative of the feature map circuit for a tuple of parameters.
+
+        The tuple describes the differentiation with respect to the parameters in the tuple.
+
+        Args:
+            diff_tuple (tuple): Tuple of parameters for specifying the derivation.
+
+        Return:
+            Derivaitve circuit in Qiskit Opflow format.
+        """
         return self.get_derivate(diff_tuple)
 
-    def get_derivation_from_string(self, input_string: str):
+    def get_derivation_from_string(self, input_string: str) -> OperatorBase:
+        """ Returns the derivative of the feature map circuit for a string abbreviation.
+
+        The table for the abbreviations can be found in the documentation of the class.
+
+        Args:
+            input_string (str): String for specifying the derivation.
+
+        Return:
+            Derivaitve circuit in Qiskit Opflow format.
+        """
         return self.get_derivate(input_string)
 
-    def _differentiation_from_tuple(self, diff_tuple: tuple):
+    def _differentiation_from_tuple(self, diff_tuple: tuple) -> OperatorBase:
         """Recursive routine for automatic differentiating the feature map
 
         Variables for the differentiation are supplied by a tuple
-        (x,param,param_op) from left to right -> ∂x ∂param ∂param_op PQC(x,param,param_op)
+        (x,param,param_op) from left to right -> dx dparam dparam_op PQC(x,param,param_op)
 
 
         Args:
-            diff_tuple : tuple containing ParameterVectors or ParameterExpressions or Strings
-            determining the derivation
-            cost_op : String for specifying the used cost operator operator (default: None)
-                      (None or 'C' -> Standard, 'CC' -> Squared cost operator)
-        Returns:
-            The differentiated opflow expression
+            diff_tuple (tuple): tuple containing ParameterVectors or ParameterExpressions or Strings
+                                determining the derivation
+
+        Return:
+            Derivaitve circuit in Qiskit Opflow format.
         """
-        # TODO: outer function for input checking
 
         if diff_tuple == ():
             # Cancel the recursion by returning the opflow of the simply measured feature map
@@ -132,26 +163,38 @@ class FeatureMapDerivatives:
                     self.opflow_cache[(diff_tuple,)] = circ
                 return circ
 
-    def get_parameter_vector(self):
+    def get_parameter_vector(self) -> ParameterVector:
+        """ Parameter ParameterVector (p) utilized in the feature map circuit. """
         return self.p
 
-    def get_feature_vector(self):
+    def get_feature_vector(self) -> ParameterVector:
+        """ Feature ParameterVector (x) utilized in the feature map circuit. """
         return self.x
 
     @property
-    def num_parameters(self):
+    def num_parameters(self) -> int:
+        """ Number of parameters in the feature map circuit."""
         return len(self.p)
 
     @property
-    def num_features(self):
+    def num_features(self) -> int:
+        """ Number of features in the feature map circuit."""
         return len(self.x)
 
-    def assign_parameters(self, opflow, features: np.ndarray, parameters: np.ndarray):
+    def assign_parameters(self, opflow: OperatorBase, features: np.ndarray, parameters: np.ndarray) -> OperatorBase:
         """
-        Assigns circuit parameters
+        Assigns numerical values to the ParameterVector elements of the feature map circuit.
+
+        Args:
+            opflow (OperatorBase): Opflow object to be assigned.
+            features (np.ndarray): Numerical values of the feature vector.
+            parameters (np.ndarray): Numerical values of the parameter vector.
+
+        Return:
+            Opflow object with assigned numerical values.
         """
 
-        if opflow == None:
+        if opflow is None:
             return None
 
         todo_list = []  # list for the variables
@@ -193,7 +236,17 @@ class FeatureMapDerivatives:
         return rec_assign({}, todo_list, param_list, multi_list)
 
 
-def _adjust_input(x, x_length):
+def _adjust_input(x, x_length)-> tuple:
+    """Adjust the input to the form [[]] if necessary.
+
+    Args:
+        x (np.ndarray): Input array.
+        x_length (int): Dimension of the input array, e.g. feature dimension.
+
+    Return:
+        Adjusted input array and a boolean flag for multiple inputs.
+    """
+
     # check shape of the x and adjust to [[]] form if necessary
     multiple_inputs = False
     error = False
@@ -227,18 +280,17 @@ def _adjust_input(x, x_length):
 
 
 def _remove_measure(operator: OperatorBase) -> OperatorBase:
-    """
-    Replace all flagged measurements in the input opflow expression
-    Recursive function
+    """ Replace all measurements from the inputted Opflow expression
 
     Args:
-        operator : Opflow expression
-        measurement : new measurement operator
-    Returns:
+        operator (OperatorBase): Opflow expression from which the measurements are removed
+
+    Return:
         New opflow expression with replaced measurement operator
     """
     # We reached a ComposedOp term -> replace the measurement
     if isinstance(operator, ComposedOp):
+        # Remove the measurement from the children
         for i in range(len(operator.oplist)):
             if isinstance(operator.oplist[i], CircuitStateFn):
                 return_op = operator.oplist[i]
