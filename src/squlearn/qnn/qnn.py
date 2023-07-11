@@ -347,12 +347,12 @@ class QNN:
     @property
     def parameters(self):
         """Return the parameter vector of the PQC."""
-        return self.pqc_derivatives.p
+        return self.pqc_derivatives._p
 
     @property
     def features(self):
         """Return the feature vector of the PQC."""
-        return self.pqc_derivatives.x
+        return self.pqc_derivatives._x
 
     @property
     def parameters_operator(self):
@@ -380,8 +380,8 @@ class QNN:
             Opflow structure created from the expec object.
         """
         return measure_feature_map_derivative(
-            self.pqc_derivatives.get_derivate(input_expec.wavefunction),
-            self.operator_derivatives.get_derivate(input_expec.operator),
+            self.pqc_derivatives.get_derivative(input_expec.wavefunction),
+            self.operator_derivatives.get_derivative(input_expec.operator),
         )
 
     def evaluate_diff_tuple(
@@ -849,7 +849,7 @@ class QNN:
             offset = 0
             for expec_ in op_list:
                 # Obtained the derivative from the operator module
-                operator = self.operator_derivatives.get_derivate(expec_.operator)
+                operator = self.operator_derivatives.get_derivative(expec_.operator)
                 # Assign parameters and convert to sparse Pauli representation
                 op_with_param = self.operator_derivatives.assign_parameters(operator, param_op_inp)
 
@@ -861,7 +861,7 @@ class QNN:
                 index_list.append(index_list_op)
 
             # get the circuits of the PQC derivatives from the feature map module
-            pqc_opflow = self.pqc_derivatives.get_derivate(key)
+            pqc_opflow = self.pqc_derivatives.get_derivative(key)
 
             # check for multiple circuits (e.g. gradient)
             if isinstance(pqc_opflow, ListOp):

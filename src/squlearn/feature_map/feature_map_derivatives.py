@@ -1,8 +1,7 @@
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.opflow import CircuitSampler
 from qiskit.opflow import OperatorBase
-from qiskit.opflow import StateFn, CircuitStateFn, OperatorStateFn, DictStateFn
+from qiskit.opflow import StateFn, CircuitStateFn, OperatorStateFn
 from qiskit.opflow import SummedOp, ComposedOp, TensoredOp
 from qiskit.opflow import ListOp, PauliOp
 from qiskit.opflow import Zero, One
@@ -18,8 +17,71 @@ from .feature_map_base import FeatureMapBase
 
 
 class FeatureMapDerivatives:
-    """
-    Class for automatic differentiation and other derivatives of feature maps.
+    r"""
+    Class for automatic differentiation of feature maps.
+
+    This class allows to compute derivatives of a feature map with respect to its parameters
+    by utilizing the parameter-shift rule.
+    The derivatives can be obtained by the method :meth:`get_derivative`.
+    The type of derivative can be specified by either a string (see table below)
+    or a ParameterVector or (a list) of ParameterElements that can be accessed
+    via :meth:`feature_vector` or :meth:`parameter_vector`, respectively.
+
+    .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
+       :widths: 25 75
+       :header-rows: 1
+
+       * - String
+         - Derivative
+       * - ``"I"``
+         - Identity Operation (returns the feature map circuit)
+       * - ``"dx"``
+         - Gradient with respect to feature :math:`x`:
+           :math:`\nabla_x = \big( \frac{\partial}{\partial x_1},\ldots,
+           \frac{\partial}{\partial x_n} \big)`
+       * - ``"dp"``
+         - Gradient with respect to parameter :math:`p`:
+           :math:`\nabla_p = \big( \frac{\partial}{\partial p_1},\ldots,
+           \frac{\partial}{\partial p_m} \big)`
+       * - ``"dxdx"``
+         - Hessian with respect to feature :math:`x`:
+           :math:`H^x_{ij} = \frac{\partial^2}{\partial x_i \partial x_j}`
+       * - ``"dpdxdx"``
+         - Derivative of the feature Hessian with respect to parameter :math:`p`:
+           :math:`\nabla_p H^x_{ij} = \big( \frac{\partial H^x_{ij}}{\partial p_1},\ldots,
+           \frac{\partial H^x_{ij}}{\partial p_m} \big)`
+       * - ``laplace``
+         - Laplace operator with respect to :math:`x`:
+           :math:`\Delta = \nabla^2 = \sum_i \frac{\partial^2}{\partial x^2_i}`
+       * - ``laplace_dp``
+         - Derivative of the laplace operator with respect to parameter :math:`p`:
+           :math:`\nabla_p \Delta = \big( \frac{\partial }{\partial p_1}\Delta,\ldots,
+           \frac{\partial}{\partial p_m} \Delta \big)`
+       * - ``"dpdp"``
+         - Hessian with respect to parameter :math:`p`:
+           :math:`H^p_{ij} = \frac{\partial^2}{\partial p_i \partial p_j}`
+       * - ``"dxdp"`` (or ``"dxdp"``)
+         - Mixed Hessian with respect to feature :math:`x` and parameter :math:`p`:
+           :math:`H^{xp}_{ij} = \frac{\partial^2}{\partial x_i \partial p_j}`
+
+    **Example: Feature Map gradient with respect to the trainable parameters**
+
+    .. code-block::
+
+       from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
+       fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
+       fm_deriv = FeatureMapDerivatives(fm)
+       grad = fm_deriv.get_derivative("dp")
+
+    **Example: Derivative with respect to only the first trainable parameter**
+
+    .. code-block::
+
+       from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
+       fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
+       fm_deriv = FeatureMapDerivatives(fm)
+       dp0 = fm_deriv.get_derivative((fm_deriv.parameter_vector[0],))
+
 
     Args:
         feature_map (FeatureMapBase): Feature map to differentiate
@@ -30,14 +92,14 @@ class FeatureMapDerivatives:
     def __init__(
         self,
         feature_map: FeatureMapBase,
-        opflow_caching=True,
+        opflow_caching: bool = True,
     ):
         self.feature_map = feature_map
 
-        self.x = ParameterVector("x", self.feature_map.num_features)
-        self.p = ParameterVector("p", self.feature_map.num_parameters)
+        self._x = ParameterVector("x", self.feature_map.num_features)
+        self._p = ParameterVector("p", self.feature_map.num_parameters)
 
-        circuit = feature_map.get_circuit(self.x, self.p)
+        circuit = feature_map.get_circuit(self._x, self._p)
         self.circuit_opflow = CircuitStateFn(primitive=circuit, coeff=1.0)
         self.num_qubits = self.circuit_opflow.num_qubits
 
@@ -58,54 +120,56 @@ class FeatureMapDerivatives:
             self.instruction_set.add(instruction.operation.name)
         self.instruction_set = list(self.instruction_set)
 
-    def get_derivate(self, input: Union[str, tuple]) -> OperatorBase:
-        """ Determine the derivative of the feature map circuit.
+    def get_derivative(self, derivative: Union[str, tuple]) -> OperatorBase:
+        """Determine the derivative of the feature map circuit.
 
         Args:
-            input (str or tuple): String or tuple of parameters for specifying the derivation.
+            derivative (str or tuple): String or tuple of parameters for specifying the derivation.
 
         Return:
-            Derivaitve circuit in Qiskit Opflow format.
+            Derivative circuit in Qiskit Opflow format.
 
         """
-        if isinstance(input, str):
-            if input == "I":
+        if isinstance(derivative, str):
+            if derivative == "I":
                 opflow = self.opflow
-            elif input == "dx":
-                opflow = self._differentiation_from_tuple((self.x,)).copy()
-            elif input == "dxdx":
-                opflow = self._differentiation_from_tuple((self.x, self.x)).copy()
-            elif input == "dpdxdx":
-                opflow = self._differentiation_from_tuple((self.p, self.x, self.x)).copy()
-            elif input == "laplace":
+            elif derivative == "dx":
+                opflow = self._differentiation_from_tuple((self._x,)).copy()
+            elif derivative == "dxdx":
+                opflow = self._differentiation_from_tuple((self._x, self._x)).copy()
+            elif derivative == "dpdxdx":
+                opflow = self._differentiation_from_tuple((self._p, self._x, self._x)).copy()
+            elif derivative == "laplace":
                 list_sum = []
-                for xi in self.x:
+                for xi in self._x:
                     list_sum.append(self._differentiation_from_tuple((xi, xi)).copy())
                 opflow = SummedOp(list_sum)
-            elif input == "laplace_dp":
+            elif derivative == "laplace_dp":
                 list_sum = []
-                for xi in self.x:
-                    list_sum.append(self._differentiation_from_tuple((self.p, xi, xi)).copy())
+                for xi in self._x:
+                    list_sum.append(self._differentiation_from_tuple((self._p, xi, xi)).copy())
                 opflow = SummedOp(list_sum)
-            elif input == "dp":
-                opflow = self._differentiation_from_tuple((self.p,)).copy()
-            elif input == "dpdp":
-                opflow = self._differentiation_from_tuple((self.p, self.p)).copy()
-            elif input == "dpdx":
-                opflow = self._differentiation_from_tuple((self.p, self.x)).copy()
+            elif derivative == "dp":
+                opflow = self._differentiation_from_tuple((self._p,)).copy()
+            elif derivative == "dpdp":
+                opflow = self._differentiation_from_tuple((self._p, self._p)).copy()
+            elif derivative == "dpdx":
+                opflow = self._differentiation_from_tuple((self._p, self._x)).copy()
+            elif derivative == "dxdp":
+                opflow = self._differentiation_from_tuple((self._x, self._p)).copy()
             else:
-                raise ValueError("Unknown string command:", input)
-        elif isinstance(input, tuple):
-            opflow = self._differentiation_from_tuple(input)
+                raise ValueError("Unknown string command:", derivative)
+        elif isinstance(derivative, tuple):
+            opflow = self._differentiation_from_tuple(derivative)
         else:
-            raise TypeError("Input is neither string nor tuple, but:", type(input))
+            raise TypeError("Input is neither string nor tuple, but:", type(derivative))
 
         # remove mesurement operator
 
         return _remove_measure(opflow)
 
     def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OperatorBase:
-        """ Returns the derivative of the feature map circuit for a tuple of parameters.
+        """Returns the derivative of the feature map circuit for a tuple of parameters.
 
         The tuple describes the differentiation with respect to the parameters in the tuple.
 
@@ -115,10 +179,10 @@ class FeatureMapDerivatives:
         Return:
             Derivaitve circuit in Qiskit Opflow format.
         """
-        return self.get_derivate(diff_tuple)
+        return self.get_derivative(diff_tuple)
 
     def get_derivation_from_string(self, input_string: str) -> OperatorBase:
-        """ Returns the derivative of the feature map circuit for a string abbreviation.
+        """Returns the derivative of the feature map circuit for a string abbreviation.
 
         The table for the abbreviations can be found in the documentation of the class.
 
@@ -128,7 +192,7 @@ class FeatureMapDerivatives:
         Return:
             Derivaitve circuit in Qiskit Opflow format.
         """
-        return self.get_derivate(input_string)
+        return self.get_derivative(input_string)
 
     def _differentiation_from_tuple(self, diff_tuple: tuple) -> OperatorBase:
         """Recursive routine for automatic differentiating the feature map
@@ -144,6 +208,7 @@ class FeatureMapDerivatives:
         Return:
             Derivaitve circuit in Qiskit Opflow format.
         """
+        # TODO: support tuple of lists of parameter elements
 
         if diff_tuple == ():
             # Cancel the recursion by returning the opflow of the simply measured feature map
@@ -163,25 +228,29 @@ class FeatureMapDerivatives:
                     self.opflow_cache[(diff_tuple,)] = circ
                 return circ
 
-    def get_parameter_vector(self) -> ParameterVector:
-        """ Parameter ParameterVector (p) utilized in the feature map circuit. """
-        return self.p
+    @property
+    def parameter_vector(self) -> ParameterVector:
+        """Parameter ParameterVector ``p`` utilized in the feature map circuit."""
+        return self._p
 
-    def get_feature_vector(self) -> ParameterVector:
-        """ Feature ParameterVector (x) utilized in the feature map circuit. """
-        return self.x
+    @property
+    def feature_vector(self) -> ParameterVector:
+        """Feature ParameterVector ``x`` utilized in the feature map circuit."""
+        return self._x
 
     @property
     def num_parameters(self) -> int:
-        """ Number of parameters in the feature map circuit."""
-        return len(self.p)
+        """Number of parameters in the feature map circuit."""
+        return len(self._p)
 
     @property
     def num_features(self) -> int:
-        """ Number of features in the feature map circuit."""
-        return len(self.x)
+        """Number of features in the feature map circuit."""
+        return len(self._x)
 
-    def assign_parameters(self, opflow: OperatorBase, features: np.ndarray, parameters: np.ndarray) -> OperatorBase:
+    def assign_parameters(
+        self, opflow: OperatorBase, features: np.ndarray, parameters: np.ndarray
+    ) -> OperatorBase:
         """
         Assigns numerical values to the ParameterVector elements of the feature map circuit.
 
@@ -203,14 +272,14 @@ class FeatureMapDerivatives:
 
         # check shape of the x and adjust to [[]] form if necessary
         if features is not None:
-            xx, multi_x = _adjust_input(features, len(self.x))
+            xx, multi_x = _adjust_input(features, len(self._x))
             todo_list.append(xx)
-            param_list.append(self.x)
+            param_list.append(self._x)
             multi_list.append(multi_x)
         if parameters is not None:
-            pp, multi_p = _adjust_input(parameters, len(self.p))
+            pp, multi_p = _adjust_input(parameters, len(self._p))
             todo_list.append(pp)
-            param_list.append(self.p)
+            param_list.append(self._p)
             multi_list.append(multi_p)
 
         # Recursive construction of the assignment dictionary and list structure
@@ -236,7 +305,7 @@ class FeatureMapDerivatives:
         return rec_assign({}, todo_list, param_list, multi_list)
 
 
-def _adjust_input(x, x_length)-> tuple:
+def _adjust_input(x, x_length) -> tuple:
     """Adjust the input to the form [[]] if necessary.
 
     Args:
@@ -280,7 +349,7 @@ def _adjust_input(x, x_length)-> tuple:
 
 
 def _remove_measure(operator: OperatorBase) -> OperatorBase:
-    """ Replace all measurements from the inputted Opflow expression
+    """Replace all measurements from the inputted Opflow expression
 
     Args:
         operator (OperatorBase): Opflow expression from which the measurements are removed
@@ -328,15 +397,17 @@ def _remove_measure(operator: OperatorBase) -> OperatorBase:
         raise ValueError("Unknown type in _remove_measure:", type(operator))
 
 
-def measure_feature_map_derivative(operator: OperatorBase, measurement) -> OperatorBase:
+def measure_feature_map_derivative(
+    operator: OperatorBase, measurement: OperatorBase
+) -> OperatorBase:
     """
-    Replace all flagged measurements in the input opflow expression
-    Recursive function
+    Applied the measurement operator to each circuit in the given opflow structure.
 
     Args:
-        operator : Opflow expression
-        measurement : new measurement operator
-    Returns:
+        operator (OperatorBase): Opflow expression that is measured
+        measurement (OperatorBase): Measurement operator
+
+    Return:
         New opflow expression with replaced measurement operator
     """
     # We reached a ComposedOp term -> replace the measurement
@@ -383,7 +454,9 @@ def measure_feature_map_derivative(operator: OperatorBase, measurement) -> Opera
         raise ValueError("Unknown type in measure_derivative:", type(operator))
 
 
-def _opflow_differentiation(opflow, parameters):
+def _opflow_differentiation(
+    opflow: OperatorBase, parameters: Union[list, tuple, ParameterVectorElement, ParameterVector]
+):
     """
     Routine for the automatic differentiation based on qiskit routines
 
@@ -425,17 +498,19 @@ def _opflow_differentiation(opflow, parameters):
         return _clean_opflow_circ(Gradient().get_gradient(operator=opflow, params=parameters))
 
 
-def _clean_opflow_circ(operator: OperatorBase, instruction_set=None) -> OperatorBase:
+def _clean_opflow_circ(operator: OperatorBase, instruction_set: list[str] = None) -> OperatorBase:
     """
-    Function for removing ParameterExpression(0) terms from an opflow expression.
-    Transpiles all circuits in the opflow expression.
-    This fixes gate changes in the gradient() routine
+    Function for cleaning the opflow structure.
+
+    - Removes all ParameterExpression(0) contributions
+    - Transpiling back to the given instruction set
 
     Args:
-        operator : input opflow expression
+        operator (OperatorBase): input opflow expression
+        instruction_set (list): list of gates which are supported by the QC hardware
 
-    Returns:
-        The opflow expression without the zero contributions and transpiled circuts
+    Return:
+        The opflow expression without the zero contributions and transpiled circuits
     """
 
     # We reached the Composed object or the wavefunction
