@@ -472,10 +472,20 @@ class VarianceLoss(LossBase):
 
 
 class ParameterRegularizationLoss(LossBase):
-    r"""Variance loss for regression.
+    r"""Loss for parameter regularization.
+
+    Possible implementations:
+
+    * ``"L1"``: :math:`L=\alpha \sum_i \left|p_i\right|`
+    * ``"L2"``: :math:`L=\alpha \sum_i p_i^2`
 
     Args:
         alpha (float, Callable[[int], float]): Weight value :math:`\alpha`
+        mode (str): Type of regularization, either 'L1' or 'L2' (default: 'L2').
+        parameter_list (list): List of parameters to regularize, None: all
+                               (default: None).
+        parameter_operator_list (list): List of operator parameters to regularize, None: all
+                                        (default: []).
     """
 
     def __init__(
@@ -483,13 +493,13 @@ class ParameterRegularizationLoss(LossBase):
         alpha: Union[float, Callable[[int], float]] = 0.005,
         mode: str = "L2",
         parameter_list: Union[list, None] = None,
-        parameter_operator_list: Union[list, None] = None,
+        parameter_operator_list: Union[list, None] = [],
     ):
         super().__init__()
         self._alpha = alpha
         self._mode = mode
         if self._mode not in ["L1", "L2"]:
-            raise ValueError("Type must be L1 or L2!")
+            raise ValueError("Type must be 'L1' or 'L2'!")
 
         self._parameter_list = parameter_list
         self._parameter_operator_list = parameter_operator_list
