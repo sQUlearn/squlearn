@@ -112,7 +112,7 @@ class ChebPQC(FeatureMapBase):
         """Helper function for returning a*arccos(x)"""
         return a * np.arccos(x)
 
-    def get_cheb_indices(self,flatten:bool=True):
+    def get_cheb_indices(self, flatten: bool = True):
         """
         Returns a nested list of the indices of the parameters involved
         in the arccos encoding.
