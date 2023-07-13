@@ -52,10 +52,11 @@ class QEKFeatureMap(FeatureMapBase):
     def num_parameters(self) -> int:
         """The number of trainable parameters of the QEK feature map."""
         num_param = self.num_qubits * self.num_layers
-        if self.closed:
-            num_param += self.num_qubits * self.num_layers
-        else:
-            num_param += (self.num_qubits - 1) * self.num_layers
+        if self.num_qubits > 2:
+            if self.closed:
+                num_param += self.num_qubits * self.num_layers
+            else:
+                num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
     def get_circuit(
@@ -76,11 +77,8 @@ class QEKFeatureMap(FeatureMapBase):
             Returns the QEK circuit in qiskit QuantumCircuit format
         """
 
-        if self._num_features != len(features):
-            raise ValueError("Wrong number of features in supplied vector")
-
-        if self.num_parameters != len(parameters):
-            raise ValueError("Wrong number of parameters in supplied vector")
+        nfeatures = len(features)
+        nparam = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
         ioff = 0
@@ -93,13 +91,13 @@ class QEKFeatureMap(FeatureMapBase):
             n_feature_loop = int(np.ceil(self.num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):
                 if (i // self.num_qubits) % 2 == 0:
-                    QC.rz(features[i % self.num_features], i % self.num_qubits)
+                    QC.rz(features[i % nfeatures], i % self.num_qubits)
                 else:
-                    QC.rx(features[i % self.num_features], i % self.num_qubits)
+                    QC.rx(features[i % nfeatures], i % self.num_qubits)
 
             # Single theta Ry gates
             for i in range(self.num_qubits):
-                QC.ry(parameters[ioff], i)
+                QC.ry(parameters[ioff % nparam], i)
                 ioff = ioff + 1
 
             # Entangled theta CRZ gates
@@ -110,7 +108,7 @@ class QEKFeatureMap(FeatureMapBase):
                     istop = self.num_qubits - 1
 
                 for i in range(istop):
-                    QC.crz(parameters[ioff], i, (i + 1) % self.num_qubits)
+                    QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                     ioff = ioff + 1
 
         if self.final_encoding:
@@ -118,8 +116,8 @@ class QEKFeatureMap(FeatureMapBase):
             n_feature_loop = int(np.ceil(self.num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):
                 if int(np.ceil(i / self.num_qubits)) % 2 == 0:
-                    QC.rz(features[i % self.num_features], i % self.num_qubits)
+                    QC.rz(features[i % nfeatures], i % self.num_qubits)
                 else:
-                    QC.rx(features[i % self.num_features], i % self.num_qubits)
+                    QC.rx(features[i % nfeatures], i % self.num_qubits)
 
         return QC

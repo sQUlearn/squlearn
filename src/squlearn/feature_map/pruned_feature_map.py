@@ -10,7 +10,7 @@ from qiskit import QuantumCircuit
 from .feature_map_base import FeatureMapBase
 
 from ..util.data_preprocessing import adjust_input
-from ..util.quantum_fisher import get_quantum_fisher
+from ..util.qfi import get_quantum_fisher
 
 
 class PrunedFeatureMap(FeatureMapBase):

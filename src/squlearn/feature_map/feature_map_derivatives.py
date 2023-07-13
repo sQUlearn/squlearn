@@ -55,7 +55,7 @@ class FeatureMapDerivatives:
            :math:`\Delta = \nabla^2 = \sum_i \frac{\partial^2}{\partial x^2_i}`
        * - ``laplace_dp``
          - Derivative of the laplace operator with respect to parameter :math:`p`:
-           :math:`\nabla_p \Delta = \big( \frac{\partial }{\partial p_1}\Delta,\ldots,
+           :math:`\nabla_p \circ \Delta = \big( \frac{\partial }{\partial p_1}\Delta,\ldots,
            \frac{\partial}{\partial p_m} \Delta \big)`
        * - ``"dpdp"``
          - Hessian with respect to parameter :math:`p`:
@@ -66,7 +66,7 @@ class FeatureMapDerivatives:
 
     **Example: Feature Map gradient with respect to the trainable parameters**
 
-    .. code-block::
+    .. code-block:: python
 
        from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
        fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
@@ -75,7 +75,7 @@ class FeatureMapDerivatives:
 
     **Example: Derivative with respect to only the first trainable parameter**
 
-    .. code-block::
+    .. code-block:: python
 
        from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
        fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
