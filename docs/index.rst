@@ -18,6 +18,7 @@ Here comes some description of the sQUlearn package and the documentation.
    tutorials/pqk
    tutorials/operators
    tutorials/feature_maps
+   tutorials/executor_gpt
 
 
 Indices and tables

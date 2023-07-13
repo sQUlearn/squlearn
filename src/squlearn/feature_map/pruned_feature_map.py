@@ -2,7 +2,7 @@ import numpy as np
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.utils import QuantumInstance
+
 import warnings
 from typing import Union, Tuple
 from qiskit import QuantumCircuit
@@ -11,6 +11,7 @@ from .feature_map_base import FeatureMapBase
 
 from ..util.data_preprocessing import adjust_input
 from ..util.qfi import get_quantum_fisher
+from ..util.executor import Executor
 
 
 class PrunedFeatureMap(FeatureMapBase):
@@ -154,7 +155,7 @@ class PrunedFeatureMap(FeatureMapBase):
 
 def automated_pruning(
     feature_map: FeatureMapBase,
-    QI: QuantumInstance,  # TODO: Replace by Executor
+    executor: Executor,
     n_sample: int = 1,
     pruning_thresh: float = 1e-10,
     x_lim: Union[Tuple[float, float], None] = None,
@@ -164,7 +165,6 @@ def automated_pruning(
     verbose: int = 1,
     seed: Union[int, None] = None,
 ) -> PrunedFeatureMap:
-    # TODO: Replace by Executor and add example to docstring
     """
     Function for automated pruning of the parameters in the inputted parameterized quantum circuit.
 
@@ -240,13 +240,12 @@ def automated_pruning(
         np.random.set_state(seed_backup)
 
     # Calculate QIF for all x and parameter combinations and average over all fishers
-    fishers = np.zeros([feature_map.num_parameters, feature_map.num_parameters])
+    qfis = get_quantum_fisher(feature_map, x, p, executor, mode="p")
+    fishers = np.zeros((feature_map.num_parameters, feature_map.num_parameters))
     count = 0
-    for x_ in x:
-        for p_ in p:
-            if verbose >= 2:
-                print("Calc fisher number ", count + 1)
-            fishers += get_quantum_fisher(feature_map, x_, p_, QI)
+    for ix in range(len(x)):
+        for ip in range(len(p)):
+            fishers += qfis[ix][ip]
             count += 1
     if count > 0:
         fishers = fishers / count

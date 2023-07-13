@@ -4,6 +4,7 @@ from qiskit.algorithms.gradients import LinCombQGT, QFI
 
 from ..feature_map.feature_map_base import FeatureMapBase
 from .executor import Executor
+from .data_preprocessing import adjust_input
 
 
 def get_quantum_fisher(
@@ -16,47 +17,82 @@ def get_quantum_fisher(
     features and parameter value.
 
     Mode enables the user to choose between different modes of evaluation:
-    * "p" : QFIM for parameters only
-    * "x" : QFIM for features only
-    * "px" : QFIM for parameters and features (order parameters first)
-    * "xp" : QFIM for features and parameters (order features first)
+    * ``"p"`` : QFIM for parameters only
+    * ``"x"`` : QFIM for features only
+    * ``"px"`` : QFIM for parameters and features (order parameters first)
+    * ``"xp"`` : QFIM for features and parameters (order features first)
+
+    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input separately and
+    returned as a numpy matrix.
 
     Args:
         feature_map (FeatureMapBase): Feature map for which the QFIM is evaluated
-        x (np.ndarray): Input data values for replacing the features in the pqc
-        p (np.ndarray): Parameter values for replacing the parameters in the pqc
+        x (np.ndarray): Input data values for replacing the features in the feature map
+        p (np.ndarray): Parameter values for replacing the parameters in the feature map
         executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
         mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
                     ``"px"``, ``"xp"`` (default: ``"p"``)
 
-    Returns: Numpy matrix with the QFIM
+    Return:
+        Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
     # Get Qiskit QFI primitive
     qfi = QFI(LinCombQGT(executor.get_estimator()))
 
     p_ = ParameterVector("p", feature_map.num_parameters)
     x_ = ParameterVector("x", feature_map.num_features)
+    circuit = feature_map.get_circuit(x_, p_)
 
+    # Adjust input
+    x_list, multi_x = adjust_input(x, feature_map.num_features)
+    p_list, multi_p = adjust_input(p, feature_map.num_parameters)
+
+    circ_list = []
+    param_values_list = []
+    param_list = []
     if mode == "p":
-        circ = [feature_map.get_circuit(x, p_)]
-        param_values = [p]
-        param = [p_]
+        for xval in x_list:
+            circ_temp = circuit.assign_parameters(dict(zip(x_, xval)))
+            for pval in p_list:
+                circ_list.append(circ_temp)
+                param_values_list.append(pval)
+                param_list.append(p_)
     elif mode == "x":
-        circ = [feature_map.get_circuit(x_, p)]
-        param_values = [x]
-        param = [x_]
-    elif mode == "px":
-        circ = [feature_map.get_circuit(x_, p_)]
-        param_values = [np.concatenate((p, x))]
-        param = [list(p_) + list(x_)]
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit.assign_parameters(dict(zip(p_, pval))))
+                param_values_list.append(xval)
+                param_list.append(x_)
     elif mode == "xp":
-        circ = [feature_map.get_circuit(x_, p_)]
-        param_values = [np.concatenate((x, p))]
-        param = [list(x_) + list(p_)]
-    else:
-        raise ValueError("Mode not recognized: ", mode)
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit)
+                param_values_list.append(np.concatenate((xval, pval)))
+                param_list.append(list(x_) + list(p_))
+    elif mode == "px":
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit)
+                param_values_list.append(np.concatenate((pval, xval)))
+                param_list.append(list(p_) + list(x_))
 
-    return np.real_if_close(qfi.run(circ, param_values, param).result().qfis[0])
+    # Evaluate QFIM with Qiskit Primitive
+    qfis = np.array(qfi.run(circ_list, param_values_list, param_list).result().qfis)
+
+    # Reformating in case of multiple inputs
+    reshape_list = []
+    if multi_x:
+        reshape_list.append(len(x_list))
+    if multi_p:
+        reshape_list.append(len(p_list))
+
+    if len(reshape_list) > 0:
+        qfis = qfis.reshape(reshape_list+list(qfis[0].shape))
+    else:
+        qfis = qfis[0]
+
+    executor.clear_estimator_cache()
+    return qfis
 
 
 # WORK IN PROGRESS:
