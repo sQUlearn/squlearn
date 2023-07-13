@@ -89,6 +89,7 @@ Implemented tools for feature maps
    feature_map.automated_pruning
    feature_map.pruning_from_QFI
 
+
 Implemented operators for expectation values
 ============================================
 
@@ -109,6 +110,23 @@ Implemented operators for expectation values
    expectation_operator.SummedProbabilities
    expectation_operator.IsingHamiltonian
    expectation_operator.CustomExpectationOperator
+
+Quantum Kernel implementations
+==============================
+
+.. automodule:: squlearn.kernel.matrix
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.matrix.FidelityKernel
+   kernel.matrix.ProjectedQuantumKernel
 
 
 Low-level QNN implementation

@@ -34,6 +34,10 @@ class KernelMatrixBase:
         return self._num_features
 
     @property
+    def parameters(self) -> np.ndarray:
+        return self._parameters
+
+    @property
     def num_parameters(self) -> int:
         return self._num_parameters
 
