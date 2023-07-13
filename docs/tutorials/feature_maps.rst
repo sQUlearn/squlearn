@@ -1,10 +1,25 @@
+.. _quantum_feature_maps:
+
+.. currentmodule:: squlearn.feature_map
+
 ####################
 Quantum Feature Maps
 ####################
 
-.. currentmodule:: squlearn.feature_map
+Quantum feature maps are used to embed classical data :math:`x` into a quantum state and manipulate
+the quantum state via trainable parameters :math:`p`.
+They are a key component of many quantum machine learning algorithms, and the design of a good
+quantum feature map is crucial for the performance of the algorithm.
+In sQUlearn, feature maps are an obligatory input in the Quantum Neural Network (QNN) or Quantum
+Kernel programs.
+sQUlearn offers a wide range of pre-implemented quantum feature maps,
+which can be combined to create more sophisticated feature maps.
+Furthermore, it is possible to create custom feature maps that follow a layered approach, in which
+each gate is applied to all qubits.
+The package facilitate a fully automated pruning algorithm to remove redundant parameters and
+enables the automatic differentiation of arbitrary derivative.
 
-The following objects are are accessible via :class:`squlearn.feature_map`.
+The following functions and classes are are accessible via :class:`squlearn.feature_map`.
 
 Implemented Quantum Feature Maps
 -----------------------------------
@@ -86,6 +101,7 @@ It is also possible to utilize the wrapper :class:`QiskitFeatureMap` to build Fe
 
 .. code-block:: python
 
+   from squlearn.feature_map import QiskitFeatureMap
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    QiskitFeatureMap(local).draw()
@@ -181,6 +197,25 @@ the Quantum Fisher Information Matrix (QFIM) of the feature map.
 sQUlearn features a fully automated pruning algorithm which can be used by calling the routine
 :meth:`automated_pruning` that returns a pruned feature map without the redundant parameters.
 
+**Example: Pruning a feature map with redundant parameters**
+
+.. code-block:: python
+
+   from squlearn.feature_map import LayeredFeatureMap, automated_pruning
+   from squlearn.util import Executor
+   feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
+   pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
+   pruned_feature_map.draw()
+
+.. plot::
+
+   from squlearn.feature_map import LayeredFeatureMap, automated_pruning
+   from squlearn.util import Executor
+   feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
+   pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
+   plt = pruned_feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+   plt.tight_layout()
+   plt
 
 Different Quantum Feature Maps via :class:`FeatureMapDerivatives`
 -----------------------------------------------------------------
@@ -213,4 +248,29 @@ a custom format in the future.
 
 Transpile Quantum Feature Maps via :class:`TranspiledFeatureMap`
 ----------------------------------------------------------------
-test test test test
+
+To transpile a quantum feature map, you can leverage the functionality provided by the
+:class:`TranspiledFeatureMap` class. By utilizing this class, you can input an existing
+quantum feature map and have its circuit transpiled according to the specified backend and
+transpiler settings, which are the same settings used in Qiskit.
+The transpiled feature map is internally employed in the QNN program and projected kernels,
+where it is employed internally.
+
+**Example: Transpile a existing Feature Map to a fake backend**
+
+.. code-block:: python
+
+   from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+   from qiskit.providers.fake_provider import FakeManilaV2
+
+   fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm.draw()
+
+.. plot::
+
+   from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+   from qiskit.providers.fake_provider import FakeManilaV2
+   fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   plt = fm.draw(style={'fontsize':15,'subfontsize': 10})
+   plt.tight_layout()
+   plt
