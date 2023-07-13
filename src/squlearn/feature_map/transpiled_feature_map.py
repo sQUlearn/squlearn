@@ -1,73 +1,110 @@
 import numpy as np
-from typing import Union
+from typing import Union, Callable
 
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
+from qiskit.providers.backend import Backend
 
 from .feature_map_base import FeatureMapBase
 
 
 class TranspiledFeatureMap(FeatureMapBase):
     """
-    Feature map base class
+    Class for generated a Feature Map with a transpiled circuit.
+
+    **Example:**
+
+    .. code-block:: python
+
+       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+       from qiskit.providers.fake_provider import FakeManilaV2
+
+       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+       fm.draw()
+
+    .. plot::
+
+       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+       from qiskit.providers.fake_provider import FakeManilaV2
+       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+       plt = fm.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
+
 
     Args:
-        num_qubits (int): Number of Qubits of the feature map
-        num_features (int): Dimension of the feature vector
+        feature_map (FeatureMapBase): Feature map to be transpiled.
+        backend (Backend): Backend used for the transpilation.
+        transpile_func (Union[Callable,None]): Optional function for transpiling the circuit.
+                                               First argument is the circuit, second the backend.
+                                               If no function is specified, Qiskit's transpile
+                                               function is used.
+        kwargs: Additional arguments for `Qiskit's transpile function
+                <https://qiskit.org/documentation/stubs/qiskit.compiler.transpile.html>`_.
+
     """
 
     def __init__(
         self,
         feature_map: FeatureMapBase,
-        backend,
-        transpile_func=None,
+        backend: Backend,
+        transpile_func: Union[Callable, None] = None,
+        **kwargs,
     ) -> None:
         self._feature_map = feature_map
         self._backend = backend
         self._transpile_func = transpile_func
 
-        self.x = ParameterVector("x", self._feature_map.num_features)
-        self.p = ParameterVector("p", self._feature_map.num_parameters)
+        self._x = ParameterVector("x", self._feature_map.num_features)
+        self._p = ParameterVector("p", self._feature_map.num_parameters)
 
-        self._circuit = self._feature_map.get_circuit(self.x, self.p)
+        self._circuit = self._feature_map.get_circuit(self._x, self._p)
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
         else:
-            self._transpiled_circuit = transpile(
-                self._circuit, self._backend, optimization_level=3, seed_transpiler=0
-            )
+            if "optimization_level" not in kwargs:
+                kwargs["optimization_level"] = 3
+            if "seed_transpiler" not in kwargs:
+                kwargs["seed_transpiler"] = 0
+            self._transpiled_circuit = transpile(self._circuit, self._backend, **kwargs)
 
         self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
 
     @property
     def num_qubits(self) -> int:
-        """Returns the number of qubits of the feature map."""
-        return self._feature_map.num_qubits
-
-    @property
-    def num_all_qubits(self) -> int:
-        """Returns the number of qubits of the feature map."""
+        """Number of qubits (physical) of the feature map."""
         return self._transpiled_circuit.num_qubits
 
     @property
-    def qubit_map(self):
+    def num_physical_qubits(self) -> int:
+        """Number of physical qubits of the feature map."""
+        return self._transpiled_circuit.num_qubits
+
+    @property
+    def num_virtual_qubits(self) -> int:
+        """Number of virtual qubits in the feature map."""
+        return self._feature_map.num_qubits
+
+    @property
+    def qubit_map(self) -> dict:
+        """Dictionary which maps virtual to physical qubits."""
         return self._qubit_map
 
     @property
     def backend(self) -> int:
-        """Returns the dimension of features of the feature map."""
+        """Backend used for the transpilation."""
         return self._backend
 
     @property
     def num_features(self) -> int:
-        """Returns the dimension of features of the feature map."""
+        """Feature dimension of the feature map."""
         return self._feature_map.num_features
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters of the feature map."""
+        """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
 
     def get_circuit(
@@ -76,31 +113,31 @@ class TranspiledFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit feature map (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the circuit of the traspiled feature map
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
-                from which the gate inputs are obtained
+                                                        from which the gate inputs are obtained
             param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
-                from which the gate inputs are obtained
+                                                         from which the gate inputs are obtained
 
         Return:
-            Returns the circuit in qiskit QuantumCircuit format
+            Returns the transpiled circuit in Qiskit's QuantumCircuit format
         """
 
-        exchange_dict_x = dict(zip(self.x, features))
-        exchange_dict_p = dict(zip(self.p, parameters))
+        exchange_dict_x = dict(zip(self._x, features))
+        exchange_dict_p = dict(zip(self._p, parameters))
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
         return self._transpiled_circuit.assign_parameters(exchange_both)
 
 
-def _gen_qubit_mapping(circuit):
+def _gen_qubit_mapping(circuit: QuantumCircuit) -> dict:
     """
     Returns dictionary that maps virtual qubits to the physical ones
 
     Args:
-        circ : quantum circuit (ideally transpiled)
+        circuit (QuantumCircuit): quantum circuit (ideally transpiled)
 
     Returns:
         Dictionary which maps virtual to physical qubits

@@ -59,7 +59,7 @@ class ExpectationOperatorDerivatives:
         if self.opflow_caching:
             self.opflow_cache["O"] = opflow
 
-    def get_derivate(self, input: Union[str, tuple]):
+    def get_derivative(self, input: Union[str, tuple]):
         """return the opflow structure of the wavefunction"""
         if isinstance(input, str):
             # todo change with replaced operator
@@ -101,10 +101,10 @@ class ExpectationOperatorDerivatives:
         return measure_op
 
     def get_differentiation_from_tuple(self, diff_tuple: tuple):
-        return self.get_derivate(diff_tuple)
+        return self.get_derivative(diff_tuple)
 
     def get_derivation_from_string(self, input_string: str):
-        return self.get_derivate(input_string)
+        return self.get_derivative(input_string)
 
     def _differentiation_from_tuple(self, expectation_op, diff_tuple: tuple, expectation_op_label):
         """Recursive routine for automatic differentiating the expectation_operator

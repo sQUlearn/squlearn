@@ -8,18 +8,25 @@ from ..feature_map_base import FeatureMapBase
 
 class YZ_CX_FeatureMap(FeatureMapBase):
     """
-    Creates the YZ-CX PQC feature map from Reference https://arxiv.org/pdf/2108.01039v1.pdf
+    Creates the YZ-CX Feature Map from Reference https://arxiv.org/abs/2108.01039v3
 
-    The structure of the feature map is
+    **Example for 4 qubits, a 4 dimensional feature vector, 2 layers and c = 2.0:**
 
-    -Ry(c*x0+theta_y0,0)-Rz(c*x0+theta_z0,0)-.-Ry(c*x0+theta_y0,1)-Rz(c*x0+theta_z0,1)--
-    -Ry(c*x1+theta_y1,0)-Rz(c*x1+theta_z1,0)-x-Ry(c*x1+theta_y1,1)-Rz(c*x1+theta_z1,1)-.
-    -Ry(c*x2+theta_y2,0)-Rz(c*x2+theta_z2,0)-.-Ry(c*x2+theta_y2,1)-Rz(c*x2+theta_z2,1)-x
-    -Ry(c*x3+theta_y3,0)-Rz(c*x3+theta_z3,0)-X-Ry(c*x3+theta_y3,1)-Rz(c*x3+theta_z3,1)--
+    .. plot::
 
-    The number of qubits and the number of features have to be the same!
+       from squlearn.feature_map import YZ_CX_FeatureMap
+       pqc = YZ_CX_FeatureMap(4, 4, 2, c=2.0)
+       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
 
-    One combination of Ry and Rz is considered as a single layer
+    One combination of Ry and Rz is considered as a single layer.
+
+    Args:
+        num_qubits (int): Number of qubits of the YZ-CX Feature Map feature map
+        num_features (int): Dimension of the feature vector
+        num_layers (int): Number of layers (default: 1)
+        c (float): Prefactor :math:`c` for rescaling the data (default: 1.0)
     """
 
     def __init__(
@@ -30,21 +37,19 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         self._num_layers = num_layers
         self._c = c
 
-        if self._num_features != self._num_qubits:
-            raise ValueError(
-                "The number of qubits and the number of features have to be the same!"
-            )
-
     @property
     def num_parameters(self) -> int:
-        return 2 * self._num_qubits * self._num_layers
+        """The number of trainable parameters of the YZ-CX Feature Map feature map."""
+        return 2 * self.num_qubits * self._num_layers
 
     @property
     def num_layers(self) -> int:
+        """The number of layers of the YZ-CX Feature Map feature map."""
         return self._num_layers
 
     @property
     def c(self) -> int:
+        """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
         return self._c
 
     def get_circuit(
@@ -53,38 +58,35 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit of the YZ-CX feature map
+        Return the circuit of the YZ-CX feature map.
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
-                from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
-                from which the gate inputs are obtained
+            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+                                                          from which the gate inputs are obtained.
+            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+                                                           from which the gate inputs are obtained.
 
         Return:
-            Returns the circuit in qiskit format
+            Returns the circuit in qiskit format.
         """
 
-        if self._num_features != len(features):
-            raise ValueError("Wrong number of features in supplied vector")
-
-        if self.num_parameters != len(parameters):
-            raise ValueError("Wrong number of parameters in supplied vector")
+        nfeature = len(features)
+        nparam = len(parameters)
 
         # Creates the layers of the feature map
-        QC = QuantumCircuit(self._num_qubits)
+        QC = QuantumCircuit(self.num_qubits)
         ioff = 0
-        for ilayer in range(self._num_layers):
-            for i in range(self._num_qubits):
-                QC.ry(parameters[ioff] + self._c * features[i], i)
+        for ilayer in range(self.num_layers):
+            for i in range(self.num_qubits):
+                QC.ry(parameters[ioff % nparam] + self.c * features[i % nfeature], i)
                 ioff = ioff + 1
-                QC.rz(parameters[ioff] + self._c * features[i], i)
+                QC.rz(parameters[ioff % nparam] + self.c * features[i % nfeature], i)
                 ioff = ioff + 1
             # Entangling layer depends on odd or even layer
             if ilayer % 2 == 0:
-                for i in range(0, self._num_qubits - 1, 2):
+                for i in range(0, self.num_qubits - 1, 2):
                     QC.cx(i, i + 1)
             else:
-                for i in range(1, self._num_qubits - 1, 2):
+                for i in range(1, self.num_qubits - 1, 2):
                     QC.cx(i, i + 1)
         return QC

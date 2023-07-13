@@ -4,7 +4,7 @@ from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, UGate
 from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
 from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
 from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
-from typing import Union
+from typing import Union, Callable
 
 # is needed for making feature maps with numpy functions using strings:
 import numpy as np
@@ -21,10 +21,10 @@ class VariableGroup:
         """
         Args:
             variable_name [String]: the name of the variable type, which one can see, if he draws the circuit of a feature map with this variable group
-            size [Int]: The dimension of the variable group
-            index [Int]: The index of the variable group (only important for creating the circuit)
+            size (int): The dimension of the variable group
+            index (int): The index of the variable group (only important for creating the circuit)
             Only if size is not given:
-            total_variables_used [Int]: counter, which saves the number of variables used (only important, if size not given, so the dimension can potentially be infinity)
+            total_variables_used (int): counter, which saves the number of variables used (only important, if size not given, so the dimension can potentially be infinity)
         """
         self.variable_name = variable_name
         self.size = size
@@ -730,7 +730,7 @@ class LayeredPQC:
         """
         Takes number of qubits.
         Attributes:
-            num_qubits [int]: Number of qubits in this feature map
+            num_qubits (int): Number of qubits in this feature map
             operation_list [list]: List of objects of the class operation with the tuple of the variablegroups used for each operation and the number of variables used in that operation, e.g. [[_H_operation,None], [Rx_operation, (x_var,x_var2), [5,5],...]
             variable_groups [tuple]: Tuple of all variable groups used in this feature map; ATTENTION: If there is only one variable group, be sure to type in "(x,)" and not "(x)" initializing the feature map
             Only if variable_groups is not None:
@@ -1405,7 +1405,7 @@ def math_function({var}):
                 string_iterator = end_word + 1
             # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Beginning of the entangling layers:
-            elif character_iter == "c":
+            elif character_iter == "c" or character_iter == "r":
                 character_iter_1 = gate_layers[string_iterator + 1]
                 # //////////////////////////////////////////////////////////////////////////////////////////////
                 # simple entangling layers (that don't require parameter vectors)
@@ -1421,6 +1421,10 @@ def math_function({var}):
                     function_pointer = featuremap_active.cz_entangling
                 elif character_iter_1 == "s":
                     function_pointer = featuremap_active.swap
+
+                # overwrite function pointer for rxx,ryy,... gates
+                if character_iter == "r":
+                    function_pointer = None
 
                 if function_pointer != None:
                     if string_iterator + 2 < len(gate_layers):
@@ -1447,11 +1451,30 @@ def math_function({var}):
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                 # Entangling layers, that require parameter vectors
                 else:
-                    if character_iter_1 == "r":
+                    if character_iter_1 in ("r", "x", "y", "z"):
                         if string_iterator + 2 < len(gate_layers):
                             character_iter_2 = gate_layers[string_iterator + 2]
                         else:
                             raise ValueError("Wrong rotation entangling input.")
+
+                        func = None
+                        if character_iter_1 == "r" and character_iter_2 == "x":
+                            func = featuremap_active.crx_entangling
+                        elif character_iter_1 == "r" and character_iter_2 == "y":
+                            func = featuremap_active.cry_entangling
+                        elif character_iter_1 == "r" and character_iter_2 == "z":
+                            func = featuremap_active.crz_entangling
+                        elif character_iter_1 == "x" and character_iter_2 == "x":
+                            func = featuremap_active.rxx_entangling
+                        elif character_iter_1 == "y" and character_iter_2 == "y":
+                            func = featuremap_active.ryy_entangling
+                        elif character_iter_1 == "z" and character_iter_2 == "z":
+                            func = featuremap_active.rzz_entangling
+                        elif character_iter_1 == "z" and character_iter_2 == "x":
+                            func = featuremap_active.rzx_entangling
+                        else:
+                            raise ValueError("Unknown rotation gate.")
+
                         # set entangling strategy to "NN" and there is no map given (on default)
                         ent_strategy = "NN"
                         given_map = False
@@ -1519,54 +1542,21 @@ def math_function({var}):
                             else:
                                 raise ValueError("Wrong input2.")
 
-                            if character_iter_2 == "x":
-                                if given_map:
-                                    featuremap_active.crx_entangling(
-                                        *param_vector_list,
-                                        map=map_from_string,
-                                        ent_strategy=ent_strategy,
-                                    )
-                                else:
-                                    featuremap_active.crx_entangling(
-                                        *param_vector_list, ent_strategy=ent_strategy
-                                    )
-                            elif character_iter_2 == "y":
-                                if given_map:
-                                    featuremap_active.cry_entangling(
-                                        *param_vector_list,
-                                        map=map_from_string,
-                                        ent_strategy=ent_strategy,
-                                    )
-                                else:
-                                    featuremap_active.cry_entangling(
-                                        *param_vector_list, ent_strategy=ent_strategy
-                                    )
-                            elif character_iter_2 == "z":
-                                if given_map:
-                                    featuremap_active.crz_entangling(
-                                        *param_vector_list,
-                                        map=map_from_string,
-                                        ent_strategy=ent_strategy,
-                                    )
-                                else:
-                                    featuremap_active.crz_entangling(
-                                        *param_vector_list, ent_strategy=ent_strategy
-                                    )
+                            if given_map:
+                                func(
+                                    *param_vector_list,
+                                    map=map_from_string,
+                                    ent_strategy=ent_strategy,
+                                )
                             else:
-                                raise ValueError("Unknown rotation gate.")
+                                func(*param_vector_list, ent_strategy=ent_strategy)
+
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 4) : end_word]
                             param_index = featuremap.variable_name_tuple.index(param_vector_name)
                             param_vector = featuremap.variable_groups[param_index]
-                            if character_iter_2 == "x":
-                                featuremap_active.crx_entangling(param_vector)
-                            elif character_iter_2 == "y":
-                                featuremap_active.cry_entangling(param_vector)
-                            elif character_iter_2 == "z":
-                                featuremap_active.crz_entangling(param_vector)
-                            else:
-                                raise ValueError("Unknown rotation gate.")
+                            func(param_vector)
                         string_iterator = end_word + 1
                     elif character_iter_1 == "p":
                         if string_iterator + 2 < len(gate_layers):
@@ -1707,7 +1697,6 @@ def math_function({var}):
                         string_iterator = end_word + 1
                     else:
                         raise ValueError("Unknown entangling operation.")
-
             else:
                 raise ValueError(
                     character_iter + " is an unknown operation input or an unknown character."
@@ -1845,19 +1834,229 @@ class ConvertedLayeredFeatureMap(FeatureMapBase):
 
 
 class LayeredFeatureMap(FeatureMapBase):
-    """
-    Class for a Layered Feature Map.
+    r"""
+    A class for a simple creation of layered feature maps.
 
-    Layers can created by applying gates to all qubits.
-    Furthermore, the feature map can be created from strings
+    Gates are added to all qubits by calling the associated function similar to Qiskit's circuits.
+    Single qubit gates are added to all qubits, while two qubits gates can be added with different
+    entanglement patterns. The implemented one and two qubit gates are listed below.
 
-    TODO: a lot more documentation here
+    Some gates have a input variable, as for example rotation gates, that can be set by supplying
+    the string ``"x"`` for feature or ``"p"`` for parameter. Non-linear mapping can
+    be added by setting the map variable ``map=``. Two qubit gates can be placed either
+    in a nearest-neighbour ``NN`` or a all to all entangling pattern ``AA``.
+
+    **Simple Layered Feature Map**
+
+    .. code-block:: python
+
+       from squlearn.feature_map import LayeredFeatureMap
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       feature_map.Rz("x")
+       feature_map.Ry("p")
+       feature_map.cx_entangling("NN")
+       feature_map.draw()
+
+    .. plot::
+
+       from squlearn.feature_map import LayeredFeatureMap
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       feature_map.Rz("x")
+       feature_map.Ry("p")
+       feature_map.cx_entangling("NN")
+       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
+
+
+    **Create a layered feature map with non-linear input encoding**
+
+    It is also possible to define a non-linear function for encoding variables in gates by
+    supplying a function for the encoding as the second argument
+
+    .. code-block:: python
+
+       import numpy as np
+       from squlearn.feature_map import LayeredFeatureMap
+
+       def func(a,b):
+           return a*np.arccos(b)
+
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       feature_map.Rz("p","x",encoding=func)
+       feature_map.cx_entangling("NN")
+       feature_map.draw()
+
+    .. plot::
+
+       import numpy as np
+       from squlearn.feature_map import LayeredFeatureMap
+
+       def func(a,b):
+           return a*np.arccos(b)
+
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       feature_map.Rz("p","x",encoding=func)
+       feature_map.cx_entangling("NN")
+       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
+
+
+    **Create a layered feature map with layers**
+
+    Furthermore, it is possible to define layers and repeat them.
+
+    .. code-block:: python
+
+       from squlearn.feature_map import LayeredFeatureMap
+       from squlearn.feature_map.layered_feature_map import Layer
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       layer = Layer(feature_map)
+       layer.Rz("x")
+       layer.Ry("p")
+       layer.cx_entangling("NN")
+       feature_map.add_layer(layer,num_layers=3)
+       feature_map.draw()
+
+    .. plot::
+
+       from squlearn.feature_map import LayeredFeatureMap
+       from squlearn.feature_map.layered_feature_map import Layer
+       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+       feature_map.H()
+       layer = Layer(feature_map)
+       layer.Rz("x")
+       layer.Ry("p")
+       layer.cx_entangling("NN")
+       feature_map.add_layer(layer,num_layers=3)
+       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
+
+    **Create a layered feature map from string**
+
+    Another very useful feature is the creation from feature maps from strings.
+    This can be achieved by the function ``LayeredFeatureMap.from_string()``.
+
+    Gates are separated by ``-``, layers can be specified by ``N[...]`` where ``N`` is the
+    number of repetitions. The entangling strategy can be set by adding ``NN`` or ``AA``.
+    Adding a encoding function is possible by adding a ``=`` and the function definition as a
+    string. The variables used in the function are given within curly brackets,
+    e.g. ``crz(p;=a*np.arccos(b),{y,x};NN)``.
+
+    The following strings are used for the gates:
+
+    .. list-table:: Single qubit gates and their string representation
+       :widths: 15 25 15 25 15 25
+       :header-rows: 1
+
+       * - String
+         - Function
+         - String
+         - Function
+         - String
+         - Function
+       * - ``"H"``
+         - :meth:`H`
+         - ``"I"``
+         - :meth:`I`
+         - ``"P"``
+         - :meth:`P`
+       * - ``"Rx"``
+         - :meth:`Rx`
+         - ``"Ry"``
+         - :meth:`Ry`
+         - ``"Rz"``
+         - :meth:`Rz`
+       * - ``"S"``
+         - :meth:`S`
+         - ``"Sc"``
+         - :meth:`S_conjugate`
+         - ``"T"``
+         - :meth:`T`
+       * - ``"Tc"``
+         - :meth:`T_conjugate`
+         - ``"U"``
+         - :meth:`U`
+         - ``"X"``
+         - :meth:`X`
+       * - ``"Y"``
+         - :meth:`Y`
+         - ``"Z"``
+         - :meth:`Z`
+         -
+         -
+
+    .. list-table:: Two qubit gates and their string representation
+       :widths: 25 25 25 25 25 25
+       :header-rows: 1
+
+       * - String
+         - Function
+         - String
+         - Function
+         - String
+         - Function
+       * - ``"ch"``
+         - :meth:`ch_entangling`
+         - ``"cx"``
+         - :meth:`cx_entangling`
+         - ``"cy"``
+         - :meth:`cy_entangling`
+       * - ``"cz"``
+         - :meth:`cz_entangling`
+         - ``"s"``
+         - :meth:`swap`
+         - ``"cp"``
+         - :meth:`cp_entangling`
+       * - ``"crx"``
+         - :meth:`crx_entangling`
+         - ``"cry"``
+         - :meth:`cry_entangling`
+         - ``"crz"``
+         - :meth:`crz_entangling`
+       * - ``"rxx"``
+         - :meth:`rxx_entangling`
+         - ``"ryy"``
+         - :meth:`ryy_entangling`
+         - ``"rzz"``
+         - :meth:`rzz_entangling`
+       * - ``"rzx"``
+         - :meth:`rzx_entangling`
+         - ``"cu"``
+         - :meth:`cu_entangling`
+         -
+         -
+
+    .. code-block:: python
+
+       from squlearn.feature_map import LayeredFeatureMap
+       feature_map = LayeredFeatureMap.from_string(
+           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+       )
+       feature_map.draw()
+
+    .. plot::
+
+       from squlearn.feature_map import LayeredFeatureMap
+       feature_map = LayeredFeatureMap.from_string(
+           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+       )
+       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+       plt.tight_layout()
+       plt
 
     Args:
-        num_qubits [int]: Number of qubits of the feature map
-        num_features [int]: Dimension of the feature vector
-        feature_str [str]: Label for identifying the feature variable group (default='x').
-        parameter_str [str]: Label for identifying the parameter variable group (default='p').
+        num_qubits (int): Number of qubits of the feature map
+        num_features (int): Dimension of the feature vector
+        feature_str (str): Label for identifying the feature variable group (default: ``"x"``).
+        parameter_str (str): Label for identifying the parameter variable group (default: ``"p"``).
     """
 
     def __init__(
@@ -1911,11 +2110,11 @@ class LayeredFeatureMap(FeatureMapBase):
         Constructs a Layered Feature Map through a given string of gates.
 
         Args:
-            feature_map_str [str]: String that specifies the feature map
-            num_qubits [int]: Number of qubits in the feature map
-            num_features [int]: Dimension of the feature vector.
-            feature_str [str]: String that used in feature_map_str to label features (default: 'x')
-            parameter_str [str]: String that used in feature_map_str to label parameters (default: 'p')
+            feature_map_str (str): String that specifies the feature map
+            num_qubits (int): Number of qubits in the feature map
+            num_features (int): Dimension of the feature vector.
+            feature_str (str): String that used in feature_map_str to label features (default: 'x')
+            parameter_str (str): String that used in feature_map_str to label parameters (default: 'p')
 
         Returns:
             Returns a LayeredFeatureMap object that contains the specified feature map.
@@ -1936,44 +2135,46 @@ class LayeredFeatureMap(FeatureMapBase):
 
         Args:
             layer: Layer structure
-            num_layers [int]: Number of times that the layer is repeated
+            num_layers (int): Number of times that the layer is repeated
 
         """
-        self._layered_pqc.add_layer(layer._layered_pqc, num_layers)
+        self._layered_pqc.add_layer(layer.layered_pqc, num_layers)
 
-    def _str_to_variable_group(self, str) -> VariableGroup:
+    def _str_to_variable_group(self, input_string: str) -> VariableGroup:
         """
         Internal function to convert a string to the
         feature or parameter variable group
 
         Args:
-            str [str]: String that is either feature_str or parameter_str
+            input_string (str): String that is either feature_str or parameter_str
 
         Returns:
             Associated variable group
         """
-        if str == self._feature_str:
+        if input_string == self._feature_str:
             return self._x
-        elif str == self._parameter_str:
+        elif input_string == self._parameter_str:
             return self._p
         else:
             raise ValueError("Unknown variable type!")
 
-    def _param_gate(self, *variable, function, map=None):
+    def _param_gate(self, *variable, function, encoding: Union[Callable, None] = None):
         """
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
         vg_list = [self._str_to_variable_group(str) for str in variable]
-        return function(*vg_list, map=map)
+        return function(*vg_list, map=encoding)
 
-    def _two_param_gate(self, *variable, function, ent_strategy="NN", map=None):
+    def _two_param_gate(
+        self, *variable, function, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
         """
         Internal conversion routine for two qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
         vg_list = [self._str_to_variable_group(str) for str in variable]
-        return function(*vg_list, ent_strategy=ent_strategy, map=map)
+        return function(*vg_list, ent_strategy=ent_strategy, map=encoding)
 
     def H(self):
         """Adds a layer of H gates to the Layered Feature Map"""
@@ -2000,7 +2201,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.S()
 
     def S_conjugate(self):
-        """Adds a layer of S^T gates to the Layered Feature Map"""
+        """Adds a layer of conjugated S gates to the Layered Feature Map"""
         self._layered_pqc.S_conjugate()
 
     def T(self):
@@ -2008,128 +2209,274 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.T()
 
     def T_conjugate(self):
-        """Adds a layer of T^T gates to the Layered Feature Map"""
+        """Adds a layer of conjugated T gates to the Layered Feature Map"""
         self._layered_pqc.T_conjugate()
 
-    def Rx(self, *variable_str, map=None):
-        """Adds a layer of Rx gates to the Layered Feature Map"""
-        self._param_gate(*variable_str, function=self._layered_pqc.Rx, map=map)
+    def Rx(self, *variable_str: str, encoding: Union[Callable, None] = None):
+        """Adds a layer of Rx gates to the Layered Feature Map
 
-    def Ry(self, *variable_str, map=None):
-        """Adds a layer of Ry gates to the Layered Feature Map"""
-        self._param_gate(*variable_str, function=self._layered_pqc.Ry, map=map)
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+        self._param_gate(*variable_str, function=self._layered_pqc.Rx, encoding=encoding)
 
-    def Rz(self, *variable_str, map=None):
-        """Adds a layer of Rz gates to the Layered Feature Map"""
-        self._param_gate(*variable_str, function=self._layered_pqc.Rz, map=map)
+    def Ry(self, *variable_str, encoding: Union[Callable, None] = None):
+        """Adds a layer of Ry gates to the Layered Feature Map
 
-    def P(self, *variable_str, map=None):
-        """Adds a layer of P gates to the Layered Feature Map"""
-        self._param_gate(*variable_str, function=self._layered_pqc.P, map=map)
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+        self._param_gate(*variable_str, function=self._layered_pqc.Ry, encoding=encoding)
 
-    def U(self, *variable_str, map=None):
-        """Adds a layer of U gates to the Layered Feature Map"""
-        self._param_gate(*variable_str, function=self._layered_pqc.U, map=map)
+    def Rz(self, *variable_str, encoding: Union[Callable, None] = None):
+        """Adds a layer of Rz gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+        self._param_gate(*variable_str, function=self._layered_pqc.Rz, encoding=encoding)
+
+    def P(self, *variable_str, encoding: Union[Callable, None] = None):
+        """Adds a layer of P gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+        self._param_gate(*variable_str, function=self._layered_pqc.P, encoding=encoding)
+
+    def U(self, *variable_str, encoding: Union[Callable, None] = None):
+        """Adds a layer of U gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+        self._param_gate(*variable_str, function=self._layered_pqc.U, encoding=encoding)
 
     def ch_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled H gates to the Layered Feature Map"""
+        """Adds a layer of controlled H gates to the Layered Feature Map
+
+        Args:
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+        """
         self._layered_pqc.ch_entangling(ent_strategy)
 
     def cx_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled X gates to the Layered Feature Map"""
+        """Adds a layer of controlled X gates to the Layered Feature Map
+
+        Args:
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+        """
         self._layered_pqc.cx_entangling(ent_strategy)
 
     def cy_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled Y gates to the Layered Feature Map"""
+        """Adds a layer of controlled Y gates to the Layered Feature Map
+
+        Args:
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+        """
         self._layered_pqc.cy_entangling(ent_strategy)
 
     def cz_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled Z gates to the Layered Feature Map"""
+        """Adds a layer of controlled Z gates to the Layered Feature Map
+
+        Args:
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+        """
         self._layered_pqc.cz_entangling(ent_strategy)
 
     def swap(self, ent_strategy="NN"):
-        """Adds a layer of swap gates to the Layered Feature Map"""
+        """Adds a layer of swap gates to the Layered Feature Map
+
+        Args:
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+        """
         self._layered_pqc.swap(ent_strategy)
 
-    def cp_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of controlled P gates to the Layered Feature Map"""
+    def cp_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of controlled P gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
+
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.cp_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def crx_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of controlled Rx gates to the Layered Feature Map"""
+    def crx_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of controlled Rx gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.crx_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def cry_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of controlled Ry gates to the Layered Feature Map"""
+    def cry_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of controlled Ry gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.cry_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def crz_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of controlled Rz gates to the Layered Feature Map"""
+    def crz_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of controlled Rz gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.crz_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def rxx_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of Rxx gates to the Layered Feature Map"""
+    def rxx_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of Rxx gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.rxx_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def ryy_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of Ryy gates to the Layered Feature Map"""
+    def ryy_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of Ryy gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.ryy_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def rzx_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of Rzx gates to the Layered Feature Map"""
+    def rzx_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of Rzx gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.rzx_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def rzz_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of Rzz gates to the Layered Feature Map"""
+    def rzz_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of Rzz gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.rzz_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
-    def cu_entangling(self, *variable_str, ent_strategy="NN", map=None):
-        """Adds a layer of controlled U gates to the Layered Feature Map"""
+    def cu_entangling(
+        self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
+    ):
+        """Adds a layer of controlled U gates to the Layered Feature Map
+
+        Args:
+            variable_str (str): Labels of variables that are used in the gate
+            ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
+                                either ``"NN"`` or ``"AA"``.
+            encoding (Callable): Encoding function that is applied to the variables, input in the
+                                 same order as the given labels in variable_str
+        """
         self._two_param_gate(
             *variable_str,
             function=self._layered_pqc.cu_entangling,
             ent_strategy=ent_strategy,
-            map=map,
+            encoding=encoding,
         )
 
 
@@ -2147,3 +2494,8 @@ class Layer(LayeredFeatureMap):
         self._x = feature_map._x
         self._p = feature_map._p
         self._layered_pqc = LayerPQC(feature_map._layered_pqc)
+
+    @property
+    def layered_pqc(self):
+        """Returns the LayerPQC object of the Layered Feature Map"""
+        return self._layered_pqc

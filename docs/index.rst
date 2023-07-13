@@ -17,7 +17,7 @@ Here comes some description of the sQUlearn package and the documentation.
    tutorials/use_executor
    tutorials/pqk
    tutorials/operators
-
+   tutorials/feature_maps
 
 Indices and tables
 ==================

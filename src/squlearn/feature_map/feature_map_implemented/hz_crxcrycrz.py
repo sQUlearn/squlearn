@@ -9,13 +9,22 @@ from ..feature_map_base import FeatureMapBase
 
 class HZCRxCRyCRz(FeatureMapBase):
     """
-    HZ encoding followed by controlled Rx, Ry Rz rotations:
+    Featuremap with HZ encoding followed by controlled Rx, Ry Rz rotations.
 
-    -[-H-Rz(x)-c-----c-----c-----------------------Rx(p)-Ry(p)-Rz(p)-]-
-    -[-H-Rz(x)-Rx(p)-Ry(p)-Rz(p)-c-----c-----c-----|-----|-----|-----]-
-    -[-H-Rz(x)-c-----c-----c-----Rx(p)-Ry(p)-Rz(p)-|-----|-----|-----]-
-    -[-H-Rz(x)-Rx(p)-Ry(p)-Rz(p)-------------------c-----c-----c-----]-
-        [] = repeated by num_layers
+    **Example for 4 qubits, a 2 dimensional feature vector and 1 layer:**
+
+    .. plot::
+
+       from squlearn.feature_map import HZCRxCRyCRz
+       pqc = HZCRxCRyCRz(4, 2, 1)
+       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
+       plt.tight_layout()
+       plt
+
+    The circuit is repeated for the number of layers.
+    The circuit is closed by default, i.e. the last qubit is entangled with the first one.
+    The encoding can be optionally repeated at the end to make the previous rotations not
+    redundant in a fidelity kernel setting.
 
     Args:
         num_qubits (int): Number of qubits of the HZCRxCRyCRz feature map
@@ -23,6 +32,7 @@ class HZCRxCRyCRz(FeatureMapBase):
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled;
                        not necessarily hardware efficient! (default: true)
+        final_encoding (bool): If True, the encoding is repeated at the end (default: False)
     """
 
     def __init__(
@@ -31,17 +41,23 @@ class HZCRxCRyCRz(FeatureMapBase):
         num_features: int,
         num_layers: int = 1,
         closed: bool = True,
+        final_encoding=False,
     ) -> None:
         super().__init__(num_qubits, num_features)
+
+        if self.num_qubits < 2:
+            raise ValueError("HZCRxCRyCRz requires at least two qubits.")
+
         self.num_layers = num_layers
         self.closed = closed
+        self.final_encoding = final_encoding
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters of the HZCRxCRyCRz feature map."""
+        """The number of trainable parameters of the HZCRxCRyCRz feature map."""
         num_param = 3 * (self.num_qubits - 1) * self.num_layers
         if self.closed:
-            num_param += 3 * self.num_qubits * self.num_layers
+            num_param += 3 * self.num_layers
         return num_param
 
     def get_circuit(
@@ -53,10 +69,10 @@ class HZCRxCRyCRz(FeatureMapBase):
         Returns the circuit of the HZCRxCRyCRz feature map
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
-                from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
-                from which the gate inputs are obtained
+            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+                                                          from which the gate inputs are obtained.
+            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+                                                           from which the gate inputs are obtained.
 
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
@@ -72,7 +88,12 @@ class HZCRxCRyCRz(FeatureMapBase):
             for i in range(self.num_qubits):
                 QC.rz(features[i % nfeature], i)
 
-            for i in range(0, self.num_qubits - 1, 2):
+            if self.closed:
+                istop = self.num_qubits
+            else:
+                istop = self.num_qubits - 1
+
+            for i in range(0, istop, 2):
                 QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
                 QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
@@ -80,7 +101,7 @@ class HZCRxCRyCRz(FeatureMapBase):
                 QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
 
-            if self.num_qubits > 2:
+            if self.num_qubits >= 2:
                 if self.closed:
                     istop = self.num_qubits
                 else:
@@ -94,4 +115,7 @@ class HZCRxCRyCRz(FeatureMapBase):
                     QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                     ioff = ioff + 1
 
+        if self.final_encoding:
+            for i in range(self.num_qubits):
+                QC.rz(features[i % nfeature], i)
         return QC

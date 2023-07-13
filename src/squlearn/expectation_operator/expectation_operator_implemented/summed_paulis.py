@@ -48,7 +48,7 @@ class SummedPaulis(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the summed pauli operator"""
+        """Number of free parameters in the summed pauli operator"""
         if self.full_sum:
             return 1 + len(self.op_str) * self.num_qubits
         else:

@@ -1,38 +1,98 @@
 import numpy as np
 from qiskit.circuit import ParameterVector
-from qiskit.utils import QuantumInstance
-from qiskit.opflow.gradients import QFI
-from qiskit.opflow import CircuitStateFn
-from qiskit.opflow import CircuitSampler
+from qiskit.algorithms.gradients import LinCombQGT, QFI
 
 from ..feature_map.feature_map_base import FeatureMapBase
-from ..util.data_preprocessing import adjust_input, assign_all_parameters
+from .executor import Executor
+from .data_preprocessing import adjust_input
 
 
-def get_quantum_fisher(pqc: FeatureMapBase, x, param, QI: QuantumInstance):
+def get_quantum_fisher(
+    feature_map: FeatureMapBase, x: np.ndarray, p: np.ndarray, executor: Executor, mode: str = "p"
+):
     """
-    Function for evaluating the Quantum Fisher Information Matrix for an
-    inputted parameterized quantum circuit.
+    Function for evaluating the Quantum Fisher Information Matrix of a feature map.
+
+    The Quantum Fisher Information Matrix (QFIM) is evaluated the supplied numerical
+    features and parameter value.
+
+    Mode enables the user to choose between different modes of evaluation:
+    * ``"p"`` : QFIM for parameters only
+    * ``"x"`` : QFIM for features only
+    * ``"px"`` : QFIM for parameters and features (order parameters first)
+    * ``"xp"`` : QFIM for features and parameters (order features first)
+
+    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input separately and
+    returned as a numpy matrix.
 
     Args:
-        pqc : Parameterized quantum circuit that will be pruned. Has to be in the pqc format of quantum_fit!
-        x : Input data values for replacing the features in the pqc (can also be an array for multiple Fishers)
-        param : Parameter values for replacing the parameters in the pqc (can also be an array for multiple Fishers)
-        QI : Quantum Instance for evaluating the Quantum Fisher Information Matrix
+        feature_map (FeatureMapBase): Feature map for which the QFIM is evaluated
+        x (np.ndarray): Input data values for replacing the features in the feature map
+        p (np.ndarray): Parameter values for replacing the parameters in the feature map
+        executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
+        mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
+                    ``"px"``, ``"xp"`` (default: ``"p"``)
 
-    Returns: Numpy matrix with the quantum Fisher matrix
-             (or matrices for multi dimensional x and param)
-
+    Return:
+        Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
+    # Get Qiskit QFI primitive
+    qfi = QFI(LinCombQGT(executor.get_estimator()))
 
-    x_ = ParameterVector("x", pqc.num_features)
-    p_ = ParameterVector("p", pqc.num_parameters)
-    opflow_circ = CircuitStateFn(primitive=pqc.get_circuit(x_, p_), coeff=1.0)
-    qfi = QFI(qfi_method="lin_comb_full").convert(operator=opflow_circ, params=p_)
-    qfi_with_param = assign_all_parameters(qfi, x=x_, param=p_, x_values=x, param_values=param)
-    sampler = CircuitSampler(QI)
-    eval_conv = sampler.convert(qfi_with_param)
-    return np.real(eval_conv.eval())
+    p_ = ParameterVector("p", feature_map.num_parameters)
+    x_ = ParameterVector("x", feature_map.num_features)
+    circuit = feature_map.get_circuit(x_, p_)
+
+    # Adjust input
+    x_list, multi_x = adjust_input(x, feature_map.num_features)
+    p_list, multi_p = adjust_input(p, feature_map.num_parameters)
+
+    circ_list = []
+    param_values_list = []
+    param_list = []
+    if mode == "p":
+        for xval in x_list:
+            circ_temp = circuit.assign_parameters(dict(zip(x_, xval)))
+            for pval in p_list:
+                circ_list.append(circ_temp)
+                param_values_list.append(pval)
+                param_list.append(p_)
+    elif mode == "x":
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit.assign_parameters(dict(zip(p_, pval))))
+                param_values_list.append(xval)
+                param_list.append(x_)
+    elif mode == "xp":
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit)
+                param_values_list.append(np.concatenate((xval, pval)))
+                param_list.append(list(x_) + list(p_))
+    elif mode == "px":
+        for xval in x_list:
+            for pval in p_list:
+                circ_list.append(circuit)
+                param_values_list.append(np.concatenate((pval, xval)))
+                param_list.append(list(p_) + list(x_))
+
+    # Evaluate QFIM with Qiskit Primitive
+    qfis = np.array(qfi.run(circ_list, param_values_list, param_list).result().qfis)
+
+    # Reformating in case of multiple inputs
+    reshape_list = []
+    if multi_x:
+        reshape_list.append(len(x_list))
+    if multi_p:
+        reshape_list.append(len(p_list))
+
+    if len(reshape_list) > 0:
+        qfis = qfis.reshape(reshape_list + list(qfis[0].shape))
+    else:
+        qfis = qfis[0]
+
+    executor.clear_estimator_cache()
+    return qfis
 
 
 # WORK IN PROGRESS:
