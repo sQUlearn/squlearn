@@ -93,7 +93,7 @@ class HZCRxCRyCRz(FeatureMapBase):
             else:
                 istop = self.num_qubits - 1
 
-            for i in range(0, istop,2):
+            for i in range(0, istop, 2):
                 QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
                 QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
@@ -107,7 +107,7 @@ class HZCRxCRyCRz(FeatureMapBase):
                 else:
                     istop = self.num_qubits - 1
 
-                for i in range(1, istop,2):
+                for i in range(1, istop, 2):
                     QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                     ioff = ioff + 1
                     QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)

@@ -87,7 +87,7 @@ def get_quantum_fisher(
         reshape_list.append(len(p_list))
 
     if len(reshape_list) > 0:
-        qfis = qfis.reshape(reshape_list+list(qfis[0].shape))
+        qfis = qfis.reshape(reshape_list + list(qfis[0].shape))
     else:
         qfis = qfis[0]
 

@@ -2,9 +2,10 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import BlueprintCircuit
-from typing import Union,Callable
+from typing import Union, Callable
 
 from ..feature_map_base import FeatureMapBase
+
 
 class QiskitFeatureMap(FeatureMapBase):
     """
@@ -53,7 +54,6 @@ class QiskitFeatureMap(FeatureMapBase):
         mode: str = "auto",
         **kwargs,
     ) -> None:
-
         if callable(qiskit_circuit):
             self._qiskit_circuit = qiskit_circuit(**kwargs).decompose()
         else:
@@ -75,7 +75,7 @@ class QiskitFeatureMap(FeatureMapBase):
             self._num_features = 0
             self._mode = "p"
         elif self._mode.lower() == "auto":
-            if len(self._qiskit_circuit.parameters)==0:
+            if len(self._qiskit_circuit.parameters) == 0:
                 self._num_features = 0
                 self._num_parameters = 0
                 self._mode = "empty"

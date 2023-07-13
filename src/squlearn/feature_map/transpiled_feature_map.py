@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union,Callable
+from typing import Union, Callable
 
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
@@ -49,8 +49,8 @@ class TranspiledFeatureMap(FeatureMapBase):
         self,
         feature_map: FeatureMapBase,
         backend: Backend,
-        transpile_func: Union[Callable,None] = None,
-        **kwargs
+        transpile_func: Union[Callable, None] = None,
+        **kwargs,
     ) -> None:
         self._feature_map = feature_map
         self._backend = backend
@@ -74,37 +74,37 @@ class TranspiledFeatureMap(FeatureMapBase):
 
     @property
     def num_qubits(self) -> int:
-        """ Number of qubits (physical) of the feature map. """
+        """Number of qubits (physical) of the feature map."""
         return self._transpiled_circuit.num_qubits
 
     @property
     def num_physical_qubits(self) -> int:
-        """ Number of physical qubits of the feature map. """
+        """Number of physical qubits of the feature map."""
         return self._transpiled_circuit.num_qubits
 
     @property
     def num_virtual_qubits(self) -> int:
-        """ Number of virtual qubits in the feature map. """
+        """Number of virtual qubits in the feature map."""
         return self._feature_map.num_qubits
 
     @property
     def qubit_map(self) -> dict:
-        """ Dictionary which maps virtual to physical qubits. """
+        """Dictionary which maps virtual to physical qubits."""
         return self._qubit_map
 
     @property
     def backend(self) -> int:
-        """ Backend used for the transpilation. """
+        """Backend used for the transpilation."""
         return self._backend
 
     @property
     def num_features(self) -> int:
-        """ Feature dimension of the feature map. """
+        """Feature dimension of the feature map."""
         return self._feature_map.num_features
 
     @property
     def num_parameters(self) -> int:
-        """ Number of trainable parameters of the feature map."""
+        """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
 
     def get_circuit(

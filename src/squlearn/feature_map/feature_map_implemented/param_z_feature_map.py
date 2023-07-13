@@ -38,7 +38,7 @@ class ParamZFeatureMap(FeatureMapBase):
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the featuremap."""
-        return max(self._num_qubits,self._num_features) * self._num_layers
+        return max(self._num_qubits, self._num_features) * self._num_layers
 
     @property
     def num_layers(self) -> int:
@@ -50,7 +50,6 @@ class ParamZFeatureMap(FeatureMapBase):
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
-
         """
         Returns the circuit of the parameterized Z feature map.
 
@@ -70,10 +69,12 @@ class ParamZFeatureMap(FeatureMapBase):
         circuit = QuantumCircuit(self._num_qubits)
         ioff = 0
         for _ in range(self._num_layers):
-            for i in range(max(self._num_qubits,self._num_features)):
+            for i in range(max(self._num_qubits, self._num_features)):
                 if i < self._num_qubits:
                     circuit.h(i)
-                circuit.p(parameters[ioff % num_param] * features[i % num_features], i % self._num_qubits)
+                circuit.p(
+                    parameters[ioff % num_param] * features[i % num_features], i % self._num_qubits
+                )
                 ioff += 1
 
             if self._entangling:

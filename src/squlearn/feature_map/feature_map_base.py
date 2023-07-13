@@ -118,7 +118,7 @@ class FeatureMapBase:
                 if fm1.num_qubits != fm2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both feature maps.")
 
-                super().__init__(fm1.num_qubits, max(fm1.num_features,fm2.num_features))
+                super().__init__(fm1.num_qubits, max(fm1.num_features, fm2.num_features))
 
                 self._fm1 = fm1
                 self._fm2 = fm2
@@ -148,8 +148,12 @@ class FeatureMapBase:
                     Returns the circuit of the composed feature maps in qiskit QuantumCircuit format
                 """
 
-                circ1 = self._fm1.get_circuit(features[: self._fm1.num_features], parameters[: self._fm1.num_parameters])
-                circ2 = self._fm2.get_circuit(features[: self._fm2.num_features], parameters[self._fm1.num_parameters :])
+                circ1 = self._fm1.get_circuit(
+                    features[: self._fm1.num_features], parameters[: self._fm1.num_parameters]
+                )
+                circ2 = self._fm2.get_circuit(
+                    features[: self._fm2.num_features], parameters[self._fm1.num_parameters :]
+                )
 
                 return circ1.compose(circ2, range(self._fm1.num_qubits))
 
