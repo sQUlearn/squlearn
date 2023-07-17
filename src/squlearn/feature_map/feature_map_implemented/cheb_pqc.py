@@ -136,11 +136,14 @@ class ChebPQC(FeatureMapBase):
 
         return QC
 
-    @property
-    def chebyshev_indices(self):
+    def get_cheb_indices(self, flatten: bool = True):
         """
-        A nested list of the indices of the parameters involved in the Chebyshev encoding.
-        The outer list represents the layers of the feature map.
+        Function that returns the indices of the parameters involved in the Chebyshev encoding.
+
+        Args:
+            flatten (bool): If true, the indices are returned as a flat list, otherwise
+                            as a list of lists, where the outer list corresponds to the layers
+                            (default: True)
         """
         cheb_index = []
         ioff = self.num_qubits
@@ -160,5 +163,8 @@ class ChebPQC(FeatureMapBase):
                     istop = self.num_qubits - 1
                 for i in range(1, istop, 2):
                     ioff = ioff + 1
-            cheb_index.append(cheb_index_layer)
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
         return cheb_index

@@ -98,3 +98,29 @@ class ChebRx(FeatureMapBase):
             QC = entangle_layer(QC)
 
         return QC
+
+    def get_cheb_indices(self, flatten: bool = True):
+        """
+        Function that returns the indices of the parameters involved in the Chebyshev encoding.
+
+        Args:
+            flatten (bool): If true, the indices are returned as a flat list, otherwise
+                            as a list of lists, where the outer list corresponds to the layers
+                            (default: True)
+        """
+        cheb_index = []
+        ioff = 0
+        for ilayer in range(self.num_layers):
+            cheb_index_layer = []
+            for i in range(self.num_qubits):
+                cheb_index_layer.append(ioff)
+                ioff = ioff + 1
+
+            for i in range(self.num_qubits):
+                ioff = ioff + 1
+
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
+        return cheb_index

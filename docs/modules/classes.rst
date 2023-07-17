@@ -147,6 +147,7 @@ Low-level QNN implementation
    qnn.qnn.expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
+   qnn.loss.ParameterRegularizationLoss
 
 
 Base classes of sQUlearn
