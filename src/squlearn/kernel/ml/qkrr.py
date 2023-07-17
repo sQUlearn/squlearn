@@ -17,21 +17,21 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     This class implements the Quantum Kernel Ridge Regression analogous to KRR [1] in sklearn
     but is not a wrapper.
-    Read more about the theoretical background of KRR in, e.g., the 
+    Read more about the theoretical background of KRR in, e.g., the
     `scikit-learn user guide <https://scikit-learn.org/stable/modules/kernel_ridge.html#kernel-ridge>`_.
 
     Args:
         quantum_kernel (KernelMatrixBase) :
-            The quantum kernel matrix to be used in the KRR pipeline (either a fidelity 
+            The quantum kernel matrix to be used in the KRR pipeline (either a fidelity
             quantum kernel (FQK) or projected quantum kernel (PQK) must be provided)
-        alpha (Union[float, np.ndarray], default=1.0e-6) : 
-            Hyperparameter for the regularization strength; must be a positive float. This 
-            regularization improves the conditioning of the problem and assure the solvability 
+        alpha (Union[float, np.ndarray], default=1.0e-6) :
+            Hyperparameter for the regularization strength; must be a positive float. This
+            regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
         regularize  (Union[str, None], default=None) :
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system 
+            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
 
     Attributes:
@@ -59,10 +59,10 @@ class QKRR(BaseEstimator, RegressorMixin):
     -----------
         [1] Kevin P. Murphy "Machine Learning: A Probabilistic Perspective", The MIT Press
         chapter 14.4.3, pp. 493-493
-        
+
         [2] https://en.wikipedia.org/wiki/Ridge_regression
 
-        [3] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers", 
+        [3] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
         `arXiv:2105.02276v1 (2021) <https://arxiv.org/pdf/2105.02276.pdf>`_.
 
     **Example**
@@ -110,16 +110,16 @@ class QKRR(BaseEstimator, RegressorMixin):
         """
         Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularize``
         is set, the training kernel matrix is pre-processed accordingly prior to the
-        actual fitting step is performed. The respective solution of the QKRR problem 
+        actual fitting step is performed. The respective solution of the QKRR problem
         is obtained by solving the linear system using scipy's Cholesky decomposition for
         providing numercial stability
-          
+
         Args:
             x_train (np.ndarray) : Training data of shape (n_samples, n_features)
             y_train (np.ndarray) : Target values or labels of shape (n_samples,)
 
         Returns:
-            self : 
+            self :
                 Returns the instance itself.
         """
         self.x_train = x_train
@@ -149,10 +149,10 @@ class QKRR(BaseEstimator, RegressorMixin):
         Args:
             x_test (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
                 model makes predictions.
-        
+
         Returns:
-            np.ndarray : 
-                Returns predicted labels (at x_test) of shape (n_samples,) 
+            np.ndarray :
+                Returns predicted labels (at x_test) of shape (n_samples,)
         """
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")

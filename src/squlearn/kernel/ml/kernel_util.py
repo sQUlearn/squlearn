@@ -13,6 +13,7 @@ def kernel_wrapper(kernel_matrix: KernelMatrixBase):
         kernel_matrix (KernelMatrixBase) :
             Quantum kernel matrix which is to be wrapped into scikit-learn kernel
     """
+
     class CustomKernel(Kernel):
         def __init__(self, kernel_matrix: KernelMatrixBase):
             self.kernel_matrix = kernel_matrix
@@ -43,13 +44,13 @@ def kernel_wrapper(kernel_matrix: KernelMatrixBase):
 def regularize_kernel(gram_matrix):
     """
     Thresholding regularization method of a Gram matrix (full or training kernel matrix)
-    according to this `paper <https://arxiv.org/pdf/2105.02276.pdf>`_ to recover positive 
-    semi-definiteness. This method only changes the negative eigenvalues of the matrix by 
-    setting them to zero. This is done via a full eigenvalue decomposition, adjustment of 
-    the negative eigenvalues and composition of the adjusted spectrum and the original 
+    according to this `paper <https://arxiv.org/pdf/2105.02276.pdf>`_ to recover positive
+    semi-definiteness. This method only changes the negative eigenvalues of the matrix by
+    setting them to zero. This is done via a full eigenvalue decomposition, adjustment of
+    the negative eigenvalues and composition of the adjusted spectrum and the original
     eigenvectors:
-    
-    .. math:: 
+
+    .. math::
         D = V^T A V
         D'_{ij} = \text{max}\lbrace D_{ij},0 \rbrace
         R-THR(A) = V D' V^T
@@ -70,8 +71,8 @@ def regularize_kernel(gram_matrix):
 def tikhonov_regularization(gram_matrix):
     """
     Tikhonov regularization method to recover positive semi-definiteness of a Gram matrix.
-    In this method the spectrum of the matrix is displaced by its smallest eigenvalue 
-    :math:`\sigma_{min}` if it is negative, by subtracting it from all eigenvalues or 
+    In this method the spectrum of the matrix is displaced by its smallest eigenvalue
+    :math:`\sigma_{min}` if it is negative, by subtracting it from all eigenvalues or
     equivalently from the diagonal.
 
     Args:
