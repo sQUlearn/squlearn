@@ -63,7 +63,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         [2] https://en.wikipedia.org/wiki/Ridge_regression
 
         [3] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers", 
-        arXiv:2105.02276v1 (2021)
+        `arXiv:2105.02276v1 (2021) <https://arxiv.org/pdf/2105.02276.pdf>`_.
 
     **Example**
 
@@ -89,7 +89,6 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     Methods:
     --------
-    
     """
 
     def __init__(
