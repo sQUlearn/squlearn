@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-
+from qiskit.quantum_info import Pauli
 from qiskit.circuit import ParameterVector
 from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
 from qiskit.opflow import SummedOp, Zero, One
@@ -139,12 +139,12 @@ class ExpectationOperatorBase:
     def __str__(self):
         """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
-        return str(self.get_pauli(p))
+        return str(self.get_pauli_mapped(p))
 
     def __repr__(self):
         """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
-        return repr(self.get_pauli(p))
+        return repr(self.get_pauli_mapped(p))
 
     def __add__(self, x):
         """Addition of two expectation operators."""
@@ -173,7 +173,10 @@ class ExpectationOperatorBase:
 
                 Is equal to the sum of both trainable parameters.
                 """
-                return self._op1.num_parameters + self._op2.num_parameters
+                if self._op1 == self._op2:
+                    return self._op1.num_parameters
+                else:
+                    return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
                 """ Returns the PauliOp expression of the added expectation operator.
@@ -185,9 +188,13 @@ class ExpectationOperatorBase:
                 Return:
                     PauliOp: Expectation operator in qiskit's PauliOp class
                 """
-                paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
-                paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                return paulis_op1 + paulis_op2
+                if self._op1 == self._op2:
+                    paulis_op = self._op1.get_pauli(parameters)
+                    return (paulis_op + paulis_op).reduce()
+                else:
+                    paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
+                    paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
+                    return (paulis_op1 + paulis_op2).reduce()
 
         return AddedExpectationOperator(self, x)
 
@@ -218,7 +225,10 @@ class ExpectationOperatorBase:
 
                 Is equal to the sum of both trainable parameters.
                 """
-                return self._op1.num_parameters + self._op2.num_parameters
+                if self._op1 == self._op2:
+                    return self._op1.num_parameters
+                else:
+                    return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
                 """ Returns the PauliOp expression of the multiplied expectation operator.
@@ -230,8 +240,12 @@ class ExpectationOperatorBase:
                 Return:
                     PauliOp: Expectation operator in qiskit's PauliOp class
                 """
-                paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
-                paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                return (paulis_op1 @ paulis_op2).reduce().reduce()
+                if self._op1 == self._op2:
+                    paulis_op = self._op1.get_pauli(parameters)
+                    return (paulis_op @ paulis_op).reduce().reduce()
+                else:
+                    paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
+                    paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
+                    return (paulis_op1 @ paulis_op2).reduce().reduce()
 
         return MultipliedExpectationOperator(self, x)
