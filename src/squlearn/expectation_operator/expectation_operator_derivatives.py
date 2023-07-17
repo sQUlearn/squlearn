@@ -3,6 +3,7 @@ from qiskit.circuit.parametervector import ParameterVectorElement
 from qiskit.opflow import StateFn, OperatorStateFn
 from qiskit.opflow import SummedOp, ListOp, PauliOp, TensoredOp, PauliSumOp
 from qiskit.opflow import Zero, One
+from qiskit.opflow import OperatorBase
 from qiskit.opflow.list_ops.list_op import ListOp as real_ListOp
 from qiskit.opflow.gradients.derivative_base import _coeff_derivative
 from qiskit.quantum_info import Pauli, SparsePauliOp
@@ -14,12 +15,69 @@ from ..util.data_preprocessing import adjust_input
 
 
 class ExpectationOperatorDerivatives:
+    r"""Class for calculating derivatives of expectation operators.
+
+    The derivatives are calculated by automatic differentiation of parameter in the expectation
+    operator. Also, squaring of the operator is implemented.
+    The class can either applied on a single operator, or on a list of operators.
+    results are cached for faster evaluation.
+
+    .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
+       :widths: 25 75
+       :header-rows: 1
+
+       * - String
+         - Derivative
+       * - ``"O"``
+         - Expectation operator :math:`\hat{O}`
+       * - ``"OO"``
+         - Squared expectation operator :math:`\hat{O}^2`
+       * - ``"dop"`` or ``"Odop"``
+         - First-order derivative of the expectation operator:
+           :math:`\frac{d}{dp}\hat{O}(p)`
+       * - ``"dopdop"`` or ``"Odopdop"``
+         - Second-order derivative of the expectation operator:
+           :math:`\frac{d^2}{dp^2}\hat{O}(p)`
+       * - ``"OOdop"``
+         - First-order derivative of the squared expectation operator:
+           :math:`\frac{d}{dp}\hat{O}^2(p)`
+       * - ``"OOdopdop"``
+         - Second-order derivative of the squared expectation operator:
+           :math:`\frac{d^2}{dp^2}\hat{O}^2(p)`
+       * - ``"I"``
+         - Returns a identity operator with the same number of qubits as the provided
+           expectation operator
+
+    **Example: first-order derivative of the Ising Hamiltonian**
+
+    .. code-block:: python
+
+       from squlearn.expectation_operator import IsingHamiltonian,ExpectationOperatorDerivatives
+       op = IsingHamiltonian(num_qubits=3)
+       print(ExpectationOperatorDerivatives(op).get_derivative("dop"))
+
+    **Example: Squared summed Pauli Operator**
+
+    .. code-block:: python
+
+       from squlearn.expectation_operator import SummedPaulis,ExpectationOperatorDerivatives
+       op = SummedPaulis(num_qubits=3)
+       print(ExpectationOperatorDerivatives(op).get_operator_squared())
+
+    Args:
+        expectation_operator (Union[ExpectationOperatorBase, list]): Expectation operator or list
+                                                                     of expectation operators from
+                                                                     which the derivatives are
+                                                                     obtained.
+        opflow_caching (bool): If True, the opflow structure of the expectation operator is cached
+
+    """
+
     def __init__(
         self,
         expectation_operator: Union[ExpectationOperatorBase, list],
         opflow_caching=True,
     ):
-        # handling multiple Expectation_operators also done here
 
         self.expectation_operator = expectation_operator
 
@@ -28,9 +86,9 @@ class ExpectationOperatorDerivatives:
             # 1d output by a single expectation-operator
             self.multiple_output = False
             self._num_operators = 1
-            self.parameters = ParameterVector("p_op", expectation_operator.num_parameters)
+            self._parameter_vector = ParameterVector("p_op", expectation_operator.num_parameters)
 
-            opflow = self.expectation_operator.get_operator(self.parameters)
+            opflow = self.expectation_operator.get_operator(self._parameter_vector)
             opflow.replace = False
         else:
             # multi dimensional output by multiple Expectation-operators
@@ -42,10 +100,10 @@ class ExpectationOperatorDerivatives:
                 for op in self.expectation_operator:
                     n_oper = n_oper + op.num_parameters
 
-                self.parameters = ParameterVector("p_op", n_oper)
+                self._parameter_vector = ParameterVector("p_op", n_oper)
                 ioff = 0
                 for op in self.expectation_operator:
-                    expectation_op_list.append(op.get_operator(self.parameters[ioff:]))
+                    expectation_op_list.append(op.get_operator(self._parameter_vector[ioff:]))
                     ioff = ioff + op.num_parameters
                 opflow = ListOp(expectation_op_list)
                 opflow.replace = False
@@ -59,64 +117,96 @@ class ExpectationOperatorDerivatives:
         if self.opflow_caching:
             self.opflow_cache["O"] = opflow
 
-    def get_derivate(self, input: Union[str, tuple]):
-        """return the opflow structure of the wavefunction"""
-        if isinstance(input, str):
+    def get_derivative(self, derivative: Union[str, tuple]):
+        """Determine the derivative of the expectation operator.
+
+        Args:
+            derivative (str or tuple): String or tuple of parameters for specifying the derivation.
+                                       See :class:`ExpectationOperatorDerivatives` for more information.
+
+        Return:
+            Differentiated expectation operator in opflow StateFn format
+        """
+        if isinstance(derivative, str):
             # todo change with replaced operator
-            if input == "I":
+            if derivative == "I":
                 measure_op = StateFn(
                     PauliOp(Pauli("I" * self.opflow.num_qubits)), is_measurement=True
                 )
-            elif input == "O":
+            elif derivative == "O":
                 measure_op = self.opflow
-            elif input == "OO":
+            elif derivative == "OO":
                 measure_op = self.get_operator_squared()
-            elif input == "dop" or input == "Odop":
+            elif derivative == "dop" or derivative == "Odop":
                 measure_op = self._differentiation_from_tuple(
-                    self.opflow.copy(), (self.parameters,), "O"
+                    self.opflow.copy(), (self._parameter_vector,), "O"
                 )
-            elif input == "dopdop" or input == "Odopdop":
+            elif derivative == "dopdop" or derivative == "Odopdop":
                 measure_op = self._differentiation_from_tuple(
-                    self.opflow.copy(), (self.parameters, self.parameters), "O"
+                    self.opflow.copy(), (self._parameter_vector, self._parameter_vector), "O"
                 )
-            elif input == "OOdop":
+            elif derivative == "OOdop":
                 measure_op = self._differentiation_from_tuple(
-                    self.get_operator_squared(), (self.parameters,), "OO"
+                    self.get_operator_squared(), (self._parameter_vector,), "OO"
                 )
-            elif input == "OOdopdop":
+            elif derivative == "OOdopdop":
                 measure_op = self._differentiation_from_tuple(
                     self.get_operator_squared(),
-                    (self.parameters, self.parameters),
+                    (self._parameter_vector, self._parameter_vector),
                     "OO",
                 )
             else:
-                raise ValueError("Unknown string command:", input)
+                raise ValueError("Unknown string command:", derivative)
 
-        elif isinstance(input, tuple):
-            measure_op = self._differentiation_from_tuple(self.opflow, input, "O")
+        elif isinstance(derivative, tuple):
+            measure_op = self._differentiation_from_tuple(self.opflow, derivative, "O")
         else:
-            raise TypeError("Input is neither string nor tuple, but:", type(input))
+            raise TypeError("Input is neither string nor tuple, but:", type(derivative))
 
         measure_op.replace = False
         return measure_op
 
     def get_differentiation_from_tuple(self, diff_tuple: tuple):
-        return self.get_derivate(diff_tuple)
+        """Computes the derivative of the expectation operator from a tuple of parameters
+
+        Args:
+            diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
+
+        Return:
+            Differentiated expectation operator
+        """
+
+        return self.get_derivative(diff_tuple)
 
     def get_derivation_from_string(self, input_string: str):
-        return self.get_derivate(input_string)
+        """Returns the derivative of the expectation operator for a string abbreviation.
 
-    def _differentiation_from_tuple(self, expectation_op, diff_tuple: tuple, expectation_op_label):
-        """Recursive routine for automatic differentiating the expectation_operator
+        The table for the abbreviations can be found at :class:`ExpectationOperatorDerivatives`.
+
         Args:
-            diff_tuple : tuple containing ParameterVectors or ParameterExpressions
-        Returns:
+            input_string (str): String for specifying the derivation.
+
+        Return:
+            Differentiated expectation operator
+        """
+        return self.get_derivative(input_string)
+
+    def _differentiation_from_tuple(
+        self, expectation_op: OperatorBase, diff_tuple: tuple, expectation_op_label: str
+    ):
+        """Recursive routine for automatic differentiating the expectation_operator
+
+        Args:
+            expectation_op (OperatorBase): opflow structure of the expectation operator
+            diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
+            expectation_op_label (str): string for labeling the expectation operator
+
+        Return:
             The differentiated opflow expression
         """
-        # TODO: outer function for input checking
 
         if diff_tuple == ():
-            # Cancel the recursion by returning the opflow of the simply measured feature map
+            # Cancel the recursion by returning the opflow operator
             return expectation_op
         else:
             # Check if differentiating tuple is already stored in opflow_cache
@@ -128,7 +218,7 @@ class ExpectationOperatorDerivatives:
                 return self.opflow_cache[(diff_tuple, expectation_op_label)].copy()
             else:
                 # Recursive differentiation with the most left object
-                measure = _opflow_differentiation(
+                measure = operator_differentiation(
                     self._differentiation_from_tuple(
                         expectation_op, diff_tuple[1:], expectation_op_label
                     ),
@@ -171,23 +261,36 @@ class ExpectationOperatorDerivatives:
                 self.opflow_cache["OO"] = O2
             return O2
 
-    def get_parameter_vector(self):
-        return self.parameters
+    @property
+    def parameter_vector(self):
+        """ Parameter vector of the expectation operator"""
+        return self._parameter_vector
 
     @property
     def num_parameters(self):
-        return len(self.parameters)
+        """Total number of trainable parameters in the expectation operator"""
+        return len(self._parameter_vector)
 
     @property
     def num_operators(self):
+        """Number operators in case of multiple expectation operators"""
         return self._num_operators
 
-    def assign_parameters(self, operator, parameters: np.ndarray):
-        param_op_inp, multi_param_op = adjust_input(parameters, len(self.parameters))
+    def assign_parameters(self, operator: OperatorBase, parameters: np.ndarray):
+        """ Assign parameters to a derivative that is obtained from this class.
+
+        Args:
+            operator (OperatorBase): Operator to which the parameters are assigned
+            parameters (np.ndarray): Parameters values that replace the parameters in the operator
+
+        Return:
+            Operator with assigned parameters
+        """
+        param_op_inp, multi_param_op = adjust_input(parameters, len(self._parameter_vector))
 
         return_list = []
         for p in param_op_inp:
-            dic = dict(zip(self.parameters, p))
+            dic = dict(zip(self._parameter_vector, p))
             return_list.append(_convert_to_sparse(operator.assign_parameters(dic)))
 
         if multi_param_op:
@@ -196,16 +299,18 @@ class ExpectationOperatorDerivatives:
             return return_list[0]
 
 
-def _opflow_differentiation(opflow, parameters):
-    """Special routines for differentiating a given expectation operator
-    w.r.t. the Expectation operator parameters
+def operator_differentiation(
+    opflow: OperatorBase, parameters: Union[ParameterVector, list, ParameterExpression]
+):
+    """Core routine for differentiating a given expectation operator w.r.t. to its parameters
 
     Args:
-        expectation_op : opflow structure of the expectation operator
-        param : parameters of the differentiation
+        expectation_op (OperatorBase): opflow structure of the expectation operator, can also be a
+                                       list of expectation operators
+        parameters: Union[ParameterVector, list, ParameterExpression]: Parameters that are used for
+                                                                       the differentiation.
     Returns:
-        opflow structure of the differentiated input opflow
-        return ListOp for multiple parameters
+        Differentiated expectation operator
     """
     # Make a list if input is not a list
     if parameters == None or parameters == []:
@@ -239,9 +344,18 @@ def _opflow_differentiation(opflow, parameters):
         return ListOp(list_op)
 
 
-def _operator_differentiation(operator, parameters):
+def _operator_differentiation(
+    operator: ListOp, parameters: Union[ParameterVector, list, ParameterExpression]
+):
     """
-    Computes the differentiation of a single operator
+    Function for differentiating a list of operators w.r.t. a list of parameters
+
+    Args:
+        operator (ListOp): List of operators to be differentiated
+        parameters (Union[ParameterVector, list, ParameterExpression]): Parameters to differentiate
+
+    Return:
+        List of differentiated operators
     """
 
     # Helper function for getting the coefficient
@@ -251,9 +365,7 @@ def _operator_differentiation(operator, parameters):
             return expr == c
         return coeff == c
 
-    # Check for parameter lists, this is not supported here!
-
-    # TODO also iterationable
+    # Check for parameter lists, if so iterate through the list can call the function again
     if isinstance(parameters, (ParameterVector, list)):
         grad_list = [_operator_differentiation(operator, p) for p in parameters]
         return ListOp(grad_list)
@@ -295,6 +407,7 @@ def _operator_differentiation(operator, parameters):
             return ~Zero @ One
         op = operator / coeff
 
+        # Call qiskit function for parameter differentiation
         d_coeff = _coeff_derivative(coeff, parameters)
         grad_op = 0
         if op != ~Zero @ One and not is_coeff_c(d_coeff, 0.0):
@@ -303,10 +416,20 @@ def _operator_differentiation(operator, parameters):
         return grad_op
 
     # Only operator without coefficients is left, return 0 since a constant value is differentiated
+    # to zero
     return 0.0 * PauliOp(Pauli("I" * operator.num_qubits))
 
 
-def _convert_to_sparse(operator):
+def _convert_to_sparse(operator: OperatorBase):
+    """
+    Function for converging a operator into PauliSUmOp form (speed up in evaluation)
+
+    Args:
+        operator (OperatorBase): Operator to be converted
+
+    Return:
+        Operator in PauliSumOp form
+    """
     # convert operator into sparse form
     if isinstance(operator, OperatorStateFn):
         if not isinstance(operator.primitive, PauliOp) and not isinstance(

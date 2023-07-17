@@ -75,6 +75,7 @@ Implemented tools for feature maps
    :toctree: generated/
    :template: class.rst
 
+   feature_map.FeatureMapBase
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
    feature_map.feature_map_derivatives.FeatureMapDerivatives
@@ -100,6 +101,23 @@ Implemented operators for expectation values
    expectation_operator.SummedProbabilities
    expectation_operator.IsingHamiltonian
    expectation_operator.CustomExpectationOperator
+
+Tools for expectation operators
+================================
+
+.. automodule:: squlearn.expectation_operator
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   expectation_operator.ExpectationOperatorBase
+   expectation_operator.ExpectationOperatorDerivatives
 
 Quantum Kernel implementations
 ==============================

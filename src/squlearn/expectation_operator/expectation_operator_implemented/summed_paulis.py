@@ -17,11 +17,10 @@ class SummedPaulis(ExpectationOperatorBase):
     .. math::
         \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i
 
-    Multiple Pauli operators can be specified by a tuple of strings, e.g. ``op_str=("X","Z")``.
+    Multiple Pauli operators can be specified by a tuple of strings, e.g. ``op_str=("X","Z")``:
 
     .. math::
         \hat{H} = a\hat{I} + \sum_i b_i \hat{X}_i + \sum_i c_i \hat{Z}_i
-
 
     The parameter can optionally be equal for the same kind of Pauli operators.
 
@@ -88,7 +87,7 @@ class SummedPaulis(ExpectationOperatorBase):
 
         if self.include_identity:
             H = PauliOp(Pauli("I" * self.num_qubits)) * parameters[ioff % nparam]
-            ioff +=1
+            ioff += 1
         else:
             H = PauliOp(Pauli("I" * self.num_qubits)) * 0.0
 
@@ -99,5 +98,8 @@ class SummedPaulis(ExpectationOperatorBase):
                     ioff += 1
             if not self.full_sum:
                 ioff += 1
+
+        if not self.include_identity:
+            H.oplist.pop(0)
 
         return H.reduce()

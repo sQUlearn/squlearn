@@ -28,14 +28,20 @@ class SummedProbabilities(ExpectationOperatorBase):
                    if true the :math:`\ket{1}\bra{1}` state is measured (default: False).
         full_sum (bool): If False, the parameter is the same for all states,
                          i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
-            instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i`
-            (default: True).
+                         instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i`
+                         (default: True).
         include_identity (bool): If True, the identity operator is included in the sum.
                                  (default: True)
 
     """
 
-    def __init__(self, num_qubits: int, one_state=False, full_sum: bool = True, include_identity:bool=True) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        one_state=False,
+        full_sum: bool = True,
+        include_identity: bool = True,
+    ) -> None:
         super().__init__(num_qubits)
         self.one_state = one_state
         self.full_sum = full_sum

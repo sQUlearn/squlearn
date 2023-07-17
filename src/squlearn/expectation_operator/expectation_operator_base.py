@@ -2,71 +2,64 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit import QuantumCircuit
 
-
-from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.opflow import ListOp, PauliOp, PauliSumOp
-from qiskit.opflow.gradients.derivative_base import _coeff_derivative
+from qiskit.circuit import ParameterVector
+from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
 from qiskit.opflow import SummedOp, Zero, One
-from qiskit.opflow import OperatorBase
-from qiskit.opflow import TensoredOp, OperatorStateFn, StateFn
-from qiskit.opflow.list_ops.list_op import ListOp as real_ListOp
+from qiskit.opflow import OperatorBase, StateFn
 
 
 class ExpectationOperatorBase:
-    """Empty parent class for a Expectation operator."""
+    """ Base class for expectation operators.
 
+    Args:
+        num_qubits (int): Number of qubits.
+    """
     def __init__(self, num_qubits: int) -> None:
-        """Initialization
-        Args:
-            number_of_qubits: Number of qubits.
-        """
         self._num_qubits = num_qubits
         self._num_all_qubits = num_qubits
         self._qubit_map = np.linspace(0, num_qubits - 1, num_qubits, dtype=int)
 
     def set_map(self, qubit_map: Union[list, dict], num_all_qubits: int):
         """
-        Function for setting a qubit mapping (either a dictionary or a list).
+        Function for setting a qubit mapping from physical qubits to the ones of the operator.
 
-        This function is necessary for evaluating expectation values on a real backend, where the
-        number of qubits in the system is larger than the number of qubits in the expectation operator.
+        This function is necessary whenever the number of physical qubits are different from the
+        operator definition, as for example when running on a real backend.
+        The number of qubits in the system has to be larger than the number
+        of qubits in the expectation operator.
 
         Args:
-            qubit_map: A list or dictionary specifying which of the input qubits are mapped to the output qubits.
-            num_all_qubits: The total number of qubits in the system.
+            qubit_map (Union[list, dict]): A list or dictionary specifying which of the input
+                                           qubits are mapped to the output qubits.
+            num_all_qubits (int): The total number of qubits in the system.
         """
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
+        if self._num_all_qubits < self._num_qubits:
+            raise ValueError("""Number of qubits in the system is smaller than the number
+                                of qubits in the expectation operator.""")
 
     @property
     def num_parameters(self):
-        """
-        Returns:
-            the number of free parameters in the expectation operator.
-        """
+        """Number of free parameters in the expectation operator."""
         return 0
 
     @property
     def num_qubits(self):
-        """
-        Returns:
-            the number of free parameters in the expectation operator.
-        """
+        """Number of qubits in the expectation operator."""
         return self._num_qubits
 
     def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
-        """Returns the PauliOp expression of the expectation operator.
+        """ Returns Operator in as a opflow measurement operator.
+
         Args
-            param: ParameterVector.
-        Returns:
-            Return PauliOp expression of the expectation operator.
+            Parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+                                                             the operator
+        Return:
+            StateFn expression of the expectation operator.
         """
 
-        # Return as measurement operator!
-        # TODO: depricate this function!
         return StateFn(self.get_pauli_mapped(parameters), is_measurement=True)
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
@@ -74,28 +67,31 @@ class ExpectationOperatorBase:
         Returns the PauliOp expression of the expectation operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in the operator
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+                                                             in the operator
 
         Returns:
             PauliOp: Expectation operator in qiskit's PauliOp class
         """
-        return PauliOp(Pauli("I" * self._num_all_qubits))
+        raise NotImplementedError
 
     def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]):
         """
-        Returns the mapped PauliOp expression of the expectation operator:
+        Returns the mapped PauliOp expression of the expectation operator.
 
-        Here, the previously set qubit map (set_map) is used to map the PauliOp to the correct qubits.
+        The previously the qubit map has to be set via :meth:`set_map`!
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in the operator
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+                                                             the operator
 
-        Returns:
-            PauliOp: Expectation operator in qiskit's PauliOp class
+        Return:
+            PauliOp: Expectation operator in qiskit's PauliOp class with qubits mapped to
+                     physical ones
         """
 
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:
-            """ """
+            """ Recrusive method that replaces that resets the qubits to the mapped ones. """
 
             # We reached the Composed object or the wavefunction
             if isinstance(operator, PauliOp):
@@ -155,7 +151,13 @@ class ExpectationOperatorBase:
         if not isinstance(x, ExpectationOperatorBase):
             raise ValueError("Only the addition with other expectation operator is allowed!")
 
-        class ComposedExpectationOperator(ExpectationOperatorBase):
+        class AddedExpectationOperator(ExpectationOperatorBase):
+            """ Internal class for a sum of expectation operators.
+
+            Args:
+                op1 (ExpectationOperatorBase): Left expectation operator
+                op2 (ExpectationOperatorBase): Right expectation operator
+            """
             def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
                 if op1.num_qubits != op2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both expectation operator.")
@@ -167,17 +169,27 @@ class ExpectationOperatorBase:
 
             @property
             def num_parameters(self) -> int:
-                """Returns the number of trainable parameters of composed expectation operator.
-                Is equal to the sum of both trainable parameters
+                """ The number of trainable parameters of added expectation operator.
+
+                Is equal to the sum of both trainable parameters.
                 """
                 return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+                """ Returns the PauliOp expression of the added expectation operator.
+
+                Args:
+                    parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+                                                                     in the operator
+
+                Return:
+                    PauliOp: Expectation operator in qiskit's PauliOp class
+                """
                 paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                 paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
                 return paulis_op1 + paulis_op2
 
-        return ComposedExpectationOperator(self, x)
+        return AddedExpectationOperator(self, x)
 
     def __mul__(self, x):
         """Multiplication of two expectation operators."""
@@ -185,6 +197,12 @@ class ExpectationOperatorBase:
             raise ValueError("Only the multiplication with other expectation operator is allowed!")
 
         class MultipliedExpectationOperator(ExpectationOperatorBase):
+            """ Internal class for a multiplication of expectation operators.
+
+            Args:
+                op1 (ExpectationOperatorBase): Left expectation operator
+                op2 (ExpectationOperatorBase): Right expectation operator
+            """
             def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
                 if op1.num_qubits != op2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both expectation operator.")
@@ -196,12 +214,22 @@ class ExpectationOperatorBase:
 
             @property
             def num_parameters(self) -> int:
-                """Returns the number of trainable parameters of composed expectation operator.
-                Is equal to the sum of both trainable parameters
+                """The number of trainable parameters of multiplied expectation operator.
+
+                Is equal to the sum of both trainable parameters.
                 """
                 return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+                """ Returns the PauliOp expression of the multiplied expectation operator.
+
+                Args:
+                    parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+                                                                     in the operator
+
+                Return:
+                    PauliOp: Expectation operator in qiskit's PauliOp class
+                """
                 paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                 paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
                 return (paulis_op1 @ paulis_op2).reduce().reduce()

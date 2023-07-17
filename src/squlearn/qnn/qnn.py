@@ -357,7 +357,7 @@ class QNN:
     @property
     def parameters_operator(self):
         """Return the parameter vector of the cost operator."""
-        return self.operator_derivatives.parameters
+        return self.operator_derivatives._parameter_vector
 
     def get_opflow_from_string(self, input_string: str):
         """Return the opflow expression of the given PQC
@@ -381,7 +381,7 @@ class QNN:
         """
         return measure_feature_map_derivative(
             self.pqc_derivatives.get_derivate(input_expec.wavefunction),
-            self.operator_derivatives.get_derivate(input_expec.operator),
+            self.operator_derivatives.get_derivative(input_expec.operator),
         )
 
     def evaluate_diff_tuple(
@@ -849,7 +849,7 @@ class QNN:
             offset = 0
             for expec_ in op_list:
                 # Obtained the derivative from the operator module
-                operator = self.operator_derivatives.get_derivate(expec_.operator)
+                operator = self.operator_derivatives.get_derivative(expec_.operator)
                 # Assign parameters and convert to sparse Pauli representation
                 op_with_param = self.operator_derivatives.assign_parameters(operator, param_op_inp)
 

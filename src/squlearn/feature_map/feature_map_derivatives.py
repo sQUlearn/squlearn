@@ -54,7 +54,15 @@ class FeatureMapDerivatives:
         self.instruction_set = list(self.instruction_set)
 
     def get_derivate(self, input: Union[str, tuple]):
-        """return the opflow structure of the circuit from the input"""
+        """Determine the derivative of the feature map circuit.
+
+        Args:
+            derivative (str or tuple): String or tuple of parameters for specifying the derivation.
+
+        Return:
+            Derivative circuit in Qiskit Opflow format.
+        """
+
         if isinstance(input, str):
             if input == "I":
                 opflow = self.opflow
