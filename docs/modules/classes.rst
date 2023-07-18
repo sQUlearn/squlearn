@@ -36,6 +36,7 @@ Implemented High-Level QML Classifiers
    kernel.ml.QGPC
    qnn.QNNClassifier
 
+
 Implemented Execution Tools
 ===========================
 
@@ -47,6 +48,7 @@ Implemented Execution Tools
    :template: class.rst
 
    Executor
+
 
 Implemented feature maps in squlearn
 ====================================

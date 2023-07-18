@@ -39,19 +39,36 @@ class Executor:
 
     The Executor class is the main component in sQUlearn when it comes to run quantum jobs.
     All high- and low-lever methods are utilizing the Executor class to run jobs.
-    Technically, the Executor class is a wrapper around the Qiskit's Runtime service,
-    simulator backends, and Primitives.
+    It automatically creates the right primitives when they are needed in the sub-program.
 
-    It offers multiple features that simplify live easier when running jobs on IBM Quantum systems:
+    The Executor offers multiple features that simplify the execution of jobs on IBM Quantum
+    systems:
 
     * Session handling: Sessions are automatically created and managed by the Executor
     * Result caching: Results can be cached to avoid re-running the same jobs
     * Automatic restarts: Jobs are automatically restarted if they fail
     * Logging: All actions of the executor are automatically logged to a log file
 
-    Furthermore, the executor can return modified Qiskit primitives that can be used as
-    normal primitives, but are running everything through the Executor feature the comfort features
+    Furthermore, the Executor can create modified Qiskit Primitives that can be used similar to
+    normal primitives, but run everything through the Executor enabling the comfort features
     mentioned above. This is possible by the :meth:`get_estimator` and :meth:`get_sampler` routine.
+
+    The Estimator can be initialized with different objects that specify the execution environment:
+
+    * A string, that specifics the simulator backend (``"statevector_simulator"`` or
+      ``"qasm_simulator"``)
+    * A Qiskit backen, typically to run jobs on IBM Quantum
+      systems or on Aer simulators, but in principle, any backend following the Qiskit
+      specifications can be used.
+    * A QuantumInstance, that includes the backend and some options
+    * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service (in this case the
+      backend has to be provided separately via ``backend=``)
+    * A pre-initialized Session, to run the jobs on the Qiskit Runtime service
+    * A Estimator or Sampler primitive (either simulator or Qiskit Runtime primitive)
+
+    Options of the Primitives can be provided via the ``options_estimator`` and
+    ``options_sampler`` arguments, but they are also automatically copied from inputted
+    primitives.
 
     Args:
         execution (Union[str, Backend, QuantumInstance, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
@@ -81,23 +98,22 @@ class Executor:
         wait_restart (int): The time to wait before restarting a job in seconds.
 
     Attributes:
-        execution (str): The execution environment.
-        backend (Backend): The backend that is used for the execution.
-        session (Session): The session that is used for the execution.
-        service (QiskitRuntimeService): The service that is used for the execution.
-        estimator (BaseEstimator): The Qiskit estimator primitive that is used for the
-                                   current execution.
+        execution (str): String of the execution environment.
+        backend (Backend): The backend that is used in the Executor.
+        session (Session): The session that is used in the Executor.
+        service (QiskitRuntimeService): The service that is used in the Executor.
+        estimator (BaseEstimator): The Qiskit estimator primitive that is used in the Executor.
                                    Different to :meth:`get_estimator`,
                                    which creates a new estimator object with overwritten methods
                                    that runs everything through the Executor with
                                    :meth:`estimator_run`.
-        sampler (BaseSampler): The Qiskit sampler primitive that is used for the current execution.
+        sampler (BaseSampler): The Qiskit sampler primitive that is used in the Executor.
                                Different to :meth:`get_sampler`,
                                which creates a new sampler object with overwritten methods
                                that runs everything through the Executor with
                                :meth:`estimator_run`.
-        quantum_instance (QuantumInstance): The quantum instance that is used for the execution.
-        shots (int): The number of shots that is used for the execution.
+        quantum_instance (QuantumInstance): The quantum instance that is used in the Executor.
+        shots (int): The number of shots that is used in the Executor.
 
     See Also:
 
@@ -358,7 +374,7 @@ class Executor:
         return self._session
 
     @property
-    def service(self) -> Service:
+    def service(self) -> QiskitRuntimeService:
         """Returns the service that is used in the executor."""
         return self._service
 
