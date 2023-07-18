@@ -32,6 +32,7 @@ release = '0.2.0'
 # ones.
 
 extensions = [  "sphinx.ext.autodoc",
+                'sphinx.ext.autosectionlabel',
                 "sphinx.ext.autosummary",
                 "sphinx.ext.napoleon",
               ]
