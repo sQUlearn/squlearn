@@ -37,6 +37,19 @@ Implemented High-Level QML Classifiers
    qnn.QNNClassifier
 
 
+Implemented Execution Tools
+===========================
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   Executor
+
+
 Implemented feature maps in squlearn
 ====================================
 

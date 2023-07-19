@@ -1,3 +1,4 @@
+import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
 from logging import handlers
@@ -34,35 +35,142 @@ from .evaluate_opflow import evaluate_opflow_qi, evaluate_opflow_estimator, eval
 
 class Executor:
     """
-    Executor class to run Qiskit jobs on IBM Quantum systems or simulators.
+    A class for executing quantum jobs on IBM Quantum systems or simulators.
 
-    The Executor class is a wrapper around the Qiskit Runtime service, simulators, and primitives
-    Sessions and primitves are automatically created and managed by the Executor class.
-    Results can be cached to avoid re-running the same jobs.
+    The Executor class is the central component of sQUlearn, responsible for running quantum jobs.
+    Both high- and low-level methods utilize the Executor class to execute jobs seamlessly.
+    It automatically creates the necessary primitives when they are required in the sub-program.
+
+    .. image:: ../../images/executor.png
+        :width: 525
+        :align: center
+
+    Key Features of the Executor:
+
+    - Session handling: Automatically manages the creation and handling of sessions.
+    - Result caching: Enables caching of results to avoid redundant job executions, and enable
+      restarts of failed executions. Caching is enabled as default only for remote executions.
+    - Automatic restarts: Automatically restarts jobs in case of failure.
+    - Logging: Automatically logs all executor actions to a log file.
+
+    Additionally, the Executor allows the creation of modified Qiskit Primitives that function
+    similarly to regular primitives but leverage the comfort features mentioned above.
+    This can be achieved using the :meth:`get_estimator` and :meth:`get_sampler` methods.
+
+    The Estimator can be initialized with various objects that specify the execution environment:
+
+    - A string specifying the simulator backend (e.g., ``"statevector_simulator"`` or
+      ``"qasm_simulator"``).
+    - A Qiskit backend, typically used to run jobs on IBM Quantum systems or Aer simulators,
+      though any backend adhering to Qiskit specifications can be used.
+    - A QuantumInstance, containing the backend and additional options.
+    - A QiskitRuntimeService, to execute jobs on the Qiskit Runtime service (in this case,
+      the backend must be provided separately via the ``backend=`` argument).
+    - A pre-initialized Session to execute jobs on the Qiskit Runtime service.
+    - An Estimator or Sampler primitive (either simulator or Qiskit Runtime primitive).
+
+    Options for the Primitives can be provided through the ``options_estimator`` and
+    ``options_sampler`` arguments, but they are also automatically copied from inputted primitives.
 
     Args:
-        execution (Union[str, Backend, QuantumInstance, QiskitRuntimeService, Session,
-            BaseEstimator, BaseSampler]): The execution environment, it can be:
-            - A string, that specifics the simulator backend, e.g. 'qasm_simulator'.
-            - A Qiskit backend, to run the jobs on IBM Quantum systems or simulators.
-            - A QuantumInstance, that includes the backend and some options.
-            - A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
-                The backend has to be provided separately.
-            - A Session, to run the jobs on the Qiskit Runtime service.
-            - A Estimator primitive (either simulator or Qiskit Runtime primitive)
-            - A Sampler primitive (either simulator or Qiskit Runtime primitive)
-        backend (Optional[Backend]): The backend to run the jobs on.
-            It is only used  if execution is a service.
-        options_estimator (Optional[Options]): The options for the created estimator primitives.
-        options_sampler (Optional[Options]): The options for the created sampler primitives.
+        execution (Union[str, Backend, QuantumInstance, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
+
+                                                                                                                     * A string, that specifics the simulator
+                                                                                                                       backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
+                                                                                                                     * A Qiskit backend, to run the jobs on IBM Quantum
+                                                                                                                       systems or simulators
+                                                                                                                     * A QuantumInstance, that includes the backend and some options
+                                                                                                                     * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
+                                                                                                                       In this case the backend has to be provided separately via ``backend=``
+                                                                                                                     * A Session, to run the jobs on the Qiskit Runtime service
+                                                                                                                     * A Estimator primitive (either simulator or Qiskit Runtime primitive)
+                                                                                                                     * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+        backend (Union[Backend, str, None]): The backend that is used for the execution.
+                                             Only mandatory if a service is provided.
+        options_estimator (Union[Options, Options, None]): The options for the created estimator
+                                                           primitives.
+        options_sampler (Union[Options, Options, None]): The options for the created sampler
+                                                         primitives.
         log_file (str): The name of the log file, if empty, no log file is created.
-        caching (Optional[bool]): Whether to cache the results of the jobs.
+        caching (Union[bool, None]): Whether to cache the results of the jobs.
         cache_dir (str): The directory where to cache the results of the jobs.
-        max_session_time (str): The maximum time for a session, similar input as in qiskit.
+        max_session_time (str): The maximum time for a session, similar input as in Qiskit.
         max_jobs_retries (int): The maximum number of retries for a job
             until the execution is aborted.
         wait_restart (int): The time to wait before restarting a job in seconds.
 
+    Attributes:
+        execution (str): String of the execution environment.
+        backend (Backend): The backend that is used in the Executor.
+        session (Session): The session that is used in the Executor.
+        service (QiskitRuntimeService): The service that is used in the Executor.
+        estimator (BaseEstimator): The Qiskit estimator primitive that is used in the Executor.
+                                   Different to :meth:`get_estimator`,
+                                   which creates a new estimator object with overwritten methods
+                                   that runs everything through the Executor with
+                                   :meth:`estimator_run`.
+        sampler (BaseSampler): The Qiskit sampler primitive that is used in the Executor.
+                               Different to :meth:`get_sampler`,
+                               which creates a new sampler object with overwritten methods
+                               that runs everything through the Executor with
+                               :meth:`estimator_run`.
+        quantum_instance (QuantumInstance): The quantum instance that is used in the Executor.
+        shots (int): The number of shots that is used in the Executor.
+
+    See Also:
+
+       * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
+       * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
+
+    **Example: Different initializations of the Executor**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+       from qiskit_ibm_runtime import QiskitRuntimeService
+
+       # Executor with a ideal simulator backend
+       exec = Executor("statevector_simulator")
+
+       # Executor with a shot-based simulator backend and 1000 shots
+       exec = Executor("qasm_simulator")
+       exec.set_shots(1000)
+
+       # Executor with a IBM Quantum backend
+       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service.get_backend('ibm_nairobi'))
+
+       # Executor with a IBM Quantum backend and caching and logging
+       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
+                            cache_dir='cache', log_file="log.log")
+
+    **Example: Get the Executor based primitives**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+
+       # Initialize the Executor
+       Executor("statevector_simulator")
+
+       # Get the Executor based Estimator - can be used as a normal Qiskit Estimator
+       estimator = executor.get_estimator()
+
+       # Get the Executor based Sampler - can be used as a normal Qiskit Sampler
+       sampler = executor.get_sampler()
+
+    .. code-block:: python
+
+       # Run a circuit with the Executor based Sampler
+       from qiskit.circuit.random import random_circuit
+       circuit = random_circuit(2, 2, seed=1, measure=True).decompose(reps=1)
+       job = sampler.run(circuit)
+       result = job.result()
+
+
+    Methods:
+    --------
     """
 
     def __init__(
@@ -76,15 +184,15 @@ class Executor:
             BaseEstimator,
             BaseSampler,
         ],
-        backend=None,
-        options_estimator=None,
-        options_sampler=None,
-        log_file="",
-        caching=None,
-        cache_dir="_cache",
-        max_session_time="8h",
-        max_jobs_retries=10,
-        wait_restart=1,
+        backend: Union[Backend, str, None] = None,
+        options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
+        options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
+        log_file: str = "",
+        caching: Union[bool, None] = None,
+        cache_dir: str = "_cache",
+        max_session_time: str = "8h",
+        max_jobs_retries: int = 10,
+        wait_restart: int = 1,
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -254,30 +362,33 @@ class Executor:
 
     @property
     def execution(self) -> str:
-        """Returns a string that of the executor that is used initializing the executor class."""
+        """Returns a string of the execution that is used to initialize the executor class."""
         return self._execution_origin
 
     @property
-    def backend(self):
-        """Returns the backend that is used for the execution."""
+    def backend(self) -> Backend:
+        """Returns the backend that is used in the executor."""
         return self._backend
 
     @property
-    def session(self):
-        """Returns the session that is used for the execution."""
+    def session(self) -> Session:
+        """Returns the session that is used in the executor."""
         return self._session
 
     @property
-    def service(self):
-        """Returns the service that is used for the execution."""
+    def service(self) -> QiskitRuntimeService:
+        """Returns the service that is used in the executor."""
         return self._service
 
     @property
-    def estimator(self):
+    def estimator(self) -> BaseEstimator:
         """Returns the estimator primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
+        Note that the run function is the same as in the Qiskit primitives, and
+        does not support caching and restarts
+        For this use :meth:`sampler_run` or :meth:`get_sampler`.
 
         The estimator that is created depends on the backend that is used for the execution.
         """
@@ -319,7 +430,8 @@ class Executor:
 
         return estimator
 
-    def clear_estimator_cache(self):
+    def clear_estimator_cache(self) -> None:
+        """Function for clearing the cache of the estimator primitive to avoid memory overflow."""
         if self._estimator is not None:
             if isinstance(self._estimator, qiskit_primitives_Estimator) or isinstance(
                 self._estimator, qiskit_primitives_BackendEstimator
@@ -331,11 +443,15 @@ class Executor:
                 self._estimator._observable_ids = {}
 
     @property
-    def sampler(self):
+    def sampler(self) -> BaseSampler:
         """Returns the sampler primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
+
+        Note that the run function is the same as in the Qiskit primitives, and
+        does not support caching, session handing, etc.
+        For this use :meth:`sampler_run` or :meth:`get_sampler`.
 
         The estimator that is created depends on the backend that is used for the execution.
         """
@@ -379,7 +495,8 @@ class Executor:
 
         return sampler
 
-    def clear_sampler_cache(self):
+    def clear_sampler_cache(self) -> None:
+        """Function for clearing the cache of the sampler primitive to avoid memory overflow."""
         if self._sampler is not None:
             if isinstance(self._sampler, qiskit_primitives_Sampler) or isinstance(
                 self._sampler, qiskit_primitives_BackendSampler
@@ -390,7 +507,7 @@ class Executor:
                 self._sampler._qargs_list = []
 
     @property
-    def quantum_instance(self):
+    def quantum_instance(self) -> QuantumInstance:
         """Returns the quantum instance that is used for the execution.
 
         Creates a new one if none is set.
@@ -405,13 +522,15 @@ class Executor:
             )
             return self._quantum_instance
 
-    def _primitive_run(self, run, label: str, hash_value: Union[str, None] = None):
+    def _primitive_run(
+        self, run: callable, label: str, hash_value: Union[str, None] = None
+    ) -> Job:
         """Run function that allow restarting, session handling and caching.
 
-        Parent implementation that is used for Estimator and Sampler.
+        Parent implementation that is used for both, Estimator and Sampler.
 
         Args:
-            run (function): Function that is executed.
+            run (callable): Run function of the primitive
             label (str): Label that is used for logging.
             hash_value (str,None): Hash value that is used for caching.
 
@@ -544,9 +663,10 @@ class Executor:
 
         return job
 
-    def estimator_run(self, circuits, observables, parameter_values=None, **kwargs: Any):
+    def estimator_run(self, circuits, observables, parameter_values=None, **kwargs: Any) -> Job:
         """
-        Function that overwrites the estimator run function.
+        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        automatic session handling, and restarts of failed jobs.
 
         Args:
             circuits: Quantum circuits to execute.
@@ -579,9 +699,10 @@ class Executor:
 
         return self._primitive_run(run, "estimator", hash_value)
 
-    def sampler_run(self, circuits, parameter_values=None, **kwargs: Any):
+    def sampler_run(self, circuits, parameter_values=None, **kwargs: Any) -> Job:
         """
-        Function that overwrites the sampler run function.
+        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        automatic session handling, and restarts of failed jobs.
 
         Args:
             circuits: Quantum circuits to execute.
@@ -614,30 +735,32 @@ class Executor:
 
     def get_estimator(self):
         """
-        Returns a Estimator primitive that uses the Executor for running jobs.
-        Includes caching and automatic session handling.
+        Returns a Estimator primitive that overwrites the Qiskit Estimator primitive.
+        This Estimator runs all executions through the Executor and
+        includes result caching, automatic session handling, and restarts of failed jobs.
         """
         return ExecutorEstimator(executor=self, options=self._options_estimator)
 
     def get_sampler(self):
         """
-        Returns a Sampler primitive that uses the Executor for running jobs.
-        Includes caching and automatic session handling.
+        Returns a Sampler primitive that overwrites the Qiskit Sampler primitive.
+        This Sampler runs all executions through the Executor and
+        includes result caching, automatic session handling, and restarts of failed jobs.
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
-    def opflow_exec(self, opflow: OperatorBase):
+    def opflow_exec(self, opflow: OperatorBase) -> np.ndarray:
         """
-        Function for executing an opflow structur.
+        Function for executing an opflow structure.
 
-        This function automatically detects if an estimator, sampler or quantum instance is set and uses
-        The emthod is very likely deprecated very soon.
+        This function automatically detects if an estimator, sampler or quantum instance
+        is initialized and uses the corresponding function for the execution.
 
         Args:
             opflow: Operator to evaluate.
 
         Returns:
-            The evaluated opflow structure.
+            The evaluated opflow structure as a numpy array.
         """
         if self._estimator is not None:
             return evaluate_opflow_estimator(self.get_estimator(), opflow)
@@ -648,8 +771,8 @@ class Executor:
         else:  #  default if nothing is set -> use estimator
             return evaluate_opflow_estimator(self.get_estimator(), opflow)
 
-    def get_opflow_executor(self) -> str:
-        """Returns a string that indicates which executor is used for opflow execution."""
+    def opflow_executor(self) -> str:
+        """A string that indicates which executor is used for opflow execution."""
         if self._estimator is not None:
             return "estimator"
         elif self._sampler is not None:
@@ -659,8 +782,17 @@ class Executor:
         else:  #  default if nothing is set -> use estimator
             return "estimator"
 
-    def backend_run(self, circuits, **run_options: Any):
-        return self.backend.run(circuits, **run_options)
+    def backend_run(self, run_input, **options):
+        """Routine that runs the given circuits on the backend.
+
+        Args:
+            run_input: An object to run on the backend (typically a circuit).
+            options: Additional arguments that are passed to the backend.
+
+        Return:
+            The Qiskit job object from the run.
+        """
+        return self.backend.run(run_input, **options)
 
     def set_shots(self, num_shots: Union[int, None]) -> None:
         """Sets the number shots for the next evaluations.
@@ -778,8 +910,13 @@ class Executor:
         """Resets the shots to the initial values when the executor was created."""
         self.set_shots(self._inital_num_shots)
 
+    @property
+    def shots(self) -> int:
+        """Number of shots in the execution."""
+        return self.get_shots()
+
     def create_session(self):
-        """Creates a new session"""
+        """Creates a new session, is called automatically."""
         if self._service is not None:
             self._session = Session(
                 self._service, backend=self._backend, max_time=self._max_session_time
@@ -790,7 +927,7 @@ class Executor:
             raise RuntimeError("Session can not started because of missing service!")
 
     def close_session(self):
-        """Closes the current session"""
+        """Closes the current session, is called automatically."""
         if self._session is not None:
             self._logger.info(f"Executor closed session: {{}}".format(self._session.session_id))
             self._session.close()
