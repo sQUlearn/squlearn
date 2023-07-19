@@ -140,7 +140,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     The implementation is based on the paper https://doi.org/10.1038/s41467-021-22539-9
 
-    As defaults, a Gaussian outer kernel and the expectation value of all three Pauli matrices 
+    As defaults, a Gaussian outer kernel and the expectation value of all three Pauli matrices
     :math:`\{\hat{X},\hat{Y},\hat{Z}\}` are computed for every qubit.
 
 
