@@ -17,12 +17,12 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'sQUlearn'
-copyright = '2023, Fraunhofer IPA'
-author = 'Fraunhofer IPA'
+project = "sQUlearn"
+copyright = "2023, Fraunhofer IPA"
+author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = "0.2.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,20 +31,23 @@ release = '0.2.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-extensions = [  "sphinx.ext.autodoc",
-                "sphinx.ext.autosummary",
-                "sphinx.ext.napoleon",
-              ]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "matplotlib.sphinxext.plot_directive",
+]
 
 autodoc_default_options = {"members": True, "inherited-members": True}
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # generate autosummary even if no references
 autosummary_generate = True
@@ -54,16 +57,16 @@ autosummary_generate = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
-latex_engine = 'xelatex'
+latex_engine = "xelatex"
 latex_elements = {
-    'preamble': r'''
+    "preamble": r"""
     \usepackage{braket}
-    ''',
+    """,
 }

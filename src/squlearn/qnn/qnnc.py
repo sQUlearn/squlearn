@@ -19,22 +19,71 @@ from ..util import Executor
 class QNNClassifier(BaseQNN, ClassifierMixin):
     """Quantum Neural Network for Classification.
 
-    This class implements a QNN for classification with a sklearn interface.
+    This class implements a quantum neural network (QNN) for classification with a sklearn
+    interface. A parameterized quantum circuit and a possibly parameterized operator are used
+    as a ML model. They are trained according to a specified loss using the specified optimizer.
+    Minibatch training is possible.
 
     Args:
-        pqc : Parameterized quantum circuit in feature map format
-        operator : Operator that are used in the expectation value of the QNN. Can be a list for
-            multiple outputs.
-        executor : Executor instance
-        optimizer : Optimizer instance
-        param_ini : Initialization values of the parameters of the PQC
-        param_op_ini : Initialization values of the cost operator
-        batch_size : Number of datapoints in each batch, for SGDMixin optimizers
-        epochs : Number of epochs of SGD to perform, for SGDMixin optimizers
-        shuffle : If True, datapoints get shuffled before each epoch (default: False),
-            for SGDMixin optimizers
-        opt_param_op : If True, operators parameters get optimized
-        variance : Variance factor
+        pqc (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN. For a list
+            of feature maps, check the :ref:`Implemented feature maps in squlearn`.
+        operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
+            is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
+            list of operators, check the :ref:`Implemented operators for expectation values`
+        executor (Executor): Executor instance.
+        loss (LossBase): The loss function to be optimized. Can also be combination of multiple
+            loss functions.
+        optimizer (OptimizerBase): The optimizer instance that is used to minimize the loss
+            function.
+        param_ini (np.ndarray, default=None): Initial values of the parameters of the PQC.
+        param_op_ini (np.ndarray, default=None): Initial values of the parameters of the operator.
+        batch_size (int, default=None): Number of datapoints in each batch in minibatch training.
+            Will only be used if optimizer is of type SGDMixin.
+        epochs (int, default=None): Number of epochs of SGD to perform. Will only be used if
+            optimizer is of type SGDMixin.
+        shuffle (bool, default=None): If True, datapoints get shuffled before each epoch. Will only
+            be used if optimizer is of type SGDMixin.
+        opt_param_op (bool, default=True): If True, the operators parameters get optimized.
+        variance (Union[float, Callable], default=None): The variance factor to be used. If it is
+            None, the variance regularization will not be used. Else this determines the strength
+            of the variance regularization.
+
+    See Also
+    --------
+        squlearn.qnn.QNNRegressor : Quantum Neural Network for Regression.
+
+    **Example**
+
+    .. code-block::
+
+        from squlearn import Executor
+        from squlearn.feature_map import ChebRx
+        from squlearn.expectation_operator import SummedPaulis
+        from squlearn.qnn import QNNClassifier, SquaredLoss
+        from squlearn.optimizers import SLSQP
+        from sklearn.datasets import make_blobs
+        from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import MinMaxScaler
+
+        X, y = make_blobs(60, centers=2, random_state=0)
+        X = MinMaxScaler((-0.9, 0.9)).fit_transform(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.33, random_state=42
+        )
+        clf = QNNClassifier(
+            ChebRx(4, 2, 2),
+            SummedPaulis(4),
+            Executor("statevector_simulator"),
+            SquaredLoss(),
+            SLSQP(),
+            np.random.rand(16),
+            np.random.rand(5)
+        )
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+
+    Methods:
+    --------
     """
 
     def __init__(

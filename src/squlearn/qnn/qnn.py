@@ -258,19 +258,19 @@ class QNN:
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
         self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, opflow_caching)
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, opflow_caching)
 
-        if self.pqc.num_qubits != num_qubits_operator:
+        if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
         else:
-            self._num_qubits = self.pqc.num_qubits
+            self._num_qubits = self.pqc.num_virtual_qubits
 
         if self.executor.get_opflow_executor() in ("sampler", "quantum_instance"):
             # For Quantum Instance or the Sampler primitive, X and Y Pauli matrices have to be treated extra
@@ -347,12 +347,12 @@ class QNN:
     @property
     def parameters(self):
         """Return the parameter vector of the PQC."""
-        return self.pqc_derivatives.p
+        return self.pqc_derivatives._p
 
     @property
     def features(self):
         """Return the feature vector of the PQC."""
-        return self.pqc_derivatives.x
+        return self.pqc_derivatives._x
 
     @property
     def parameters_operator(self):
@@ -380,7 +380,7 @@ class QNN:
             Opflow structure created from the expec object.
         """
         return measure_feature_map_derivative(
-            self.pqc_derivatives.get_derivate(input_expec.wavefunction),
+            self.pqc_derivatives.get_derivative(input_expec.wavefunction),
             self.operator_derivatives.get_derivative(input_expec.operator),
         )
 
@@ -861,7 +861,7 @@ class QNN:
                 index_list.append(index_list_op)
 
             # get the circuits of the PQC derivatives from the feature map module
-            pqc_opflow = self.pqc_derivatives.get_derivate(key)
+            pqc_opflow = self.pqc_derivatives.get_derivative(key)
 
             # check for multiple circuits (e.g. gradient)
             if isinstance(pqc_opflow, ListOp):
