@@ -20,17 +20,17 @@ class FeatureMapBase:
 
     @property
     def num_qubits(self) -> int:
-        """Returns the number of qubits of the feature map."""
+        """The number of qubits of the feature map."""
         return self._num_qubits
 
     @property
     def num_features(self) -> int:
-        """Returns the dimension of features of the feature map."""
+        """The dimension of the features in the feature map."""
         return self._num_features
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters of the feature map."""
+        """The number of trainable parameters of the feature map."""
         return 0
 
     def get_circuit(
@@ -65,7 +65,7 @@ class FeatureMapBase:
 
         Args:
             feature_label (str): Label for the feature vector (default:"x").
-            parameter_label (str): Label for the parameter vector (default:"θ").
+            parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
             kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
 
@@ -118,10 +118,7 @@ class FeatureMapBase:
                 if fm1.num_qubits != fm2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both feature maps.")
 
-                if fm1.num_features != fm2.num_features:
-                    raise ValueError("Feature dimension is not equal in both feature maps.")
-
-                super().__init__(fm1.num_qubits, fm2.num_features)
+                super().__init__(fm1.num_qubits, max(fm1.num_features, fm2.num_features))
 
                 self._fm1 = fm1
                 self._fm2 = fm2
@@ -151,8 +148,12 @@ class FeatureMapBase:
                     Returns the circuit of the composed feature maps in qiskit QuantumCircuit format
                 """
 
-                circ1 = self._fm1.get_circuit(features, parameters[: self._fm1.num_parameters])
-                circ2 = self._fm2.get_circuit(features, parameters[self._fm1.num_parameters :])
+                circ1 = self._fm1.get_circuit(
+                    features[: self._fm1.num_features], parameters[: self._fm1.num_parameters]
+                )
+                circ2 = self._fm2.get_circuit(
+                    features[: self._fm2.num_features], parameters[self._fm1.num_parameters :]
+                )
 
                 return circ1.compose(circ2, range(self._fm1.num_qubits))
 

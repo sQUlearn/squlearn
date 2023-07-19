@@ -58,8 +58,9 @@ Implemented feature maps in squlearn
    feature_map.ChebPQC
    feature_map.HZCRxCRyCRz
    feature_map.ChebRx
-   feature_map.ZFeatureMap_CX
+   feature_map.ParamZFeatureMap
    feature_map.QiskitZFeatureMap
+   feature_map.QiskitFeatureMap
 
 Implemented tools for feature maps
 ==================================
@@ -77,8 +78,17 @@ Implemented tools for feature maps
 
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
-   feature_map.feature_map_derivatives.FeatureMapDerivatives
-   feature_map.transpiled_feature_map.TranspiledFeatureMap
+   feature_map.FeatureMapDerivatives
+   feature_map.TranspiledFeatureMap
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: function.rst
+
+   feature_map.automated_pruning
+   feature_map.pruning_from_QFI
+
 
 Implemented operators for expectation values
 ============================================
