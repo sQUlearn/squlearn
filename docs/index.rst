@@ -14,7 +14,6 @@ Here comes some description of the sQUlearn package and the documentation.
 
    tutorials/install
    modules/classes
-   tutorials/pqk
    tutorials/operators
    tutorials/feature_maps
 
