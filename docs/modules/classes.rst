@@ -65,10 +65,6 @@ Implemented feature maps in squlearn
 Implemented tools for feature maps
 ==================================
 
-.. automodule:: squlearn.feature_map
-    :no-members:
-    :no-inherited-members:
-
 .. currentmodule:: squlearn
 
 .. autosummary::
@@ -114,10 +110,6 @@ Implemented operators for expectation values
 
 Tools for expectation operators
 ================================
-
-.. automodule:: squlearn.expectation_operator
-    :no-members:
-    :no-inherited-members:
 
 .. currentmodule:: squlearn
 

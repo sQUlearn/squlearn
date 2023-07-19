@@ -1,19 +1,24 @@
 import numpy as np
 from typing import Union
+from abc import ABC, abstractmethod
 
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Pauli
-from qiskit.circuit import ParameterVector
 from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
 from qiskit.opflow import SummedOp, Zero, One
 from qiskit.opflow import OperatorBase, StateFn
 
 
-class ExpectationOperatorBase:
+class ExpectationOperatorBase(ABC):
     """ Base class for expectation operators.
 
     Args:
         num_qubits (int): Number of qubits.
+
+    Attributes:
+        num_parameters (int): Number of trainable parameters in the expectation operator.
+        num_qubits (int): Number of qubits in the expectation operator.
+
     """
     def __init__(self, num_qubits: int) -> None:
         self._num_qubits = num_qubits
@@ -53,8 +58,8 @@ class ExpectationOperatorBase:
     def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
         """ Returns Operator in as a opflow measurement operator.
 
-        Args
-            Parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
                                                              the operator
         Return:
             StateFn expression of the expectation operator.
@@ -62,6 +67,7 @@ class ExpectationOperatorBase:
 
         return StateFn(self.get_pauli_mapped(parameters), is_measurement=True)
 
+    @abstractmethod
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
         Returns the PauliOp expression of the expectation operator.
@@ -71,14 +77,13 @@ class ExpectationOperatorBase:
                                                              in the operator
 
         Returns:
-            PauliOp: Expectation operator in qiskit's PauliOp class
+            Expectation operator in qiskit's PauliOp class
         """
         raise NotImplementedError
 
     def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]):
         """
         Returns the mapped PauliOp expression of the expectation operator.
-
         The previously the qubit map has to be set via :meth:`set_map`!
 
         Args:
@@ -86,8 +91,8 @@ class ExpectationOperatorBase:
                                                              the operator
 
         Return:
-            PauliOp: Expectation operator in qiskit's PauliOp class with qubits mapped to
-                     physical ones
+            Expectation operator in qiskit's PauliOp class with qubits mapped to
+            physical ones
         """
 
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:

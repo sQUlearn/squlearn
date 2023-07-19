@@ -22,6 +22,13 @@ class ExpectationOperatorDerivatives:
     The class can either applied on a single operator, or on a list of operators.
     results are cached for faster evaluation.
 
+    Args:
+        expectation_operator (Union[ExpectationOperatorBase, list]): Expectation operator or list
+                                                                     of expectation operators from
+                                                                     which the derivatives are
+                                                                     obtained.
+        opflow_caching (bool): If True, the opflow structure of the expectation operator is cached
+
     .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
        :widths: 25 75
        :header-rows: 1
@@ -64,12 +71,11 @@ class ExpectationOperatorDerivatives:
        op = SummedPaulis(num_qubits=3)
        print(ExpectationOperatorDerivatives(op).get_operator_squared())
 
-    Args:
-        expectation_operator (Union[ExpectationOperatorBase, list]): Expectation operator or list
-                                                                     of expectation operators from
-                                                                     which the derivatives are
-                                                                     obtained.
-        opflow_caching (bool): If True, the opflow structure of the expectation operator is cached
+    Attributes:
+        parameter_vector (ParameterVector): Parameter vector used in the expectation operator
+        num_parameters (int): Total number of trainable parameters in the expectation operator
+        num_operators (int): Number operators in case of multiple expectation operators
+
 
     """
 

@@ -6,12 +6,12 @@ Operators for expectation values
 
 Operators play a crucial role in computing the expectation value in conjunction with a
 wavefunction. Currently, in sQUlearn, only operators constructed from the Pauli group
-(`:math:\{\hat{X},\hat{Y},\hat{Z},\hat{I}\}`) are supported. In the context of sQUlearn,
+:math:`\{\hat{X},\hat{Y},\hat{Z},\hat{I}\}` are supported. In the context of sQUlearn,
 expectation operators are mandatory inputs for the Quantum Neural Network (QNN) and can be
 employed in the Projected Quantum Kernel program.
 All operators follow the Base Class :class:`ExpectationOperatorBase`.
 
-The following functions and operators are accessible via :class:`~squlearn.expectation_operator`.
+The following functions and operators are accessible via :class:`squlearn.expectation_operator`.
 
 Implemented expectation operators.
 ----------------------------------

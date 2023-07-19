@@ -28,6 +28,14 @@ class SinglePauli(ExpectationOperatorBase):
         op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``
                       (default: ``'Z'``).
         parameterized (bool): If True, the operator is parameterized (default: False).
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        qubit (int): Qubit on which the Pauli operator acts.
+        op_str (str): Pauli operator to measure.
+        parameterized (bool): If True, the operator is parameterized.
+
     """
 
     def __init__(

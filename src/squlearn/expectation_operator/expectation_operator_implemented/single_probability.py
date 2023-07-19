@@ -27,6 +27,13 @@ class SingleProbability(ExpectationOperatorBase):
         one_state (bool): If True, measure the probability of being in state 1, otherwise state 0
                           (default: False).
         parameterized (bool): If True, the operator is parameterized (default: false).
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        qubit (int): Qubit to measure the probability of.
+        one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
+        parameterized (bool): If True, the operator is parameterized.
     """
 
     def __init__(
