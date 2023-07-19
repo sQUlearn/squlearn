@@ -34,22 +34,6 @@ class QKRR(BaseEstimator, RegressorMixin):
             after Ref. [3] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
 
-    Attributes:
-        _regularize (Union[str, None]) :
-            Applied regularization technique
-        x_train (np.ndarray) :
-            Training data, which is also required for the prediction step of shape +
-            (n_samples, n_features)
-        k_train (np.ndarray) :
-            Training Kernel matrix, which is a square-symmetric matrix of shape (n_train, natrain)
-            required for the ``fit()`` step
-        k_testtrain (np.ndarray) :
-            Test-training matrix of shape (n_test, n_train) required for prediction step
-        dual_coeff_ (np.ndarray) :
-            Representation of weight vectors in kernel space
-        num_qubits (int) :
-            Number of qubits
-
     See Also
     --------
         squlearn.kernel.ml.QGPR : Quantum Gaussian Process regression.
@@ -174,3 +158,22 @@ class QKRR(BaseEstimator, RegressorMixin):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
+
+
+######
+# BACKUP FOR DOCUMENTATION
+# Attributes:
+#         _regularize (Union[str, None]) :
+#             Applied regularization technique
+#         x_train (np.ndarray) :
+#             Training data, which is also required for the prediction step of shape +
+#             (n_samples, n_features)
+#         k_train (np.ndarray) :
+#             Training Kernel matrix, which is a square-symmetric matrix of shape (n_train, natrain)
+#             required for the ``fit()`` step
+#         k_testtrain (np.ndarray) :
+#             Test-training matrix of shape (n_test, n_train) required for prediction step
+#         dual_coeff_ (np.ndarray) :
+#             Representation of weight vectors in kernel space
+#         num_qubits (int) :
+#             Number of qubits
