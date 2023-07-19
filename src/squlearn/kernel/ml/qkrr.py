@@ -158,6 +158,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
+
+
 ######
 # BACKUP FOR DOCUMENTATION
 # Attributes:
