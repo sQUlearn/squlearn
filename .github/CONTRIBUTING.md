@@ -10,6 +10,8 @@ git checkout develop
 pip install -e .
 ```
 
+> Note that editable installing as above might require an updated version of pip `pip install pip --upgrade` 
+
 ## Devtools
 Install the recommended tools with
 ```bash
