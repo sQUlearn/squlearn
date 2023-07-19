@@ -35,40 +35,42 @@ from .evaluate_opflow import evaluate_opflow_qi, evaluate_opflow_estimator, eval
 
 class Executor:
     """
-    Executor class to run jobs on IBM Quantum systems or simulators.
+    A class for executing quantum jobs on IBM Quantum systems or simulators.
 
-    The Executor class is the main component in sQUlearn when it comes to run quantum jobs.
-    All high- and low-lever methods are utilizing the Executor class to run jobs.
-    It automatically creates the right primitives when they are needed in the sub-program.
+    The Executor class is the central component of sQUlearn, responsible for running quantum jobs.
+    Both high- and low-level methods utilize the Executor class to execute jobs seamlessly.
+    It automatically creates the necessary primitives when they are required in the sub-program.
 
-    The Executor offers multiple features that simplify the execution of jobs on IBM Quantum
-    systems:
+    .. image:: ../../images/executor.png
+        :width: 525
+        :align: center
 
-    * Session handling: Sessions are automatically created and managed by the Executor
-    * Result caching: Results can be cached to avoid re-running the same jobs
-    * Automatic restarts: Jobs are automatically restarted if they fail
-    * Logging: All actions of the executor are automatically logged to a log file
+    Key Features of the Executor:
 
-    Furthermore, the Executor can create modified Qiskit Primitives that can be used similar to
-    normal primitives, but run everything through the Executor enabling the comfort features
-    mentioned above. This is possible by the :meth:`get_estimator` and :meth:`get_sampler` routine.
+    - Session handling: Automatically manages the creation and handling of sessions.
+    - Result caching: Enables caching of results to avoid redundant job executions, and enable
+      restarts of failed executions. Caching is enabled as default only for remote executions.
+    - Automatic restarts: Automatically restarts jobs in case of failure.
+    - Logging: Automatically logs all executor actions to a log file.
 
-    The Estimator can be initialized with different objects that specify the execution environment:
+    Additionally, the Executor allows the creation of modified Qiskit Primitives that function
+    similarly to regular primitives but leverage the comfort features mentioned above.
+    This can be achieved using the :meth:`get_estimator` and :meth:`get_sampler` methods.
 
-    * A string, that specifics the simulator backend (``"statevector_simulator"`` or
-      ``"qasm_simulator"``)
-    * A Qiskit backen, typically to run jobs on IBM Quantum
-      systems or on Aer simulators, but in principle, any backend following the Qiskit
-      specifications can be used.
-    * A QuantumInstance, that includes the backend and some options
-    * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service (in this case the
-      backend has to be provided separately via ``backend=``)
-    * A pre-initialized Session, to run the jobs on the Qiskit Runtime service
-    * A Estimator or Sampler primitive (either simulator or Qiskit Runtime primitive)
+    The Estimator can be initialized with various objects that specify the execution environment:
 
-    Options of the Primitives can be provided via the ``options_estimator`` and
-    ``options_sampler`` arguments, but they are also automatically copied from inputted
-    primitives.
+    - A string specifying the simulator backend (e.g., ``"statevector_simulator"`` or
+      ``"qasm_simulator"``).
+    - A Qiskit backend, typically used to run jobs on IBM Quantum systems or Aer simulators,
+      though any backend adhering to Qiskit specifications can be used.
+    - A QuantumInstance, containing the backend and additional options.
+    - A QiskitRuntimeService, to execute jobs on the Qiskit Runtime service (in this case,
+      the backend must be provided separately via the ``backend=`` argument).
+    - A pre-initialized Session to execute jobs on the Qiskit Runtime service.
+    - An Estimator or Sampler primitive (either simulator or Qiskit Runtime primitive).
+
+    Options for the Primitives can be provided through the ``options_estimator`` and
+    ``options_sampler`` arguments, but they are also automatically copied from inputted primitives.
 
     Args:
         execution (Union[str, Backend, QuantumInstance, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
