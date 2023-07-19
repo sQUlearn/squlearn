@@ -20,13 +20,13 @@ class QSVC(SVC):
     - coef0
 
     Args:
-        quantum_kernel: The quantum kernel matrix to be used in the SVC. Either a fidelity
+        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either a fidelity
             quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
         **kwargs: Other parameters that are passed to sklearn.svm.SVC
 
     See Also
     --------
-        squlearn.kernel.ml.QSVR
+        squlearn.kernel.ml.QSVR : Quantum Support Vector Regression
 
     **Example**
 
