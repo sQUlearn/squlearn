@@ -10,7 +10,7 @@ from qiskit.opflow import OperatorBase, StateFn
 
 
 class ExpectationOperatorBase(ABC):
-    """ Base class for expectation operators.
+    """Base class for expectation operators.
 
     Args:
         num_qubits (int): Number of qubits.
@@ -20,6 +20,7 @@ class ExpectationOperatorBase(ABC):
         num_qubits (int): Number of qubits in the expectation operator.
 
     """
+
     def __init__(self, num_qubits: int) -> None:
         self._num_qubits = num_qubits
         self._num_all_qubits = num_qubits
@@ -42,8 +43,10 @@ class ExpectationOperatorBase(ABC):
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
         if self._num_all_qubits < self._num_qubits:
-            raise ValueError("""Number of qubits in the system is smaller than the number
-                                of qubits in the expectation operator.""")
+            raise ValueError(
+                """Number of qubits in the system is smaller than the number
+                                of qubits in the expectation operator."""
+            )
 
     @property
     def num_parameters(self):
@@ -56,7 +59,7 @@ class ExpectationOperatorBase(ABC):
         return self._num_qubits
 
     def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
-        """ Returns Operator in as a opflow measurement operator.
+        """Returns Operator in as a opflow measurement operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
@@ -96,7 +99,7 @@ class ExpectationOperatorBase(ABC):
         """
 
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:
-            """ Recrusive method that replaces that resets the qubits to the mapped ones. """
+            """Recrusive method that replaces that resets the qubits to the mapped ones."""
 
             # We reached the Composed object or the wavefunction
             if isinstance(operator, PauliOp):
@@ -157,12 +160,13 @@ class ExpectationOperatorBase(ABC):
             raise ValueError("Only the addition with other expectation operator is allowed!")
 
         class AddedExpectationOperator(ExpectationOperatorBase):
-            """ Internal class for a sum of expectation operators.
+            """Internal class for a sum of expectation operators.
 
             Args:
                 op1 (ExpectationOperatorBase): Left expectation operator
                 op2 (ExpectationOperatorBase): Right expectation operator
             """
+
             def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
                 if op1.num_qubits != op2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both expectation operator.")
@@ -174,7 +178,7 @@ class ExpectationOperatorBase(ABC):
 
             @property
             def num_parameters(self) -> int:
-                """ The number of trainable parameters of added expectation operator.
+                """The number of trainable parameters of added expectation operator.
 
                 Is equal to the sum of both trainable parameters.
                 """
@@ -184,7 +188,7 @@ class ExpectationOperatorBase(ABC):
                     return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """ Returns the PauliOp expression of the added expectation operator.
+                """Returns the PauliOp expression of the added expectation operator.
 
                 Args:
                     parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
@@ -209,12 +213,13 @@ class ExpectationOperatorBase(ABC):
             raise ValueError("Only the multiplication with other expectation operator is allowed!")
 
         class MultipliedExpectationOperator(ExpectationOperatorBase):
-            """ Internal class for a multiplication of expectation operators.
+            """Internal class for a multiplication of expectation operators.
 
             Args:
                 op1 (ExpectationOperatorBase): Left expectation operator
                 op2 (ExpectationOperatorBase): Right expectation operator
             """
+
             def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
                 if op1.num_qubits != op2.num_qubits:
                     raise ValueError("Number of qubits is not equal in both expectation operator.")
@@ -236,7 +241,7 @@ class ExpectationOperatorBase(ABC):
                     return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """ Returns the PauliOp expression of the multiplied expectation operator.
+                """Returns the PauliOp expression of the multiplied expectation operator.
 
                 Args:
                     parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used

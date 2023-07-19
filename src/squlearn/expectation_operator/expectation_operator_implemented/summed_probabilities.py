@@ -46,7 +46,7 @@ class SummedProbabilities(ExpectationOperatorBase):
     def __init__(
         self,
         num_qubits: int,
-        one_state = False,
+        one_state=False,
         full_sum: bool = True,
         include_identity: bool = True,
     ) -> None:

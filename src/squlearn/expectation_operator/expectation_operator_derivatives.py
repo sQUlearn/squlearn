@@ -84,7 +84,6 @@ class ExpectationOperatorDerivatives:
         expectation_operator: Union[ExpectationOperatorBase, list],
         opflow_caching=True,
     ):
-
         self.expectation_operator = expectation_operator
 
         # Contains the OperatorMeasurement() of the expectation-operator for later replacement
@@ -269,7 +268,7 @@ class ExpectationOperatorDerivatives:
 
     @property
     def parameter_vector(self):
-        """ Parameter vector of the expectation operator"""
+        """Parameter vector of the expectation operator"""
         return self._parameter_vector
 
     @property
@@ -283,7 +282,7 @@ class ExpectationOperatorDerivatives:
         return self._num_operators
 
     def assign_parameters(self, operator: OperatorBase, parameters: np.ndarray):
-        """ Assign parameters to a derivative that is obtained from this class.
+        """Assign parameters to a derivative that is obtained from this class.
 
         Args:
             operator (OperatorBase): Operator to which the parameters are assigned
