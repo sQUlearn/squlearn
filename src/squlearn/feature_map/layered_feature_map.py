@@ -675,9 +675,7 @@ class _CU_operation(_two_qubit_operation):
                             )
                         variablegroup.increase_index(1)
                     QC.append(
-                        cu_gate(*buffer_param_vectors_list),
-                        [first_qubit, second_qubit],
-                        [],
+                        cu_gate(*buffer_param_vectors_list), [first_qubit, second_qubit], [],
                     )
         elif self.ent_strategy == "NN":
             for first_qubit in range(0, self.num_qubits - 1, 2):
@@ -695,9 +693,7 @@ class _CU_operation(_two_qubit_operation):
                         )
                     variablegroup.increase_index(1)
                 QC.append(
-                    cu_gate(*buffer_param_vectors_list),
-                    [first_qubit, first_qubit + 1],
-                    [],
+                    cu_gate(*buffer_param_vectors_list), [first_qubit, first_qubit + 1], [],
                 )
             for first_qubit in range(1, self.num_qubits - 1, 2):
                 buffer_param_vectors_list = []
@@ -714,9 +710,7 @@ class _CU_operation(_two_qubit_operation):
                         )
                     variablegroup.increase_index(1)
                 QC.append(
-                    cu_gate(*buffer_param_vectors_list),
-                    [first_qubit, first_qubit + 1],
-                    [],
+                    cu_gate(*buffer_param_vectors_list), [first_qubit, first_qubit + 1], [],
                 )
         else:
             raise ValueError("Wrong entangling strategy input.")
@@ -858,8 +852,7 @@ class LayeredPQC:
             )
         else:
             self.add_operation(
-                _Rx_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
+                _Rx_operation(self.num_qubits, variablegroup_tuple, map), variablegroup_tuple,
             )
 
     def Ry(self, *variablegroup_tuple, map=None):
@@ -872,8 +865,7 @@ class LayeredPQC:
             )
         else:
             self.add_operation(
-                _Ry_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
+                _Ry_operation(self.num_qubits, variablegroup_tuple, map), variablegroup_tuple,
             )
 
     def Rz(self, *variablegroup_tuple, map=None):
@@ -886,8 +878,7 @@ class LayeredPQC:
             )
         else:
             self.add_operation(
-                _Rz_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
+                _Rz_operation(self.num_qubits, variablegroup_tuple, map), variablegroup_tuple,
             )
 
     def P(self, *variablegroup_tuple, map=None):
@@ -899,8 +890,7 @@ class LayeredPQC:
             )
         else:
             self.add_operation(
-                _P_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
+                _P_operation(self.num_qubits, variablegroup_tuple, map), variablegroup_tuple,
             )
 
     def U(self, *variablegroup_tuple, map=None):
@@ -912,8 +902,7 @@ class LayeredPQC:
             )
         else:
             self.add_operation(
-                _U_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
+                _U_operation(self.num_qubits, variablegroup_tuple, map), variablegroup_tuple,
             )
 
     def ch_entangling(self, ent_strategy="NN"):
@@ -2060,11 +2049,7 @@ class LayeredFeatureMap(FeatureMapBase):
     """
 
     def __init__(
-        self,
-        num_qubits: int,
-        num_features: int,
-        feature_str: str = "x",
-        parameter_str: str = "p",
+        self, num_qubits: int, num_features: int, feature_str: str = "x", parameter_str: str = "p",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self._feature_str = feature_str
@@ -2105,7 +2090,7 @@ class LayeredFeatureMap(FeatureMapBase):
         num_features: int,
         feature_str: str = "x",
         parameter_str: str = "p",
-        num_layers: int = 1
+        num_layers: int = 1,
     ):
         """
         Constructs a Layered Feature Map through a given string of gates.
@@ -2126,9 +2111,7 @@ class LayeredFeatureMap(FeatureMapBase):
         feature_map_str *= num_layers
         layered_feature_map = cls(num_qubits, num_features, feature_str, parameter_str)
         layered_feature_map._layered_pqc = LayeredPQC.from_string(
-            num_qubits,
-            feature_map_str,
-            (layered_feature_map._x, layered_feature_map._p),
+            num_qubits, feature_map_str, (layered_feature_map._x, layered_feature_map._p),
         )
         return layered_feature_map
 
