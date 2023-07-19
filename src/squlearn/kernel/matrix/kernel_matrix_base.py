@@ -10,13 +10,14 @@ class KernelMatrixBase:
     Base class for defining quantum kernels.
 
     Args:
-        feature_map (FeatureMapBase) : 
+        feature_map (FeatureMapBase) :
             PQC feature map
         executor (Executor) :
             Executor object
-        initial_parameters (Union[np.ndarray, None], default=None) : 
+        initial_parameters (Union[np.ndarray, None], default=None) :
             Initial parameters of the PQC feature map
     """
+
     def __init__(
         self,
         feature_map: FeatureMapBase,
@@ -50,7 +51,7 @@ class KernelMatrixBase:
     @property
     def parameters(self) -> np.ndarray:
         """
-        Returns the numeric values of the trainable parameters assigned to the 
+        Returns the numeric values of the trainable parameters assigned to the
         feature map as np.ndarray
         """
         return self._parameters
@@ -69,7 +70,7 @@ class KernelMatrixBase:
                 Vecotr of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vecotr of training or test data for which the kernel matrix is evaluated
-        
+
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
@@ -125,7 +126,7 @@ class KernelMatrixBase:
         quantum kernels returns the composition of both quantum kernels.
 
         Number of  features have to be equal in both feature maps!
-        
+
         Args:
             self (KernelMatrixBase): first quantum kernel
             x (KernelMatrixBase): second quantum kernel
@@ -141,7 +142,7 @@ class KernelMatrixBase:
         quantum kernels returns the composition of both quantum kernels.
 
         Number of  features have to be equal in both feature maps!
-        
+
         Args:
             self (KernelMatrixBase): first quantum kernel
             x (KernelMatrixBase): second quantum kernel
@@ -157,7 +158,7 @@ class KernelMatrixBase:
         quantum kernels returns the composition of both quantum kernels.
 
         Number of  features have to be equal in both feature maps!
-        
+
         Args:
             self (KernelMatrixBase): first quantum kernel
             x (KernelMatrixBase): second quantum kernel
@@ -173,7 +174,7 @@ class KernelMatrixBase:
         quantum kernels returns the composition of both quantum kernels.
 
         Number of  features have to be equal in both feature maps!
-        
+
         Args:
             self (KernelMatrixBase): first quantum kernel
             x (KernelMatrixBase): second quantum kernel
@@ -206,6 +207,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         km2 (KernelMatrixBase) :
             second kernel matrix
     """
+
     def __init__(self, km1: KernelMatrixBase, km2: KernelMatrixBase, composition: str = "*"):
         if km1.num_features != km2.num_features:
             raise ValueError("Feature dimension is not equal in both feature maps.")
@@ -245,7 +247,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
                 Vecotr of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vecotr of training or test data for which the kernel matrix is evaluated
-        
+
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
