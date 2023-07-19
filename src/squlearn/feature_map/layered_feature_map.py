@@ -2105,6 +2105,7 @@ class LayeredFeatureMap(FeatureMapBase):
         num_features: int,
         feature_str: str = "x",
         parameter_str: str = "p",
+        num_layers: int = 1
     ):
         """
         Constructs a Layered Feature Map through a given string of gates.
@@ -2113,14 +2114,16 @@ class LayeredFeatureMap(FeatureMapBase):
             feature_map_str (str): String that specifies the feature map
             num_qubits (int): Number of qubits in the feature map
             num_features (int): Dimension of the feature vector.
-            feature_str (str): String that used in feature_map_str to label features (default: 'x')
-            parameter_str (str): String that used in feature_map_str to label parameters (default: 'p')
+            feature_str (str): String that is used in feature_map_str to label features (default: 'x')
+            parameter_str (str): String that is used in feature_map_str to label parameters (default: 'p')
+            num_laters (int): Number of layers, i.e., the number of repetitions of the feature map (default: 1)
 
         Returns:
             Returns a LayeredFeatureMap object that contains the specified feature map.
 
         """
 
+        feature_map_str *= num_layers
         layered_feature_map = cls(num_qubits, num_features, feature_str, parameter_str)
         layered_feature_map._layered_pqc = LayeredPQC.from_string(
             num_qubits,
