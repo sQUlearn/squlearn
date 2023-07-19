@@ -10,7 +10,9 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class IsingHamiltonian(ExpectationOperatorBase):
     r"""
-    Implementation of Ising type Hamiltonians:
+    Implementation of Ising type Hamiltonians.
+
+    **Equation for a the full Ising Hamiltonian:**
 
     .. math::
         \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i + \sum_i c_i \hat{X}_i +
@@ -18,7 +20,22 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     where :math:`a`, :math:`b_i`, :math:`c_i`, and :math:`d_{ij}` are trainable parameters.
 
-    Options allow to set the parameters additionally to be equal or zero.
+    The options allow, to switch terms on and off and to set the parameters
+    additionally to be equal for the same kind of term.
+
+    Example for creating an Ising Hamiltonian with no :math:`\hat{Z}` term, :math:`\hat{X}` term with equal
+    parameters, and the :math:`\hat{Z}\hat{Z}` term with different parameters:
+
+    .. code-block:: python
+
+       from squlearn.expectation_operator import IsingHamiltonian
+       IsingHamiltonian(num_qubits=2, I='S', Z='N', X='S', ZZ='F')
+
+    The default Ising Hamiltonian reads:
+
+    .. math::
+        \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i +
+        \sum_{i>j} d_{ij} \hat{Z}_i \hat{Z}_j
 
     Args:
         num_qubits (int): number of qubits
@@ -33,11 +50,13 @@ class IsingHamiltonian(ExpectationOperatorBase):
             sum (:math:`\forall~ i,j: ~d_{ij}=d`), ``ZZ='N'`` for zero,
             ``ZZ='F'`` all :math:`d_{ij}` values are considered
 
-    The default Ising Hamiltonian reads:
-
-    .. math::
-        \hat{H} = a\hat{I} + \sum_i b_i \hat{Z}_i +
-        \sum_{i>j} d_{ij} \hat{Z}_i \hat{Z}_j
+    Attributes:
+        num_qubits (int): number of qubits
+        num_parameters (int): number of trainable parameters in the Ising Hamiltonian
+        I (str): parameter options for identity term
+        Z (str): parameter options for Z term
+        X (str): parameter options for X term
+        ZZ (str): parameter options for ZZ term
 
     """
 

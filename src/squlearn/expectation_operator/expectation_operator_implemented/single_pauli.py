@@ -10,15 +10,30 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class SinglePauli(ExpectationOperatorBase):
     r"""
-    Expectation operator for evaluating the expectation value of a single Pauli operator.
+    Single Pauli operator of a single Qubit.
 
+    **Equation for Z Pauli operator:**
 
-    Example :math:`\hat{Z_i}`.
+    .. math::
+
+       \hat{H} = \hat{Z_i} \qquad \text{or} \qquad \hat{H} = \theta\hat{Z_i}~~~~
+       \text{  (parameterized)}
+
+    Can be parameterized or not, the four Pauli operators :math:`\hat{X},\hat{Y},\hat{Z}`
+    and :math:`\hat{I}` are supported.
 
     Args:
         num_qubits (int): Number of qubits.
-        qubit (int): Qubit for which the Pauli expectation value is obtained.
-        op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``.
+        qubit (int): Qubit on which the Pauli operator acts.
+        op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``
+                      (default: ``'Z'``).
+        parameterized (bool): If True, the operator is parameterized (default: False).
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        qubit (int): Qubit on which the Pauli operator acts.
+        op_str (str): Pauli operator to measure.
         parameterized (bool): If True, the operator is parameterized.
 
     """
@@ -37,7 +52,7 @@ class SinglePauli(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the single pauli operator"""
+        """The number of trainable parameters in the single pauli operator"""
 
         if self.parameterized:
             return 1
@@ -50,9 +65,9 @@ class SinglePauli(ExpectationOperatorBase):
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                pauli operator.
+                                                             pauli operator.
 
-        Returns:
+        Return:
             PauliOp expression of the specified single pauli operator.
         """
 

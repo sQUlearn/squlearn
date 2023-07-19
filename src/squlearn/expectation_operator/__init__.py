@@ -7,7 +7,12 @@ from .expectation_operator_implemented.custom_expectation_operator import (
 )
 from .expectation_operator_implemented.ising_hamiltonian import IsingHamiltonian
 
+from .expectation_operator_derivatives import ExpectationOperatorDerivatives
+from .expectation_operator_base import ExpectationOperatorBase
+
 __all__ = [
+    "ExpectationOperatorBase",
+    "ExpectationOperatorDerivatives",
     "SinglePauli",
     "SummedPaulis",
     "SingleProbability",

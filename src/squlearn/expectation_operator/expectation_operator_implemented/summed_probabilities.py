@@ -10,38 +10,62 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class SummedProbabilities(ExpectationOperatorBase):
     r"""
-    Operator for summed probabilities of being in state 0 or 1.
+    Operator for summing single Qubit probabilities of binary states.
 
-    Operator reads:
+    **Equation for a sum of 0-states:**
 
     .. math::
-
         \hat{H} = a\hat{I} + \sum_i b_i (\ket{0}\bra{0})_i
 
-    Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`
+    States are implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})`
+    and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`.
+
+    The parameter can be optionally equal for all states.
 
     Args:
         num_qubits (int): Number of qubits.
-        one_state: If false the :math:`\ket{0}\bra{0}` state is measured,
-            if true the :math:`\ket{1}\bra{1}` state is measured
-        full_sum (bool): If False, the parameters are excluded from the sum,
-            i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
-            instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i`
+        one_state (bool): If false the :math:`\ket{0}\bra{0}` state is measured,
+                   if true the :math:`\ket{1}\bra{1}` state is measured (default: False).
+        full_sum (bool): If False, the parameter is the same for all states,
+                         i.e. the sum is :math:`b\sum_i (\ket{0}\bra{0})_i`
+                         instead of :math:`\sum_i b_i (\ket{0}\bra{0})_i`
+                         (default: True).
+        include_identity (bool): If True, the identity operator is included in the sum.
+                                 (default: True)
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the summed probabilities operator.
+        one_state (bool): If false the :math:`\ket{0}\bra{0}` state is measured,
+                   if true the :math:`\ket{1}\bra{1}` state is measured.
+        full_sum (bool): If False, the parameter is the same for all states.
+        include_identity (bool): If True, the identity operator is included in the sum.
 
     """
 
-    def __init__(self, num_qubits: int, one_state=False, full_sum: bool = True) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        one_state=False,
+        full_sum: bool = True,
+        include_identity: bool = True,
+    ) -> None:
         super().__init__(num_qubits)
         self.one_state = one_state
         self.full_sum = full_sum
+        self.include_identity = include_identity
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the summed probabilities operator"""
+        """The number of trainable parameters in the summed probabilities operator"""
+        num_param = 0
+        if self.include_identity:
+            num_param += 1
         if self.full_sum:
-            return 1 + self.num_qubits
+            num_param += self.num_qubits
         else:
-            return 2
+            num_param += 1
+        return num_param
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
@@ -56,7 +80,10 @@ class SummedProbabilities(ExpectationOperatorBase):
         """
 
         nparam = len(parameters)
-        H = PauliOp(Pauli("I" * self.num_qubits)) * parameters[0 % nparam]
+        if self.include_identity:
+            H = PauliOp(Pauli("I" * self.num_qubits)) * parameters[0 % nparam]
+        else:
+            H = PauliOp(Pauli("I" * self.num_qubits)) * 0.0
 
         ioff = 1
         for i in range(self.num_qubits):

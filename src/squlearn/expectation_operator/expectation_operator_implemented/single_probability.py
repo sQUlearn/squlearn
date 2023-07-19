@@ -10,14 +10,28 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class SingleProbability(ExpectationOperatorBase):
     r"""
-    Expectation operator for measuring the probability of being in state 0 or 1 of
-    a specified qubit.
+    Operator for measuring the probability of being in state 0 or 1 of a specified qubit.
 
-    Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`
+    **Equation as the operator is implemented:**
+
+    .. math::
+
+       \hat{H} = 0.5(\hat{I}_i+\hat{Z}_i) (= \ket{0}\bra{0}_i) \qquad \text{or} \qquad
+       \hat{H} = 0.5(\hat{I}_i-\hat{Z}_i) (= \ket{1}\bra{1}_i)
+
+    Operator can be optionally parameterized.
 
     Args:
         num_qubits (int): Number of qubits.
-        qubit (int): Qubit to measure.
+        qubit (int): Qubit to measure the probability of.
+        one_state (bool): If True, measure the probability of being in state 1, otherwise state 0
+                          (default: False).
+        parameterized (bool): If True, the operator is parameterized (default: false).
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        qubit (int): Qubit to measure the probability of.
         one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
         parameterized (bool): If True, the operator is parameterized.
     """
@@ -37,7 +51,7 @@ class SingleProbability(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the single probability operator"""
+        """Number of trainable parameters in the single probability operator."""
 
         if self.parameterized:
             return 1
@@ -50,9 +64,9 @@ class SingleProbability(ExpectationOperatorBase):
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                probability operator.
+                                                             probability operator.
 
-        Returns:
+        Return:
             PauliOp expression of the specified single probability operator.
         """
 

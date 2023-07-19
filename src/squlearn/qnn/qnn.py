@@ -357,7 +357,7 @@ class QNN:
     @property
     def parameters_operator(self):
         """Return the parameter vector of the cost operator."""
-        return self.operator_derivatives.parameters
+        return self.operator_derivatives._parameter_vector
 
     def get_opflow_from_string(self, input_string: str):
         """Return the opflow expression of the given PQC
