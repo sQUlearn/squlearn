@@ -4,7 +4,7 @@ from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
 
 
-class KernelMatrixBase: 
+class KernelMatrixBase:
     def __init__(
         self,
         feature_map: FeatureMapBase,
@@ -32,6 +32,10 @@ class KernelMatrixBase:
     @property
     def num_features(self) -> int:
         return self._num_features
+
+    @property
+    def parameters(self) -> np.ndarray:
+        return self._parameters
 
     @property
     def num_parameters(self) -> int:
@@ -69,14 +73,14 @@ class KernelMatrixBase:
 
     def get_params(self, deep=True):
         return {
-            'feature_map': self._feature_map,
-            'executor': self._executor,
-            'initial_parameters': self._parameters
+            "feature_map": self._feature_map,
+            "executor": self._executor,
+            "initial_parameters": self._parameters,
         }
 
     def set_params(self, **params):
         for param, value in params.items():
-            setattr(self, '_' + param, value)
+            setattr(self, "_" + param, value)
         return self
 
 

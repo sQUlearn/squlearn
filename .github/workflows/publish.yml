@@ -1,0 +1,30 @@
+name: Publish to PyPI
+on:
+  release:
+    types: [published]
+
+jobs:
+    pypi-publish:
+      name: Upload release to PyPI
+      runs-on: ubuntu-latest
+      environment:
+        name: release
+        url: https://pypi.org/p/squlearn
+      permissions:
+        id-token: write
+      steps:
+        - name: Set up Python
+          uses: actions/setup-python@v2
+          with:
+            python-version: 3.9
+
+        - name: Install dependencies
+          run: pip install flit
+
+        - uses: actions/checkout@v2
+        
+        - name: Build
+          run: flit build
+
+        - name: Publish package distributions to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1

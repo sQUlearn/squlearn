@@ -31,13 +31,13 @@ class ChebPQC(FeatureMapBase):
         num_features: int,
         num_layers: int = 1,
         closed: bool = True,
-        entangling_gate: str = 'crz'
+        entangling_gate: str = "crz",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.entangling_gate = entangling_gate
-        if self.entangling_gate not in ('crz','rzz'):
+        if self.entangling_gate not in ("crz", "rzz"):
             raise ValueError("Unknown value for entangling_gate: ", entangling_gate)
 
     @property
@@ -112,7 +112,7 @@ class ChebPQC(FeatureMapBase):
         """Helper function for returning a*arccos(x)"""
         return a * np.arccos(x)
 
-    def get_cheb_indices(self):
+    def get_cheb_indices(self, flatten: bool = True):
         """
         Returns a nested list of the indices of the parameters involved
         in the arccos encoding.
@@ -136,5 +136,8 @@ class ChebPQC(FeatureMapBase):
                     istop = self.num_qubits - 1
                 for i in range(1, istop, 2):
                     ioff = ioff + 1
-            cheb_index.append(cheb_index_layer)
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
         return cheb_index

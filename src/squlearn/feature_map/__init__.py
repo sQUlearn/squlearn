@@ -1,9 +1,3 @@
-from .feature_map_base import FeatureMapBase
-from .feature_map_derivatives import (
-    FeatureMapDerivatives,
-    measure_feature_map_derivative,
-)
-from .transpiled_feature_map import TranspiledFeatureMap
 from .pruned_feature_map import PrunedFeatureMap, automated_pruning, pruning_from_QFI
 from .layered_feature_map import LayeredFeatureMap
 from .feature_map_implemented.yz_cx_feature_map import YZ_CX_FeatureMap
@@ -17,10 +11,6 @@ from .feature_map_implemented.zfeaturemap_cx import ZFeatureMap_CX
 from .feature_map_implemented.qiskit_z_feature_map import QiskitZFeatureMap
 
 __all__ = [
-    "FeatureMapBase",
-    "FeatureMapDerivatives",
-    "measure_feature_map_derivative",
-    "TranspiledFeatureMap",
     "PrunedFeatureMap",
     "automated_pruning",
     "pruning_from_QFI",

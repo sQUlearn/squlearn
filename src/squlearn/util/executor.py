@@ -7,7 +7,7 @@ from hashlib import blake2b
 from typing import Any, Union
 import traceback
 from dataclasses import asdict
-
+import time
 import dill as pickle
 
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
@@ -29,7 +29,7 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 
-from .evaluate_opflow import *
+from .evaluate_opflow import evaluate_opflow_qi, evaluate_opflow_estimator, evaluate_opflow_sampler
 
 
 class Executor:
@@ -235,7 +235,7 @@ class Executor:
             self._caching = self._remote
 
         if self._caching:
-            self._cache = ExecutorCache(self._logger,cache_dir)
+            self._cache = ExecutorCache(self._logger, cache_dir)
 
         self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
         self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
@@ -319,6 +319,17 @@ class Executor:
 
         return estimator
 
+    def clear_estimator_cache(self):
+        if self._estimator is not None:
+            if isinstance(self._estimator, qiskit_primitives_Estimator) or isinstance(
+                self._estimator, qiskit_primitives_BackendEstimator
+            ):
+                self._estimator._circuits = []
+                self._estimator._observables = []
+                self._estimator._parameters = []
+                self._estimator._circuit_ids = {}
+                self._estimator._observable_ids = {}
+
     @property
     def sampler(self):
         """Returns the sampler primitive that is used for the execution.
@@ -367,6 +378,16 @@ class Executor:
             sampler = self._sampler
 
         return sampler
+
+    def clear_sampler_cache(self):
+        if self._sampler is not None:
+            if isinstance(self._sampler, qiskit_primitives_Sampler) or isinstance(
+                self._sampler, qiskit_primitives_BackendSampler
+            ):
+                self._sampler._circuits = []
+                self._sampler._parameters = []
+                self._sampler._circuit_ids = {}
+                self._sampler._qargs_list = []
 
     @property
     def quantum_instance(self):
@@ -502,7 +523,6 @@ class Executor:
             )
 
         if self._caching and not cached:
-
             job_pickle = copy.copy(job)
             # remove _future and _function from job since this creates massive file sizes
             # and the information is not really needed.
@@ -597,14 +617,14 @@ class Executor:
         Returns a Estimator primitive that uses the Executor for running jobs.
         Includes caching and automatic session handling.
         """
-        return ExecutorEstimator(executor=self,options=self._options_estimator)
+        return ExecutorEstimator(executor=self, options=self._options_estimator)
 
     def get_sampler(self):
         """
         Returns a Sampler primitive that uses the Executor for running jobs.
         Includes caching and automatic session handling.
         """
-        return ExecutorSampler(executor=self,options=self._options_sampler)
+        return ExecutorSampler(executor=self, options=self._options_sampler)
 
     def opflow_exec(self, opflow: OperatorBase):
         """
@@ -801,7 +821,6 @@ class ExecutorEstimator(BaseEstimator):
     """
 
     def __init__(self, executor: Executor, options=None):
-
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             options_ini = asdict(copy.deepcopy(options))
         else:
@@ -898,6 +917,9 @@ class ExecutorEstimator(BaseEstimator):
         """
         return self._executor.estimator.options
 
+    def clear_cache(self):
+        self._executor.clear_estimator_cache()
+
     def set_options(self, **fields):
         """Set options values for the estimator.
 
@@ -922,7 +944,6 @@ class ExecutorSampler(BaseSampler):
     """
 
     def __init__(self, executor: Executor, options=None):
-
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             options_ini = asdict(copy.deepcopy(options))
         else:
@@ -1014,6 +1035,9 @@ class ExecutorSampler(BaseSampler):
         self._executor.sampler.set_options(**fields)
         self._executor._options_sampler = self._executor.sampler.options
 
+    def clear_cache(self):
+        self._executor.clear_sampler_cache()
+
 
 class ExecutorCache:
     """Cache for jobs that are created by Primitives
@@ -1023,7 +1047,7 @@ class ExecutorCache:
 
     """
 
-    def __init__(self,logger, folder: str = ""):
+    def __init__(self, logger, folder: str = ""):
         self._folder = folder
         # Check if folder exist, creates the folder otherwise
         try:

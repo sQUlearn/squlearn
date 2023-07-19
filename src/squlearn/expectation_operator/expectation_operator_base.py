@@ -27,7 +27,17 @@ class ExpectationOperatorBase:
         self._num_all_qubits = num_qubits
         self._qubit_map = np.linspace(0, num_qubits - 1, num_qubits, dtype=int)
 
-    def set_map(self, qubit_map, num_all_qubits):
+    def set_map(self, qubit_map: Union[list, dict], num_all_qubits: int):
+        """
+        Function for setting a qubit mapping (either a dictionary or a list).
+
+        This function is necessary for evaluating expectation values on a real backend, where the
+        number of qubits in the system is larger than the number of qubits in the expectation operator.
+
+        Args:
+            qubit_map: A list or dictionary specifying which of the input qubits are mapped to the output qubits.
+            num_all_qubits: The total number of qubits in the system.
+        """
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
 
@@ -56,12 +66,34 @@ class ExpectationOperatorBase:
         """
 
         # Return as measurement operator!
+        # TODO: depricate this function!
         return StateFn(self.get_pauli_mapped(parameters), is_measurement=True)
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+        """
+        Returns the PauliOp expression of the expectation operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in the operator
+
+        Returns:
+            PauliOp: Expectation operator in qiskit's PauliOp class
+        """
         return PauliOp(Pauli("I" * self._num_all_qubits))
 
     def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]):
+        """
+        Returns the mapped PauliOp expression of the expectation operator:
+
+        Here, the previously set qubit map (set_map) is used to map the PauliOp to the correct qubits.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in the operator
+
+        Returns:
+            PauliOp: Expectation operator in qiskit's PauliOp class
+        """
+
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:
             """ """
 
@@ -109,14 +141,17 @@ class ExpectationOperatorBase:
         return map_expectation_op(self.get_pauli(parameters))
 
     def __str__(self):
+        """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
         return str(self.get_pauli(p))
 
     def __repr__(self):
+        """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
         return repr(self.get_pauli(p))
 
     def __add__(self, x):
+        """Addition of two expectation operators."""
         if not isinstance(x, ExpectationOperatorBase):
             raise ValueError("Only the addition with other expectation operator is allowed!")
 
@@ -145,6 +180,7 @@ class ExpectationOperatorBase:
         return ComposedExpectationOperator(self, x)
 
     def __mul__(self, x):
+        """Multiplication of two expectation operators."""
         if not isinstance(x, ExpectationOperatorBase):
             raise ValueError("Only the multiplication with other expectation operator is allowed!")
 

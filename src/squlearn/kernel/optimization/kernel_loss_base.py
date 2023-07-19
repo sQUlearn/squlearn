@@ -1,4 +1,4 @@
-from ..matrix import KernelMatrixBase
+from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class KernelLossBase:

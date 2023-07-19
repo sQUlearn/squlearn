@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Optional, Sequence
 from .kernel_loss_base import KernelLossBase
-from ...optimizers import OptimizerBase
+from ...optimizers.optimizer_base import OptimizerBase
 
 
 class KernelOptimizerBase:

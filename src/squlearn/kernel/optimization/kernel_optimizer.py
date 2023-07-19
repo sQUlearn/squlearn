@@ -3,8 +3,7 @@ from functools import partial
 from typing import Optional, Sequence
 from .kernel_optimization_base import KernelOptimizerBase
 from .kernel_loss_base import KernelLossBase
-from ..ml.helper_functions import stack_input
-from ...optimizers import OptimizerBase
+from ...optimizers.optimizer_base import OptimizerBase
 
 
 class KernelOptimizer(KernelOptimizerBase):
@@ -23,8 +22,6 @@ class KernelOptimizer(KernelOptimizerBase):
         self._optimal_parameters = None
 
     def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
-        if self._quantum_kernel.num_features > 1:
-            x = stack_input(x_vec=x, num_features=self._quantum_kernel.num_features)
         num_params = self._quantum_kernel.num_parameters
         if num_params == 0:
             raise ValueError(

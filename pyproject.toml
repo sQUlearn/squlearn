@@ -1,8 +1,53 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "squlearn"
+readme = "README.md"
+authors = [
+    {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
+    {name = "Frederic Rapp", email = "frederic.rapp@ipa.fraunhofer.de"},
+    {name = "Marco Roth", email = "marco.roth@ipa.fraunhofer.de"},
+    {name = "Jan Schnabel", email = "jan.schnabel@ipa.fraunhofer.de"},
+    {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
+]
+maintainers = [
+    {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
+    {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
+]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["quantum", "machine learning", "qml"]
+dependencies = [
+    "numpy>=1.17",
+    "scipy>=1.5",
+    "scikit-learn>=1.0",
+    "qiskit>=0.42.1",
+    "qiskit-machine-learning>=0.6.0",
+    "qiskit-ibm-runtime>=0.9",
+    "dill>=0.3",
+]
+requires-python = ">=3.9"
+dynamic = ["version", "description"]
+
+[project.optional-dependencies]
+dev = ["pylint", "black", "pytest", "sphinx", "sphinx-rtd-theme", "flit"]
+examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
+
+[project.urls]
+Homepage = "https://github.com/sQUlearn/squlearn"
+
 [tool.black]
 line-length=99
 
 [tool.pylint]
 max-line-length=99
+good-names=["X", "y", "i", "j"]
 
 [tool.pytest.ini_options]
 addopts = [

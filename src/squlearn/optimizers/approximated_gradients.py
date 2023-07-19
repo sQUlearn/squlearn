@@ -2,11 +2,12 @@
 
 import numpy as np
 
+
 class ApproxGradientBase:
     """Base class for evaluating approximated gradients"""
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        """ Function that calculates the approximated gradient for given input x
+        """Function that calculates the approximated gradient for given input x
 
         Args:
             x (np.ndarray): Input location at which the gradient is calculated
@@ -16,6 +17,10 @@ class ApproxGradientBase:
 
         """
         raise NotImplementedError()
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        return self.gradient(x)
+
 
 class FiniteDiffGradient(ApproxGradientBase):
     """
@@ -44,7 +49,7 @@ class FiniteDiffGradient(ApproxGradientBase):
             raise ValueError("Wrong value of formula: " + formula)
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        """ Function that calculates the approximated gradient for given input x
+        """Function that calculates the approximated gradient for given input x
 
         Args:
             x (np.ndarray): Input location at which the gradient is calculated
@@ -91,6 +96,7 @@ class FiniteDiffGradient(ApproxGradientBase):
 
         return g
 
+
 class StochasticPerturbationGradient(ApproxGradientBase):
     """
     Class for evaluating the stochastic perturbation gradient estimation.
@@ -110,12 +116,12 @@ class StochasticPerturbationGradient(ApproxGradientBase):
         self.eps = eps
         self.rng = np.random.default_rng(seed=seed)
 
-    def set_eps(self,eps) -> None:
-        """ Setter for the eps value (is often dynamically adjusted)"""
+    def set_eps(self, eps) -> None:
+        """Setter for the eps value (is often dynamically adjusted)"""
         self.eps = eps
 
     def gradient(self, x: np.ndarray) -> np.ndarray:
-        """ Function that calculates the approximated gradient for given input x
+        """Function that calculates the approximated gradient for given input x
 
         Args:
             x (np.ndarray): Input location at which the gradient is calculated
@@ -129,7 +135,7 @@ class StochasticPerturbationGradient(ApproxGradientBase):
 
         pert = self.rng.random(len(x))
 
-        f1 = self.fun(x+self.eps*pert)
-        f2 = self.fun(x-self.eps*pert)
+        f1 = self.fun(x + self.eps * pert)
+        f2 = self.fun(x - self.eps * pert)
 
-        return np.divide(f1-f2,2.0*self.eps*pert)
+        return np.divide(f1 - f2, 2.0 * self.eps * pert)

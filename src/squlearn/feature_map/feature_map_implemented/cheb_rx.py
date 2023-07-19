@@ -80,3 +80,26 @@ class ChebRx(FeatureMapBase):
     def __phi_map(self, a, x):
         """Helper function for returning a*arccos(x)"""
         return a * np.arccos(x)
+
+    def get_cheb_indices(self, flatten: bool = True):
+        """
+        Returns a nested list of the indices of the parameters involved
+        in the arccos encoding.
+        The outer list is connected to the layers of the feature map.
+        """
+        cheb_index = []
+        ioff = 0
+        for ilayer in range(self.num_layers):
+            cheb_index_layer = []
+            for i in range(self.num_qubits):
+                cheb_index_layer.append(ioff)
+                ioff = ioff + 1
+
+            for i in range(self.num_qubits):
+                ioff = ioff + 1
+
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
+        return cheb_index

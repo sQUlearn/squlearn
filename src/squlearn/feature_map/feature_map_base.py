@@ -56,9 +56,9 @@ class FeatureMapBase:
     def draw(
         self,
         feature_label: str = "x",
-        parameter_label: str = "θ",
-        output: str = "mpl",
-        filename: str = None,
+        parameter_label: str = "p",
+        decompose: bool = False,
+        **kwargs,
     ) -> None:
         """
         Draws the feature map circuit using the QuantumCircuit.draw() function.
@@ -66,21 +66,21 @@ class FeatureMapBase:
         Args:
             feature_label (str): Label for the feature vector (default:"x").
             parameter_label (str): Label for the parameter vector (default:"θ").
-            output (str): One of the qiskit output options ('text', 'mpl', 'latex', 'latex_source').
-                The default is 'mpl'
-            filename (str): Location for storing the output (default: None)
+            decompose (bool): If True, the circuit is decomposed before printing (default: False).
+            kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
 
-        No other arguments are passed to the draw function!
+        Returns:
+            Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
         feature_vec = ParameterVector(feature_label, self.num_features)
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
-        if filename is None:
-            return self.get_circuit(feature_vec, parameters_vec).draw(output=output)
-        else:
-            return self.get_circuit(feature_vec, parameters_vec).draw(
-                output=output, filename=filename
-            )
+
+        circ = self.get_circuit(feature_vec, parameters_vec)
+        if decompose:
+            circ = circ.decompose()
+
+        return circ.draw(**kwargs)
 
     def __mul__(self, x):
         return self.__add__(x)
