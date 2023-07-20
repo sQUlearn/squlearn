@@ -18,6 +18,7 @@ class TestQNNRegressor:
     @pytest.fixture(scope="module")
     def data(self) -> tuple[np.ndarray, np.ndarray]:
         """Test data module."""
+        # pylint: disable=unbalanced-tuple-unpacking
         X, y = make_regression(n_samples=6, n_features=1, random_state=42)
         scl = MinMaxScaler((0.1, 0.9))
         X = scl.fit_transform(X, y)
