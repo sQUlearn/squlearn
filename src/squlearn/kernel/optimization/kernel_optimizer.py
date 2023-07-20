@@ -32,7 +32,8 @@ class KernelOptimizer(KernelOptimizerBase):
         q_kernel = FidelityKernel(feature_map=fmap, executor=Executor("statevector_simulator"))
         adam = Adam(options={"maxiter": 20, "lr": 0.1})
         nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)
-        optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam, initial_parameters=np.random.rand(fmap.num_parameters))
+        optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam,
+            initial_parameters=np.random.rand(fmap.num_parameters))
         opt_result = optimizer.run_optimization(x=X_train, y=Y_train)
         optimal_parameters = opt_result.x
         q_kernel.assign_parameters(optimal_parameters)

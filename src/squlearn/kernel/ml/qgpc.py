@@ -8,18 +8,21 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 class QGPC(GaussianProcessClassifier):
     """
     Quantum Gaussian process classification (QGPC), that extends the scikit-learn
-    `sklearn.gaussian_process.GaussianProcessClassifier <https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessClassifier.html>`.
+    `sklearn.gaussian_process.GaussianProcessClassifier
+    <https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessClassifier.html>`_.
     GaussianProcessClassifier class
     to use a quantum kernel.
 
     This class shows how to use a quantum kernel for QGPC. The class inherits its methods
     like ``fit`` and ``predict`` from scikit-learn, see the example below.
     Read more in the
-    `scikit-learn user guide <https://scikit-learn.org/stable/modules/gaussian_process.html#gaussian-process>`_.
+    `scikit-learn user guide
+    <https://scikit-learn.org/stable/modules/gaussian_process.html#gaussian-process>`_.
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used for the Gaussian process
-                (either a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided)
+        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used for the GP
+                (either a fidelity quantum kernel (FQK)
+                or projected quantum kernel (PQK) must be provided)
 
     See Also
     --------

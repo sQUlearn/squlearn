@@ -18,16 +18,21 @@ class QGPR(BaseEstimator, RegressorMixin):
     The implementation is based on Algorithm 2.1 of Ref. [1].
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used for the Gaussian process
-                (either a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided)
-        sigma: (float), default=1.e-6: Hyperparameter for the regularization strength; must be a positive float.
-                This regularization improves the conditioning of the problem and assure the solvability of the resulting
+        quantum_kernel (KernelMatrixBase):
+                The quantum kernel matrix to be used for the Gaussian process
+                (either a fidelity quantum kernel (FQK) or
+                projected quantum kernel (PQK) must be provided)
+        sigma: (float), default=1.e-6: Hyperparameter for the regularization strength;
+                must be a positive float.
+                This regularization improves the conditioning of the problem
+                and assure the solvability of the resulting
                 linear system. Larger values specify stronger regularization.
         normalize_y: (bool), default=False: Whether or not to normalize
                 the target values y by removing the mean and scaling to
-                unit-variance. This is recommended for cases where zero-mean, unit-variance priors are used. Note that, in this implementation,
+                unit-variance. This is recommended for cases where zero-mean,
+                unit-variance priors are used. Note that, in this implementation,
                 the normalisation is reversed before the GP predictions are reported.
-        regularize: (string), default='full': enable full gram matrix regularization technique via 'full'.
+        regularize: (string), default='full': enable full gram matrix regularization
                 or enable Tikhonov regularization via 'tikhonov'.
 
     See Also
@@ -131,8 +136,10 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         Args:
             X_test: The test data of shape (n_samples, n_features)
-            return_std: (bool), default=True: Whether or not to return the standard deviation of the prediction
-            return_cov: (bool), default=False: Whether or not to return the covariance of the prediction
+            return_std: (bool),
+                default=True: Whether or not to return the standard deviation of the prediction
+            return_cov: (bool), default=False:
+                Whether or not to return the covariance of the prediction
 
         Returns:
             y_mean: The predicted values of shape (n_samples,)
@@ -194,7 +201,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 # BACKUP FOR DOCUMENTATION
 # Attributes:
 #     ---------
-#         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the QGPR pipeline
+#         quantum_kernel (KernelMatrixBase):
+#   	  The quantum kernel matrix to be used in the QGPR pipeline
 #         X_train (np.ndarray): The training data (also required for prediction)
 #         y_train (np.ndarray): Target values in training data (also required for prediction)
 #         K_train: The kernel matrix of the training data
@@ -202,4 +210,5 @@ class QGPR(BaseEstimator, RegressorMixin):
 #         K_testtrain: The kernel matrix of the test and training data
 # Methods:
 #     fit(X_train, y_train): Fit the model to the training data.
-#     predict(X_test, return_std=True, return_cov=False): Predict using the Gaussian process regression model.
+#     predict(X_test, return_std=True, return_cov=False):
+# Predict using the Gaussian process regression model.
