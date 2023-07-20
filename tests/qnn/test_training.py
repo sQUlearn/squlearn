@@ -3,16 +3,15 @@ import numpy as np
 
 import pytest
 
-from qiskit import Aer
-from qiskit.utils import QuantumInstance
-
+from squlearn import Executor
 from squlearn.expectation_operator import SummedPaulis
 from squlearn.feature_map import ChebPQC
 from squlearn.optimizers import Adam, SLSQP
-from squlearn.qnn import QNN
+from squlearn.qnn.loss import SquaredLoss
+from squlearn.qnn.qnn import QNN
 from squlearn.qnn.training import solve_minibatch
 
-QI = QuantumInstance(Aer.get_backend("statevector_simulator"))
+executor = Executor("statevector_simulator")
 
 examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
@@ -22,7 +21,7 @@ class TestSolveMinibatch:
 
     pqc = ChebPQC(4, 1, 3, False)
     cost_op = SummedPaulis(4)
-    qnn = QNN(pqc, cost_op, QI)
+    qnn = QNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
     def test_wrong_optimizer(self):
@@ -36,7 +35,8 @@ class TestSolveMinibatch:
                 self.ex_1[1],
                 param_ini,
                 param_op_ini,
-                optimizer=SLSQP,
+                loss=SquaredLoss(),
+                optimizer=SLSQP(),
                 batch_size=10,
                 epochs=30,
             )
