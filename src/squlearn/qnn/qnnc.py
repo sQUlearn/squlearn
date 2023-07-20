@@ -127,7 +127,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             np.ndarray : The predicted values.
         """
         if not self._is_fitted:
-            warn("The model is not fitted.")
+            raise RuntimeError("The model is not fitted.")
         pred = self._qnn.evaluate_f(X, self.param, self.param_op)
         return self._label_binarizer.inverse_transform(pred)
 
