@@ -128,21 +128,47 @@ class OuterKernelBase:
 class ProjectedQuantumKernel(KernelMatrixBase):
     r"""Projected Quantum Kernel for Quantum Kernel Algorithms
 
-    The projected quantum kernel embeds classical data into a quantum Hilbert space and
-    than projects down into a real space by measurements. The kernel is than evaluated in the
-    real space. The implementation is based on the paper https://doi.org/10.1038/s41467-021-22539-9
+    The Projected Quantum Kernel embeds classical data into a quantum Hilbert space first and
+    than projects down into a real space by measurements. The real space is than used to
+    evaluate a classical kernel.
+
+    The projection is done by evaluating the expectation values of the feature map with respect
+    to given Pauli operators. This is achieved by supplying a list of
+    :class:`squlearn.expectation_operator` objects to the Projected Quantum Kernel.
+    The expectation values are than used as features for the classical kernel, for which
+    the different implementations of sklearn's kernels can be used.
+
+    The implementation is based on the paper https://doi.org/10.1038/s41467-021-22539-9
+
+    As defaults, a Gaussian outer kernel and the expectation value of all three Pauli matrices
+    :math:`\{\hat{X},\hat{Y},\hat{Z}\}` are computed for every qubit.
+
 
     Args:
-        feature_map (FeatureMapBase): PQC feature map
+        feature_map (FeatureMapBase): Feature map that is evaluated
         executor (Executor): Executor object
-        measurement (Union[str, ExpectationOperatorBase, list]): Measurements that are
-            performed on the PQC. Either an operator, a list of operators or one of the
-            string values: ``Z``, ``XYZ``
-        outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the PQC output.
-            Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
+        measurement (Union[str, ExpectationOperatorBase, list]): Expectation values that are
+            computed from the feature map. Either an operator, a list of operators or one of the
+            string values: ``X``,``Y``,``Z``, or ``XYZ``
+        outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
+            values. Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
-        initial_parameters (np.ndarray): Initial parameters of the QNN
+        initial_parameters (np.ndarray): Initial parameters of the feature map and the
+            operator (if parameterized)
 
+    Attributes:
+        num_qubits (int): Number of qubits of the feature map and the operators
+        num_features (int): Number of features of the feature map
+        num_parameters (int): Number of trainable parameters of the feature map
+        feature_map (FeatureMapBase): Feature map that is evaluated
+        measurement (Union[str, ExpectationOperatorBase, list]): Measurements that are
+            performed on the feature map
+        outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
+            values
+        num_hyper_parameters (int): Number of hyper parameters of the outer kernel
+        name_hyper_parameters (List[str]): Names of the hyper parameters of the outer kernel
+        parameters (np.ndarray): Parameters of the feature map and the
+            operator (if parameterized)
 
     Outer Kernels are implemented as follows:
     =========================================
@@ -154,20 +180,23 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     .. math::
         k(x_i, x_j) = \text{exp}\left(-\gamma |(QNN(x_i)- QNN(x_j)|^2 \right)
 
-    Keyword Args:
-        gamma (float): hyperparameter :math:`\gamma` of the Gaussian kernel
+    *Keyword Args:*
+
+    :gamma (float): hyperparameter :math:`\gamma` of the Gaussian kernel
 
     Matern:
     -------
     .. math::
          k(x_i, x_j) =  \frac{1}{\Gamma(\nu)2^{\nu-1}}\Bigg(
-         \frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j) )
+         \!\frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j))\!
          \Bigg)^\nu K_\nu\Bigg(
-         \frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j) )\Bigg)
+         \!\frac{\sqrt{2\nu}}{l} d(QNN(x_i) , QNN(x_j))\!\Bigg)
 
-    Keyword Args:
-        nu (float): hyperparameter :math:`\nu` of the Matern kernel (Typically 0.5, 1.5 or 2.5)
-        length_scale (float): hyperparameter :math:`l` of the Matern kernel
+    *Keyword Args:*
+
+    :nu (float): hyperparameter :math:`\nu` of the Matern kernel (Typically ``0.5``, ``1.5``
+                 or ``2.5``)
+    :length_scale (float): hyperparameter :math:`l` of the Matern kernel
 
     ExpSineSquared:
     ---------------
@@ -175,9 +204,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         k(x_i, x_j) = \text{exp}\left(-
         \frac{ 2\sin^2(\pi d(QNN(x_i), QNN(x_j))/p) }{ l^ 2} \right)
 
-    Keyword Args:
-        periodicity (float): hyperparameter :math:`p` of the ExpSineSquared kernel
-        length_scale (float): hyperparameter :math:`l` of the ExpSineSquared kernel
+    *Keyword Args:*
+
+    :periodicity (float): hyperparameter :math:`p` of the ExpSineSquared kernel
+    :length_scale (float): hyperparameter :math:`l` of the ExpSineSquared kernel
 
     RationalQuadratic:
     ------------------
@@ -185,28 +215,83 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         k(x_i, x_j) = \left(
         1 + \frac{d(QNN(x_i), QNN(x_j))^2 }{ 2\alpha  l^2}\right)^{-\alpha}
 
-    Keyword Args:
-        alpha (float): hyperparameter :math:`\alpha` of the RationalQuadratic kernel
-        length_scale (float): hyperparameter :math:`l` of the RationalQuadratic kernel
+    *Keyword Args:*
+
+    :alpha (float): hyperparameter :math:`\alpha` of the RationalQuadratic kernel
+    :length_scale (float): hyperparameter :math:`l` of the RationalQuadratic kernel
 
     DotProduct:
     -----------
     .. math::
         k(x_i, x_j) = \sigma_0 ^ 2 + x_i \cdot x_j
 
-    Keyword Args:
-        sigma_0 (float): hyperparameter :math:`\sigma_0` of the DotProduct kernel
+    *Keyword Args:*
+
+    :sigma_0 (float): hyperparameter :math:`\sigma_0` of the DotProduct kernel
 
     PairwiseKernel:
     ---------------
 
     sklearn's PairwiseKernel is used.
 
-    Keyword Args:
-        gamma (float): Hyperparameter gamma of the PairwiseKernel kernel, specified by the metric
-        metric (str): Metric of the PairwiseKernel kernel, can be ``linear``, ``additive_chi2``,
+    *Keyword Args:*
+
+    :gamma (float): Hyperparameter gamma of the PairwiseKernel kernel, specified by the metric
+    :metric (str): Metric of the PairwiseKernel kernel, can be ``linear``, ``additive_chi2``,
               ``chi2``, ``poly``, ``polynomial``, ``rbf``, ``laplacian``, ``sigmoid``, ``cosine``
 
+    See Also:
+        * Quantum Fidelity Kernel: :class:`squlearn.kernel.matrix.FidelityKernel`
+        * `sklean kernels <https://scikit-learn.org/stable/modules/gaussian_process.html#gp-kernels>`_
+
+    References:
+        * Huang, HY., Broughton, M., Mohseni, M. et al.
+          Power of data in quantum machine learning. Nat Commun 12, 2631 (2021).
+          https://doi.org/10.1038/s41467-021-22539-9
+
+    **Example: Calculate a kernel matrix with the Projected Quantum Kernel**
+
+    .. code-block:: python
+
+       import numpy as np
+       from squlearn.feature_map import ChebyshevTower
+       from squlearn.kernel.matrix import ProjectedQuantumKernel
+       from squlearn.util import Executor
+
+       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+       kernel = ProjectedQuantumKernel(feature_map=fm, executor=Executor("statevector_simulator"))
+       x = np.random.rand(10)
+       kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
+
+    **Example: Change measurement and outer kernel**
+
+    .. code-block:: python
+
+       import numpy as np
+       from squlearn.feature_map import ChebyshevTower
+       from squlearn.kernel.matrix import ProjectedQuantumKernel
+       from squlearn.util import Executor
+       from squlearn.expectation_operator import CustomExpectationOperator
+       from squlearn.kernel.ml import QKRR
+
+       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+
+       # Create custom expectation operators
+       measuments = []
+       measuments.append(CustomExpectationOperator(4,"ZZZZ"))
+       measuments.append(CustomExpectationOperator(4,"YYYY"))
+       measuments.append(CustomExpectationOperator(4,"XXXX"))
+
+       # Use Matern Outer kernel with nu=0.5 as a outer kernel hyperparameter
+       kernel = ProjectedQuantumKernel(feature_map=fm,
+                                       executor=Executor("statevector_simulator"),
+                                       measurement=measuments,
+                                       outer_kernel="matern",
+                                       nu=0.5)
+       ml_method = QKRR(quantum_kernel=kernel)
+
+    Methods:
+    --------
     """
 
     def __init__(
@@ -227,6 +312,16 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._measurement = []
                 for i in range(self.num_qubits):
                     self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Z"))
+            elif measurement == "X":
+                # Measure Z at all qubits
+                self._measurement = []
+                for i in range(self.num_qubits):
+                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="X"))
+            elif measurement == "Y":
+                # Measure Z at all qubits
+                self._measurement = []
+                for i in range(self.num_qubits):
+                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Y"))
             elif measurement == "XYZ":
                 # Measure X, Y, and Z at all qubits
                 self._measurement = []
