@@ -1,3 +1,4 @@
+"""Quantum Kernel Optimizer"""
 import numpy as np
 from functools import partial
 from typing import Optional, Sequence
@@ -7,6 +8,39 @@ from ...optimizers.optimizer_base import OptimizerBase
 
 
 class KernelOptimizer(KernelOptimizerBase):
+    """
+    Quantum kernel optimizer.
+    This class can be used to optimize the variational parameters of a quantum kernel.
+
+
+    Args:
+        loss (KernelLossBase): The loss function to be minimized.
+        optimizer (OptimizerBase): The optimizer to be used.
+        initial_parameters (Optional[Sequence[float]]): Initial parameters for the optimizer.
+
+
+    **Example**
+
+    .. code-block::
+
+        from squlearn import Executor
+        from squlearn.feature_map import QEKFeatureMap
+        from squlearn.kernel.matrix import FidelityKernel
+        from squlearn.optimizers import Adam
+        from squlearn.kernel.optimization import NLL
+        fmap = QEKFeatureMap(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        q_kernel = FidelityKernel(feature_map=fmap, executor=Executor("statevector_simulator"))
+        adam = Adam(options={"maxiter": 20, "lr": 0.1})
+        nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)
+        optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam, initial_parameters=np.random.rand(fmap.num_parameters))
+        opt_result = optimizer.run_optimization(x=X_train, y=Y_train)
+        optimal_parameters = opt_result.x
+        q_kernel.assign_parameters(optimal_parameters)
+
+    Methods:
+    ----------
+    """
+
     def __init__(
         self,
         loss: KernelLossBase = None,
@@ -22,6 +56,15 @@ class KernelOptimizer(KernelOptimizerBase):
         self._optimal_parameters = None
 
     def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
+        """Run the optimization and return the result.
+
+        Args:
+            x (np.ndarray): The input data.
+            y (np.ndarray): The labels.
+
+        Returns:
+            OptimizeResult: The optimization result.
+        """
         num_params = self._quantum_kernel.num_parameters
         if num_params == 0:
             raise ValueError(
@@ -36,3 +79,14 @@ class KernelOptimizer(KernelOptimizerBase):
         self._opt_result = opt_result
 
         return self._opt_result
+
+
+# BACKUP FOR DOCUMENTATION
+# Attributes:
+#     ----------
+#         loss (KernelLossBase): The loss function to be minimized.
+#         optimizer (OptimizerBase): The optimizer to be used.
+#         initial_parameters (Optional[Sequence[float]]): Initial parameters for the optimizer.
+#         optimal_value (float): The optimal value of the loss function.
+#         optimal_point (Sequence[float]): The optimal point of the loss function.
+#         optimal_parameters (Sequence[float]): The optimal parameters of the quantum kernel.

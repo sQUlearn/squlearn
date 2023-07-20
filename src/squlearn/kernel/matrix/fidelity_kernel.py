@@ -1,3 +1,4 @@
+""" Fidelity Quatnum Kernel class"""
 import numpy as np
 from typing import Union
 from .kernel_matrix_base import KernelMatrixBase
@@ -18,13 +19,42 @@ from qiskit_ibm_runtime import IBMBackend
 
 class FidelityKernel(KernelMatrixBase):
     """
-    Add documentation.
+    Fidelity Quantum Kernel.
+
+    The Fidelity Quantum Kernel is a based on the overlap of the quantum states. These quantum states
+    can be defined by a parameterized quantum circuit. The Fidelity Quantum Kernel is defined as:
+
+    .. math::
+
+        K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
+
+    This class wraps to the respective Quantum Kernel implemenations from *`Qiskit Machine Learning
+    <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
+    Depending on the choice of the Qiskit Primitive or Quantum Instance, and dependent on the choice of trainable parameters, the
+    appropraite Quantum Kernel implementation is chosen.
 
     Args:
+        feature_map (FeatureMapBase): PQC feature map.
+        executor (Executor): Executor object.
+        initial_parameters (Union[np.ndarray, None], default=None):
+            Initial parameters for the feature map.
+        evaluate_duplicates (str), default='off_diagonal':
+            Option for evaluating duplicates ('all', 'off_diagonal', 'none').
         mit_depol_noise (Union[str, None]), default=None:
             Option for mitigating depolarizing noise ('msplit' or 'mmean') after
-            `http://arxiv.org/pdf/2105.02276v1´. Only meaningful for
+            Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
+
+    References:
+        [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces, Nature 567, 209-212 (2019). <https://www.nature.com/articles/s41586-019-0980-2>`_
+
+        [2]: `Schuld et al., Quantum Machine Learning in Feature Hilbert Spaces, Phys. Rev. Lett. 122, 040504 (2019). <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.040504>`_
+
+        [3]: `Schuld et al., Quantum Machine Learning Models are Kernel Methods: Noise-Enhanced Quantum Embeddings, arXiv:2105.02276 (2021). <https://arxiv.org/abs/2105.02276>`_
+
+        [4]: `T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers", arXiv:2105.02276v1 (2021) <https://arxiv.org/pdf/2105.02276.pdf>`_
+
+
     """
 
     def __init__(
