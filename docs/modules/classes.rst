@@ -151,6 +151,24 @@ Quantum Kernel implementations
    kernel.matrix.FidelityKernel
    kernel.matrix.ProjectedQuantumKernel
 
+Quantum Kernel optimization
+===========================
+
+.. automodule:: squlearn.kernel.optimization
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.optimization.kernel_optimizer.KernelOptimizer
+   kernel.optimization.negative_log_likelihood.NLL 
+   kernel.optimization.target_alignment.TargetAlignment
+
 
 Low-level QNN implementation
 ============================
