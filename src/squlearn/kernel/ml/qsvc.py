@@ -44,7 +44,10 @@ class QSVC(SVC):
 
         feature_map = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map, executor=Executor("statevector_simulator"), initial_parameters=np.random.rand(feature_map.num_parameters))
+            feature_map,
+            executor=Executor("statevector_simulator"),
+            initial_parameters=np.random.rand(feature_map.num_parameters)
+        )
 
         X, y = make_moons(n_samples=100, noise=0.3, random_state=0)
         X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
