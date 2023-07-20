@@ -11,8 +11,8 @@ class QSVR(SVR):
     to replace the kernel matrix in the sklearn.svm.SVR class.
     See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
     for additional information about the standard SVR parameters.
-    The sklearn SVR has kernel specific arguments that are omitted here because they do not apply to the quantum
-    kernels. These are
+    The sklearn SVR has kernel specific arguments that are omitted here because they do not apply
+    to the quantum kernels. These are
 
     - kernel
     - gamma
@@ -20,8 +20,8 @@ class QSVR(SVR):
     - coef0
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either a fidelity
-            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
+        a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
         **kwargs: Other parameters that are passed to sklearn.svm.SVR
 
     See Also
@@ -43,7 +43,9 @@ class QSVR(SVR):
 
         feature_map = QEKFeatureMap(num_qubits=2, num_features=1, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map, executor=Executor("statevector_simulator"), initial_parameters=np.random.rand(feature_map.num_parameters))
+            feature_map,
+            executor=Executor("statevector_simulator"),
+            initial_parameters=np.random.rand(feature_map.num_parameters))
 
         X = np.linspace(0, np.pi, 100)
         y = np.sin(X)

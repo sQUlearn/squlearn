@@ -11,8 +11,8 @@ class QSVC(SVC):
     to replace the kernel matrix in the sklearn.svm.SVC class.
     See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
     for additional information about the standard SVC parameters.
-    The sklearn SVC has kernel specific arguments that are omitted here because they do not apply to the quantum
-    kernels. These are
+    The sklearn SVC has kernel specific arguments that are omitted here because they do not apply
+    to the quantum kernels. These are
 
     - kernel
     - gamma
@@ -20,8 +20,8 @@ class QSVC(SVC):
     - coef0
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either a fidelity
-            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
+            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
         **kwargs: Other parameters that are passed to sklearn.svm.SVC
 
     See Also
