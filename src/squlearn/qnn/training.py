@@ -398,7 +398,7 @@ def solve_minibatch(
     """
     if not isinstance(optimizer, SGDMixin):
         raise TypeError(
-            f"Optimizer {optimizer.__name__} is not supported for minibatch gradient descent."
+            f"Optimizer {optimizer.__class__.__name__} is not supported for minibatch gradient descent."
         )
 
     if isinstance(weights, np.ndarray):
