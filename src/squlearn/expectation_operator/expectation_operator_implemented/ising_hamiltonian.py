@@ -109,6 +109,15 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
         return num_parameters
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the Ising hamiltonian operator"""
+        params = super().get_param()
+        params["I"] = self.I
+        params["Z"] = self.Z
+        params["X"] = self.X
+        params["ZZ"] = self.ZZ
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
         Function for generating the PauliOp expression of the Ising Hamiltonian.

@@ -431,9 +431,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         return self._outer_kernel(self._qnn, self._parameters, x, y)
 
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel"""
-        return self._outer_kernel.get_params()
+    # def get_params(self) -> dict:
+    #     """Returns the hyper parameters of the outer kernel"""
+        
+    #     params={}
+    #     params.update(self._outer_kernel.get_params())
+    #     params.update(self._feature_map.get_params())
+    #     params.update(self._e
+        
+        
+        
+        
+    #     return self._outer_kernel.get_params()
 
     def set_params(self, **kwarg):
         """Sets the hyper parameters of the outer kernel"""

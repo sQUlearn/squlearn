@@ -71,6 +71,7 @@ class TranspiledFeatureMap(FeatureMapBase):
             self._transpiled_circuit = transpile(self._circuit, self._backend, **kwargs)
 
         self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
+        self._kwargs = kwargs
 
     @property
     def num_qubits(self) -> int:
@@ -106,6 +107,14 @@ class TranspiledFeatureMap(FeatureMapBase):
     def num_parameters(self) -> int:
         """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
+
+    def get_param(self) -> dict:
+        return self._feature_map.get_param()
+
+    def set_param(self, **params) -> None:
+        self._feature_map.set_param(**params)
+        # Recompute and re-transpile the circuit by re-initializing the class
+        self.__init__(self._feature_map, self._backend, self._transpile_func, **self._kwargs)
 
     def get_circuit(
         self,

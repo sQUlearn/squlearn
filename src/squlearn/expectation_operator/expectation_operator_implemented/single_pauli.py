@@ -59,6 +59,14 @@ class SinglePauli(ExpectationOperatorBase):
         else:
             return 0
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the Single Pauli operator"""
+        params = super().get_param()
+        params["qubit"] = self.qubit
+        params["op_str"] = self.op_str
+        params["parameterized"] = self.parameterized
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
         Function for generating the PauliOp expression of the single pauli operator.

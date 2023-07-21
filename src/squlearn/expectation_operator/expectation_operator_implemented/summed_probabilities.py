@@ -67,6 +67,14 @@ class SummedProbabilities(ExpectationOperatorBase):
             num_param += 1
         return num_param
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the summed probabilities operator"""
+        params = super().get_param()
+        params["one_state"] = self.one_state
+        params["full_sum"] = self.full_sum
+        params["include_identity"] = self.include_identity
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
         Function for generating the PauliOp expression of the summed probabilities operator.

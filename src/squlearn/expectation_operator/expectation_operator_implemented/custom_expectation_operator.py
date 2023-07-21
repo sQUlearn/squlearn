@@ -65,6 +65,13 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         else:
             return 0
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the custom operator"""
+        params = super().get_param()
+        params["operator_string"] = self.operator_string
+        params["parameterized"] = self.parameterized
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
         Function for generating the PauliOp expression of the custom operator.

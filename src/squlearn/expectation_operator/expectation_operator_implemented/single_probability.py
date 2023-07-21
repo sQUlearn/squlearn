@@ -58,6 +58,14 @@ class SingleProbability(ExpectationOperatorBase):
         else:
             return 0
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the single probability operator"""
+        params = super().get_param()
+        params["qubit"] = self.qubit
+        params["one_state"] = self.one_state
+        params["parameterized"] = self.parameterized
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
         Function for generating the PauliOp expression of the single probability operator.
