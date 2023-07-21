@@ -484,7 +484,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
-
     @property
     def num_hyper_parameters(self) -> int:
         """The number of hyper-parameters of the outer kernel"""
