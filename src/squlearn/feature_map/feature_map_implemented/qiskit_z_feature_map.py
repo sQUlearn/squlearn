@@ -53,6 +53,12 @@ class QiskitZFeatureMap(FeatureMapBase):
         """The number of layers of the Qiskit ZFeatureMap."""
         return self._reps
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the Qiskit ZFeatureMap feature map"""
+        params = super().get_param()
+        params["reps"] = self._reps
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

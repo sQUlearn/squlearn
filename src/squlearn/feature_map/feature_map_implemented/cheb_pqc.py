@@ -72,6 +72,14 @@ class ChebPQC(FeatureMapBase):
             num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the ChebPQC feature map"""
+        params = super().get_param()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        params["entangling_gate"] = self.entangling_gate
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

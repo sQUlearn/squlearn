@@ -60,6 +60,14 @@ class HZCRxCRyCRz(FeatureMapBase):
             num_param += 3 * self.num_layers
         return num_param
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the HZCRxCRyCRz feature map"""
+        params = super().get_param()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        params["final_encoding"] = self.final_encoding
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -77,6 +85,10 @@ class HZCRxCRyCRz(FeatureMapBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.num_qubits < 2:
+            raise ValueError("HZCRxCRyCRz requires at least two qubits.")
+
         nfeature = len(features)
         nparam = len(parameters)
         QC = QuantumCircuit(self.num_qubits)

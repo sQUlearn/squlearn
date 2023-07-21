@@ -78,6 +78,16 @@ class HighDimFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the HighDim feature map (equal to 0)."""
         return 0
 
+    def get_param(self) -> dict:
+        """ Returns the dictionary of the hyper-parameters of the ChebRx feature map"""
+        params = super().get_param()
+        params["cycling"] = self.cycling
+        params["cycling_type"] = self.cycling_type
+        params["num_layers"] = self.num_layers
+        params["layer_type"] = self.layer_type
+        params["entangling_gate"] = self.entangling_gate
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -95,6 +105,15 @@ class HighDimFeatureMap(FeatureMapBase):
         Return:
             The circuit of the high-dimensional feature map
         """
+
+        if self.cycling_type not in ("saw", "hat"):
+            raise ValueError("Unknown layer type:", self.layer_type)
+
+        if self.layer_type not in ("columns", "rows"):
+            raise ValueError("Unknown layer type:", self.layer_type)
+
+        if self.entangling_gate not in ("cx", "iswap"):
+            raise ValueError("Unknown entangling gate:", self.entangling_gate)
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, ioff: int):
             """
