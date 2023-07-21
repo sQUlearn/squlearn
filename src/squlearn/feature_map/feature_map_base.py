@@ -55,6 +55,7 @@ class FeatureMapBase:
 
     def draw(
         self,
+        output: str = None,
         feature_label: str = "x",
         parameter_label: str = "p",
         decompose: bool = False,
@@ -80,7 +81,7 @@ class FeatureMapBase:
         if decompose:
             circ = circ.decompose()
 
-        return circ.draw(**kwargs)
+        return circ.draw(output, **kwargs)
 
     def __mul__(self, x):
         return self.__add__(x)
