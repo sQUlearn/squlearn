@@ -101,7 +101,7 @@ class QiskitFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the Qiskit feature map."""
         return self._num_parameters
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """No hyper-parameters are available for the Qiskit feature map"""
         params = {}
         return params

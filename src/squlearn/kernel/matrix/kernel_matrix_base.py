@@ -26,8 +26,6 @@ class KernelMatrixBase:
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits
-        self._num_features = self._feature_map.num_features
-        self._num_parameters = self._feature_map.num_parameters
         self._executor = executor
         self._parameters = initial_parameters
 
@@ -46,7 +44,7 @@ class KernelMatrixBase:
     @property
     def num_features(self) -> int:
         """Returns the feature dimension of the feature map"""
-        return self._num_features
+        return self._feature_map.num_features
 
     @property
     def parameters(self) -> np.ndarray:
@@ -59,7 +57,7 @@ class KernelMatrixBase:
     @property
     def num_parameters(self) -> int:
         """Returns the number of trainable parameters of the feature map."""
-        return self._num_parameters
+        return self._feature_map.num_parameters
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
@@ -184,18 +182,11 @@ class KernelMatrixBase:
         """
         return _ComposedKernelMatrix(self, x, "/")
 
-    def get_params(self, deep=True):
-        return {
-            "feature_map": self._feature_map,
-            "executor": self._executor,
-            "initial_parameters": self._parameters,
-        }
+    def get_params(self):
+        raise NotImplementedError()
 
     def set_params(self, **params):
-        for param, value in params.items():
-            setattr(self, "_" + param, value)
-        return self
-
+        raise NotImplementedError()
 
 class _ComposedKernelMatrix(KernelMatrixBase):
     """

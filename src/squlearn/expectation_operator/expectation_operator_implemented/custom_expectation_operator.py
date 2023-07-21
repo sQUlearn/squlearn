@@ -65,9 +65,9 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         else:
             return 0
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """ Returns the dictionary of the hyper-parameters of the custom operator"""
-        params = super().get_param()
+        params = super().get_params()
         params["operator_string"] = self.operator_string
         params["parameterized"] = self.parameterized
         return params

@@ -305,6 +305,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters)
 
+        self._measurement_input = measurement
+
         # Set-up measurement operator
         if isinstance(measurement, str):
             if measurement == "Z":
@@ -338,9 +340,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set-up of the QNN
         self._qnn = QNN(self._feature_map, self._measurement, executor)
-        self._num_param = self._qnn.num_parameters
-        self._num_param_op = self._qnn.num_parameters_operator
-        self._num_parameters = self._num_param + self._num_param_op
 
         # Set-up of the outer kernel
         if isinstance(outer_kernel, str):
@@ -367,22 +366,22 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Check if the number of parameters is correct
         if self._parameters is not None:
-            if len(self._parameters) != self._num_parameters:
+            if len(self._parameters) != self.num_parameters:
                 raise ValueError(
                     "Number of inital parameters is wrong, expected number: {}".format(
-                        self._num_parameters
+                        self.num_parameters
                     )
                 )
 
     @property
     def num_features(self) -> int:
         """Feature dimension of the feature map"""
-        return self._num_features
+        return self._qnn.num_features
 
     @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the feature map"""
-        return self._num_parameters
+        return self._qnn.num_parameters + self._qnn.num_parameters_operator
 
     @property
     def measurement(self):
@@ -431,22 +430,60 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         return self._outer_kernel(self._qnn, self._parameters, x, y)
 
-    # def get_params(self) -> dict:
-    #     """Returns the hyper parameters of the outer kernel"""
-        
-    #     params={}
-    #     params.update(self._outer_kernel.get_params())
-    #     params.update(self._feature_map.get_params())
-    #     params.update(self._e
-        
-        
-        
-        
-    #     return self._outer_kernel.get_params()
+    def get_params(self) -> dict:
+        """Returns the hyper parameters of the projected kernel"""
+        params = {}
+        params.update(self._outer_kernel.get_params())
+        params.update(self._qnn.get_params())
+        params["measurement"] = self._measurement_input
+        return params
 
-    def set_params(self, **kwarg):
+    def set_params(self, **params):
+
+        num_parameters_backup = self.num_parameters
+        parameters_backup = self._parameters
+
         """Sets the hyper parameters of the outer kernel"""
-        self._outer_kernel.set_params(**kwarg)
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    "Invalid parameter %s. "
+                    "Check the list of available parameters "
+                    "with `QNN.get_params()`." % key
+                )
+
+        # Set QNN parameters
+        dict_qnn = {}
+        for key, value in params.items():
+            if key in self._qnn.get_params():
+                dict_qnn[key] = value
+        if len(dict_qnn) > 0:
+            self.pqc.set_params(**dict_qnn)
+
+        # Set outer kernel parameters
+        dict_outer_kernel = {}
+        for key, value in params.items():
+            if key in self._outer_kernel.get_params():
+                dict_outer_kernel[key] = value
+        if len(dict_outer_kernel) > 0:
+            self._outer_kernel.set_params(**dict_outer_kernel)
+
+        # Set measurement -> re-initialize Projected Quantum Kernel module
+        if "measurement" in params:
+            self._measurement_input = params["measurement"]
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                self._parameters,
+            )
+
+        self._parameters = None
+        if self.num_parameters == num_parameters_backup:
+            self._parameters = parameters_backup
+
 
     @property
     def num_hyper_parameters(self) -> int:

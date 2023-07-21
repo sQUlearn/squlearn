@@ -83,7 +83,7 @@ class FeatureMapBase:
 
         return circ.draw(output, **kwargs)
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """
         Returns hyper parameters and their values of the feature map
 
@@ -94,11 +94,11 @@ class FeatureMapBase:
         param['num_qubits'] = self._num_qubits
         return param
 
-    def set_param(self,**params) -> None:
+    def set_params(self,**params) -> None:
         """
         Sets value of the feature map
         """
-        valid_params = self.get_param()
+        valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(

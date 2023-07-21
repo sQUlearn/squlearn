@@ -44,9 +44,9 @@ class ChebRx(FeatureMapBase):
         """The number of trainable parameters of the ChebRx feature map."""
         return 2 * self.num_qubits * self.num_layers
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """ Returns the dictionary of the hyper-parameters of the ChebRx feature map"""
-        params = super().get_param()
+        params = super().get_params()
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed
         return params

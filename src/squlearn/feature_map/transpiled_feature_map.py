@@ -108,11 +108,11 @@ class TranspiledFeatureMap(FeatureMapBase):
         """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
 
-    def get_param(self) -> dict:
-        return self._feature_map.get_param()
+    def get_params(self) -> dict:
+        return self._feature_map.get_params()
 
-    def set_param(self, **params) -> None:
-        self._feature_map.set_param(**params)
+    def set_params(self, **params) -> None:
+        self._feature_map.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
         self.__init__(self._feature_map, self._backend, self._transpile_func, **self._kwargs)
 

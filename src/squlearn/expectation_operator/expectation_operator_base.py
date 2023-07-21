@@ -58,7 +58,7 @@ class ExpectationOperatorBase(ABC):
         """Number of qubits in the expectation operator."""
         return self._num_qubits
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """
         Returns hyper parameters and their values of the feature map
 
@@ -69,11 +69,11 @@ class ExpectationOperatorBase(ABC):
         param['num_qubits'] = self._num_qubits
         return param
 
-    def set_param(self, **params) -> None:
+    def set_params(self, **params) -> None:
         """
         Sets value of the feature map
         """
-        valid_params = self.get_param()
+        valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
@@ -86,7 +86,10 @@ class ExpectationOperatorBase(ABC):
             except:
                 setattr(self, "_"+key, value)
 
-        return None
+            # Reset Mapping if the number of quibts is changed
+            if key == "num_qubits" or key == "_num_qubits":
+                self._num_all_qubits = self._num_qubits
+                self._qubit_map = np.linspace(0, self._num_qubits - 1, self._num_qubits, dtype=int)
 
     def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
         """Returns Operator in as a opflow measurement operator.

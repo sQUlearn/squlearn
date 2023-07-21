@@ -52,9 +52,9 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
         return self._c
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """ Returns the dictionary of the hyper-parameters of the HZCRxCRyCRz feature map"""
-        params = super().get_param()
+        params = super().get_params()
         params["num_layers"] = self._num_layers
         params["c"] = self._c
         return params

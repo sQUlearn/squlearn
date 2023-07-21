@@ -78,9 +78,9 @@ class HighDimFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the HighDim feature map (equal to 0)."""
         return 0
 
-    def get_param(self) -> dict:
+    def get_params(self) -> dict:
         """ Returns the dictionary of the hyper-parameters of the ChebRx feature map"""
-        params = super().get_param()
+        params = super().get_params()
         params["cycling"] = self.cycling
         params["cycling_type"] = self.cycling_type
         params["num_layers"] = self.num_layers

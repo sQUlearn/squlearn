@@ -251,10 +251,72 @@ class QNN:
         # Executer set-up
         self.executor = executor
         self.backend = self.executor.backend
-        self.opflow_caching = opflow_caching
+
+        # Set-up shots from backend
+        self._inital_shots = self.executor.get_shots()
+
+        self._opflow_caching = opflow_caching
+        self._result_caching = result_caching
 
         self.pqc = TranspiledFeatureMap(pqc, self.backend)
         self.operator = operator
+
+        self._initilize_derivative()
+
+    def get_params(self) -> dict:
+        """Returns the dictionary of the hyper-parameters of the QNN"""
+        params = {}
+        params.update(self.pqc.get_params())
+        if isinstance(self.operator, list):
+            for op in self.operator:
+                params.update(op.get_params())
+        else:
+            params.update(self.operator.get_params())
+        return params
+
+    def set_params(self, **params) -> None:
+        """Sets the hyper-parameters of the QNN"""
+
+        # Check if all parameters are valid
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    "Invalid parameter %s. "
+                    "Check the list of available parameters "
+                    "with `QNN.get_params()`." % key
+                )
+
+        # Set parameters of the PQC
+        dict_pqc = {}
+        for key, value in params.items():
+            if key in self.pqc.get_params():
+                dict_pqc[key] = value
+        if len(dict_pqc) > 0:
+            self.pqc.set_params(**dict_pqc)
+
+        # Set parameters of the operator
+        if isinstance(self.operator, list):
+            for i in range(len(self.operator)):
+                dict_operator = {}
+                for key, value in params.items():
+                    if key in self.operator[i].get_params():
+                        dict_operator[key] = value
+                if len(dict_operator) > 0:
+                    self.operator[i].set_params(**dict_operator)
+        else:
+            dict_operator = {}
+            for key, value in params.items():
+                if key in self.operator.get_params():
+                    dict_operator[key] = value
+            if len(dict_operator) > 0:
+                self.operator.set_params(**dict_operator)
+
+        self._initilize_derivative()
+
+    def _initilize_derivative(self):
+        """Initializes the derivative classes"""
+
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
@@ -264,8 +326,8 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, self.opflow_caching)
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self.opflow_caching)
+        self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, self._opflow_caching)
+        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._opflow_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -287,69 +349,8 @@ class QNN:
         else:
             self.split_paulis = False
 
-        # Set-up shots from backend
-        self._inital_shots = self.executor.get_shots()
-
         # Initialize result cache
-        self._result_caching = result_caching
         self.result_container = {}
-
-
-    def get_param(self) -> dict:
-        """Returns the dictionary of the hyper-parameters of the QNN"""
-        params = {}
-        params.update(self.pqc.get_param())
-        if isinstance(self.operator, list):
-            for op in self.operator:
-                params.update(op.get_param())
-        else:
-            params.update(self.operator.get_param())
-        return params
-
-    def set_param(self, **params) -> None:
-        """Sets the hyper-parameters of the QNN"""
-
-        dict_pqc = {}
-
-        for key, value in params.items():
-            if key in self.pqc.get_param():
-                dict_pqc[key] = value
-        if len(dict_pqc) > 0:
-            self.pqc.set_param(**dict_pqc)
-
-        # Reset the derivative classes
-        num_qubits_operator = 0
-        if isinstance(self.operator, list):
-            for i in range(len(self.operator)):
-                dict_operator = {}
-                for key, value in params.items():
-                    if key in self.operator[i].get_param():
-                        dict_operator[key] = value
-                if len(dict_operator) > 0:
-                    self.operator[i].set_param(**dict_operator)
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-                num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
-        else:
-            dict_operator = {}
-            for key, value in params.items():
-                if key in self.operator.get_param():
-                    dict_operator[key] = value
-            if len(dict_operator) > 0:
-                self.operator.set_param(**dict_operator)
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-            num_qubits_operator = self.operator.num_qubits
-
-        self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, self.opflow_caching)
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self.opflow_caching)
-
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
-        else:
-            self._num_qubits = self.pqc.num_virtual_qubits
-
-        # Reset result cache
-        self.result_container = {}
-
 
     def set_shots(self, num_shots: int) -> None:
         """Sets the number shots for the next evaluations.
