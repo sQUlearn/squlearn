@@ -263,30 +263,32 @@ class QNN:
 
         self._initilize_derivative()
 
-    def get_params(self) -> dict:
+    def get_params(self, deep:bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
 
         In case of multiple outputs, the hyper-parameters of the operator are prefixed
-        with ``op0_``, ``op1_``, etc.
+        with ``op0__``, ``op1__``, etc.
 
         """
-        params = {}
-        params.update(self.pqc.get_params())
-        if isinstance(self.operator, list):
-            for i, oper in enumerate(self.operator):
-                oper_dict = oper.get_params()
-                for key, value in oper_dict.items():
-                    if key != "num_qubits":
-                        params["op"+str(i)+"_"+key] = value
-        else:
-            params.update(self.operator.get_params())
+        params = dict(num_qubits=self.num_qubits)
+
+        if deep:
+            params.update(self.pqc.get_params())
+            if isinstance(self.operator, list):
+                for i, oper in enumerate(self.operator):
+                    oper_dict = oper.get_params()
+                    for key, value in oper_dict.items():
+                        if key != "num_qubits":
+                            params["op"+str(i)+"__"+key] = value
+            else:
+                params.update(self.operator.get_params())
         return params
 
     def set_params(self, **params) -> None:
         """Sets the hyper-parameters of the QNN
 
         In case of multiple outputs, the hyper-parameters of the operator are prefixed
-        with ``op0_``, ``op1_``, etc.
+        with ``op0__``, ``op1__``, etc.
 
         Args:
             params: Hyper-parameters that are adjusted, e.g. num_qubits=4
@@ -298,9 +300,8 @@ class QNN:
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
-                    "Invalid parameter %s. "
-                    "Check the list of available parameters "
-                    "with `QNN.get_params()`." % key
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
         # Set parameters of the PQC
@@ -319,8 +320,8 @@ class QNN:
                     if key == "num_qubits":
                         dict_operator[key] = value
                     else:
-                        if key.split("_")[0]=="op"+str(i):
-                            dict_operator[key.split("_",1)[1]] = value
+                        if key.startswith("op"+str(i)+"__"):
+                            dict_operator[key.split("__",1)[1]] = value
                 if len(dict_operator) > 0:
                     oper.set_params(**dict_operator)
         else:

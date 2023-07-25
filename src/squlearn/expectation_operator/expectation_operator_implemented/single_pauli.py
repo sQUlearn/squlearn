@@ -59,8 +59,17 @@ class SinglePauli(ExpectationOperatorBase):
         else:
             return 0
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the Single Pauli operator"""
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Single Pauli operator.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = super().get_params()
         params["qubit"] = self.qubit
         params["op_str"] = self.op_str

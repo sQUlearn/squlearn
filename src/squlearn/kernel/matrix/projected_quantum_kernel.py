@@ -49,13 +49,27 @@ class OuterKernelBase:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel"""
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the outer kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def set_params(self, **kwarg):
-        """Sets the hyper parameters of the outer kernel"""
+    def set_params(self, **params):
+        """
+        Sets value of the outer kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
         raise NotImplementedError()
 
     @property
@@ -114,13 +128,27 @@ class OuterKernelBase:
                 # Evaluate kernel
                 return self._kernel(x_result, y_result)
 
-            def get_params(self) -> dict:
-                """Returns the hyper parameters of the outer kernel as a dictionary."""
-                return self._kernel.get_params()
+            def get_params(self,deep:bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the sklearn kernel.
 
-            def set_params(self, **kwarg):
-                """Sets the hyper parameters of the outer kernel."""
-                self._kernel.set_params(**kwarg)
+                Args:
+                    deep (bool): If True, also the parameters for
+                                contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+                return self._kernel.get_params(deep)
+
+            def set_params(self, **params):
+                """
+                Sets value of the sklearn kernel.
+
+                Args:
+                    params: Hyper-parameters and their values
+                """
+                self._kernel.set_params(**params)
 
         return SklearnOuterKernel(kernel, **kwarg)
 
@@ -412,16 +440,31 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         return self._outer_kernel(self._qnn, self._parameters, x, y)
 
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the projected kernel"""
-        params = {}
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Projected Quantum Kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = dict(measurement=self._measurement_input)
         params.update(self._outer_kernel.get_params())
-        params.update(self._qnn.get_params())
-        params["measurement"] = self._measurement_input
+        params["num_qubits"] = self.num_qubits
+        if deep:
+            params.update(self._qnn.get_params())
         return params
 
     def set_params(self, **params):
+        """
+        Sets value of the Projected Quantum Kernel hyper-parameters.
 
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
 
@@ -430,9 +473,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
-                    "Invalid parameter %s. "
-                    "Check the list of available parameters "
-                    "with `QNN.get_params()`." % key
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
         dict_qnn = {}
@@ -462,7 +504,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._outer_kernel,
                 self._parameters,
             )
-
 
         # Set QNN parameters
         for key, value in params.items():
@@ -537,10 +578,36 @@ class GaussianOuterKernel(OuterKernelBase):
 
         return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
 
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel."""
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Gaussian outer kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         return {"gamma": self._gamma}
 
-    def set_params(self, gamma) -> None:
-        """Sets the hyper parameters of the outer kernel."""
-        self._gamma = gamma
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the Gaussian outer kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values
+        """
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            try:
+                setattr(self, key, value)
+            except:
+                setattr(self, "_"+key, value)
+
+        return None

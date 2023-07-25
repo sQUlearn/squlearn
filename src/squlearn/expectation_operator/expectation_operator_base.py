@@ -58,12 +58,16 @@ class ExpectationOperatorBase(ABC):
         """Number of qubits in the expectation operator."""
         return self._num_qubits
 
-    def get_params(self) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the operator.
 
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
         Return:
-            Return dictionary with hyper parameters and values
+            Dictionary with hyper-parameters and values.
         """
         param = {}
         param['num_qubits'] = self._num_qubits
@@ -74,15 +78,14 @@ class ExpectationOperatorBase(ABC):
         Sets value of the operator hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. num_qubits=2.
         """
         valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
-                    "Invalid parameter %s. "
-                    "Check the list of available parameters "
-                    "with `get_params().keys()`." % (key, self)
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
                 )
             try:
                 setattr(self, key, value)
@@ -212,6 +215,73 @@ class ExpectationOperatorBase(ABC):
                 self._op1 = op1
                 self._op2 = op2
 
+            def get_params(self, deep:bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the composed feature map.
+
+                Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
+                which feature map they belong to.
+
+                Args:
+                    deep (bool): If True, also the parameters for
+                                 contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+
+                if self._op1 == self._op2:
+                    return self._op1.get_params()
+                else:
+                    params = dict(op1=self._op1, op2=self._op2)
+                    if deep:
+                        deep_items = self._op1.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op1__" + k] = val
+                        deep_items = self._op2.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op2__" + k] = val
+
+                    params["num_qubits"] = self._op1.get_params()["num_qubits"]
+
+                    return params
+
+            def set_params(self, **params) -> None:
+                """
+                Sets value of the composed kernel hyper-parameters.
+
+                Args:
+                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                """
+                valid_params = self.get_params()
+                op1_dict={}
+                op2_dict={}
+                for key, value in params.items():
+                    if key not in valid_params:
+                        raise ValueError(
+                            f"Invalid parameter {key!r}. "
+                            f"Valid parameters are {sorted(valid_params)!r}."
+                        )
+
+                    if self._op1 == self._op2:
+                        op1_dict[key] = value
+                    else:
+                        if key.startswith("op1__"):
+                            op1_dict[key[5:]] = value
+                        elif key.startswith("op2__"):
+                            op2_dict[key[5:]] = value
+
+                        if key == "num_qubits":
+                            op1_dict["num_qubits"] = value
+                            op2_dict["num_qubits"] = value
+
+                if len(op1_dict) > 0:
+                    self._op1.set_params(**op1_dict)
+                if len(op2_dict) > 0:
+                    self._op2.set_params(**op2_dict)
+
             @property
             def num_parameters(self) -> int:
                 """The number of trainable parameters of added expectation operator.
@@ -264,6 +334,73 @@ class ExpectationOperatorBase(ABC):
 
                 self._op1 = op1
                 self._op2 = op2
+
+            def get_params(self, deep:bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the composed feature map.
+
+                Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
+                which feature map they belong to.
+
+                Args:
+                    deep (bool): If True, also the parameters for
+                                 contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+
+                if self._op1 == self._op2:
+                    return self._op1.get_params()
+                else:
+                    params = dict(op1=self._op1, op2=self._op2)
+                    if deep:
+                        deep_items = self._op1.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op1__" + k] = val
+                        deep_items = self._op2.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op2__" + k] = val
+
+                    params["num_qubits"] = self._op1.get_params()["num_qubits"]
+
+                    return params
+
+            def set_params(self, **params) -> None:
+                """
+                Sets value of the composed kernel hyper-parameters.
+
+                Args:
+                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                """
+                valid_params = self.get_params()
+                op1_dict={}
+                op2_dict={}
+                for key, value in params.items():
+                    if key not in valid_params:
+                        raise ValueError(
+                            f"Invalid parameter {key!r}. "
+                            f"Valid parameters are {sorted(valid_params)!r}."
+                        )
+
+                    if self._op1 == self._op2:
+                        op1_dict[key] = value
+                    else:
+                        if key.startswith("op1__"):
+                            op1_dict[key[5:]] = value
+                        elif key.startswith("op2__"):
+                            op2_dict[key[5:]] = value
+
+                        if key == "num_qubits":
+                            op1_dict["num_qubits"] = value
+                            op2_dict["num_qubits"] = value
+
+                if len(op1_dict) > 0:
+                    self._op1.set_params(**op1_dict)
+                if len(op2_dict) > 0:
+                    self._op2.set_params(**op2_dict)
 
             @property
             def num_parameters(self) -> int:

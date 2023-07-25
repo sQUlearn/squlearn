@@ -72,8 +72,18 @@ class ChebPQC(FeatureMapBase):
             num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the ChebPQC feature map"""
+    def get_params(self, deep:bool = True) -> dict:
+
+        """
+        Returns hyper-parameters and their values of the ChebPQC feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = super().get_params()
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed

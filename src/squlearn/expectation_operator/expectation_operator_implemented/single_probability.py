@@ -58,8 +58,17 @@ class SingleProbability(ExpectationOperatorBase):
         else:
             return 0
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the single probability operator"""
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the single probability operator.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = super().get_params()
         params["qubit"] = self.qubit
         params["one_state"] = self.one_state

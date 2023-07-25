@@ -60,8 +60,17 @@ class HZCRxCRyCRz(FeatureMapBase):
             num_param += 3 * self.num_layers
         return num_param
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the HZCRxCRyCRz feature map"""
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the HZCRxCRyCRz feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = super().get_params()
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed

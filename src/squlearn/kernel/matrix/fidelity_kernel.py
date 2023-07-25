@@ -117,17 +117,42 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
             )
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the Fidelity Quantum Kernel"""
-        params = self._feature_map.get_params()
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the fidelity kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = {}
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
+        if deep:
+            params = self._feature_map.get_params()
         return params
 
     def set_params(self, **params):
+        """
+        Sets value of the fidelity kernel hyper-parameters.
 
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
+
+        # Check if all parameters are valid
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
 
         dict_feature_map = {}
         for key in params.keys():

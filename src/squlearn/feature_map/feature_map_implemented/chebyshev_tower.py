@@ -70,8 +70,17 @@ class ChebyshevTower(FeatureMapBase):
         """The number of trainable parameters of the Chebyshev Tower encoding (equal 0 here)."""
         return 0
 
-    def get_params(self) -> dict:
-        """ Returns the dictionary of the hyper-parameters of the Chebyshev Tower encoding"""
+    def get_params(self, deep:bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Chebyshev Tower encoding
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = super().get_params()
         params["num_chebyshev"] = self.num_chebyshev
         params["alpha"] = self.alpha
