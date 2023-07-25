@@ -15,6 +15,7 @@ Here comes some description of the sQUlearn package and the documentation.
    install/install
    user_guide/user_guide_index
    modules/classes
+   examples/examples_index
 
 Indices and tables
 ==================
