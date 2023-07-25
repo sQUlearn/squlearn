@@ -173,7 +173,6 @@ Quantum Kernel Core
    kernel.optimization.negative_log_likelihood.NLL 
    kernel.optimization.target_alignment.TargetAlignment
 
-
 QNN Core
 ------------------------------------
 
