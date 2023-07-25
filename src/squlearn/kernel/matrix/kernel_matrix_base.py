@@ -182,7 +182,7 @@ class KernelMatrixBase:
         """
         return _ComposedKernelMatrix(self, x, "/")
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the kernel method.
 
@@ -203,6 +203,7 @@ class KernelMatrixBase:
             params: Hyper-parameters and their values, e.g. num_qubits=2
         """
         raise NotImplementedError()
+
 
 class _ComposedKernelMatrix(KernelMatrixBase):
     """
@@ -258,7 +259,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         """
         return np.concatenate((self._km1.parameters, self._km2.parameters))
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the composed kernel method.
 
@@ -292,8 +293,8 @@ class _ComposedKernelMatrix(KernelMatrixBase):
             params: Hyper-parameters and their values, e.g. num_qubits=2
         """
         valid_params = self.get_params()
-        km1_dict={}
-        km2_dict={}
+        km1_dict = {}
+        km2_dict = {}
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(

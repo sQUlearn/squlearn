@@ -58,7 +58,7 @@ class SingleProbability(ExpectationOperatorBase):
         else:
             return 0
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the single probability operator.
 

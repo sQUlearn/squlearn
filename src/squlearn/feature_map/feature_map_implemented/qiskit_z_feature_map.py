@@ -53,7 +53,7 @@ class QiskitZFeatureMap(FeatureMapBase):
         """The number of layers of the Qiskit ZFeatureMap."""
         return self._reps
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Qiskit ZFeatureMap feature map
 

@@ -67,7 +67,7 @@ class SummedProbabilities(ExpectationOperatorBase):
             num_param += 1
         return num_param
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the single summed probabilities operator.
 

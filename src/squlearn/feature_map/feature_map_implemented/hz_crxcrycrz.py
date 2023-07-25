@@ -60,7 +60,7 @@ class HZCRxCRyCRz(FeatureMapBase):
             num_param += 3 * self.num_layers
         return num_param
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the HZCRxCRyCRz feature map
 

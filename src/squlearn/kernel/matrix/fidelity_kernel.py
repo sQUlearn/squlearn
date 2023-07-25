@@ -117,7 +117,7 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
             )
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the fidelity kernel.
 
@@ -165,11 +165,16 @@ class FidelityKernel(KernelMatrixBase):
         if "mit_depol_noise" in params.keys():
             self._mit_depol_noise = params["mit_depol_noise"]
 
-        self.__init__(self._feature_map, self._executor, None, self._evaluate_duplicates, self._mit_depol_noise)
+        self.__init__(
+            self._feature_map,
+            self._executor,
+            None,
+            self._evaluate_duplicates,
+            self._mit_depol_noise,
+        )
         self._parameters = None
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
-
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
         if y is None:

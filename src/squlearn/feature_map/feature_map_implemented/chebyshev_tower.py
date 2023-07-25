@@ -70,7 +70,7 @@ class ChebyshevTower(FeatureMapBase):
         """The number of trainable parameters of the Chebyshev Tower encoding (equal 0 here)."""
         return 0
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Chebyshev Tower encoding
 

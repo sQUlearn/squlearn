@@ -70,7 +70,7 @@ class ExpectationOperatorBase(ABC):
             Dictionary with hyper-parameters and values.
         """
         param = {}
-        param['num_qubits'] = self._num_qubits
+        param["num_qubits"] = self._num_qubits
         return param
 
     def set_params(self, **params) -> None:
@@ -90,7 +90,7 @@ class ExpectationOperatorBase(ABC):
             try:
                 setattr(self, key, value)
             except:
-                setattr(self, "_"+key, value)
+                setattr(self, "_" + key, value)
 
             # Reset Mapping if the number of quibts is changed
             if key == "num_qubits" or key == "_num_qubits":
@@ -215,7 +215,7 @@ class ExpectationOperatorBase(ABC):
                 self._op1 = op1
                 self._op2 = op2
 
-            def get_params(self, deep:bool = True) -> dict:
+            def get_params(self, deep: bool = True) -> dict:
                 """
                 Returns hyper-parameters and their values of the composed feature map.
 
@@ -256,8 +256,8 @@ class ExpectationOperatorBase(ABC):
                     params: Hyper-parameters and their values, e.g. num_qubits=2
                 """
                 valid_params = self.get_params()
-                op1_dict={}
-                op2_dict={}
+                op1_dict = {}
+                op2_dict = {}
                 for key, value in params.items():
                     if key not in valid_params:
                         raise ValueError(
@@ -335,7 +335,7 @@ class ExpectationOperatorBase(ABC):
                 self._op1 = op1
                 self._op2 = op2
 
-            def get_params(self, deep:bool = True) -> dict:
+            def get_params(self, deep: bool = True) -> dict:
                 """
                 Returns hyper-parameters and their values of the composed feature map.
 
@@ -349,7 +349,6 @@ class ExpectationOperatorBase(ABC):
                 Return:
                     Dictionary with hyper-parameters and values.
                 """
-
                 if self._op1 == self._op2:
                     return self._op1.get_params()
                 else:
@@ -376,8 +375,8 @@ class ExpectationOperatorBase(ABC):
                     params: Hyper-parameters and their values, e.g. num_qubits=2
                 """
                 valid_params = self.get_params()
-                op1_dict={}
-                op2_dict={}
+                op1_dict = {}
+                op2_dict = {}
                 for key, value in params.items():
                     if key not in valid_params:
                         raise ValueError(

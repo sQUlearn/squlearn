@@ -72,7 +72,7 @@ class SummedPaulis(ExpectationOperatorBase):
         else:
             return num_param + len(self.op_str)
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the single summed paulis operator.
 

@@ -263,7 +263,7 @@ class QNN:
 
         self._initilize_derivative()
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
 
         In case of multiple outputs, the hyper-parameters of the operator are prefixed
@@ -279,7 +279,7 @@ class QNN:
                     oper_dict = oper.get_params()
                     for key, value in oper_dict.items():
                         if key != "num_qubits":
-                            params["op"+str(i)+"__"+key] = value
+                            params["op" + str(i) + "__" + key] = value
             else:
                 params.update(self.operator.get_params())
         return params
@@ -320,8 +320,8 @@ class QNN:
                     if key == "num_qubits":
                         dict_operator[key] = value
                     else:
-                        if key.startswith("op"+str(i)+"__"):
-                            dict_operator[key.split("__",1)[1]] = value
+                        if key.startswith("op" + str(i) + "__"):
+                            dict_operator[key.split("__", 1)[1]] = value
                 if len(dict_operator) > 0:
                     oper.set_params(**dict_operator)
         else:
@@ -346,7 +346,9 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, self._opflow_caching)
+        self.operator_derivatives = ExpectationOperatorDerivatives(
+            self.operator, self._opflow_caching
+        )
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._opflow_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:

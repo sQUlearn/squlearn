@@ -40,7 +40,7 @@ class ParamZFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the featuremap."""
         return max(self._num_qubits, self._num_features) * self._num_layers
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the parameterized Z feature map
 

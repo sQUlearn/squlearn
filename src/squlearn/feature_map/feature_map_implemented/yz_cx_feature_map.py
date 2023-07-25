@@ -52,7 +52,7 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
         return self._c
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the YZ-CX Feature Map feature map
 

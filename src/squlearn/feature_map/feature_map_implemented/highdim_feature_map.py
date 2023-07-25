@@ -78,7 +78,7 @@ class HighDimFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the HighDim feature map (equal to 0)."""
         return 0
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the HighDim feature map
 

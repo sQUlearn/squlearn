@@ -108,7 +108,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the feature map.
 

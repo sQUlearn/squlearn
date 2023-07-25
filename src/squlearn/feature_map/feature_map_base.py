@@ -83,7 +83,7 @@ class FeatureMapBase:
 
         return circ.draw(output, **kwargs)
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the feature map.
 
@@ -95,10 +95,10 @@ class FeatureMapBase:
             Dictionary with hyper-parameters and values.
         """
         param = {}
-        param['num_qubits'] = self._num_qubits
+        param["num_qubits"] = self._num_qubits
         return param
 
-    def set_params(self,**params) -> None:
+    def set_params(self, **params) -> None:
         """
         Sets value of the feature map hyper-parameters.
 
@@ -115,7 +115,7 @@ class FeatureMapBase:
             try:
                 setattr(self, key, value)
             except:
-                setattr(self, "_"+key, value)
+                setattr(self, "_" + key, value)
 
         return None
 
@@ -167,7 +167,7 @@ class FeatureMapBase:
                 """
                 return self._fm1.num_parameters + self._fm2.num_parameters
 
-            def get_params(self, deep:bool = True) -> dict:
+            def get_params(self, deep: bool = True) -> dict:
                 """
                 Returns hyper-parameters and their values of the composed feature map.
 
@@ -204,8 +204,8 @@ class FeatureMapBase:
                     params: Hyper-parameters and their values, e.g. num_qubits=2
                 """
                 valid_params = self.get_params()
-                fm1_dict={}
-                fm2_dict={}
+                fm1_dict = {}
+                fm2_dict = {}
                 for key, value in params.items():
                     if key not in valid_params:
                         raise ValueError(

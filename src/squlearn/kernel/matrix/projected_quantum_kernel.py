@@ -128,7 +128,7 @@ class OuterKernelBase:
                 # Evaluate kernel
                 return self._kernel(x_result, y_result)
 
-            def get_params(self,deep:bool = True) -> dict:
+            def get_params(self, deep: bool = True) -> dict:
                 """
                 Returns hyper-parameters and their values of the sklearn kernel.
 
@@ -440,7 +440,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         return self._outer_kernel(self._qnn, self._parameters, x, y)
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Projected Quantum Kernel.
 
@@ -480,7 +480,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         dict_qnn = {}
 
         if "num_qubits" in params:
-            if isinstance(self._measurement_input,str):
+            if isinstance(self._measurement_input, str):
                 self._feature_map.set_params(num_qubits=params["num_qubits"])
                 self.__init__(
                     self._feature_map,
@@ -535,6 +535,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """The names of the hyper-parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
 
+
 class GaussianOuterKernel(OuterKernelBase):
     """
     Implementation of the Gaussian outer kernel:
@@ -578,7 +579,7 @@ class GaussianOuterKernel(OuterKernelBase):
 
         return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Gaussian outer kernel.
 
@@ -608,6 +609,6 @@ class GaussianOuterKernel(OuterKernelBase):
             try:
                 setattr(self, key, value)
             except:
-                setattr(self, "_"+key, value)
+                setattr(self, "_" + key, value)
 
         return None

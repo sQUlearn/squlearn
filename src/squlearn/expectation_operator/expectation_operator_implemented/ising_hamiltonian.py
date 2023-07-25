@@ -109,7 +109,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
         return num_parameters
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Ising hamiltonian operator.
 

@@ -59,7 +59,7 @@ class QEKFeatureMap(FeatureMapBase):
                 num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
-    def get_params(self, deep:bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QEK feature map
 
