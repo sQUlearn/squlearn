@@ -6,7 +6,7 @@ API Reference
 
 
 
-Implemented High-Level QML Regressors
+QML Regressors
 =====================================
 
 .. currentmodule:: squlearn
@@ -22,7 +22,7 @@ Implemented High-Level QML Regressors
    qnn.QNNRegressor
 
 
-Implemented High-Level QML Classifiers
+QML Classifiers
 ======================================
 
 .. currentmodule:: squlearn
@@ -37,21 +37,11 @@ Implemented High-Level QML Classifiers
    qnn.QNNClassifier
 
 
-Implemented Execution Tools
-===========================
-
-.. currentmodule:: squlearn
-
-.. autosummary::
-   :nosignatures:
-   :toctree: generated/
-   :template: class.rst
-
-   Executor
-
-
-Implemented feature maps in squlearn
+Circuit Design
 ====================================
+
+Feature Maps
+------------------------------------
 
 .. automodule:: squlearn.feature_map
     :no-members:
@@ -75,8 +65,8 @@ Implemented feature maps in squlearn
    feature_map.QiskitZFeatureMap
    feature_map.QiskitFeatureMap
 
-Implemented tools for feature maps
-==================================
+Feature Map Tools
+------------------------------------
 
 .. currentmodule:: squlearn
 
@@ -100,8 +90,8 @@ Implemented tools for feature maps
    feature_map.pruning_from_QFI
 
 
-Implemented operators for expectation values
-============================================
+Operators
+------------------------------------
 
 .. automodule:: squlearn.expectation_operator
     :no-members:
@@ -121,8 +111,8 @@ Implemented operators for expectation values
    expectation_operator.IsingHamiltonian
    expectation_operator.CustomExpectationOperator
 
-Tools for expectation operators
-================================
+Operator Tools
+------------------------------------
 
 .. currentmodule:: squlearn
 
@@ -134,8 +124,25 @@ Tools for expectation operators
    expectation_operator.ExpectationOperatorBase
    expectation_operator.ExpectationOperatorDerivatives
 
-Quantum Kernel implementations
+
+Execution Tools
+===========================
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   Executor
+
+
+Core
 ==============================
+
+Quantum Kernel Core
+------------------------------------
 
 .. automodule:: squlearn.kernel.matrix
     :no-members:
@@ -150,9 +157,6 @@ Quantum Kernel implementations
 
    kernel.matrix.FidelityKernel
    kernel.matrix.ProjectedQuantumKernel
-
-Quantum Kernel optimization
-===========================
 
 .. automodule:: squlearn.kernel.optimization
     :no-members:
@@ -170,8 +174,8 @@ Quantum Kernel optimization
    kernel.optimization.target_alignment.TargetAlignment
 
 
-Low-level QNN implementation
-============================
+QNN Core
+------------------------------------
 
 .. automodule:: squlearn.qnn
     :no-members:
@@ -191,8 +195,8 @@ Low-level QNN implementation
    qnn.loss.ParameterRegularizationLoss
 
 
-Base classes of sQUlearn
-========================
+Base Classes
+------------------------------------
 
 .. currentmodule:: squlearn
 
