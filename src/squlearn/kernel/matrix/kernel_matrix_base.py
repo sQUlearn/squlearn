@@ -257,7 +257,9 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         The numeric values of the trainable parameters assigned to the
         feature map as np.ndarray
         """
-        return np.concatenate((self._km1.parameters, self._km2.parameters))
+        if self._km1.parameters is not None and self._km2.parameters is not None:
+            return np.concatenate((self._km1.parameters, self._km2.parameters))
+        return None
 
     def get_params(self, deep: bool = True) -> dict:
         """

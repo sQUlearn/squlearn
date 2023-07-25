@@ -86,6 +86,8 @@ class ChebRx(FeatureMapBase):
             if self.num_qubits > 2:
                 if self.closed:
                     istop = self.num_qubits
+                elif self.num_qubits % 2==1:
+                    istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
                 for i in range(1, istop - 1, 2):
