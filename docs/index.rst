@@ -12,11 +12,10 @@ Here comes some description of the sQUlearn package and the documentation.
    :maxdepth: 2
    :caption: Contents:
 
-   tutorials/install
+   install/install
+   user_guide/user_guide_index
    modules/classes
-   tutorials/kernel_methods
-   tutorials/operators
-   tutorials/feature_maps
+   examples/examples_index
 
 Indices and tables
 ==================
