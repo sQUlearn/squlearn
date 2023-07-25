@@ -148,8 +148,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         feature_map (FeatureMapBase): Feature map that is evaluated
         executor (Executor): Executor object
         measurement (Union[str, ExpectationOperatorBase, list]): Expectation values that are
-            computed from the feature map. Either an operator, a list of operators or one of the
-            string values: ``X``,``Y``,``Z``, or ``XYZ``
+            computed from the feature map. Either an operator, a list of operators or a
+            combination of the string values ``X``,``Y``,``Z``, e.g. ``XYZ``
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values. Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
@@ -309,30 +309,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set-up measurement operator
         if isinstance(measurement, str):
-            if measurement == "Z":
-                # Measure Z at all qubits
-                self._measurement = []
+            self._measurement = []
+            for m_str in measurement:
+                if m_str not in ("X", "Y", "Z"):
+                    raise ValueError("Unknown measurement operator: {}".format(m_str))
                 for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Z"))
-            elif measurement == "X":
-                # Measure Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="X"))
-            elif measurement == "Y":
-                # Measure Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Y"))
-            elif measurement == "XYZ":
-                # Measure X, Y, and Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="X"))
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Y"))
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Z"))
-            else:
-                raise ValueError("Unknown measurement string: {}".format(measurement))
+                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
         elif isinstance(measurement, ExpectationOperatorBase) or isinstance(measurement, list):
             self._measurement = measurement
         else:
@@ -453,23 +435,24 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     "with `QNN.get_params()`." % key
                 )
 
-        # Set QNN parameters
         dict_qnn = {}
-        for key, value in params.items():
-            if key in self._qnn.get_params():
-                dict_qnn[key] = value
-        if len(dict_qnn) > 0:
-            self.pqc.set_params(**dict_qnn)
 
-        # Set outer kernel parameters
-        dict_outer_kernel = {}
-        for key, value in params.items():
-            if key in self._outer_kernel.get_params():
-                dict_outer_kernel[key] = value
-        if len(dict_outer_kernel) > 0:
-            self._outer_kernel.set_params(**dict_outer_kernel)
+        if "num_qubits" in params:
+            if isinstance(self._measurement_input,str):
+                self._feature_map.set_params(num_qubits=params["num_qubits"])
+                self.__init__(
+                    self._feature_map,
+                    self._executor,
+                    self._measurement_input,
+                    self._outer_kernel,
+                    self._parameters,
+                )
+            else:
+                self._qnn.set_params(**dict_qnn)
+                self._feature_map.set_params(num_qubits=params["num_qubits"])
+                for m in self._measurement:
+                    m.set_params(num_qubits=params["num_qubits"])
 
-        # Set measurement -> re-initialize Projected Quantum Kernel module
         if "measurement" in params:
             self._measurement_input = params["measurement"]
             self.__init__(
@@ -479,6 +462,23 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._outer_kernel,
                 self._parameters,
             )
+
+
+        # Set QNN parameters
+        for key, value in params.items():
+            if key in self._qnn.get_params():
+                if key != "num_qubits":
+                    dict_qnn[key] = value
+        if len(dict_qnn) > 0:
+            self._qnn.set_params(**dict_qnn)
+
+        # Set outer kernel parameters
+        dict_outer_kernel = {}
+        for key, value in params.items():
+            if key in self._outer_kernel.get_params():
+                dict_outer_kernel[key] = value
+        if len(dict_outer_kernel) > 0:
+            self._outer_kernel.set_params(**dict_outer_kernel)
 
         self._parameters = None
         if self.num_parameters == num_parameters_backup:
@@ -493,7 +493,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     def name_hyper_parameters(self) -> List[str]:
         """The names of the hyper-parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
-
 
 class GaussianOuterKernel(OuterKernelBase):
     """

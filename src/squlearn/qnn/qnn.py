@@ -268,8 +268,11 @@ class QNN:
         params = {}
         params.update(self.pqc.get_params())
         if isinstance(self.operator, list):
-            for op in self.operator:
-                params.update(op.get_params())
+            for i, oper in enumerate(self.operator):
+                oper_dict = oper.get_params()
+                for key, value in oper_dict.items():
+                    if key != "num_qubits":
+                        params["op"+str(i)+"_"+key] = value
         else:
             params.update(self.operator.get_params())
         return params
@@ -297,13 +300,16 @@ class QNN:
 
         # Set parameters of the operator
         if isinstance(self.operator, list):
-            for i in range(len(self.operator)):
+            for i, oper in enumerate(self.operator):
                 dict_operator = {}
                 for key, value in params.items():
-                    if key in self.operator[i].get_params():
+                    if key == "num_qubits":
                         dict_operator[key] = value
+                    else:
+                        if key.split("_")[0]=="op"+str(i):
+                            dict_operator[key.split("_",1)[1]] = value
                 if len(dict_operator) > 0:
-                    self.operator[i].set_params(**dict_operator)
+                    oper.set_params(**dict_operator)
         else:
             dict_operator = {}
             for key, value in params.items():
