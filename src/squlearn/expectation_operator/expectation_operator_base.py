@@ -60,7 +60,7 @@ class ExpectationOperatorBase(ABC):
 
     def get_params(self) -> dict:
         """
-        Returns hyper parameters and their values of the feature map
+        Returns hyper-parameters and their values of the operator.
 
         Return:
             Return dictionary with hyper parameters and values
@@ -71,7 +71,10 @@ class ExpectationOperatorBase(ABC):
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map
+        Sets value of the operator hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
         """
         valid_params = self.get_params()
         for key, value in params.items():

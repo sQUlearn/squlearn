@@ -85,10 +85,10 @@ class FeatureMapBase:
 
     def get_params(self) -> dict:
         """
-        Returns hyper parameters and their values of the feature map
+        Returns hyper-parameters and their values of the feature map
 
         Return:
-            Return dictionary with hyper parameters and values
+            Return dictionary with hyper-parameters and values
         """
         param = {}
         param['num_qubits'] = self._num_qubits
@@ -96,7 +96,10 @@ class FeatureMapBase:
 
     def set_params(self,**params) -> None:
         """
-        Sets value of the feature map
+        Sets value of the feature map hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
         """
         valid_params = self.get_params()
         for key, value in params.items():

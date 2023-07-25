@@ -109,9 +109,21 @@ class TranspiledFeatureMap(FeatureMapBase):
         return self._feature_map.num_parameters
 
     def get_params(self) -> dict:
+        """
+        Returns hyper-parameters and their values of the feature map
+
+        Return:
+            Return dictionary with hyper-parameters and values
+        """
         return self._feature_map.get_params()
 
     def set_params(self, **params) -> None:
+        """
+        Sets value of the feature map hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
         self._feature_map.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
         self.__init__(self._feature_map, self._backend, self._transpile_func, **self._kwargs)

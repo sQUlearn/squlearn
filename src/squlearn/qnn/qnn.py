@@ -264,7 +264,12 @@ class QNN:
         self._initilize_derivative()
 
     def get_params(self) -> dict:
-        """Returns the dictionary of the hyper-parameters of the QNN"""
+        """Returns the dictionary of the hyper-parameters of the QNN.
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0_``, ``op1_``, etc.
+
+        """
         params = {}
         params.update(self.pqc.get_params())
         if isinstance(self.operator, list):
@@ -278,7 +283,15 @@ class QNN:
         return params
 
     def set_params(self, **params) -> None:
-        """Sets the hyper-parameters of the QNN"""
+        """Sets the hyper-parameters of the QNN
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0_``, ``op1_``, etc.
+
+        Args:
+            params: Hyper-parameters that are adjusted, e.g. num_qubits=4
+
+        """
 
         # Check if all parameters are valid
         valid_params = self.get_params()
