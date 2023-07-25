@@ -33,6 +33,7 @@ release = "0.2.0"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "matplotlib.sphinxext.plot_directive",

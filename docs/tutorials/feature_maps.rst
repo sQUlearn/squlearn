@@ -167,7 +167,7 @@ the :class:`LayeredFeatureMap` class.
 
    from squlearn.feature_map import LayeredFeatureMap
    feature_map = LayeredFeatureMap.from_string(
-      "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+      "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1, num_layers=2
    )
    feature_map.draw()
 

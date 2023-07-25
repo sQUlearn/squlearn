@@ -272,7 +272,7 @@ class QNN:
         else:
             self._num_qubits = self.pqc.num_virtual_qubits
 
-        if self.executor.get_opflow_executor() in ("sampler", "quantum_instance"):
+        if self.executor.opflow_executor() in ("sampler", "quantum_instance"):
             # For Quantum Instance or the Sampler primitive, X and Y Pauli matrices have to be treated extra
             # This is very inefficient!
             operator_string = str(self.operator)
@@ -357,7 +357,7 @@ class QNN:
     @property
     def parameters_operator(self):
         """Return the parameter vector of the cost operator."""
-        return self.operator_derivatives.parameters
+        return self.operator_derivatives._parameter_vector
 
     def get_opflow_from_string(self, input_string: str):
         """Return the opflow expression of the given PQC
