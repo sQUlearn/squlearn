@@ -29,7 +29,7 @@ class QKRR(BaseEstimator, RegressorMixin):
             regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
-        regularize  (Union[str, None], default=None) :
+        regularization  (Union[str, None], default=None) :
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
             after Ref. [3] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
@@ -92,7 +92,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
-        Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularize``
+        Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularization``
         is set, the training kernel matrix is pre-processed accordingly prior to the
         actual fitting step is performed. The respective solution of the QKRR problem
         is obtained by solving the linear system using scipy's Cholesky decomposition for
@@ -153,22 +153,3 @@ class QKRR(BaseEstimator, RegressorMixin):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
-
-
-######
-# BACKUP FOR DOCUMENTATION
-# Attributes:
-#         _regularize (Union[str, None]) :
-#             Applied regularization technique
-#         x_train (np.ndarray) :
-#             Training data, which is also required for the prediction step of shape +
-#             (n_samples, n_features)
-#         k_train (np.ndarray) :
-#             Training Kernel matrix, which is a square-symmetric matrix of shape (n_train, natrain)
-#             required for the ``fit()`` step
-#         k_testtrain (np.ndarray) :
-#             Test-training matrix of shape (n_test, n_train) required for prediction step
-#         dual_coeff_ (np.ndarray) :
-#             Representation of weight vectors in kernel space
-#         num_qubits (int) :
-#             Number of qubits

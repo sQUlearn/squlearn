@@ -1,6 +1,6 @@
 """Quantum Gaussian Process Regressor"""
 from ..matrix.kernel_matrix_base import KernelMatrixBase
-from ..matrix.regularization import regularize_full_kernel, tikhonov_regularization
+from ..matrix.regularization import regularize_full_kernel
 
 import numpy as np
 from scipy.linalg import cholesky, cho_solve
@@ -31,7 +31,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 unit-variance. This is recommended for cases where zero-mean,
                 unit-variance priors are used. Note that, in this implementation,
                 the normalisation is reversed before the GP predictions are reported.
-        regularize: (string), default='full': enable full gram matrix regularization
+        regularization: (string), default='full': enable full gram matrix regularization
                 or enable Tikhonov regularization via 'tikhonov'.
 
     See Also
@@ -129,7 +129,7 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     def predict(self, X_test, return_std=True, return_cov=False):
         """Predict using the  Quantum Gaussian process regression model.
-        Depending on the choice of regularize the quantum kernel matrix is regularized.
+        Depending on the choice of regularization the quantum kernel matrix is regularized.
         The respective solution of the QKRR problem
         is obtained by solving the linear system using scipy's Cholesky decomposition for
         providing numercial stability

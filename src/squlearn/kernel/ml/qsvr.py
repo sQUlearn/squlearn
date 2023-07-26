@@ -24,7 +24,7 @@ class QSVR(SVR):
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
             a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
-        regularize  (Union[str, None], default=None):
+        regularization  (Union[str, None], default=None):
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
             after Ref. [3] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.

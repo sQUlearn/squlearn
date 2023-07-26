@@ -196,7 +196,17 @@ class KernelMatrixBase:
             setattr(self, "_" + param, value)
         return self
 
-    def _regularize_matrix(self, matrix, method):
+    def _regularize_matrix(self, matrix: np.ndarray, method: str) -> np.ndarray:
+        """
+        Regularizes the quantum kernel matrix according to the sepcified method.
+
+        Args:
+            matrix (np.ndarray) :
+                Gram matrix to be regularized
+            method (str) :
+                Can be either thresholding or tikhonov. For more information see
+                squlearn.kernel.matrix.regularization
+        """
         if method == 'thresholding':
             return thresholding_regularization(matrix)
         elif method == 'tikhonov':
