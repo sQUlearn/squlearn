@@ -47,6 +47,9 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         variance (Union[float, Callable], default=None): The variance factor to be used. If it is
             None, the variance regularization will not be used. Else this determines the strength
             of the variance regularization.
+        parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
+                                                      parameter initialization, if param_ini or
+                                                      param_op_ini is None.
 
     See Also
     --------
@@ -100,6 +103,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
+        parameter_seed: Union[int, None] = 0,
     ) -> None:
         super().__init__(
             pqc,
@@ -114,6 +118,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             shuffle,
             opt_param_op,
             variance,
+            parameter_seed=parameter_seed,
         )
         self._label_binarizer = None
 
