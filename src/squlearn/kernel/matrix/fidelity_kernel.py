@@ -132,7 +132,8 @@ class FidelityKernel(KernelMatrixBase):
             print("WARNING: Adavnced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
                 raise ValueError(
-                    "Mitigating depolarizing noise works only for square matrices computed on real backend"
+                    "Mitigating depolarizing noise works only for square matrices computed on real"
+                    " backend"
                 )
             else:
                 if self._mit_depol_noise == "msplit":
