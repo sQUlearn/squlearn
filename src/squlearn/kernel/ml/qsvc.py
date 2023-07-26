@@ -71,12 +71,12 @@ class QSVC(SVC):
         *,
         quantum_kernel: KernelMatrixBase,
         regularization: Union[str, None] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
         super().__init__(
             kernel=lambda x, y: self.quantum_kernel.evaluate(x, y, regularization=regularization),
-            **kwargs
+            **kwargs,
         )
 
     @classmethod

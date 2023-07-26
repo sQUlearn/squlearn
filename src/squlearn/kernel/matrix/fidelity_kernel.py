@@ -163,8 +163,8 @@ class FidelityKernel(KernelMatrixBase):
         mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob_mean = self._survival_probability_mean(kernel)
         mmean_kernel_matrix = (
-            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean ** 2)
-        ) / survival_prob_mean ** 2
+            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean**2)
+        ) / survival_prob_mean**2
         return mmean_kernel_matrix
 
     def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:
