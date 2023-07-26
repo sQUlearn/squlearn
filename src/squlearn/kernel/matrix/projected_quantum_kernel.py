@@ -300,10 +300,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         executor: Executor,
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
-        initial_parameters: Union[np.ndarray, None] = None,
+        initial_parameters = None,
+        parameter_seed: Union[int, None] = None,
         **kwargs,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
 
         # Set-up measurement operator
         if isinstance(measurement, str):

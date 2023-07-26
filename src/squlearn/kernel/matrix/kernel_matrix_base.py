@@ -23,6 +23,7 @@ class KernelMatrixBase:
         feature_map: FeatureMapBase,
         executor: Executor,
         initial_parameters: Union[np.ndarray, None] = None,
+        parameter_seed: Union[int, None] = None,
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits
@@ -30,6 +31,10 @@ class KernelMatrixBase:
         self._num_parameters = self._feature_map.num_parameters
         self._executor = executor
         self._parameters = initial_parameters
+        self._parameter_seed = parameter_seed
+
+        if self._parameters is None:
+            self._parameters = self._feature_map.generate_initial_parameters(self._parameter_seed)
 
     @property
     def feature_map(self) -> FeatureMapBase:
@@ -60,6 +65,16 @@ class KernelMatrixBase:
     def num_parameters(self) -> int:
         """Returns the number of trainable parameters of the feature map."""
         return self._num_parameters
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the feature map."""
+        return self._feature_map.parameter_bounds
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the feature map."""
+        return self._feature_map.feature_bounds
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
@@ -230,13 +245,25 @@ class _ComposedKernelMatrix(KernelMatrixBase):
 
     @property
     def num_features(self) -> int:
-        """Returns feature dimension for the composed kernel matrix"""
+        """The feature dimension for the composed kernel matrix"""
         return self._km1.num_features
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters corresponding to the composed kernel matrix"""
+        """The number of trainable parameters corresponding to the composed kernel matrix"""
         return self._km1.num_parameters + self._km2.num_parameters
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the composed kernel matrix."""
+        return np.concatenate((self._km1.parameter_bounds, self._km2.parameter_bounds), axis=0)
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the composed kernel matrix."""
+        min_val = np.minimum(self._km1.feature_bounds[:,0], self._km2.feature_bounds[:,0])
+        max_val = np.maximum(self._km1.feature_bounds[:,1], self._km2.feature_bounds[:,1])
+        return np.array([min_val, max_val]).T
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """

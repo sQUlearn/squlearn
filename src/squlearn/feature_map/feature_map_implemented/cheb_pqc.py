@@ -54,11 +54,13 @@ class ChebPQC(FeatureMapBase):
         num_layers: int = 1,
         closed: bool = True,
         entangling_gate: str = "crz",
+        alpha: float = 4.0,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.entangling_gate = entangling_gate
+        self.alpha = alpha
         if self.entangling_gate not in ("crz", "rzz"):
             raise ValueError("Unknown value for entangling_gate: ", entangling_gate)
 
@@ -71,6 +73,73 @@ class ChebPQC(FeatureMapBase):
         else:
             num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the ChebPQC feature map."""
+        bounds = np.zeros((self.num_parameters, 2))
+
+        ioff = 0
+        # Basis change at the beginning
+        for i in range(self.num_qubits):
+            bounds[ioff] = [-np.pi, np.pi]
+            ioff = ioff + 1
+
+        for ilayer in range(self.num_layers):
+            # Chebyshev feature map
+            for i in range(self.num_qubits):
+                bounds[ioff] = [0.0, self.alpha]
+                ioff = ioff + 1
+
+            for i in range(0, self.num_qubits, 2):
+                bounds[ioff] = [-2.0*np.pi, 2.0*np.pi]
+                ioff = ioff + 1
+
+            if self.num_qubits > 2:
+                if self.closed:
+                    istop = self.num_qubits
+                else:
+                    istop = self.num_qubits - 1
+                for i in range(1, istop, 2):
+                    bounds[ioff] = [-2.0*np.pi, 2.0*np.pi]
+                    ioff = ioff + 1
+
+        for i in range(self.num_qubits):
+            bounds[ioff] = [-np.pi, np.pi]
+            ioff = ioff + 1
+
+        return bounds
+
+    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        """
+        Generates random parameters for the feature map
+
+        Args:
+            seed (Union[int,None]): Seed for the random number generator
+
+        Return:
+            Returns the randomly generated parameters
+        """
+        if self.num_parameters == 0:
+            return np.array([])
+        r = np.random.RandomState(seed)
+        bounds = self.parameter_bounds
+        param = r.uniform(low=bounds[:,0], high=bounds[:,1])
+        index = self.get_cheb_indices(False)
+        p = np.linspace(0.01, self.alpha, self.num_qubits)
+
+        for i in index:
+            param[i] = p
+
+        return param
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the ChebPQC feature map."""
+        bounds = np.zeros((self.num_features, 2))
+        bounds[:, 0] = -1.0
+        bounds[:, 1] = 1.0
+        return bounds
 
     def get_circuit(
         self,
