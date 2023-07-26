@@ -26,7 +26,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 This regularization improves the conditioning of the problem
                 and assure the solvability of the resulting
                 linear system. Larger values specify stronger regularization.
-        normalize_y: (bool), default=False: Whether or not to normalize
+        normalize_y: (bool), default=False: Whether to normalize
                 the target values y by removing the mean and scaling to
                 unit-variance. This is recommended for cases where zero-mean,
                 unit-variance priors are used. Note that, in this implementation,
@@ -73,14 +73,14 @@ class QGPR(BaseEstimator, RegressorMixin):
         quantum_kernel: KernelMatrixBase,
         sigma=1.0e-6,
         normalize_y=False,
-        regularize="full",
+        regularization="full",
     ):
         self._quantum_kernel = quantum_kernel
         self.X_train = None
         self.y_train = None
         self.sigma = sigma
         self.normalize_y = normalize_y
-        self.regularize = regularize
+        self._regularization = regularization
         self.K_train = None
         self.K_test = None
         self.K_testtrain = None
@@ -101,7 +101,11 @@ class QGPR(BaseEstimator, RegressorMixin):
             QuantumGaussianProcessRegressor class instance.
         """
         self.X_train = X_train
-        self.K_train = self._quantum_kernel.evaluate(x=self.X_train)
+        if self._regularization == 'full':
+            self.K_train = self._quantum_kernel.evaluate(x=self.X_train, regularization=None)
+        else:
+            self.K_train = self._quantum_kernel.evaluate(
+                x=self.X_train, regularization=self._regularization)
         if self.normalize_y:
             self._y_train_mean = np.mean(y_train, axis=0)
             self._y_train_std = _handle_zeros_in_scale(np.std(y_train, axis=0), copy=False)
@@ -136,9 +140,9 @@ class QGPR(BaseEstimator, RegressorMixin):
         Args:
             X_test: The test data of shape (n_samples, n_features)
             return_std: (bool),
-                default=True: Whether or not to return the standard deviation of the prediction
+                default=True: Whether to return the standard deviation of the prediction
             return_cov: (bool), default=False:
-                Whether or not to return the covariance of the prediction
+                Whether to return the covariance of the prediction
 
         Returns:
             y_mean: The predicted values of shape (n_samples,)
@@ -154,20 +158,22 @@ class QGPR(BaseEstimator, RegressorMixin):
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
 
-        self.K_test = self._quantum_kernel.evaluate(x=X_test)
-
-        self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
-
-        if self.regularize == "full":
+        if self._regularization == "full":
             print("Regularizing full Gram matrix")
+            self.K_test = self._quantum_kernel.evaluate(x=X_test,
+                                                        regularization=None)
+            self.K_testtrain = self._quantum_kernel.evaluate(
+                x=X_test, y=self.X_train, regularization=None)
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
-                self.K_train, self.K_testtrain, self.K_test
-            )
-        elif self.regularize == "tikhonov":
-            print("Regularizing Gram matrix with Tikhonov")
-            self.K_train = tikhonov_regularization(self.K_train)
-            self.K_test = tikhonov_regularization(self.K_test)
+                self.K_train, self.K_testtrain, self.K_test)
+        else:
+            self.K_test = self._quantum_kernel.evaluate(x=X_test,
+                                                        regularization=self._regularization)
+            self.K_testtrain = self._quantum_kernel.evaluate(
+                x=X_test, y=self.X_train, regularization=self._regularization)
+
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])
+
         try:
             self._L = cholesky(self.K_train, lower=True)
         except np.linalg.LinAlgError:
