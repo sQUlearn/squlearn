@@ -6,7 +6,7 @@ import numpy as np
 from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 
-from .kernel_util import regularize_kernel, tikhonov_regularization
+from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
 
 # from ..kernel_util import KernelRegularizer, DepolarizingNoiseMitigation
 
@@ -79,11 +79,11 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
-        regularize: Union[str, None] = None,
+        regularization: Union[str, None] = None,
     ) -> None:
-        self._quantum_kernel = quantum_kernel  # May be worth to set FQK as default here?
+        self._quantum_kernel = quantum_kernel
         self.alpha = alpha
-        self._regularize = regularize
+        self._regularization = regularization
         self.x_train = None
         self.k_testtrain = None
         self.k_train = None
@@ -107,13 +107,8 @@ class QKRR(BaseEstimator, RegressorMixin):
                 Returns the instance itself.
         """
         self.x_train = x_train
-        self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
-        # check if regularize argument is set and define corresponding method
-        if self._regularize is not None:
-            if self._regularize == "thresholding":
-                self.k_train = regularize_kernel(self.k_train)
-            elif self._regularize == "tikhonov":
-                self.k_train = tikhonov_regularization(self.k_train)
+        self.k_train = self._quantum_kernel.evaluate(
+            x=self.x_train, regularization=self._regularization)  # set up kernel matrix
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -151,7 +146,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         return {
             "quantum_kernel": self._quantum_kernel,
             "alpha": self.alpha,
-            "regularize": self._regularize,
+            "regularization": self._regularization,
         }
 
     def set_params(self, **parameters):

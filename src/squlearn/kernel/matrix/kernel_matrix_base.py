@@ -1,9 +1,9 @@
 from typing import Union
 import numpy as np
 
+from .regularization import thresholding_regularization, tikhonov_regularization
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
-
 
 class KernelMatrixBase:
     """
@@ -61,7 +61,7 @@ class KernelMatrixBase:
         """Returns the number of trainable parameters of the feature map."""
         return self._num_parameters
 
-    def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, y: np.ndarray = None, regularization=None) -> np.ndarray:
         """
         Computes the quantum kernel matrix.
 
@@ -195,6 +195,15 @@ class KernelMatrixBase:
         for param, value in params.items():
             setattr(self, "_" + param, value)
         return self
+
+    def _regularize_matrix(self, matrix, method):
+        if method == 'thresholding':
+            return thresholding_regularization(matrix)
+        elif method == 'tikhonov':
+            return tikhonov_regularization(matrix)
+        else:
+            raise AttributeError(
+                'If regularization is not none it must be either thresholding or tikhonov')
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):

@@ -1,12 +1,11 @@
 """Quantum Gaussian Process Regressor"""
 from ..matrix.kernel_matrix_base import KernelMatrixBase
-from .kernel_util import regularize_full_kernel, tikhonov_regularization
+from ..matrix.regularization import regularize_full_kernel, tikhonov_regularization
 
 import numpy as np
 from scipy.linalg import cholesky, cho_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
-from numbers import Real
 
 
 class QGPR(BaseEstimator, RegressorMixin):

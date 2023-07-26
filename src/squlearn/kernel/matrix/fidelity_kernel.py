@@ -1,4 +1,4 @@
-""" Fidelity Quatnum Kernel class"""
+""" Fidelity Quantum Kernel class"""
 import numpy as np
 from typing import Union
 from .kernel_matrix_base import KernelMatrixBase
@@ -10,10 +10,8 @@ from qiskit_machine_learning.kernels.fidelity_quantum_kernel import (
     FidelityQuantumKernel,
 )
 from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
-from qiskit.utils import QuantumInstance
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
-from qiskit.primitives import BaseSampler, BaseEstimator
 from qiskit_ibm_runtime import IBMBackend
 
 
@@ -117,7 +115,11 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
             )
 
-    def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
+    def evaluate(
+            self,
+            x: np.ndarray,
+            y: Union[np.ndarray, None] = None,
+            regularization=None) -> np.ndarray:
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -142,8 +144,9 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
+        if regularization is not None:
+            kernel_matrix = self._regularize_matrix(kernel_matrix, method=regularization)
         return kernel_matrix
-        # return self._quantum_kernel.evaluate(x, y)
 
     ###########
     ## Mitigating depolarizing noise after http://arxiv.org/pdf/2105.02276v1
