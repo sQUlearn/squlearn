@@ -413,13 +413,21 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         # Evaluate and return
         return self._qnn.evaluate_f(x, param, param_op)
 
-    def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
+    def evaluate(
+            self,
+            x: np.ndarray,
+            y: np.ndarray = None,
+            regularization: Union[str, None] = None) -> np.ndarray:
         """Evaluates the Projected Quantum Kernel for the given data points x and y.
 
         Args:
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
-
+            regularization (Union[str, None], default=None):
+                Option for choosing different regularization techniques
+                 ('thresholding' or 'tikhonov') after Ref. [3] for the training kernel matrix,
+                  prior to  solving the linear system
+            in the ``fit()``-procedure.
         Returns:
             The evaluated projected quantum kernel as numpy array
         """
@@ -429,7 +437,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if self._parameters is None:
             raise ValueError("Parameters have not been set yet!")
 
-        return self._outer_kernel(self._qnn, self._parameters, x, y)
+        kernel_matrix = self._outer_kernel(self._qnn, self._parameters, x, y)
+        if regularization is not None:
+            kernel_matrix = self._regularize_matrix(kernel_matrix, method=regularization)
+        return kernel_matrix
 
     def get_params(self) -> dict:
         """Returns the hyper parameters of the outer kernel"""

@@ -66,7 +66,12 @@ class QSVC(SVC):
     --------
     """
 
-    def __init__(self, *, quantum_kernel: KernelMatrixBase, regularization: Union[str, None] = None, **kwargs) -> None:
+    def __init__(
+            self,
+            *,
+            quantum_kernel: KernelMatrixBase,
+            regularization: Union[str, None] = None,
+            **kwargs) -> None:
         self.quantum_kernel = quantum_kernel
         super().__init__(
             kernel=lambda x, y: self.quantum_kernel.evaluate(x, y,
