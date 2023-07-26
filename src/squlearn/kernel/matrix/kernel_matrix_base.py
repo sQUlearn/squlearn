@@ -63,13 +63,13 @@ class KernelMatrixBase:
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
-        Computes and the quantum kernel matrix.
+        Computes the quantum kernel matrix.
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
 
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
@@ -82,9 +82,9 @@ class KernelMatrixBase:
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
         """
         if y is not None:
             return self.evaluate([x], [y])[0, 0]
@@ -110,9 +110,9 @@ class KernelMatrixBase:
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             parameters (np.ndarray) :
                 Array contraining numerical values to be assigned to the trainable parameters
                 of the feature map
@@ -244,9 +244,9 @@ class _ComposedKernelMatrix(KernelMatrixBase):
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
 
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
