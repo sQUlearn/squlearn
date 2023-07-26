@@ -43,6 +43,10 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         return 2 * self.num_qubits * self._num_layers
 
     @property
+    def parameter_bounds(self) -> np.ndarray:
+        return np.array([[-np.pi, np.pi]] * self.num_parameters)
+
+    @property
     def num_layers(self) -> int:
         """The number of layers of the YZ-CX Feature Map feature map."""
         return self._num_layers

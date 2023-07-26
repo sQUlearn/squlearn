@@ -23,7 +23,7 @@ class KernelMatrixBase:
         feature_map: FeatureMapBase,
         executor: Executor,
         initial_parameters: Union[np.ndarray, None] = None,
-        parameter_seed: Union[int, None] = None,
+        parameter_seed: Union[int, None] = 0,
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits

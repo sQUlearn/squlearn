@@ -49,6 +49,11 @@ line-length=99
 max-line-length=99
 good-names=["X", "y", "i", "j"]
 
+[tool.pylint.main]
+extension-pkg-allow-list = [
+    "numpy",
+]
+
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",

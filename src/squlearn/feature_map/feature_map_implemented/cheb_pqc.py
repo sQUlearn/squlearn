@@ -112,7 +112,7 @@ class ChebPQC(FeatureMapBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the feature map
+        Generates random parameters for the ChebPQC feature map
 
         Args:
             seed (Union[int,None]): Seed for the random number generator
@@ -120,16 +120,13 @@ class ChebPQC(FeatureMapBase):
         Return:
             Returns the randomly generated parameters
         """
-        if self.num_parameters == 0:
-            return np.array([])
-        r = np.random.RandomState(seed)
-        bounds = self.parameter_bounds
-        param = r.uniform(low=bounds[:,0], high=bounds[:,1])
-        index = self.get_cheb_indices(False)
-        p = np.linspace(0.01, self.alpha, self.num_qubits)
+        param = super().generate_initial_parameters(seed)
 
-        for i in index:
-            param[i] = p
+        if len(param) > 0:
+            index = self.get_cheb_indices(False)
+            p = np.linspace(0.01, self.alpha, self.num_qubits)
+            for i in index:
+                param[i] = p
 
         return param
 

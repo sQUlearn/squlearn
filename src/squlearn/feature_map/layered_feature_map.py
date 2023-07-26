@@ -1197,7 +1197,7 @@ def math_function({var}):
                 func=map_string, var=args
             )
             exec(function_string, globals())
-            return math_function
+            return math_function #pylint: disable=undefined-variable
 
         def get_closing_bracket_index(word, index):
             """gives to an open round bracket '(' the location of the closing bracket. This works especially, if there are more than one open brackets."""

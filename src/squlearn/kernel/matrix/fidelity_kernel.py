@@ -75,7 +75,7 @@ class FidelityKernel(KernelMatrixBase):
         evaluate_duplicates: str = "off_diagonal",
         mit_depol_noise: Union[str, None] = None,
         initial_parameters = None,
-        parameter_seed: Union[int, None] = None
+        parameter_seed: Union[int, None] = 0
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters, parameter_seed)
 

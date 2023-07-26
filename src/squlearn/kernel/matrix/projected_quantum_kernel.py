@@ -301,7 +301,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters = None,
-        parameter_seed: Union[int, None] = None,
+        parameter_seed: Union[int, None] = 0,
         **kwargs,
     ) -> None:
         super().__init__(feature_map, executor, initial_parameters, parameter_seed)

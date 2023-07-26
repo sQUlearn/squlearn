@@ -56,9 +56,9 @@ class ExpectationOperatorBase(ABC):
     @property
     def parameter_bounds(self):
         """Bounds of the free parameters in the expectation operator."""
-        return np.array([])
+        return np.array([[0, 5]] * self.num_parameters)
 
-    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+    def generate_initial_parameters(self, ones: bool = True, seed: Union[int, None] = None) -> np.ndarray:
         """
         Generates random parameters for the expectation operator
 
@@ -68,6 +68,9 @@ class ExpectationOperatorBase(ABC):
         Return:
             Returns the randomly generated parameters
         """
+        if ones:
+            return np.ones(self.num_parameters)
+
         if self.num_parameters == 0:
             return np.array([])
         r = np.random.RandomState(seed)
