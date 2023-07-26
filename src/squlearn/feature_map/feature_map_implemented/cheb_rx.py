@@ -34,7 +34,7 @@ class ChebRx(FeatureMapBase):
         num_features: int,
         num_layers: int = 1,
         closed: bool = False,
-        alpha: float = 4.0
+        alpha: float = 4.0,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
@@ -64,13 +64,13 @@ class ChebRx(FeatureMapBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebRx feature map
+        Generates random parameters for the ChebRx feature map.
 
         Args:
-            seed (Union[int,None]): Seed for the random number generator
+            seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
-            Returns the randomly generated parameters
+            The randomly generated parameters
         """
         param = super().generate_initial_parameters(seed)
 

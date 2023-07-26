@@ -261,8 +261,8 @@ class _ComposedKernelMatrix(KernelMatrixBase):
     @property
     def feature_bounds(self) -> np.ndarray:
         """The bounds of the features of the composed kernel matrix."""
-        min_val = np.minimum(self._km1.feature_bounds[:,0], self._km2.feature_bounds[:,0])
-        max_val = np.maximum(self._km1.feature_bounds[:,1], self._km2.feature_bounds[:,1])
+        min_val = np.minimum(self._km1.feature_bounds[:, 0], self._km2.feature_bounds[:, 0])
+        max_val = np.maximum(self._km1.feature_bounds[:, 1], self._km2.feature_bounds[:, 1])
         return np.array([min_val, max_val]).T
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:

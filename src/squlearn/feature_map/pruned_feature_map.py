@@ -101,7 +101,7 @@ class PrunedFeatureMap(FeatureMapBase):
 
         # Renumber x vector
         used_old_x = [x for x in self._x_base if x in used_param]
-        self._pruned_features = [x.index for x in self._x_base if x not in used_param]
+        self._pruned_features = [x.index for x in self._x_base if x not in used_param].sort()
 
         self._x = ParameterVector("x_", len(used_old_x))
         exchange_dict_x = dict(zip(used_old_x, self._x))
@@ -122,15 +122,26 @@ class PrunedFeatureMap(FeatureMapBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
+        """Feature bounds of the pruned feature map."""
         bounds = self._feature_map.feature_bounds
         return np.delete(bounds, self._pruned_features, 0)
 
     @property
     def parameter_bounds(self) -> np.ndarray:
+        """Parameter bounds of the pruned feature map."""
         bounds = self._feature_map.parameter_bounds
         return np.delete(bounds, self._pruned_parameters, 0)
 
-    def generate_initial_parameters(self, seed: int | None = None) -> np.ndarray:
+    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        """
+        Generates random parameters for the pruned feature map.
+
+        Args:
+            seed (Union[int,None]): Seed for the random number generator (default: None)
+
+        Return:
+            The randomly generated parameters
+        """
         param = self._feature_map.generate_initial_parameters(seed)
         return np.delete(param, self._pruned_parameters, 0)
 

@@ -48,16 +48,16 @@ class FeatureMapBase:
         Generates random parameters for the feature map
 
         Args:
-            seed (Union[int,None]): Seed for the random number generator
+            seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
-            Returns the randomly generated parameters
+            The randomly generated parameters
         """
         if self.num_parameters == 0:
             return np.array([])
         r = np.random.RandomState(seed)
         bounds = self.parameter_bounds
-        return r.uniform(low=bounds[:,0], high=bounds[:,1])
+        return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
     def get_circuit(
         self,
@@ -153,22 +153,26 @@ class FeatureMapBase:
             @property
             def num_parameters(self) -> int:
                 """Returns the number of trainable parameters of composed feature map.
-                Is equal to the sum of both trainable parameters
+
+                Is equal to the sum of both trainable parameters.
                 """
                 return self._fm1.num_parameters + self._fm2.num_parameters
 
             @property
             def parameter_bounds(self) -> np.ndarray:
                 """Returns the bounds of the trainable parameters of composed feature map.
-                Is equal to the sum of both bounds
+
+                Is equal to the sum of both bounds.
                 """
-                return np.concatenate((self._fm1.parameter_bounds,
-                                       self._fm2.parameter_bounds),axis=0)
+                return np.concatenate(
+                    (self._fm1.parameter_bounds, self._fm2.parameter_bounds), axis=0
+                )
 
             @property
             def feature_bounds(self) -> np.ndarray:
                 """Returns the bounds of the features of composed feature map.
-                Is equal to the maximum and minimum of both bounds
+
+                Is equal to the maximum and minimum of both bounds.
                 """
 
                 feature_bounds1 = self._fm1.feature_bounds
@@ -184,8 +188,8 @@ class FeatureMapBase:
                     feature_bounds_values = self._fm2.feature_bounds
 
                 for i in range(min_num_feature):
-                    feature_bounds_values[i,0] = min(feature_bounds1[i,0], feature_bounds2[i,0])
-                    feature_bounds_values[i,1] = max(feature_bounds1[i,1], feature_bounds2[i,1])
+                    feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
+                    feature_bounds_values[i, 1] = max(feature_bounds1[i, 1], feature_bounds2[i, 1])
 
                 return feature_bounds_values
 
@@ -200,8 +204,13 @@ class FeatureMapBase:
                     Returns the randomly generated parameters
                 """
 
-                return np.concatenate((self._fm1.generate_initial_parameters(seed),
-                                       self._fm2.generate_initial_parameters(seed)),axis=0)
+                return np.concatenate(
+                    (
+                        self._fm1.generate_initial_parameters(seed),
+                        self._fm2.generate_initial_parameters(seed),
+                    ),
+                    axis=0,
+                )
 
             def get_circuit(
                 self,

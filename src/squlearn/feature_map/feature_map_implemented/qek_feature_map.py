@@ -63,7 +63,7 @@ class QEKFeatureMap(FeatureMapBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the QEK feature map."""
 
-        bound_array = np.zeros((self.num_parameters,2))
+        bound_array = np.zeros((self.num_parameters, 2))
         # Single theta Ry gates
         ioff = 0
         for ilayer in range(self.num_layers):
@@ -79,7 +79,7 @@ class QEKFeatureMap(FeatureMapBase):
                     istop = self.num_qubits - 1
 
                 for i in range(istop):
-                    bound_array[ioff] = [-2.0*np.pi, 2.0*np.pi]
+                    bound_array[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
                     ioff = ioff + 1
         return bound_array
 

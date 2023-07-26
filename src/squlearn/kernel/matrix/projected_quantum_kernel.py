@@ -300,7 +300,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         executor: Executor,
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
-        initial_parameters = None,
+        initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         **kwargs,
     ) -> None:

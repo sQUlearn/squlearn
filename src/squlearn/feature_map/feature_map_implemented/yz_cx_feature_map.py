@@ -44,6 +44,7 @@ class YZ_CX_FeatureMap(FeatureMapBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the YZ-CX Feature Map feature map."""
         return np.array([[-np.pi, np.pi]] * self.num_parameters)
 
     @property

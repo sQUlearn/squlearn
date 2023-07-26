@@ -92,7 +92,7 @@ class ChebPQC(FeatureMapBase):
                 ioff = ioff + 1
 
             for i in range(0, self.num_qubits, 2):
-                bounds[ioff] = [-2.0*np.pi, 2.0*np.pi]
+                bounds[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
                 ioff = ioff + 1
 
             if self.num_qubits > 2:
@@ -101,7 +101,7 @@ class ChebPQC(FeatureMapBase):
                 else:
                     istop = self.num_qubits - 1
                 for i in range(1, istop, 2):
-                    bounds[ioff] = [-2.0*np.pi, 2.0*np.pi]
+                    bounds[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
                     ioff = ioff + 1
 
         for i in range(self.num_qubits):
@@ -115,10 +115,10 @@ class ChebPQC(FeatureMapBase):
         Generates random parameters for the ChebPQC feature map
 
         Args:
-            seed (Union[int,None]): Seed for the random number generator
+            seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
-            Returns the randomly generated parameters
+            The randomly generated parameters
         """
         param = super().generate_initial_parameters(seed)
 
