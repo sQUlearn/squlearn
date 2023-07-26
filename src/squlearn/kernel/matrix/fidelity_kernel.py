@@ -6,9 +6,7 @@ from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
 
 from qiskit_machine_learning.kernels import QuantumKernel
-from qiskit_machine_learning.kernels.fidelity_quantum_kernel import (
-    FidelityQuantumKernel,
-)
+from qiskit_machine_learning.kernels.fidelity_quantum_kernel import FidelityQuantumKernel
 from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
@@ -116,10 +114,8 @@ class FidelityKernel(KernelMatrixBase):
             )
 
     def evaluate(
-            self,
-            x: np.ndarray,
-            y: Union[np.ndarray, None] = None,
-            regularization=None) -> np.ndarray:
+        self, x: np.ndarray, y: Union[np.ndarray, None] = None, regularization=None
+    ) -> np.ndarray:
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -166,8 +162,8 @@ class FidelityKernel(KernelMatrixBase):
         mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob_mean = self._survival_probability_mean(kernel)
         mmean_kernel_matrix = (
-            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean**2)
-        ) / survival_prob_mean**2
+            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean ** 2)
+        ) / survival_prob_mean ** 2
         return mmean_kernel_matrix
 
     def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:

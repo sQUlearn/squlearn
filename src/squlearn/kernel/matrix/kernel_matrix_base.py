@@ -5,6 +5,7 @@ from .regularization import thresholding_regularization, tikhonov_regularization
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
 
+
 class KernelMatrixBase:
     """
     Base class for defining quantum kernels.
@@ -207,13 +208,14 @@ class KernelMatrixBase:
                 Can be either thresholding or tikhonov. For more information see
                 squlearn.kernel.matrix.regularization
         """
-        if method == 'thresholding':
+        if method == "thresholding":
             return thresholding_regularization(matrix)
-        elif method == 'tikhonov':
+        elif method == "tikhonov":
             return tikhonov_regularization(matrix)
         else:
             raise AttributeError(
-                'If regularization is not none it must be either thresholding or tikhonov')
+                "If regularization is not none it must be either thresholding or tikhonov"
+            )
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):

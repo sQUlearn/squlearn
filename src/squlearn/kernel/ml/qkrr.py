@@ -108,7 +108,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         """
         self.x_train = x_train
         self.k_train = self._quantum_kernel.evaluate(
-            x=self.x_train, regularization=self._regularization)  # set up kernel matrix
+            x=self.x_train, regularization=self._regularization
+        )  # set up kernel matrix
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 

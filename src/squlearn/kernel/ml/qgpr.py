@@ -101,11 +101,12 @@ class QGPR(BaseEstimator, RegressorMixin):
             QuantumGaussianProcessRegressor class instance.
         """
         self.X_train = X_train
-        if self._regularization == 'full':
+        if self._regularization == "full":
             self.K_train = self._quantum_kernel.evaluate(x=self.X_train, regularization=None)
         else:
             self.K_train = self._quantum_kernel.evaluate(
-                x=self.X_train, regularization=self._regularization)
+                x=self.X_train, regularization=self._regularization
+            )
         if self.normalize_y:
             self._y_train_mean = np.mean(y_train, axis=0)
             self._y_train_std = _handle_zeros_in_scale(np.std(y_train, axis=0), copy=False)
@@ -160,17 +161,20 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         if self._regularization == "full":
             print("Regularizing full Gram matrix")
-            self.K_test = self._quantum_kernel.evaluate(x=X_test,
-                                                        regularization=None)
+            self.K_test = self._quantum_kernel.evaluate(x=X_test, regularization=None)
             self.K_testtrain = self._quantum_kernel.evaluate(
-                x=X_test, y=self.X_train, regularization=None)
+                x=X_test, y=self.X_train, regularization=None
+            )
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
-                self.K_train, self.K_testtrain, self.K_test)
+                self.K_train, self.K_testtrain, self.K_test
+            )
         else:
-            self.K_test = self._quantum_kernel.evaluate(x=X_test,
-                                                        regularization=self._regularization)
+            self.K_test = self._quantum_kernel.evaluate(
+                x=X_test, regularization=self._regularization
+            )
             self.K_testtrain = self._quantum_kernel.evaluate(
-                x=X_test, y=self.X_train, regularization=self._regularization)
+                x=X_test, y=self.X_train, regularization=self._regularization
+            )
 
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])
 

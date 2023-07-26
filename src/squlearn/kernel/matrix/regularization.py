@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 
+
 def thresholding_regularization(gram_matrix):
     """
     Thresholding regularization method of a Gram matrix (full or training kernel matrix)
@@ -24,7 +25,7 @@ def thresholding_regularization(gram_matrix):
     """
     evals, evecs = scipy.linalg.eig(gram_matrix)
     reconstruction = evecs @ np.diag(evals.clip(min=0)) @ evecs.T
-    print('This is thresholding')
+    print("This is thresholding")
     return np.real(reconstruction)
 
 
@@ -43,7 +44,7 @@ def tikhonov_regularization(gram_matrix):
     evals = scipy.linalg.eigvals(gram_matrix)
     if np.min(np.real(evals)) < 0:
         gram_matrix -= np.min(np.real(evals)) * np.identity(gram_matrix.shape[0])
-    print('This is tikhonov')
+    print("This is tikhonov")
     return gram_matrix
 
 

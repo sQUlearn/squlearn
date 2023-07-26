@@ -414,10 +414,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         return self._qnn.evaluate_f(x, param, param_op)
 
     def evaluate(
-            self,
-            x: np.ndarray,
-            y: np.ndarray = None,
-            regularization: Union[str, None] = None) -> np.ndarray:
+        self, x: np.ndarray, y: np.ndarray = None, regularization: Union[str, None] = None
+    ) -> np.ndarray:
         """Evaluates the Projected Quantum Kernel for the given data points x and y.
 
         Args:
