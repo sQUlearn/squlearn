@@ -35,13 +35,19 @@ class FeatureMapBase:
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the feature map."""
-        return np.array([])
+        """The bounds of the trainable parameters of the feature map.
+
+        Default bounds are [-pi,pi] for each parameter.
+        """
+        return np.array([[-np.pi, np.pi]] * self.num_parameters)
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the feature map."""
-        return np.array([])
+        """The bounds of the features of the feature map.
+
+        Default bounds are [-pi,pi] for each feature.
+        """
+        return np.array([[-np.pi, np.pi]] * self.num_features)
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
