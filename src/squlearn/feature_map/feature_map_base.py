@@ -115,6 +115,42 @@ class FeatureMapBase:
 
         return circ.draw(output, **kwargs)
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the feature map.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        param = {}
+        param["num_qubits"] = self._num_qubits
+        return param
+
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the feature map hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2.
+        """
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            try:
+                setattr(self, key, value)
+            except:
+                setattr(self, "_" + key, value)
+
+        return None
+
     def __mul__(self, x):
         return self.__add__(x)
 
@@ -217,6 +253,64 @@ class FeatureMapBase:
                     ),
                     axis=0,
                 )
+            def get_params(self, deep: bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the composed feature map.
+
+                Hyper-parameter names are prefixed by ``fm1__`` or ``fm2__`` depending on
+                which feature map they belong to.
+
+                Args:
+                    deep (bool): If True, also the parameters for
+                                 contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+                params = dict(fm1=self._fm1, fm2=self._fm2)
+                if deep:
+                    deep_items = self._fm1.get_params().items()
+                    for k, val in deep_items:
+                        if k != "num_qubits":
+                            params["fm1__" + k] = val
+                    deep_items = self._fm2.get_params().items()
+                    for k, val in deep_items:
+                        if k != "num_qubits":
+                            params["fm2__" + k] = val
+
+                params["num_qubits"] = self._fm1.get_params()["num_qubits"]
+
+                return params
+
+            def set_params(self, **params) -> None:
+                """
+                Sets value of the composed kernel hyper-parameters.
+
+                Args:
+                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                """
+                valid_params = self.get_params()
+                fm1_dict = {}
+                fm2_dict = {}
+                for key, value in params.items():
+                    if key not in valid_params:
+                        raise ValueError(
+                            f"Invalid parameter {key!r}. "
+                            f"Valid parameters are {sorted(valid_params)!r}."
+                        )
+                    if key.startswith("fm1__"):
+                        fm1_dict[key[5:]] = value
+                    elif key.startswith("fm2__"):
+                        fm2_dict[key[5:]] = value
+
+                    if key == "num_qubits":
+                        fm1_dict["num_qubits"] = value
+                        fm2_dict["num_qubits"] = value
+
+                if len(fm1_dict) > 0:
+                    self._fm1.set_params(**fm1_dict)
+                if len(fm2_dict) > 0:
+                    self._fm2.set_params(**fm2_dict)
 
             def get_circuit(
                 self,

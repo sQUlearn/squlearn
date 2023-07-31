@@ -40,6 +40,22 @@ class ParamZFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the featuremap."""
         return max(self._num_qubits, self._num_features) * self._num_layers
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the parameterized Z feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self._num_layers
+        params["entangling"] = self._entangling
+        return params
+
     @property
     def num_layers(self) -> int:
         """The number of layers of the featuremap."""

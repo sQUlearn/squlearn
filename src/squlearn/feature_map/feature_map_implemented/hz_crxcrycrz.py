@@ -64,6 +64,22 @@ class HZCRxCRyCRz(FeatureMapBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the HZCRxCRyCRz feature map."""
         return np.array([[-2.0 * np.pi, 2.0 * np.pi]] * self.num_parameters)
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the HZCRxCRyCRz feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        params["final_encoding"] = self.final_encoding
+        return params
 
     def get_circuit(
         self,
@@ -82,6 +98,10 @@ class HZCRxCRyCRz(FeatureMapBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.num_qubits < 2:
+            raise ValueError("HZCRxCRyCRz requires at least two qubits.")
+
         nfeature = len(features)
         nparam = len(parameters)
         QC = QuantumCircuit(self.num_qubits)

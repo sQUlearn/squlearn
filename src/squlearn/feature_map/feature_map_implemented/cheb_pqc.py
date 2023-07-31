@@ -137,6 +137,22 @@ class ChebPQC(FeatureMapBase):
         bounds[:, 0] = -1.0
         bounds[:, 1] = 1.0
         return bounds
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the ChebPQC feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        params["entangling_gate"] = self.entangling_gate
+        return params
 
     def get_circuit(
         self,
