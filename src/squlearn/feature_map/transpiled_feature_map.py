@@ -108,6 +108,16 @@ class TranspiledFeatureMap(FeatureMapBase):
         """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
 
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """Bounds of the trainable parameters of the feature map."""
+        return self._feature_map.parameter_bounds
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """Bounds of the features of the feature map."""
+        return self._feature_map.feature_bounds
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the feature map.

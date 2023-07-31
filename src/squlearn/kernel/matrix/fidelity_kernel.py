@@ -72,11 +72,12 @@ class FidelityKernel(KernelMatrixBase):
         self,
         feature_map: FeatureMapBase,
         executor: Executor,
-        initial_parameters=None,
         evaluate_duplicates: str = "off_diagonal",
         mit_depol_noise: Union[str, None] = None,
+        initial_parameters: Union[np.ndarray, None] = None,
+        parameter_seed: Union[int, None] = 0,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
 
         self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates.lower()

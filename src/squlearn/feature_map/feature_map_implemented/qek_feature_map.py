@@ -59,6 +59,35 @@ class QEKFeatureMap(FeatureMapBase):
                 num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the QEK feature map."""
+
+        bound_array = np.zeros((self.num_parameters, 2))
+        # Single theta Ry gates
+        ioff = 0
+        for ilayer in range(self.num_layers):
+            for i in range(self.num_qubits):
+                bound_array[ioff] = [-np.pi, np.pi]
+                ioff = ioff + 1
+
+            # Entangled theta CRZ gates
+            if self.num_qubits > 2:
+                if self.closed:
+                    istop = self.num_qubits
+                else:
+                    istop = self.num_qubits - 1
+
+                for i in range(istop):
+                    bound_array[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
+                    ioff = ioff + 1
+        return bound_array
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the QEK feature map."""
+        return np.array([[-np.pi, np.pi]] * self.num_features)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QEK feature map

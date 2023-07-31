@@ -60,6 +60,11 @@ class HZCRxCRyCRz(FeatureMapBase):
             num_param += 3 * self.num_layers
         return num_param
 
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the HZCRxCRyCRz feature map."""
+        return np.array([[-2.0 * np.pi, 2.0 * np.pi]] * self.num_parameters)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the HZCRxCRyCRz feature map

@@ -54,6 +54,33 @@ class ExpectationOperatorBase(ABC):
         return 0
 
     @property
+    def parameter_bounds(self):
+        """Bounds of the free parameters in the expectation operator."""
+        return np.array([[0, 5]] * self.num_parameters)
+
+    def generate_initial_parameters(
+        self, ones: bool = True, seed: Union[int, None] = None
+    ) -> np.ndarray:
+        """
+        Generates random parameters for the expectation operator
+
+        Args:
+            ones (bool): If True, returns an array of ones (default: True)
+            seed (Union[int,None]): Seed for the random number generator
+
+        Return:
+            The randomly generated parameters
+        """
+        if ones:
+            return np.ones(self.num_parameters)
+
+        if self.num_parameters == 0:
+            return np.array([])
+        r = np.random.RandomState(seed)
+        bounds = self.parameter_bounds
+        return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
+
+    @property
     def num_qubits(self):
         """Number of qubits in the expectation operator."""
         return self._num_qubits
@@ -292,6 +319,37 @@ class ExpectationOperatorBase(ABC):
                     return self._op1.num_parameters
                 else:
                     return self._op1.num_parameters + self._op2.num_parameters
+
+            @property
+            def parameter_bounds(self) -> np.ndarray:
+                """The bounds of the trainable parameters of added expectation operator."""
+                if self._op1 == self._op2:
+                    return self._op1.parameter_bounds
+                else:
+                    return np.concatenate(
+                        (self._op1.parameter_bounds, self._op2.parameter_bounds), axis=0
+                    )
+
+            def generate_initial_parameters(
+                self, ones: bool = True, seed: Union[int, None] = None
+            ) -> np.ndarray:
+                """
+                Generates random parameters for the expectation operator.
+
+                Args:
+                    ones (bool): If True, returns an array of ones (default: True)
+                    seed (Union[int,None]): Seed for the random number generator (default: None)
+
+                Return:
+                    The randomly generated parameters
+                """
+                return np.concatenate(
+                    (
+                        self._op1.generate_initial_parameters(ones, seed),
+                        self._op2.generate_initial_parameters(ones, seed),
+                    ),
+                    axis=0,
+                )
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
                 """Returns the PauliOp expression of the added expectation operator.

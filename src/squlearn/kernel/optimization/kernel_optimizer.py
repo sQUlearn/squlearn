@@ -55,6 +55,8 @@ class KernelOptimizer(KernelOptimizerBase):
         self._optimal_value = None
         self._optimal_point = None
         self._optimal_parameters = None
+        if self._initial_parameters is None:
+            self._initial_parameters = self._quantum_kernel.parameters
 
     def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
         """Run the optimization and return the result.
