@@ -108,6 +108,7 @@ class QiskitFeatureMap(FeatureMapBase):
         Here arbitrarily chosen to be [-100,100] for all parameters.
         """
         return np.array([[-100, 100]] * self.num_parameters)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Qiskit feature map

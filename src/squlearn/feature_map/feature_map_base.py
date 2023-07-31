@@ -253,6 +253,7 @@ class FeatureMapBase:
                     ),
                     axis=0,
                 )
+
             def get_params(self, deep: bool = True) -> dict:
                 """
                 Returns hyper-parameters and their values of the composed feature map.

@@ -137,6 +137,7 @@ class ChebPQC(FeatureMapBase):
         bounds[:, 0] = -1.0
         bounds[:, 1] = 1.0
         return bounds
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebPQC feature map

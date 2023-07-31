@@ -81,6 +81,7 @@ class ChebRx(FeatureMapBase):
                 param[i] = p
 
         return param
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebRx feature map

@@ -87,6 +87,7 @@ class QEKFeatureMap(FeatureMapBase):
     def feature_bounds(self) -> np.ndarray:
         """The bounds of the features of the QEK feature map."""
         return np.array([[-np.pi, np.pi]] * self.num_features)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QEK feature map

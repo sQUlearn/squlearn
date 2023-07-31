@@ -277,6 +277,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         min_val = np.minimum(self._km1.feature_bounds[:, 0], self._km2.feature_bounds[:, 0])
         max_val = np.maximum(self._km1.feature_bounds[:, 1], self._km2.feature_bounds[:, 1])
         return np.array([min_val, max_val]).T
+
     def parameters(self) -> np.ndarray:
         """
         The numeric values of the trainable parameters assigned to the
