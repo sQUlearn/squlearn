@@ -43,6 +43,11 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         return 2 * self.num_qubits * self._num_layers
 
     @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the YZ-CX Feature Map feature map."""
+        return np.array([[-np.pi, np.pi]] * self.num_parameters)
+
+    @property
     def num_layers(self) -> int:
         """The number of layers of the YZ-CX Feature Map feature map."""
         return self._num_layers
@@ -51,6 +56,22 @@ class YZ_CX_FeatureMap(FeatureMapBase):
     def c(self) -> int:
         """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
         return self._c
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the YZ-CX Feature Map feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self._num_layers
+        params["c"] = self._c
+        return params
 
     def get_circuit(
         self,

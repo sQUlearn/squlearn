@@ -34,15 +34,69 @@ class ChebRx(FeatureMapBase):
         num_features: int,
         num_layers: int = 1,
         closed: bool = False,
+        alpha: float = 4.0,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
+        self.alpha = alpha
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the ChebRx feature map."""
         return 2 * self.num_qubits * self.num_layers
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the ChebRx feature map."""
+        bounds = np.zeros((self.num_parameters, 2))
+        ioff = 0
+        for ilayer in range(self.num_layers):
+            # Chebyshev feature map
+            for i in range(self.num_qubits):
+                bounds[ioff] = [0.0, self.alpha]
+                ioff = ioff + 1
+            # Trafo
+            for i in range(self.num_qubits):
+                bounds[ioff] = [-np.pi, np.pi]
+                ioff = ioff + 1
+        return bounds
+
+    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        """
+        Generates random parameters for the ChebRx feature map.
+
+        Args:
+            seed (Union[int,None]): Seed for the random number generator (default: None)
+
+        Return:
+            The randomly generated parameters
+        """
+        param = super().generate_initial_parameters(seed)
+
+        if len(param) > 0:
+            index = self.get_cheb_indices(False)
+            p = np.linspace(0.01, self.alpha, self.num_qubits)
+            for i in index:
+                param[i] = p
+
+        return param
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the ChebRx feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        return params
 
     def get_circuit(
         self,
@@ -69,6 +123,8 @@ class ChebRx(FeatureMapBase):
 
             if self.num_qubits > 2:
                 if self.closed:
+                    istop = self.num_qubits
+                elif self.num_qubits % 2 == 1:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1

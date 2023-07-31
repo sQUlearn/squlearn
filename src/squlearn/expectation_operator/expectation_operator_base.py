@@ -54,9 +54,75 @@ class ExpectationOperatorBase(ABC):
         return 0
 
     @property
+    def parameter_bounds(self):
+        """Bounds of the free parameters in the expectation operator."""
+        return np.array([[0, 5]] * self.num_parameters)
+
+    def generate_initial_parameters(
+        self, ones: bool = True, seed: Union[int, None] = None
+    ) -> np.ndarray:
+        """
+        Generates random parameters for the expectation operator
+
+        Args:
+            ones (bool): If True, returns an array of ones (default: True)
+            seed (Union[int,None]): Seed for the random number generator
+
+        Return:
+            The randomly generated parameters
+        """
+        if ones:
+            return np.ones(self.num_parameters)
+
+        if self.num_parameters == 0:
+            return np.array([])
+        r = np.random.RandomState(seed)
+        bounds = self.parameter_bounds
+        return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
+
+    @property
     def num_qubits(self):
         """Number of qubits in the expectation operator."""
         return self._num_qubits
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the operator.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        param = {}
+        param["num_qubits"] = self._num_qubits
+        return param
+
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the operator hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2.
+        """
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            try:
+                setattr(self, key, value)
+            except:
+                setattr(self, "_" + key, value)
+
+            # Reset Mapping if the number of quibts is changed
+            if key == "num_qubits" or key == "_num_qubits":
+                self._num_all_qubits = self._num_qubits
+                self._qubit_map = np.linspace(0, self._num_qubits - 1, self._num_qubits, dtype=int)
 
     def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
         """Returns Operator in as a opflow measurement operator.
@@ -176,6 +242,73 @@ class ExpectationOperatorBase(ABC):
                 self._op1 = op1
                 self._op2 = op2
 
+            def get_params(self, deep: bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the composed feature map.
+
+                Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
+                which feature map they belong to.
+
+                Args:
+                    deep (bool): If True, also the parameters for
+                                 contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+
+                if self._op1 == self._op2:
+                    return self._op1.get_params()
+                else:
+                    params = dict(op1=self._op1, op2=self._op2)
+                    if deep:
+                        deep_items = self._op1.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op1__" + k] = val
+                        deep_items = self._op2.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op2__" + k] = val
+
+                    params["num_qubits"] = self._op1.get_params()["num_qubits"]
+
+                    return params
+
+            def set_params(self, **params) -> None:
+                """
+                Sets value of the composed kernel hyper-parameters.
+
+                Args:
+                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                """
+                valid_params = self.get_params()
+                op1_dict = {}
+                op2_dict = {}
+                for key, value in params.items():
+                    if key not in valid_params:
+                        raise ValueError(
+                            f"Invalid parameter {key!r}. "
+                            f"Valid parameters are {sorted(valid_params)!r}."
+                        )
+
+                    if self._op1 == self._op2:
+                        op1_dict[key] = value
+                    else:
+                        if key.startswith("op1__"):
+                            op1_dict[key[5:]] = value
+                        elif key.startswith("op2__"):
+                            op2_dict[key[5:]] = value
+
+                        if key == "num_qubits":
+                            op1_dict["num_qubits"] = value
+                            op2_dict["num_qubits"] = value
+
+                if len(op1_dict) > 0:
+                    self._op1.set_params(**op1_dict)
+                if len(op2_dict) > 0:
+                    self._op2.set_params(**op2_dict)
+
             @property
             def num_parameters(self) -> int:
                 """The number of trainable parameters of added expectation operator.
@@ -186,6 +319,37 @@ class ExpectationOperatorBase(ABC):
                     return self._op1.num_parameters
                 else:
                     return self._op1.num_parameters + self._op2.num_parameters
+
+            @property
+            def parameter_bounds(self) -> np.ndarray:
+                """The bounds of the trainable parameters of added expectation operator."""
+                if self._op1 == self._op2:
+                    return self._op1.parameter_bounds
+                else:
+                    return np.concatenate(
+                        (self._op1.parameter_bounds, self._op2.parameter_bounds), axis=0
+                    )
+
+            def generate_initial_parameters(
+                self, ones: bool = True, seed: Union[int, None] = None
+            ) -> np.ndarray:
+                """
+                Generates random parameters for the expectation operator.
+
+                Args:
+                    ones (bool): If True, returns an array of ones (default: True)
+                    seed (Union[int,None]): Seed for the random number generator (default: None)
+
+                Return:
+                    The randomly generated parameters
+                """
+                return np.concatenate(
+                    (
+                        self._op1.generate_initial_parameters(ones, seed),
+                        self._op2.generate_initial_parameters(ones, seed),
+                    ),
+                    axis=0,
+                )
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
                 """Returns the PauliOp expression of the added expectation operator.
@@ -228,6 +392,72 @@ class ExpectationOperatorBase(ABC):
 
                 self._op1 = op1
                 self._op2 = op2
+
+            def get_params(self, deep: bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the composed feature map.
+
+                Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
+                which feature map they belong to.
+
+                Args:
+                    deep (bool): If True, also the parameters for
+                                 contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+                if self._op1 == self._op2:
+                    return self._op1.get_params()
+                else:
+                    params = dict(op1=self._op1, op2=self._op2)
+                    if deep:
+                        deep_items = self._op1.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op1__" + k] = val
+                        deep_items = self._op2.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["op2__" + k] = val
+
+                    params["num_qubits"] = self._op1.get_params()["num_qubits"]
+
+                    return params
+
+            def set_params(self, **params) -> None:
+                """
+                Sets value of the composed kernel hyper-parameters.
+
+                Args:
+                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                """
+                valid_params = self.get_params()
+                op1_dict = {}
+                op2_dict = {}
+                for key, value in params.items():
+                    if key not in valid_params:
+                        raise ValueError(
+                            f"Invalid parameter {key!r}. "
+                            f"Valid parameters are {sorted(valid_params)!r}."
+                        )
+
+                    if self._op1 == self._op2:
+                        op1_dict[key] = value
+                    else:
+                        if key.startswith("op1__"):
+                            op1_dict[key[5:]] = value
+                        elif key.startswith("op2__"):
+                            op2_dict[key[5:]] = value
+
+                        if key == "num_qubits":
+                            op1_dict["num_qubits"] = value
+                            op2_dict["num_qubits"] = value
+
+                if len(op1_dict) > 0:
+                    self._op1.set_params(**op1_dict)
+                if len(op2_dict) > 0:
+                    self._op2.set_params(**op2_dict)
 
             @property
             def num_parameters(self) -> int:
