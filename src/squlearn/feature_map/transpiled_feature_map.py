@@ -71,6 +71,7 @@ class TranspiledFeatureMap(FeatureMapBase):
             self._transpiled_circuit = transpile(self._circuit, self._backend, **kwargs)
 
         self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
+        self._kwargs = kwargs
 
     @property
     def num_qubits(self) -> int:
@@ -106,6 +107,30 @@ class TranspiledFeatureMap(FeatureMapBase):
     def num_parameters(self) -> int:
         """Number of trainable parameters of the feature map."""
         return self._feature_map.num_parameters
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the feature map.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        return self._feature_map.get_params()
+
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the feature map hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
+        self._feature_map.set_params(**params)
+        # Recompute and re-transpile the circuit by re-initializing the class
+        self.__init__(self._feature_map, self._backend, self._transpile_func, **self._kwargs)
 
     def get_circuit(
         self,

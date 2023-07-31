@@ -101,6 +101,22 @@ class QiskitFeatureMap(FeatureMapBase):
         """The number of trainable parameters of the Qiskit feature map."""
         return self._num_parameters
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Qiskit feature map
+
+        No hyper-parameters are available for the Qiskit feature map!
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = {}
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

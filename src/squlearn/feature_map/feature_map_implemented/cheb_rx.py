@@ -44,6 +44,22 @@ class ChebRx(FeatureMapBase):
         """The number of trainable parameters of the ChebRx feature map."""
         return 2 * self.num_qubits * self.num_layers
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the ChebRx feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -69,6 +85,8 @@ class ChebRx(FeatureMapBase):
 
             if self.num_qubits > 2:
                 if self.closed:
+                    istop = self.num_qubits
+                elif self.num_qubits % 2 == 1:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1

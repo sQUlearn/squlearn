@@ -59,6 +59,23 @@ class QEKFeatureMap(FeatureMapBase):
                 num_param += (self.num_qubits - 1) * self.num_layers
         return num_param
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the QEK feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self.num_layers
+        params["closed"] = self.closed
+        params["final_encoding"] = self.final_encoding
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

@@ -52,6 +52,22 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
         return self._c
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the YZ-CX Feature Map feature map
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_layers"] = self._num_layers
+        params["c"] = self._c
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

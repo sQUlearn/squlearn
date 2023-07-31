@@ -117,6 +117,65 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
             )
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the fidelity kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = {}
+        params["evaluate_duplicates"] = self._evaluate_duplicates
+        params["mit_depol_noise"] = self._mit_depol_noise
+        if deep:
+            params = self._feature_map.get_params()
+        return params
+
+    def set_params(self, **params):
+        """
+        Sets value of the fidelity kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
+        num_parameters_backup = self.num_parameters
+        parameters_backup = self._parameters
+
+        # Check if all parameters are valid
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        dict_feature_map = {}
+        for key in params.keys():
+            if key in self._feature_map.get_params().keys():
+                dict_feature_map[key] = params[key]
+        self._feature_map.set_params(**dict_feature_map)
+
+        if "evaluate_duplicates" in params.keys():
+            self._evaluate_duplicates = params["evaluate_duplicates"].lower()
+        if "mit_depol_noise" in params.keys():
+            self._mit_depol_noise = params["mit_depol_noise"]
+
+        self.__init__(
+            self._feature_map,
+            self._executor,
+            None,
+            self._evaluate_duplicates,
+            self._mit_depol_noise,
+        )
+        self._parameters = None
+        if self.num_parameters == num_parameters_backup:
+            self._parameters = parameters_backup
+
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
         if y is None:
             y = x
