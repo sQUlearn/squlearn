@@ -49,13 +49,27 @@ class OuterKernelBase:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel"""
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the outer kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def set_params(self, **kwarg):
-        """Sets the hyper parameters of the outer kernel"""
+    def set_params(self, **params):
+        """
+        Sets value of the outer kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
         raise NotImplementedError()
 
     @property
@@ -114,13 +128,27 @@ class OuterKernelBase:
                 # Evaluate kernel
                 return self._kernel(x_result, y_result)
 
-            def get_params(self) -> dict:
-                """Returns the hyper parameters of the outer kernel as a dictionary."""
-                return self._kernel.get_params()
+            def get_params(self, deep: bool = True) -> dict:
+                """
+                Returns hyper-parameters and their values of the sklearn kernel.
 
-            def set_params(self, **kwarg):
-                """Sets the hyper parameters of the outer kernel."""
-                self._kernel.set_params(**kwarg)
+                Args:
+                    deep (bool): If True, also the parameters for
+                                contained objects are returned (default=True).
+
+                Return:
+                    Dictionary with hyper-parameters and values.
+                """
+                return self._kernel.get_params(deep)
+
+            def set_params(self, **params):
+                """
+                Sets value of the sklearn kernel.
+
+                Args:
+                    params: Hyper-parameters and their values
+                """
+                self._kernel.set_params(**params)
 
         return SklearnOuterKernel(kernel, **kwarg)
 
@@ -148,8 +176,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         feature_map (FeatureMapBase): Feature map that is evaluated
         executor (Executor): Executor object
         measurement (Union[str, ExpectationOperatorBase, list]): Expectation values that are
-            computed from the feature map. Either an operator, a list of operators or one of the
-            string values: ``X``,``Y``,``Z``, or ``XYZ``
+            computed from the feature map. Either an operator, a list of operators or a
+            combination of the string values ``X``,``Y``,``Z``, e.g. ``XYZ``
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values. Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
@@ -301,36 +329,21 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters: Union[np.ndarray, None] = None,
+        parameter_seed: Union[int, None] = 0,
         **kwargs,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
+
+        self._measurement_input = measurement
 
         # Set-up measurement operator
         if isinstance(measurement, str):
-            if measurement == "Z":
-                # Measure Z at all qubits
-                self._measurement = []
+            self._measurement = []
+            for m_str in measurement:
+                if m_str not in ("X", "Y", "Z"):
+                    raise ValueError("Unknown measurement operator: {}".format(m_str))
                 for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Z"))
-            elif measurement == "X":
-                # Measure Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="X"))
-            elif measurement == "Y":
-                # Measure Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Y"))
-            elif measurement == "XYZ":
-                # Measure X, Y, and Z at all qubits
-                self._measurement = []
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="X"))
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Y"))
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str="Z"))
-            else:
-                raise ValueError("Unknown measurement string: {}".format(measurement))
+                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
         elif isinstance(measurement, ExpectationOperatorBase) or isinstance(measurement, list):
             self._measurement = measurement
         else:
@@ -338,9 +351,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set-up of the QNN
         self._qnn = QNN(self._feature_map, self._measurement, executor)
-        self._num_param = self._qnn.num_parameters
-        self._num_param_op = self._qnn.num_parameters_operator
-        self._num_parameters = self._num_param + self._num_param_op
 
         # Set-up of the outer kernel
         if isinstance(outer_kernel, str):
@@ -367,22 +377,22 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Check if the number of parameters is correct
         if self._parameters is not None:
-            if len(self._parameters) != self._num_parameters:
+            if len(self._parameters) != self.num_parameters:
                 raise ValueError(
                     "Number of inital parameters is wrong, expected number: {}".format(
-                        self._num_parameters
+                        self.num_parameters
                     )
                 )
 
     @property
     def num_features(self) -> int:
         """Feature dimension of the feature map"""
-        return self._num_features
+        return self._qnn.num_features
 
     @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the feature map"""
-        return self._num_parameters
+        return self._qnn.num_parameters + self._qnn.num_parameters_operator
 
     @property
     def measurement(self):
@@ -431,13 +441,90 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         return self._outer_kernel(self._qnn, self._parameters, x, y)
 
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel"""
-        return self._outer_kernel.get_params()
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Projected Quantum Kernel.
 
-    def set_params(self, **kwarg):
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = dict(measurement=self._measurement_input)
+        params.update(self._outer_kernel.get_params())
+        params["num_qubits"] = self.num_qubits
+        if deep:
+            params.update(self._qnn.get_params())
+        return params
+
+    def set_params(self, **params):
+        """
+        Sets value of the Projected Quantum Kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
+        num_parameters_backup = self.num_parameters
+        parameters_backup = self._parameters
+
         """Sets the hyper parameters of the outer kernel"""
-        self._outer_kernel.set_params(**kwarg)
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        dict_qnn = {}
+
+        if "num_qubits" in params:
+            if isinstance(self._measurement_input, str):
+                self._feature_map.set_params(num_qubits=params["num_qubits"])
+                self.__init__(
+                    self._feature_map,
+                    self._executor,
+                    self._measurement_input,
+                    self._outer_kernel,
+                    self._parameters,
+                )
+            else:
+                self._qnn.set_params(**dict_qnn)
+                self._feature_map.set_params(num_qubits=params["num_qubits"])
+                for m in self._measurement:
+                    m.set_params(num_qubits=params["num_qubits"])
+
+        if "measurement" in params:
+            self._measurement_input = params["measurement"]
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                self._parameters,
+            )
+
+        # Set QNN parameters
+        for key, value in params.items():
+            if key in self._qnn.get_params():
+                if key != "num_qubits":
+                    dict_qnn[key] = value
+        if len(dict_qnn) > 0:
+            self._qnn.set_params(**dict_qnn)
+
+        # Set outer kernel parameters
+        dict_outer_kernel = {}
+        for key, value in params.items():
+            if key in self._outer_kernel.get_params():
+                dict_outer_kernel[key] = value
+        if len(dict_outer_kernel) > 0:
+            self._outer_kernel.set_params(**dict_outer_kernel)
+
+        self._parameters = None
+        if self.num_parameters == num_parameters_backup:
+            self._parameters = parameters_backup
 
     @property
     def num_hyper_parameters(self) -> int:
@@ -493,10 +580,36 @@ class GaussianOuterKernel(OuterKernelBase):
 
         return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
 
-    def get_params(self) -> dict:
-        """Returns the hyper parameters of the outer kernel."""
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Gaussian outer kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         return {"gamma": self._gamma}
 
-    def set_params(self, gamma) -> None:
-        """Sets the hyper parameters of the outer kernel."""
-        self._gamma = gamma
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the Gaussian outer kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values
+        """
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            try:
+                setattr(self, key, value)
+            except:
+                setattr(self, "_" + key, value)
+
+        return None

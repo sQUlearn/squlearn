@@ -33,6 +33,7 @@ class BaseQNN(BaseEstimator, ABC):
             for SGDMixin optimizers
         opt_param_op : If True, operators parameters get optimized
         variance : Variance factor
+        parameter_seed : Seed for the random number generator for the parameter initialization
     """
 
     def __init__(
@@ -42,14 +43,15 @@ class BaseQNN(BaseEstimator, ABC):
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,
-        param_ini: np.ndarray = None,
-        param_op_ini: np.ndarray = None,
+        param_ini: Union[np.ndarray, None] = None,
+        param_op_ini: Union[np.ndarray, None] = None,
         batch_size: int = None,
         epochs: int = None,
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         shot_adjusting: shot_adjusting_options = None,
+        parameter_seed: Union[int, None] = 0,
     ) -> None:
         super().__init__()
         self.pqc = pqc
@@ -57,16 +59,21 @@ class BaseQNN(BaseEstimator, ABC):
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
+        self.parameter_seed = parameter_seed
 
         if param_ini is None:
-            # Todo: Set seed
-            self.param_ini = np.random.rand(pqc.num_parameters) * 2 * np.pi
+            self.param_ini = pqc.generate_initial_parameters(seed=parameter_seed)
         else:
             self.param_ini = param_ini
         self.param = self.param_ini.copy()
 
         if param_op_ini is None:
-            self.param_op_ini = np.ones(operator.num_parameters)
+            if isinstance(operator, list):
+                self.param_op_ini = np.concatenate(
+                    [op.generate_initial_parameters(seed=parameter_seed) for op in operator]
+                )
+            else:
+                self.param_op_ini = operator.generate_initial_parameters(seed=parameter_seed)
         else:
             self.param_op_ini = param_op_ini
         self.param_op = self.param_op_ini.copy()

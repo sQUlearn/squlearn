@@ -70,6 +70,26 @@ class ChebyshevTower(FeatureMapBase):
         """The number of trainable parameters of the Chebyshev Tower encoding (equal 0 here)."""
         return 0
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Chebyshev Tower encoding
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["num_chebyshev"] = self.num_chebyshev
+        params["alpha"] = self.alpha
+        params["num_layers"] = self.num_layers
+        params["rotation_gate"] = self.rotation_gate
+        params["hadamard_start"] = self.hadamard_start
+        params["arrangement"] = self.arrangement
+        return params
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -87,6 +107,12 @@ class ChebyshevTower(FeatureMapBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.rotation_gate not in ("rx", "ry", "rz"):
+            raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
+
+        if self.arrangement not in ("block", "alternating"):
+            raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
         def entangle_layer(QC: QuantumCircuit):
             """Creation of a simple NN entangling layer"""

@@ -23,13 +23,16 @@ class KernelMatrixBase:
         feature_map: FeatureMapBase,
         executor: Executor,
         initial_parameters: Union[np.ndarray, None] = None,
+        parameter_seed: Union[int, None] = 0,
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits
-        self._num_features = self._feature_map.num_features
-        self._num_parameters = self._feature_map.num_parameters
         self._executor = executor
         self._parameters = initial_parameters
+        self._parameter_seed = parameter_seed
+
+        if self._parameters is None:
+            self._parameters = self._feature_map.generate_initial_parameters(self._parameter_seed)
 
     @property
     def feature_map(self) -> FeatureMapBase:
@@ -46,7 +49,7 @@ class KernelMatrixBase:
     @property
     def num_features(self) -> int:
         """Returns the feature dimension of the feature map"""
-        return self._num_features
+        return self._feature_map.num_features
 
     @property
     def parameters(self) -> np.ndarray:
@@ -59,7 +62,17 @@ class KernelMatrixBase:
     @property
     def num_parameters(self) -> int:
         """Returns the number of trainable parameters of the feature map."""
-        return self._num_parameters
+        return self._feature_map.num_parameters
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the feature map."""
+        return self._feature_map.parameter_bounds
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the feature map."""
+        return self._feature_map.feature_bounds
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
@@ -184,17 +197,27 @@ class KernelMatrixBase:
         """
         return _ComposedKernelMatrix(self, x, "/")
 
-    def get_params(self, deep=True):
-        return {
-            "feature_map": self._feature_map,
-            "executor": self._executor,
-            "initial_parameters": self._parameters,
-        }
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the kernel method.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        raise NotImplementedError()
 
     def set_params(self, **params):
-        for param, value in params.items():
-            setattr(self, "_" + param, value)
-        return self
+        """
+        Sets value of the fidelity kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
+        raise NotImplementedError()
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):
@@ -225,18 +248,98 @@ class _ComposedKernelMatrix(KernelMatrixBase):
 
     @property
     def num_qubits(self) -> int:
-        """Returns RuntimeError since number of qubit is not meaningful for composed kernel matrices"""
+        """Returns the number of qubits used in the definition of the kernel matrix.
+
+        Raises an RuntimeError if the number of qubits is not equal in both kernel matrices.
+        """
+        if self._km1.num_qubits == self._km2.num_qubits:
+            return self._km1.num_qubits
         raise RuntimeError("The number of qubits is not available for composed kernel matrices")
 
     @property
     def num_features(self) -> int:
-        """Returns feature dimension for the composed kernel matrix"""
+        """The feature dimension for the composed kernel matrix"""
         return self._km1.num_features
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of trainable parameters corresponding to the composed kernel matrix"""
+        """The number of trainable parameters corresponding to the composed kernel matrix"""
         return self._km1.num_parameters + self._km2.num_parameters
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """The bounds of the trainable parameters of the composed kernel matrix."""
+        return np.concatenate((self._km1.parameter_bounds, self._km2.parameter_bounds), axis=0)
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the composed kernel matrix."""
+        min_val = np.minimum(self._km1.feature_bounds[:, 0], self._km2.feature_bounds[:, 0])
+        max_val = np.maximum(self._km1.feature_bounds[:, 1], self._km2.feature_bounds[:, 1])
+        return np.array([min_val, max_val]).T
+
+    def parameters(self) -> np.ndarray:
+        """
+        The numeric values of the trainable parameters assigned to the
+        feature map as np.ndarray
+        """
+        if self._km1.parameters is not None and self._km2.parameters is not None:
+            return np.concatenate((self._km1.parameters, self._km2.parameters))
+        return None
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the composed kernel method.
+
+        Hyper-parameter names are prefixed by ``km1__`` or ``km2__`` depending on
+        which kernel matrix they belong to.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = dict(km1=self._km1, km2=self._km2)
+        if deep:
+            deep_items = self._km1.get_params().items()
+            params.update(("km1__" + k, val) for k, val in deep_items)
+            deep_items = self._km2.get_params().items()
+            params.update(("km2__" + k, val) for k, val in deep_items)
+
+        if self._km1.get_params()["num_qubits"] == self._km2.get_params()["num_qubits"]:
+            params["num_qubits"] = self._km1.get_params()["num_qubits"]
+
+        return params
+
+    def set_params(self, **params):
+        """
+        Sets value of the composed kernel hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2
+        """
+        valid_params = self.get_params()
+        km1_dict = {}
+        km2_dict = {}
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            if key.startswith("km1__"):
+                km1_dict[key[5:]] = value
+            elif key.startswith("km2__"):
+                km2_dict[key[5:]] = value
+
+            if key == "num_qubits":
+                km1_dict["num_qubits"] = value
+                km2_dict["num_qubits"] = value
+
+        self._km1.set_params(**km1_dict)
+        self._km2.set_params(**km2_dict)
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
