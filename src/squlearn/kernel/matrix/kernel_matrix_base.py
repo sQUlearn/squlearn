@@ -75,7 +75,10 @@ class KernelMatrixBase:
         """The bounds of the features of the feature map."""
         return self._feature_map.feature_bounds
 
-    def evaluate(self, x: np.ndarray, y: np.ndarray = None, regularization=None) -> np.ndarray:
+    def evaluate(
+            self, x: np.ndarray,
+            y: np.ndarray = None,
+            regularization: Union[str, None] = None) -> np.ndarray:
         """
         Computes the quantum kernel matrix.
 
@@ -84,6 +87,10 @@ class KernelMatrixBase:
                 Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vector of training or test data for which the kernel matrix is evaluated
+            regularization (str, None) :
+                Str that specifies the method with which the kernel matrix should be regularized.
+                See method attribute from KernMatrixBase._regularize_matrix() method for valid
+                options.
 
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
@@ -232,8 +239,10 @@ class KernelMatrixBase:
                 squlearn.kernel.matrix.regularization
         """
         if method == "thresholding":
+            print('I am thresholdingg')
             return thresholding_regularization(matrix)
         elif method == "tikhonov":
+            print('I am tikhonovin')
             return tikhonov_regularization(matrix)
         else:
             raise AttributeError(
@@ -306,7 +315,6 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         """
         if self._km1.parameters is not None and self._km2.parameters is not None:
             return np.concatenate((self._km1.parameters, self._km2.parameters))
-        return None
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -362,7 +370,11 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         self._km1.set_params(**km1_dict)
         self._km2.set_params(**km2_dict)
 
-    def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
+    def evaluate(
+            self, x: np.ndarray,
+            y: np.ndarray = None,
+            regularization: Union[str, None] = None
+    ) -> np.ndarray:
         """
         Computes and the composed quantum kernel matrix.
 
@@ -371,12 +383,15 @@ class _ComposedKernelMatrix(KernelMatrixBase):
                 Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vector of training or test data for which the kernel matrix is evaluated
-
+            regularization (str, None) :
+                Str that specifies the method with which the kernel matrix should be regularized.
+                See method attribute from KernMatrixBase._regularize_matrix() method for valid
+                options.
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
-        K1 = self._km1.evaluate(x, y)
-        K2 = self._km2.evaluate(x, y)
+        K1 = self._km1.evaluate(x, y, regularization)
+        K2 = self._km2.evaluate(x, y, regularization)
 
         if self._composition == "*":
             return np.multiply(K1, K2)
