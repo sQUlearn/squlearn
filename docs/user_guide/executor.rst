@@ -1,4 +1,4 @@
-.. _exectutor:
+.. _executor_user_guide:
 
 .. currentmodule:: squlearn.Executor
 
