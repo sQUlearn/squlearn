@@ -76,9 +76,8 @@ class KernelMatrixBase:
         return self._feature_map.feature_bounds
 
     def evaluate(
-            self, x: np.ndarray,
-            y: np.ndarray = None,
-            regularization: Union[str, None] = None) -> np.ndarray:
+        self, x: np.ndarray, y: np.ndarray = None, regularization: Union[str, None] = None
+    ) -> np.ndarray:
         """
         Computes the quantum kernel matrix.
 
@@ -239,10 +238,10 @@ class KernelMatrixBase:
                 squlearn.kernel.matrix.regularization
         """
         if method == "thresholding":
-            print('I am thresholdingg')
+            print("I am thresholdingg")
             return thresholding_regularization(matrix)
         elif method == "tikhonov":
-            print('I am tikhonovin')
+            print("I am tikhonovin")
             return tikhonov_regularization(matrix)
         else:
             raise AttributeError(
@@ -371,9 +370,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         self._km2.set_params(**km2_dict)
 
     def evaluate(
-            self, x: np.ndarray,
-            y: np.ndarray = None,
-            regularization: Union[str, None] = None
+        self, x: np.ndarray, y: np.ndarray = None, regularization: Union[str, None] = None
     ) -> np.ndarray:
         """
         Computes and the composed quantum kernel matrix.
