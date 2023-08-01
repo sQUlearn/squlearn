@@ -41,6 +41,9 @@ The Executor class provides the following key comfort features when executing a 
   The cached files are named after the hash out of different properties of the quantum job,
   that include the backend name, the circuit, the options of the primitive, etc.
   Before running a job, the Executor checks if a cached result exists and returns it if it does.
+  The caching can be disabled by setting the ``caching`` argument to ``False``; the folder for
+  the cached results can be specified by the ``cache_dir`` argument,
+  (default folder: ``"_cache"``).
 - **Automatic restarts:** In case the job execution fails or is canceled, the Executor
   automatically resubmits and restarts the job up to a specified number of times.
   The number of restarts can be specified via the ``max_jobs_retries`` argument, the pause
@@ -82,18 +85,150 @@ execution environment:
 
     from squlearn import Executor
     from qiskit import Aer
+
     executor = Executor(Aer.get_backend("qasm_simulator"))
 
-- A backend from the Qiskit Runtime Service. 
+- A backend from the Qiskit Runtime Service, which utilizes the execution of quantum jobs on
+  IBM Quantum utilizing Sessions and Primitives.
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.get_backend('ibm_nairobi'))
+
+- A pre-initialized Session object, which can be used to execute quantum jobs on the Qiskit
+  Runtime Service
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    session = service.create_session()
+    executor = Executor(session)
+
+- Pre-configured Primitive with options for transpiling and error mitigation. The Executor class
+  utilizes the options of the inputted primitive, and automatically creates a new primitive with
+  the same options if necessary. Note Options from an Estimator are not automatically copied to
+  the Sampler, and vice versa.
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Options
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+
+    options = Options()
+    options.execution.shots = 1000
+    options.optimization_level = 0  # No optimization in transpilation
+    options.resilience_level = 2  # ZNE
+
+    estimator = Estimator(session=service.create_session(), options_estimator=options)
+    executor = Executor(estimator)
+
+- If only the ``backend.run`` execution is wanted, this can be achieved by utilizing the
+  Qiskit IBM Provider package. However, most sQUlearn algorithms a build upon primitives.
+  However, this access is not recommended, since it is likely to be deprecated in the future.
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_provider import IBMProvider
+
+    IBMProvider.save_account(token="INSERT_YOUR_TOKEN_HERE")
+    provider = IBMProvider(instance="hub/group/project")
+    executor = Executor(provider.get_backend("ibmq_qasm_simulator"))
+
+An example for configuring the Executor class with a backend from the Qiskit Runtime Service
+and setting options for caching, logging and restarts:
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService, Options
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+
+    options = Options()
+    options.execution.shots = 1000
+    options.optimization_level = 0  # No optimization in transpilation
+    options.resilience_level = 2  # ZNE
+
+    estimator = Executor(service.get_backend('ibm_nairobi'), # Specify the backend
+                         cache_dir='cache' # Set cache folder to "cache"
+                         caching=True, # Enable caching default for remote executions
+                         log_file="executor.log", # Set-up logging file
+                         wait_restart=600,  # Set 10 min pause between restarts of Jobs
+                         max_jobs_retries=10, # Set maximum number of restarts to 10 before aborting
+                         options_estimator=options # Set options for the Estimator primitive
+                         )
 
 
-- A Qiskit backend, typically used to run jobs on IBM Quantum systems or Aer simulators,
-    though any backend adhering to Qiskit specifications can be used.
-- A QuantumInstance, containing the backend and additional options.
-- A QiskitRuntimeService, to execute jobs on the Qiskit Runtime service (in this case,
-    the backend must be provided separately via the ``backend=`` argument).
-- A pre-initialized Session to execute jobs on the Qiskit Runtime service.
-- An Estimator or Sampler primitive (either simulator or Qiskit Runtime primitive).
+Utilizing Executor Primitives in Qiskit Routines
+-------------------------------------------------
+
+The Executor class provides an Estimator and Sampler primitive that are compatible with the
+Qiskit framework. The primitives can be obtained by the :meth:`get_estimator` and
+:meth:`get_sampler` methods of the Executor class. The primitives automatically utilized the parent
+Executor class for all executions, and thus benefit from all comfort features of the Executor.
+
+The following example shows, how to evaluate the Quantum Fisher Information utilizing the
+Executor primitive.
+
+  .. code-block:: python
+
+      from squlearn import Executor
+      from qiskit.algorithms.gradients import LinCombQGT, QFI
+      from qiskit.quantum_info import Pauli
+      # Executor intialization (other ways are possible, see above)
+      executor = Executor(execution="statevector_simulator")
+      # This creates the QFI primitive that utilizes the Estimator of the Executor class
+      qfi = QFI(LinCombQGT(executor.get_estimator()))
+      # Quantum Fischer Information can be evaluated as usual with qfi.run()
+
+If only the run function of the Executor Primtive is wanted, this can be achieved by utilizing the
+Executor class function :meth:`estimator_run` and :meth:`sampler_run`.
+
+Note that the attributes :meth:`estimator` and :meth:`sampler` of the Executor class are
+not creating or referring to the Executor primitives! Instead they refer to the
+Qiskit Primitives used internally that do not utilize any caching, restarts, etc.
+
+
+Setting Options for Primitives
+------------------------------
 
 Options for the Primitives can be provided through the ``options_estimator`` and
 ``options_sampler`` arguments, but they are also automatically copied from inputted primitives.
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService, Options
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+
+    options = Options()
+    options.optimization_level = 0 # No optimization in transpilation
+    options.execution.shots = 5000
+    options.resilience_level = 0 # No Mitigation
+
+    executor = Executor(service.get_backend("ibm_nairobi"),options_estimator=options)
+
+Options can be adjusted by the :meth:`set_options` method of the Primitives that are created by the
+Executor class.
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService, Options
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+
+    executor = Executor(service.get_backend("ibm_nairobi"))
+    estimator = executor.get_estimator()
+    estimator.set_options(resilience_level=2)
