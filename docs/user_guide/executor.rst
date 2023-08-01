@@ -232,3 +232,9 @@ Executor class.
     executor = Executor(service.get_backend("ibm_nairobi"))
     estimator = executor.get_estimator()
     estimator.set_options(resilience_level=2)
+
+.. seealso::
+
+   * :class:`Executor <squlearn.Executor>`
+   * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
+   * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
