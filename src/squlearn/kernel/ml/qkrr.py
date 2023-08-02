@@ -80,6 +80,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
         regularize: Union[str, None] = None,
+        **kwargs
     ) -> None:
         self._quantum_kernel = quantum_kernel  # May be worth to set FQK as default here?
         self.alpha = alpha
@@ -88,7 +89,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
-        self.num_qubits = self._quantum_kernel.num_qubits
+        #self.num_qubits = self._quantum_kernel.num_qubits
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
@@ -148,16 +149,34 @@ class QKRR(BaseEstimator, RegressorMixin):
     # All scikit-learn estimators have get_params and set_params
     # (cf. https://scikit-learn.org/stable/developers/develop.html)
     def get_params(self, deep: bool = True):
-        return {
-            "quantum_kernel": self._quantum_kernel,
-            "alpha": self.alpha,
-            "regularize": self._regularize,
-        }
+        params = dict()
+        params["quantum_kernel"] = self._quantum_kernel
+        if deep:
+            params.update(self._quantum_kernel.get_params(deep=True))
+        else:
+            params.update(self._quantum_kernel.get_params(deep=False))
+        #params["num_qubits"] = self.num_qubits
+        params["alpha"] = self.alpha
+        # return {
+        #     "quantum_kernel": self._quantum_kernel,
+        #     "alpha": self.alpha,
+        #     "regularize": self._regularize,
+        # }
+        return params
 
-    def set_params(self, **parameters):
-        for parameter, value in parameters.items():
-            setattr(self, parameter, value)
-        return self
+    def set_params(self, **kwargs):
+        valid_params = self.get_params(deep=True)
+        param_dict = {}
+        for key, value in kwargs.items():
+            if key in valid_params:
+                param_dict[key] = value
+                self._quantum_kernel.set_params(**param_dict)
+        #return self
+
+    # def set_params(self, **parameters):
+    #     for parameter, value in parameters.items():
+    #         setattr(self, parameter, value)
+    #     return self
 
 
 ######

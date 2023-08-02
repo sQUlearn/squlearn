@@ -488,7 +488,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     self._executor,
                     self._measurement_input,
                     self._outer_kernel,
-                    self._parameters,
+                    #self._parameters,
+                    None
                 )
             else:
                 self._qnn.set_params(**dict_qnn)
@@ -503,7 +504,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._executor,
                 self._measurement_input,
                 self._outer_kernel,
-                self._parameters,
+                #self._parameters,
+                None
             )
 
         # Set QNN parameters
