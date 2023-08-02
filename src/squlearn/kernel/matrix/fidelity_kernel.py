@@ -169,9 +169,10 @@ class FidelityKernel(KernelMatrixBase):
         self.__init__(
             self._feature_map,
             self._executor,
-            None,
             self._evaluate_duplicates,
             self._mit_depol_noise,
+            None,
+            self._parameter_seed,
         )
         self._parameters = None
         if self.num_parameters == num_parameters_backup:
