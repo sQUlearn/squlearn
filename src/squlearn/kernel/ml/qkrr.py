@@ -155,19 +155,13 @@ class QKRR(BaseEstimator, RegressorMixin):
             params.update(self._quantum_kernel.get_params(deep=True))
         else:
             params.update(self._quantum_kernel.get_params(deep=False))
-        #params["num_qubits"] = self.num_qubits
         params["alpha"] = self.alpha
-        # return {
-        #     "quantum_kernel": self._quantum_kernel,
-        #     "alpha": self.alpha,
-        #     "regularize": self._regularize,
-        # }
         return params
 
-    def set_params(self, **kwargs):
+    def set_params(self, **params):
         valid_params = self.get_params(deep=True)
         param_dict = {}
-        for key, value in kwargs.items():
+        for key, value in params.items():
             if key in valid_params:
                 param_dict[key] = value
                 self._quantum_kernel.set_params(**param_dict)
