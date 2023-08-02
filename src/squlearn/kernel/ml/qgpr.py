@@ -140,7 +140,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         Depending on the choice of regularization the quantum kernel matrix is regularized.
         The respective solution of the QKRR problem
         is obtained by solving the linear system using scipy's Cholesky decomposition for
-        providing numercial stability
+        providing numerical stability
         Optionally also
         returns its standard deviation (`return_std=True`) or covariance
         (`return_cov=True`). Note that at most one of the two can be requested.
@@ -202,20 +202,3 @@ class QGPR(BaseEstimator, RegressorMixin):
         v = cho_solve((self._L, True), self.K_testtrain.T)
         QGP_cov = self.K_test - (self.K_testtrain @ v)
         return QGP_mean, QGP_cov
-
-
-######
-# BACKUP FOR DOCUMENTATION
-# Attributes:
-#     ---------
-#         quantum_kernel (KernelMatrixBase):
-#   	  The quantum kernel matrix to be used in the QGPR pipeline
-#         X_train (np.ndarray): The training data (also required for prediction)
-#         y_train (np.ndarray): Target values in training data (also required for prediction)
-#         K_train: The kernel matrix of the training data
-#         K_test: The kernel matrix of the test data
-#         K_testtrain: The kernel matrix of the test and training data
-# Methods:
-#     fit(X_train, y_train): Fit the model to the training data.
-#     predict(X_test, return_std=True, return_cov=False):
-# Predict using the Gaussian process regression model.
