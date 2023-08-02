@@ -42,6 +42,10 @@ class FidelityKernel(KernelMatrixBase):
             Option for mitigating depolarizing noise ('msplit' or 'mmean') after
             Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
+        regularization  (Union[str, None], default=None) :
+            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
+            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            in the ``fit()``-procedure.
 
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
@@ -72,8 +76,9 @@ class FidelityKernel(KernelMatrixBase):
         mit_depol_noise: Union[str, None] = None,
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
+        regularization: Union[str, None] = None,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
 
         self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates.lower()
@@ -174,9 +179,7 @@ class FidelityKernel(KernelMatrixBase):
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
-    def evaluate(
-        self, x: np.ndarray, y: Union[np.ndarray, None] = None, regularization=None
-    ) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -202,8 +205,8 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
-        if regularization is not None:
-            kernel_matrix = self._regularize_matrix(kernel_matrix, method=regularization)
+        if self._regularization is not None:
+            kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 
     ###########

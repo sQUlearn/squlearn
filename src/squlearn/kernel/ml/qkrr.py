@@ -8,8 +8,6 @@ from sklearn.base import BaseEstimator, RegressorMixin
 
 from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
 
-# from ..kernel_util import KernelRegularizer, DepolarizingNoiseMitigation
-
 
 class QKRR(BaseEstimator, RegressorMixin):
     """
@@ -29,10 +27,6 @@ class QKRR(BaseEstimator, RegressorMixin):
             regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
-        regularization  (Union[str, None], default=None) :
-            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
-            in the ``fit()``-procedure.
 
     See Also
     --------
@@ -79,11 +73,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
-        regularization: Union[str, None] = None,
     ) -> None:
         self._quantum_kernel = quantum_kernel
         self.alpha = alpha
-        self._regularization = regularization
         self.x_train = None
         self.k_testtrain = None
         self.k_train = None
@@ -107,9 +99,7 @@ class QKRR(BaseEstimator, RegressorMixin):
                 Returns the instance itself.
         """
         self.x_train = x_train
-        self.k_train = self._quantum_kernel.evaluate(
-            x=self.x_train, regularization=self._regularization
-        )  # set up kernel matrix
+        self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -147,7 +137,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         return {
             "quantum_kernel": self._quantum_kernel,
             "alpha": self.alpha,
-            "regularization": self._regularization,
         }
 
     def set_params(self, **parameters):

@@ -1,4 +1,6 @@
 """Quantum Gaussian Process Regressor"""
+import warnings
+
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 from ..matrix.regularization import regularize_full_kernel
 
@@ -31,8 +33,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 unit-variance. This is recommended for cases where zero-mean,
                 unit-variance priors are used. Note that, in this implementation,
                 the normalisation is reversed before the GP predictions are reported.
-        regularization: (string), default='full': enable full gram matrix regularization
-                or enable Tikhonov regularization via 'tikhonov'.
+        full_regularization: (bool), default=True: enable full gram matrix regularization.
 
     See Also
     --------
@@ -71,16 +72,17 @@ class QGPR(BaseEstimator, RegressorMixin):
     def __init__(
         self,
         quantum_kernel: KernelMatrixBase,
-        sigma=1.0e-6,
-        normalize_y=False,
-        regularization="full",
+        sigma: float = 1.0e-6,
+        normalize_y: bool = False,
+        full_regularization: bool = True,
     ):
         self._quantum_kernel = quantum_kernel
         self.X_train = None
         self.y_train = None
         self.sigma = sigma
         self.normalize_y = normalize_y
-        self._regularization = regularization
+        self._full_regularization = full_regularization
+
         self.K_train = None
         self.K_test = None
         self.K_testtrain = None
@@ -101,12 +103,18 @@ class QGPR(BaseEstimator, RegressorMixin):
             QuantumGaussianProcessRegressor class instance.
         """
         self.X_train = X_train
-        if self._regularization == "full":
-            self.K_train = self._quantum_kernel.evaluate(x=self.X_train, regularization=None)
+        if self._full_regularization:
+            if self._quantum_kernel._regularization is not None:
+                warnings.warn(
+                    f"The regularization of the quantum kernel is set to"
+                    f" {self._quantum_kernel._regularization}. If full_regularization"
+                    f"is True, best results are achieved with no additional quantum "
+                    f"kernel regularization."
+                )
+            self.K_train = self._quantum_kernel.evaluate(x=self.X_train)
         else:
-            self.K_train = self._quantum_kernel.evaluate(
-                x=self.X_train, regularization=self._regularization
-            )
+            self.K_train = self._quantum_kernel.evaluate(x=self.X_train)
+
         if self.normalize_y:
             self._y_train_mean = np.mean(y_train, axis=0)
             self._y_train_std = _handle_zeros_in_scale(np.std(y_train, axis=0), copy=False)
@@ -115,7 +123,6 @@ class QGPR(BaseEstimator, RegressorMixin):
             self.y_train = y_train
         return self
 
-    # needed to be an "official" sklearn estimator
     def get_params(self, deep=True):
         return {
             "quantum_kernel": self._quantum_kernel,
@@ -159,21 +166,12 @@ class QGPR(BaseEstimator, RegressorMixin):
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
 
-        if self._regularization == "full":
+        self.K_test = self._quantum_kernel.evaluate(x=X_test)
+        self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
+        if self._full_regularization:
             print("Regularizing full Gram matrix")
-            self.K_test = self._quantum_kernel.evaluate(x=X_test, regularization=None)
-            self.K_testtrain = self._quantum_kernel.evaluate(
-                x=X_test, y=self.X_train, regularization=None
-            )
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
-            )
-        else:
-            self.K_test = self._quantum_kernel.evaluate(
-                x=X_test, regularization=self._regularization
-            )
-            self.K_testtrain = self._quantum_kernel.evaluate(
-                x=X_test, y=self.X_train, regularization=self._regularization
             )
 
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])

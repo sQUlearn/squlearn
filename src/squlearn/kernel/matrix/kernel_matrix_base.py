@@ -17,6 +17,10 @@ class KernelMatrixBase:
             Executor object
         initial_parameters (Union[np.ndarray, None], default=None) :
             Initial parameters of the PQC feature map
+        regularization (str, None) :
+            Str that specifies the method with which the kernel matrix should be regularized.
+            See method attribute from KernMatrixBase._regularize_matrix() method for valid
+            options.
     """
 
     def __init__(
@@ -25,12 +29,14 @@ class KernelMatrixBase:
         executor: Executor,
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
+        regularization: Union[str, None] = None,
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits
         self._executor = executor
         self._parameters = initial_parameters
         self._parameter_seed = parameter_seed
+        self._regularization = regularization
 
         if self._parameters is None:
             self._parameters = self._feature_map.generate_initial_parameters(self._parameter_seed)
@@ -75,9 +81,7 @@ class KernelMatrixBase:
         """The bounds of the features of the feature map."""
         return self._feature_map.feature_bounds
 
-    def evaluate(
-        self, x: np.ndarray, y: np.ndarray = None, regularization: Union[str, None] = None
-    ) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
         Computes the quantum kernel matrix.
 
@@ -86,11 +90,6 @@ class KernelMatrixBase:
                 Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vector of training or test data for which the kernel matrix is evaluated
-            regularization (str, None) :
-                Str that specifies the method with which the kernel matrix should be regularized.
-                See method attribute from KernMatrixBase._regularize_matrix() method for valid
-                options.
-
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
@@ -226,7 +225,7 @@ class KernelMatrixBase:
         """
         raise NotImplementedError()
 
-    def _regularize_matrix(self, matrix: np.ndarray, method: str) -> np.ndarray:
+    def _regularize_matrix(self, matrix: np.ndarray) -> np.ndarray:
         """
         Regularizes the quantum kernel matrix according to the sepcified method.
 
@@ -237,10 +236,10 @@ class KernelMatrixBase:
                 Can be either thresholding or tikhonov. For more information see
                 squlearn.kernel.matrix.regularization
         """
-        if method == "thresholding":
+        if self._regularization == "thresholding":
             print("I am thresholdingg")
             return thresholding_regularization(matrix)
-        elif method == "tikhonov":
+        elif self._regularization == "tikhonov":
             print("I am tikhonovin")
             return tikhonov_regularization(matrix)
         else:
@@ -258,6 +257,10 @@ class _ComposedKernelMatrix(KernelMatrixBase):
             first kernel matrix
         km2 (KernelMatrixBase) :
             second kernel matrix
+        regularization (str, None) :
+            Str that specifies the method with which the kernel matrix should be regularized.
+            See method attribute from KernMatrixBase._regularize_matrix() method for valid
+            options.
     """
 
     def __init__(self, km1: KernelMatrixBase, km2: KernelMatrixBase, composition: str = "*"):
@@ -369,9 +372,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         self._km1.set_params(**km1_dict)
         self._km2.set_params(**km2_dict)
 
-    def evaluate(
-        self, x: np.ndarray, y: np.ndarray = None, regularization: Union[str, None] = None
-    ) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
         Computes and the composed quantum kernel matrix.
 
@@ -380,15 +381,11 @@ class _ComposedKernelMatrix(KernelMatrixBase):
                 Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
                 Vector of training or test data for which the kernel matrix is evaluated
-            regularization (str, None) :
-                Str that specifies the method with which the kernel matrix should be regularized.
-                See method attribute from KernMatrixBase._regularize_matrix() method for valid
-                options.
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
-        K1 = self._km1.evaluate(x, y, regularization)
-        K2 = self._km2.evaluate(x, y, regularization)
+        K1 = self._km1.evaluate(x, y)
+        K2 = self._km2.evaluate(x, y)
 
         if self._composition == "*":
             return np.multiply(K1, K2)
