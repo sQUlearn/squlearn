@@ -101,20 +101,28 @@ and user guidelines.
 
 Methods to evaluate quantum kernels
 -----------------------------------
-sQUlearn provides two methods to evaluate quantum kernels, which also represent the 
-standard approaches to quantum kernel methods in the literature.
+sQUlearn provides two methods to evaluate quantum kernels: Fidelity Quantum kernels (FQKs) and 
+Projected Quantum kernels (PQKs), which also represent the standard approaches to quantum kernel 
+methods in the literature.
 
 Central to both approaches is the embedding of data into the quantum Hilbert space by using
 quantum feature maps, which are nothing but parameterized quantum circuits. At this, the 
 parametrization is optional, but can be used for optimally adjusting a resulting quantum kernel 
-to a given data set.
+to a given data set. If a feature map with trainable parameters is used, sQUlearn initializes
+them to some predefined and resonable values, which can be controlled, within FQK *and* PQK
+definitions via the argument :code:`parameter_seed` (defaults to zero).
+
+Beyond that, for both FQKs and PQKs, sQUlearn provides the option for regularizing the respective
+kernel matrices using either *thresholding* or *tikhonov* approach as described in Ref. [2]. 
+Regularization is by default switched of but can be set via the :code:`regularization`
+argument.
 
 .. currentmodule:: squlearn.kernel.matrix
 
 Fidelity Quantum Kernel (FQK) via :class:`FidelityKernel`
 #########################################################
 
-The straightforward and natural way to the definition of a quantum kernel [1-4], is to use the 
+The straightforward and natural way to the definition of a quantum kernel [1,3-5], is to use the 
 *native geometry of the quantum state space* which is inherent in the *Hilbert-Schmidt inner product*, 
 i.e.
 
@@ -141,7 +149,14 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
         executor=Executor('statevector_simulator')
     )
 
-**Add regularization example, as well as comment on mit_depol_noise**
+When evaluating kernels on a real backend, sQUlearn provides an option for mitigating FQKs for
+with respect to depolarizing noise using the approach discussed in Ref. [2]. The respective
+mitigation technique uses the fact that ideally (train-train or test-test) kernel matrices 
+should consist exclusively of ones along the diagonal - a property which is by construction
+fulfilled by PQKs. For FQKs one can attempt to restore this property using the 
+:code:`mit_depol_noise` argument which can be either set to *msplit* or *mmean* as defined
+in Ref. [2]. By default this option is set to None.
+
 
 Projected Quantum Kernel (PQK) via :class:`ProjectedQuantumKernel`
 ##################################################################
@@ -196,7 +211,6 @@ one Pauli operator. Beyond that, one can also specify an operator or a list of o
 respective examples in :class:`ProjectedQuantumKernel` or the "Operators for expectation values" 
 user guide.
 
-**Add PQK regularization example**
 
 Training of quantum kernels
 ---------------------------
@@ -283,8 +297,10 @@ training and test data and shows how to optimize kernels.
 
 [1] `M. Schuld, "Supervised quantum machine learning models are kernel methods". arXiv:2101.11020v2 (2021). <http://arxiv.org/pdf/2101.11020v2>`_
 
-[2] `M. Schuld and N. Killoran, "Quantum Machine Learning in feature Hilbert spaces". Phys. Rev. Lett. 112(4), 040504 (2019). <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.040504>`_
+[2] `T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers". arXiv:2105.02276v1 (2021). <https://arxiv.org/pdf/2105.02276.pdf>`_
 
-[3] `S. Jerbi et al., "Quantum machine learning beyond kernel methods". arXiv:2110.13162v3 (2023) <https://arxiv.org/abs/2110.13162>`_ 
+[3] `M. Schuld and N. Killoran, "Quantum Machine Learning in feature Hilbert spaces". Phys. Rev. Lett. 112(4), 040504 (2019). <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.040504>`_
 
-[4] `H. Y. Huang et al., "Power of data in quantum machine learning". Nat. Commun. 12, 2631 (2021). <https://www.nature.com/articles/s41467-021-22539-9>`_ 
+[4] `S. Jerbi et al., "Quantum machine learning beyond kernel methods". arXiv:2110.13162v3 (2023) <https://arxiv.org/abs/2110.13162>`_ 
+
+[5] `H. Y. Huang et al., "Power of data in quantum machine learning". Nat. Commun. 12, 2631 (2021). <https://www.nature.com/articles/s41467-021-22539-9>`_ 
