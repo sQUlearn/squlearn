@@ -1,4 +1,4 @@
-""" Fidelity Quatnum Kernel class"""
+""" Fidelity Quantum Kernel class"""
 import numpy as np
 from typing import Union
 from .kernel_matrix_base import KernelMatrixBase
@@ -6,14 +6,10 @@ from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
 
 from qiskit_machine_learning.kernels import QuantumKernel
-from qiskit_machine_learning.kernels.fidelity_quantum_kernel import (
-    FidelityQuantumKernel,
-)
+from qiskit_machine_learning.kernels.fidelity_quantum_kernel import FidelityQuantumKernel
 from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
-from qiskit.utils import QuantumInstance
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
-from qiskit.primitives import BaseSampler, BaseEstimator
 from qiskit_ibm_runtime import IBMBackend
 
 
@@ -46,6 +42,10 @@ class FidelityKernel(KernelMatrixBase):
             Option for mitigating depolarizing noise ('msplit' or 'mmean') after
             Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
+        regularization  (Union[str, None], default=None) :
+            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
+            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            in the ``fit()``-procedure.
 
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
@@ -76,8 +76,9 @@ class FidelityKernel(KernelMatrixBase):
         mit_depol_noise: Union[str, None] = None,
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
+        regularization: Union[str, None] = None,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
 
         self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates.lower()
@@ -195,7 +196,8 @@ class FidelityKernel(KernelMatrixBase):
             print("WARNING: Adavnced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
                 raise ValueError(
-                    "Mitigating depolarizing noise works only for square matrices computed on real backend"
+                    "Mitigating depolarizing noise works only for square matrices computed on real"
+                    " backend"
                 )
             else:
                 if self._mit_depol_noise == "msplit":
@@ -203,8 +205,9 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
+        if self._regularization is not None:
+            kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
-        # return self._quantum_kernel.evaluate(x, y)
 
     ###########
     ## Mitigating depolarizing noise after http://arxiv.org/pdf/2105.02276v1

@@ -6,9 +6,7 @@ import numpy as np
 from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 
-from .kernel_util import regularize_kernel, tikhonov_regularization
-
-# from ..kernel_util import KernelRegularizer, DepolarizingNoiseMitigation
+from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKRR(BaseEstimator, RegressorMixin):
@@ -29,10 +27,6 @@ class QKRR(BaseEstimator, RegressorMixin):
             regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
-        regularize  (Union[str, None], default=None) :
-            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
-            in the ``fit()``-procedure.
 
     See Also
     --------
@@ -79,11 +73,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
-        regularize: Union[str, None] = None,
     ) -> None:
-        self._quantum_kernel = quantum_kernel  # May be worth to set FQK as default here?
+        self._quantum_kernel = quantum_kernel
         self.alpha = alpha
-        self._regularize = regularize
         self.x_train = None
         self.k_testtrain = None
         self.k_train = None
@@ -92,7 +84,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
-        Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularize``
+        Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularization``
         is set, the training kernel matrix is pre-processed accordingly prior to the
         actual fitting step is performed. The respective solution of the QKRR problem
         is obtained by solving the linear system using scipy's Cholesky decomposition for
@@ -108,12 +100,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         """
         self.x_train = x_train
         self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
-        # check if regularize argument is set and define corresponding method
-        if self._regularize is not None:
-            if self._regularize == "thresholding":
-                self.k_train = regularize_kernel(self.k_train)
-            elif self._regularize == "tikhonov":
-                self.k_train = tikhonov_regularization(self.k_train)
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -151,29 +137,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         return {
             "quantum_kernel": self._quantum_kernel,
             "alpha": self.alpha,
-            "regularize": self._regularize,
         }
 
     def set_params(self, **parameters):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
-
-
-######
-# BACKUP FOR DOCUMENTATION
-# Attributes:
-#         _regularize (Union[str, None]) :
-#             Applied regularization technique
-#         x_train (np.ndarray) :
-#             Training data, which is also required for the prediction step of shape +
-#             (n_samples, n_features)
-#         k_train (np.ndarray) :
-#             Training Kernel matrix, which is a square-symmetric matrix of shape (n_train, natrain)
-#             required for the ``fit()`` step
-#         k_testtrain (np.ndarray) :
-#             Test-training matrix of shape (n_test, n_train) required for prediction step
-#         dual_coeff_ (np.ndarray) :
-#             Representation of weight vectors in kernel space
-#         num_qubits (int) :
-#             Number of qubits

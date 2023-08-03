@@ -1,6 +1,7 @@
 from typing import Union
 import numpy as np
 
+from .regularization import thresholding_regularization, tikhonov_regularization
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util.executor import Executor
 
@@ -16,6 +17,10 @@ class KernelMatrixBase:
             Executor object
         initial_parameters (Union[np.ndarray, None], default=None) :
             Initial parameters of the PQC feature map
+        regularization (str, None) :
+            Str that specifies the method with which the kernel matrix should be regularized.
+            See method attribute from KernMatrixBase._regularize_matrix() method for valid
+            options.
     """
 
     def __init__(
@@ -24,12 +29,14 @@ class KernelMatrixBase:
         executor: Executor,
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
+        regularization: Union[str, None] = None,
     ) -> None:
         self._feature_map = feature_map
         self._num_qubits = self._feature_map.num_qubits
         self._executor = executor
         self._parameters = initial_parameters
         self._parameter_seed = parameter_seed
+        self._regularization = regularization
 
         if self._parameters is None:
             self._parameters = self._feature_map.generate_initial_parameters(self._parameter_seed)
@@ -76,14 +83,13 @@ class KernelMatrixBase:
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
-        Computes and the quantum kernel matrix.
+        Computes the quantum kernel matrix.
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
-
+                Vector of training or test data for which the kernel matrix is evaluated
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
@@ -95,9 +101,9 @@ class KernelMatrixBase:
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
         """
         if y is not None:
             return self.evaluate([x], [y])[0, 0]
@@ -123,9 +129,9 @@ class KernelMatrixBase:
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             parameters (np.ndarray) :
                 Array contraining numerical values to be assigned to the trainable parameters
                 of the feature map
@@ -219,6 +225,26 @@ class KernelMatrixBase:
         """
         raise NotImplementedError()
 
+    def _regularize_matrix(self, matrix: np.ndarray) -> np.ndarray:
+        """
+        Regularizes the quantum kernel matrix according to the sepcified method.
+
+        Args:
+            matrix (np.ndarray) :
+                Gram matrix to be regularized
+            method (str) :
+                Can be either thresholding or tikhonov. For more information see
+                squlearn.kernel.matrix.regularization
+        """
+        if self._regularization == "thresholding":
+            return thresholding_regularization(matrix)
+        elif self._regularization == "tikhonov":
+            return tikhonov_regularization(matrix)
+        else:
+            raise AttributeError(
+                "If regularization is not none it must be either thresholding or tikhonov"
+            )
+
 
 class _ComposedKernelMatrix(KernelMatrixBase):
     """
@@ -229,6 +255,10 @@ class _ComposedKernelMatrix(KernelMatrixBase):
             first kernel matrix
         km2 (KernelMatrixBase) :
             second kernel matrix
+        regularization (str, None) :
+            Str that specifies the method with which the kernel matrix should be regularized.
+            See method attribute from KernMatrixBase._regularize_matrix() method for valid
+            options.
     """
 
     def __init__(self, km1: KernelMatrixBase, km2: KernelMatrixBase, composition: str = "*"):
@@ -285,7 +315,6 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         """
         if self._km1.parameters is not None and self._km2.parameters is not None:
             return np.concatenate((self._km1.parameters, self._km2.parameters))
-        return None
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -347,10 +376,9 @@ class _ComposedKernelMatrix(KernelMatrixBase):
 
         Args:
             x (np.ndarray) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
+                Vector of training or test data for which the kernel matrix is evaluated
             y (np.ndarray, default=None) :
-                Vecotr of training or test data for which the kernel matrix is evaluated
-
+                Vector of training or test data for which the kernel matrix is evaluated
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
