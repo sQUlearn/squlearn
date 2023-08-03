@@ -237,10 +237,8 @@ class KernelMatrixBase:
                 squlearn.kernel.matrix.regularization
         """
         if self._regularization == "thresholding":
-            print("I am thresholdingg")
             return thresholding_regularization(matrix)
         elif self._regularization == "tikhonov":
-            print("I am tikhonovin")
             return tikhonov_regularization(matrix)
         else:
             raise AttributeError(
