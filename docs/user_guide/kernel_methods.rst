@@ -25,28 +25,30 @@ Due to the inner product, the kernel function formally computes the distance bet
 similarity measure between data points.
 
 The key point of Quantum Kernel methods is that they can be fundamentally formulated as a classical 
-kernel method whose kernel is computed by a quantum computer. By Using a quantum computer for the 
+kernel method whose kernel is computed by a quantum computer. By using a quantum computer for the 
 calculation of the kernel one naturally exploits the inherent quantum mechanical phenomena of 
 *superposition* and *entanglement* - a fact which holds out the prospect of designing machine 
-learning models that are able deal with complex problems that are out of reach for conventional 
+learning models that are able to deal with complex problems that are out of reach for conventional 
 machine learning methods.
 
-Quantum Kernel methods work analougsly to their classical counterparts, with data embedded into 
+Quantum Kernel methods work analogously to their classical counterparts, with data embedded into 
 the exponentially increasing quantum Hilbert space via a quantum feature map
 
 :math:`\ket{\psi(x,\boldsymbol{\theta})} = U_{\boldsymbol{\theta}}(x)\ket{0}`
 
 with :math:`U_{\boldsymbol{\theta}}(x)` a parametrized quantum circuit for data enconding applied 
-to the initial qubit state :math:`\ket{0}`. At this, we can consider the space of complex matrices
+to the initial qubit state :math:`\ket{0}` (as discussed below, trainable parameters can be 
+introduced to optimally align a resulting quantum kernel to a given datatset). This fundamental 
+ansatz marks the bridge between QML and kernel methods. But for this to hold, we need to define the 
+data encoding density matrices 
 
 :math:`\rho(x,\boldsymbol{\theta})=\ket{\psi(x,\boldsymbol{\theta})}\bra{\psi(x,\boldsymbol{\theta})}`
 
+as the feature "vectors". Therefore, we can consider the space of complex density matrices
 enriched with the *Hilbert-Schmidt inner product* as the feature space of a quantum model and 
-state [1]. Thus, in quantum computing, access to the Hilbert space of quantum states is given by 
-measurements. In contrast to conventional kernel methods, the central task for quantum kernel 
-methods is to find sufficiently well suited quantum feature maps for a given data set, while in 
-classical kernel methods one never only treats feature maps implicitly by selecting a proper
-kernel function for a given problem.
+state [1]. In the quantum computaional practice, the Hilbert-Schmidt inner products are revealed by 
+measurements. Consequently, in quantum computing, access to the Hilbert space of quantum states is 
+given by measurements.
 
 
 .. currentmodule:: squlearn.kernel.ml
@@ -56,15 +58,13 @@ High-Level methods that employ quantum kernels
 In general, kernel methods refer to a collection of pattern analysis algorithms that use kernel 
 functions to operate in a high-dimensional feature space. Probably, the most famous representative
 of these kernel-based algorithms is *Support Vector Machines (SVMs)*. Kernel methods are most 
-commonly used in a supervised learning framework for either classification or regression tasks. 
-But, there are use-cases for kernel-based unsupervised algorithms too; however, these are (currently)
-not covered by sQUlearn. 
+commonly used in supervised learning frameworks for either classification or regression tasks. 
 
 In the NISQ era (no access to fast linear algebra algorithms such as HHL), the basic notion of 
 quantum kernel methods is to merely compute the kernel matrix with a quantum computer and 
 subsequently pass it to an conventional kernel algorithms. For this task, sQUlearn provides a 
 convenient workflow by either wrapping the corresponding scikit-learn estimators or by 
-independetly implementing them analougsly, adapted to the needs of quantum kernel methods. 
+independetly implementing them analogously, adapted to the needs of quantum kernel methods. 
 sQUlearn offers SVMs for both classifciation (QSVC) and regression (QSVR) tasks, Gaussian 
 Processes (GPs) for both classification (QGPC) and regression (QGPR) tasks as well as a 
 quantum kernel ridge regression routine (QKRR).
@@ -72,7 +72,7 @@ quantum kernel ridge regression routine (QKRR).
 Classification
 ##############
 
-In terms of classification tasks, sQUlearn provides:
+In terms of classification algorithms, sQUlearn provides:
 
 .. autosummary::
    :nosignatures:
@@ -86,7 +86,7 @@ and user guidelines.
 Regression
 ##########
 
-In terms of regression tasks, sQUlearn provides:
+In terms of regression algorithms, sQUlearn provides:
 
 .. autosummary::
    :nosignatures:
@@ -106,11 +106,11 @@ Projected Quantum kernels (PQKs), which also represent the standard approaches t
 methods in the literature.
 
 Central to both approaches is the embedding of data into the quantum Hilbert space by using
-quantum feature maps, which are nothing but parameterized quantum circuits. At this, the 
-parametrization is optional, but can be used for optimally adjusting a resulting quantum kernel 
-to a given data set. If a feature map with trainable parameters is used, sQUlearn initializes
-them to some predefined and resonable values, which can be controlled, within FQK *and* PQK
-definitions via the argument :code:`parameter_seed` (defaults to zero).
+quantum feature maps, which are nothing but encoding quantum circuits. These can optionally be
+parametrized (as already implicitly introduced above) for optimally adjusting the resulting 
+quantum kernel to a given data set. If a feature map with trainable parameters is used, sQUlearn 
+initializes them to some predefined and resonable values, which can be controlled, within FQK 
+*and* PQK definitions via the argument :code:`parameter_seed` (defaults to zero).
 
 Beyond that, for both FQKs and PQKs, sQUlearn provides the option for regularizing the respective
 kernel matrices using either *thresholding* or *tikhonov* approach as described in Ref. [2]. 
@@ -154,8 +154,8 @@ with respect to depolarizing noise using the approach discussed in Ref. [2]. The
 mitigation technique uses the fact that ideally (train-train or test-test) kernel matrices 
 should consist exclusively of ones along the diagonal - a property which is by construction
 fulfilled by PQKs. For FQKs one can attempt to restore this property using the 
-:code:`mit_depol_noise` argument which can be either set to *msplit* or *mmean* as defined
-in Ref. [2]. By default this option is set to None.
+:code:`mit_depol_noise` argument which can be either set to :code:`'msplit'` or :code:`'mmean'` 
+as defined in Ref. [2]. By default this option is set to :code:`None`.
 
 
 Projected Quantum Kernel (PQK) via :class:`ProjectedQuantumKernel`
@@ -173,8 +173,8 @@ and define the kernel as (RBF-inspired)
 
 :math:`k^{PQ}(x,x^\prime)=\exp\left(-\gamma\sum_k\sum_{P\in\lbrace X,Y,Z\rbrace}\left[\mathrm{tr}(P\rho(x,\boldsymbol{\theta})_k) - \mathrm{tr}(P\rho(x^\prime,\boldsymbol{\theta})_k)\right]^2\right)`
 
-where :math:`\rho(x,\boldsymbol{\theta})_k` refers to the 1-RDM, 
-which is the partial trace of the quantum state 
+where :math:`\rho(x,\boldsymbol{\theta})_k=\mathrm{tr}_{j\neq k}\left[\rho(x,\boldsymbol{\theta})\right]` 
+refers to the 1-RDM, which is the partial trace of the quantum state 
 :math:`\rho(x,\boldsymbol{\theta})=\ket{\psi(x,\boldsymbol{\theta})}\bra{\psi(x,\boldsymbol{\theta})}`
 over all qubits except for the :math:`k`-th qubit. After some lines of algebra, it can be seen that
 these :math:`\mathrm{tr}` arguments are nothing but expectation values for measuring the Paulis 
@@ -184,7 +184,7 @@ the function into which the QNN is put, the choice measurement operators used to
 as well as their respective locallity, which eventually reflects in the order of RDMs used in the 
 definition. Currently, sQUlearn implements different outer forms :math:`f(\cdot)`, which represent 
 standard scikit-learn kernel functions (`Gaussian`, `Matern`, `ExpSineSquared`, `RationalQuadratic`,
-`DotProduct`, `PariwiseKernel`), i.e. generally speaking, sQUlearn provides PQKS of the form
+`DotProduct`, `PariwiseKernel`), i.e. generally speaking, sQUlearn provides PQKs of the form
 
 :math:`k^{PQ}(x,x^\prime) = f\left[QNN(x), QNN(x^\prime)\right]`
 
@@ -208,7 +208,7 @@ Moreover, the QNNs can be evaluated with respect to different measurement operat
 addition to the default setting - :code:`measurement='XYZ'` - one can specify :code:`measurement='X'`, 
 :code:`measurement='Y'` and :code:`measurement='Z'` for one-qubit measurements with respect to only 
 one Pauli operator. Beyond that, one can also specify an operator or a list of operators, see the 
-respective examples in :class:`ProjectedQuantumKernel` or the "Operators for expectation values" 
+respective examples in :class:`ProjectedQuantumKernel` or the :doc:`./operators`
 user guide.
 
 
