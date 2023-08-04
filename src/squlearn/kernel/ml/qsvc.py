@@ -1,3 +1,5 @@
+from typing import Union
+
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVC
@@ -60,9 +62,17 @@ class QSVC(SVC):
     --------
     """
 
-    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        quantum_kernel: KernelMatrixBase,
+        **kwargs,
+    ) -> None:
         self.quantum_kernel = quantum_kernel
-        super().__init__(kernel=self.quantum_kernel.evaluate, **kwargs)
+        super().__init__(
+            kernel=self.quantum_kernel.evaluate,
+            **kwargs,
+        )
 
     @classmethod
     def _get_param_names(cls):

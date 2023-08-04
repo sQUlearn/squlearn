@@ -1,47 +1,8 @@
-# kernel util
 import numpy as np
 import scipy
-from sklearn.gaussian_process.kernels import Kernel
-from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
-def kernel_wrapper(kernel_matrix: KernelMatrixBase):
-    """
-    Wrapper for sQUlearn's KernelMatrixBase to scikit-learn kernel objects.
-
-    Args:
-        kernel_matrix (KernelMatrixBase) :
-            Quantum kernel matrix which is to be wrapped into scikit-learn kernel
-    """
-
-    class CustomKernel(Kernel):
-        def __init__(self, kernel_matrix: KernelMatrixBase):
-            self.kernel_matrix = kernel_matrix
-            super().__init__()
-
-        def __call__(self, X, Y=None, eval_gradient=False):
-            if Y is None:
-                Y = X
-            kernel_matrix = self.kernel_matrix.evaluate(X, Y)
-            if eval_gradient:
-                raise NotImplementedError("Gradient not yet implemented for this kernel.")
-            else:
-                return kernel_matrix
-
-        def diag(self, X):
-            return np.diag(self.kernel_matrix.evaluate(X))
-
-        @property
-        def requires_vector_input(self):
-            return True
-
-        def is_stationary(self):
-            return self.kernel_matrix.is_stationary()
-
-    return CustomKernel(kernel_matrix)
-
-
-def regularize_kernel(gram_matrix):
+def thresholding_regularization(gram_matrix):
     """
     Thresholding regularization method of a Gram matrix (full or training kernel matrix)
     according to this `paper <https://arxiv.org/pdf/2105.02276.pdf>`_ to recover positive
@@ -99,7 +60,7 @@ def regularize_full_kernel(K_train, K_testtrain, K_test):
             Test kernel matrix of shape (n_test, n_test)
     """
     gram_matrix_total = np.block([[K_train, K_testtrain.T], [K_testtrain, K_test]])
-    reconstruction = regularize_kernel(gram_matrix_total)
+    reconstruction = thresholding_regularization(gram_matrix_total)
     print(f"Reconstruction error {np.sum(reconstruction - gram_matrix_total)}")
 
     K_train = reconstruction[: K_train.shape[0], : K_train.shape[1]]

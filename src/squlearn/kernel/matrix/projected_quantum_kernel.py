@@ -183,6 +183,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
         initial_parameters (np.ndarray): Initial parameters of the feature map and the
             operator (if parameterized)
+        regularization  (Union[str, None], default=None) :
+            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
+            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            in the ``fit()``-procedure.
+
 
     Attributes:
         num_qubits (int): Number of qubits of the feature map and the operators
@@ -330,9 +335,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
+        regularization: Union[str, None] = None,
         **kwargs,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters, parameter_seed)
+        super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
 
         self._measurement_input = measurement
 
@@ -429,17 +435,19 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Args:
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
-
         Returns:
             The evaluated projected quantum kernel as numpy array
         """
         if self._parameters is None and self.num_parameters == 0:
-            self._parameters = []
+            self._parameters = np.array([])
 
         if self._parameters is None:
             raise ValueError("Parameters have not been set yet!")
 
-        return self._outer_kernel(self._qnn, self._parameters, x, y)
+        kernel_matrix = self._outer_kernel(self._qnn, self._parameters, x, y)
+        if self._regularization is not None:
+            kernel_matrix = self._regularize_matrix(kernel_matrix)
+        return kernel_matrix
 
     def get_params(self, deep: bool = True) -> dict:
         """

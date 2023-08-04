@@ -1,3 +1,5 @@
+from typing import Union
+
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
@@ -21,7 +23,7 @@ class QSVR(SVR):
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
-        a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
         **kwargs: Other parameters that are passed to sklearn.svm.SVR
 
     See Also
@@ -59,9 +61,17 @@ class QSVR(SVR):
     --------
     """
 
-    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        quantum_kernel: KernelMatrixBase,
+        **kwargs,
+    ) -> None:
         self.quantum_kernel = quantum_kernel
-        super().__init__(kernel=self.quantum_kernel.evaluate, **kwargs)
+        super().__init__(
+            kernel=self.quantum_kernel.evaluate,
+            **kwargs,
+        )
 
     @classmethod
     def _get_param_names(cls):
