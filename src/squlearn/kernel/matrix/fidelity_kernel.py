@@ -134,7 +134,7 @@ class FidelityKernel(KernelMatrixBase):
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
         if deep:
-            #params = self._feature_map.get_params()
+            # params = self._feature_map.get_params()
             params.update(self._feature_map.get_params())
         return params
 

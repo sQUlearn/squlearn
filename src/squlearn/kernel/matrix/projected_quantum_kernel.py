@@ -278,7 +278,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         * `sklean kernels <https://scikit-learn.org/stable/modules/gaussian_process.html#gp-kernels>`_
 
     References:
-        [1] Huang, HY., Broughton, M., Mohseni, M. et al., "Power of data in quantum machine learning", 
+        [1] Huang, HY., Broughton, M., Mohseni, M. et al., "Power of data in quantum machine learning",
         `Nat Commun 12, 2631 (2021). <https://doi.org/10.1038/s41467-021-22539-9>`_
 
         [2] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
@@ -527,10 +527,17 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         # Set outer kernel parameters
         dict_outer_kernel = {}
         for key, value in params.items():
-            if key in self._outer_kernel.get_params():
+            if key in self._outer_kernel.get_params().keys():
                 dict_outer_kernel[key] = value
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+            )
 
         self._parameters = None
         if self.num_parameters == num_parameters_backup:

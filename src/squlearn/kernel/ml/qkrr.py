@@ -142,9 +142,16 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def set_params(self, **params):
         valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
         param_dict = {}
         for key, value in params.items():
-            #if key in valid_params:
+            # if key in valid_params:
             if key in self._quantum_kernel.get_params().keys():
                 param_dict[key] = value
         self._quantum_kernel.set_params(**param_dict)
@@ -152,9 +159,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         if "alpha" in params.keys():
             self.alpha = params["alpha"]
 
-        self.__init__(
-            self._quantum_kernel,
-            self.alpha
-        )
-        
+        self.__init__(self._quantum_kernel, self.alpha)
+
         return self
