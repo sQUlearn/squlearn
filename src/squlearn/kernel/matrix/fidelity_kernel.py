@@ -44,7 +44,7 @@ class FidelityKernel(KernelMatrixBase):
             FQKs computed on a real backend.
         regularization  (Union[str, None], default=None) :
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            after Ref. [4] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
 
     References:
