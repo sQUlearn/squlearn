@@ -78,7 +78,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
-        # self.num_qubits = self._quantum_kernel.num_qubits
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
@@ -134,18 +133,28 @@ class QKRR(BaseEstimator, RegressorMixin):
     def get_params(self, deep: bool = True):
         params = dict()
         params["quantum_kernel"] = self._quantum_kernel
+        params["alpha"] = self.alpha
         if deep:
             params.update(self._quantum_kernel.get_params(deep=True))
         else:
             params.update(self._quantum_kernel.get_params(deep=False))
-        params["alpha"] = self.alpha
         return params
 
     def set_params(self, **params):
-        valid_params = self.get_params(deep=True)
+        valid_params = self.get_params()
         param_dict = {}
         for key, value in params.items():
-            if key in valid_params:
+            #if key in valid_params:
+            if key in self._quantum_kernel.get_params().keys():
                 param_dict[key] = value
-                self._quantum_kernel.set_params(**param_dict)
+        self._quantum_kernel.set_params(**param_dict)
+
+        if "alpha" in params.keys():
+            self.alpha = params["alpha"]
+
+        self.__init__(
+            self._quantum_kernel,
+            self.alpha
+        )
+        
         return self
