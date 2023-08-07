@@ -526,8 +526,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set outer kernel parameters
         dict_outer_kernel = {}
+        valid_keys_outer_kernel = self._outer_kernel.get_params().keys()
         for key, value in params.items():
-            if key in self._outer_kernel.get_params().keys():
+            if key in valid_keys_outer_kernel:
                 dict_outer_kernel[key] = value
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
@@ -567,7 +568,7 @@ class GaussianOuterKernel(OuterKernelBase):
 
     def __init__(self, gamma=1.0):
         super().__init__()
-        self._gamma = gamma
+        self.gamma = gamma
         self._num_hyper_parameters = 1
         self._name_hyper_parameters = ["gamma"]
 
@@ -595,7 +596,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = None
 
-        return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
+        return RBF(length_scale=1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -608,7 +609,7 @@ class GaussianOuterKernel(OuterKernelBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        return {"gamma": self._gamma}
+        return {"gamma": self.gamma}
 
     def set_params(self, **params) -> None:
         """
