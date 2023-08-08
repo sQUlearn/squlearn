@@ -2,6 +2,20 @@
 
 **_Note:_** This is an early access version! Not everything that is described is already working 100%.
 
+sQUlearn is a novel Python package introducing quantum machine learning (QML) capabilities to 
+traditional machine learning pipelines via a 'high-level / low-level' design approach. The software
+features an array of algorithms including Quantum Support Vector Machines, Regression,
+Gaussian Processes, Kernel Ridge Regression, and a Quantum Neural Network (QNN), all designed to
+seamlessly integrate with sklearn. The QNN engine facilitates efficient gradient computation and
+automated training with non-linear parametrized circuits. Users can further customize their QNN
+models, enhancing flexibility and potential outcomes. sQUlearn's kernel engines are designed to
+meet various needs, with fidelity kernels and projected quantum kernels, the latter leveraging
+the QNN engine for optimization. A feature map tool allows for efficient layer-wise design
+based on strings, encouraging innovation beyond standard implementations. Lastly, backend integration 
+with IBM quantum computers is handled with a custom execution engine that optimizes session management
+on quantum backends and simulators, ensuring optimal use
+of quantum resources and creating an accessible environment for QML experimentation.
+
 ## Prerequisites
 
 The package requires **at least Python 3.9**.
