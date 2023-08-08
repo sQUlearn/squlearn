@@ -166,7 +166,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     The expectation values are than used as features for the classical kernel, for which
     the different implementations of sklearn's kernels can be used.
 
-    The implementation is based on the paper https://doi.org/10.1038/s41467-021-22539-9
+    The implementation is based on Ref. [1].
 
     As defaults, a Gaussian outer kernel and the expectation value of all three Pauli matrices
     :math:`\{\hat{X},\hat{Y},\hat{Z}\}` are computed for every qubit.
@@ -185,7 +185,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             operator (if parameterized)
         regularization  (Union[str, None], default=None) :
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            after Ref. [2] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
 
 
@@ -278,9 +278,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         * `sklean kernels <https://scikit-learn.org/stable/modules/gaussian_process.html#gp-kernels>`_
 
     References:
-        * Huang, HY., Broughton, M., Mohseni, M. et al.
-          Power of data in quantum machine learning. Nat Commun 12, 2631 (2021).
-          https://doi.org/10.1038/s41467-021-22539-9
+        [1] Huang, HY., Broughton, M., Mohseni, M. et al., "Power of data in quantum machine learning",
+        `Nat Commun 12, 2631 (2021). <https://doi.org/10.1038/s41467-021-22539-9>`_
+
+        [2] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
+        `arXiv:2105.02276v1 (2021). <https://arxiv.org/pdf/2105.02276.pdf>`_
 
     **Example: Calculate a kernel matrix with the Projected Quantum Kernel**
 
@@ -524,11 +526,19 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set outer kernel parameters
         dict_outer_kernel = {}
+        valid_keys_outer_kernel = self._outer_kernel.get_params().keys()
         for key, value in params.items():
-            if key in self._outer_kernel.get_params():
+            if key in valid_keys_outer_kernel:
                 dict_outer_kernel[key] = value
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+            )
 
         self._parameters = None
         if self.num_parameters == num_parameters_backup:
@@ -558,7 +568,7 @@ class GaussianOuterKernel(OuterKernelBase):
 
     def __init__(self, gamma=1.0):
         super().__init__()
-        self._gamma = gamma
+        self.gamma = gamma
         self._num_hyper_parameters = 1
         self._name_hyper_parameters = ["gamma"]
 
@@ -586,7 +596,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = None
 
-        return RBF(length_scale=1.0 / np.sqrt(2.0 * self._gamma))(x_result, y_result)
+        return RBF(length_scale=1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -599,7 +609,7 @@ class GaussianOuterKernel(OuterKernelBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        return {"gamma": self._gamma}
+        return {"gamma": self.gamma}
 
     def set_params(self, **params) -> None:
         """

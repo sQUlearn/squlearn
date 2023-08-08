@@ -40,8 +40,6 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         [2] https://en.wikipedia.org/wiki/Ridge_regression
 
-        [3] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
-        `arXiv:2105.02276v1 (2021) <https://arxiv.org/pdf/2105.02276.pdf>`_.
 
     **Example**
 
@@ -73,6 +71,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
+        **kwargs,
     ) -> None:
         self._quantum_kernel = quantum_kernel
         self.alpha = alpha
@@ -80,7 +79,15 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
-        self.num_qubits = self._quantum_kernel.num_qubits
+
+        # Apply kwargs to quantum kernel set_params
+        valid_params = self.get_params().keys()
+        set_params_dict = {}
+        for key, value in kwargs.items():
+            if key in valid_params:
+                set_params_dict[key] = value
+        if len(set_params_dict) > 0:
+            self.set_params(**set_params_dict)
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
@@ -134,12 +141,34 @@ class QKRR(BaseEstimator, RegressorMixin):
     # All scikit-learn estimators have get_params and set_params
     # (cf. https://scikit-learn.org/stable/developers/develop.html)
     def get_params(self, deep: bool = True):
-        return {
-            "quantum_kernel": self._quantum_kernel,
-            "alpha": self.alpha,
-        }
+        params = dict()
+        params["quantum_kernel"] = self._quantum_kernel
+        params["alpha"] = self.alpha
+        if deep:
+            params.update(self._quantum_kernel.get_params(deep=True))
+        else:
+            params.update(self._quantum_kernel.get_params(deep=False))
+        return params
 
-    def set_params(self, **parameters):
-        for parameter, value in parameters.items():
-            setattr(self, parameter, value)
+    def set_params(self, **params):
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        param_dict = {}
+        for key, value in params.items():
+            # if key in valid_params:
+            if key in self._quantum_kernel.get_params().keys():
+                param_dict[key] = value
+        self._quantum_kernel.set_params(**param_dict)
+
+        if "alpha" in params.keys():
+            self.alpha = params["alpha"]
+
+        self.__init__(self._quantum_kernel, self.alpha)
+
         return self

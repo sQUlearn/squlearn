@@ -44,7 +44,7 @@ class FidelityKernel(KernelMatrixBase):
             FQKs computed on a real backend.
         regularization  (Union[str, None], default=None) :
             Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [3] for the training kernel matrix, prior to  solving the linear system
+            after Ref. [4] for the training kernel matrix, prior to  solving the linear system
             in the ``fit()``-procedure.
 
     References:
@@ -134,7 +134,8 @@ class FidelityKernel(KernelMatrixBase):
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
         if deep:
-            params = self._feature_map.get_params()
+            # params = self._feature_map.get_params()
+            params.update(self._feature_map.get_params())
         return params
 
     def set_params(self, **params):
