@@ -532,13 +532,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 dict_outer_kernel[key] = value
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
-            self.__init__(
-                self._feature_map,
-                self._executor,
-                self._measurement_input,
-                self._outer_kernel,
-                None,
-            )
 
         self._parameters = None
         if self.num_parameters == num_parameters_backup:

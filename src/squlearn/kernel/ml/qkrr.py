@@ -140,17 +140,15 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     # All scikit-learn estimators have get_params and set_params
     # (cf. https://scikit-learn.org/stable/developers/develop.html)
-    def get_params(self, deep: bool = True):
+    def get_params(self, deep: bool = True) -> dict:
         params = dict()
         params["quantum_kernel"] = self._quantum_kernel
         params["alpha"] = self.alpha
         if deep:
-            params.update(self._quantum_kernel.get_params(deep=True))
-        else:
-            params.update(self._quantum_kernel.get_params(deep=False))
+            params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
-    def set_params(self, **params):
+    def set_params(self, **params) -> None:
         valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
@@ -160,15 +158,12 @@ class QKRR(BaseEstimator, RegressorMixin):
                 )
 
         param_dict = {}
+        valid_params = self.get_params().keys()
         for key, value in params.items():
-            # if key in valid_params:
-            if key in self._quantum_kernel.get_params().keys():
+            if key in valid_params:
                 param_dict[key] = value
-        self._quantum_kernel.set_params(**param_dict)
+        if len(param_dict) > 0:
+            self._quantum_kernel.set_params(**param_dict)
 
         if "alpha" in params.keys():
             self.alpha = params["alpha"]
-
-        self.__init__(self._quantum_kernel, self.alpha)
-
-        return self
