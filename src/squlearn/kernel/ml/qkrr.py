@@ -71,6 +71,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
+        **kwargs
     ) -> None:
         self._quantum_kernel = quantum_kernel
         self.alpha = alpha
@@ -78,6 +79,15 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
+
+        # Apply kwargs to quantum kernel set_params
+        valid_params = self.get_params().keys()
+        set_params_dict = {}
+        for key, value in kwargs.items():
+            if key in valid_params:
+                set_params_dict[key] = value
+        if len(set_params_dict) > 0:
+            self.set_params(**set_params_dict)
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
