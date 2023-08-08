@@ -71,7 +71,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self,
         quantum_kernel: Optional[KernelMatrixBase] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
-        **kwargs
+        **kwargs,
     ) -> None:
         self._quantum_kernel = quantum_kernel
         self.alpha = alpha
