@@ -27,6 +27,10 @@ class QKRR(BaseEstimator, RegressorMixin):
             regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
+        kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
+            by calling ``get_params()``. Can be used to set for example the number of qubits
+            (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
+            of the underlying feature map.
 
     See Also
     --------
@@ -138,20 +142,33 @@ class QKRR(BaseEstimator, RegressorMixin):
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
 
-    # All scikit-learn estimators have get_params and set_params
-    # (cf. https://scikit-learn.org/stable/developers/develop.html)
-    def get_params(self, deep: bool = True):
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the QKRR method.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
         params = dict()
         params["quantum_kernel"] = self._quantum_kernel
         params["alpha"] = self.alpha
         if deep:
-            params.update(self._quantum_kernel.get_params(deep=True))
-        else:
-            params.update(self._quantum_kernel.get_params(deep=False))
+            params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
-    def set_params(self, **params):
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the feature map hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2.
+        """
         valid_params = self.get_params()
+        valid_params_qkrr = self.get_params(deep=False)
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
@@ -159,16 +176,18 @@ class QKRR(BaseEstimator, RegressorMixin):
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
+            # Set parameters of the QKRR
+            if key in valid_params_qkrr:
+                try:
+                    setattr(self, key, value)
+                except:
+                    setattr(self, "_" + key, value)
+
+        # Set parameters of the Quantum Kernel and its underlying objects
         param_dict = {}
+        valid_params = self._quantum_kernel.get_params().keys()
         for key, value in params.items():
-            # if key in valid_params:
-            if key in self._quantum_kernel.get_params().keys():
+            if key in valid_params:
                 param_dict[key] = value
-        self._quantum_kernel.set_params(**param_dict)
-
-        if "alpha" in params.keys():
-            self.alpha = params["alpha"]
-
-        self.__init__(self._quantum_kernel, self.alpha)
-
-        return self
+        if len(param_dict) > 0:
+            self._quantum_kernel.set_params(**param_dict)

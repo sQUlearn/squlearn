@@ -39,25 +39,32 @@ class QiskitFeatureMap(FeatureMapBase):
        QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
 
     Args:
-        qiskit_circuit (Union[BlueprintCircuit, Callable]): A Qiskit circuit or a Qiskit
-                                                            circuit library function
+        qiskit_circuit (Union[BlueprintCircuit, Callable,QuantumCircuit]): A Qiskit circuit or a
+                                                                           Qiskit circuit library
+                                                                           function
         mode (str): Option for considering the circuit parameters as features or trainable
                     parameters. Can be ``features`` or ``parameters`` or ``auto``.
                     With auto, the mode is automatically determined depending on the
                     parameter name. (default: ``auto``)
+        decompose (bool): If True, the decompose method is called on the inputted circuit object.
+                          (default: ``True``)
         **kwargs: Arguments for the Qiskit circuit library function if it is passed as a callable
     """
 
     def __init__(
         self,
-        qiskit_circuit: Union[BlueprintCircuit, Callable],
+        qiskit_circuit: Union[BlueprintCircuit, Callable, QuantumCircuit],
         mode: str = "auto",
+        decompose: bool = True,
         **kwargs,
     ) -> None:
         if callable(qiskit_circuit):
             self._qiskit_circuit = qiskit_circuit(**kwargs).decompose()
         else:
-            self._qiskit_circuit = qiskit_circuit.decompose()
+            if decompose:
+                self._qiskit_circuit = qiskit_circuit.decompose()
+            else:
+                self._qiskit_circuit = qiskit_circuit
 
         self._num_qubits = self._qiskit_circuit.num_qubits
         self._mode = mode

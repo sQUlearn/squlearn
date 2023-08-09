@@ -62,6 +62,8 @@ class Executor:
                                                                                                                      * A Session, to run the jobs on the Qiskit Runtime service
                                                                                                                      * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                                                                                                                      * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+
+                                                                                                                     Default is the initilization with the statevector simulator.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
                                              Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
@@ -160,7 +162,7 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
-        ],
+        ] = "statevector_simulator",
         backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
