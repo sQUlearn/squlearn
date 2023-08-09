@@ -81,7 +81,6 @@ class QSVR(SVR):
 
         if len(set_quantum_kernel_params_dict) > 0:
             self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
-        print(self.quantum_kernel.num_qubits)
 
         # remove quantum_kernel_kwargs for QSVR initialization
         for key in set_quantum_kernel_params_dict:
