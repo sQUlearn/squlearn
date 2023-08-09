@@ -175,8 +175,9 @@ class FidelityKernel(KernelMatrixBase):
             self._mit_depol_noise,
             None,
             self._parameter_seed,
+            self._regularization,
         )
-        self._parameters = None
+
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
