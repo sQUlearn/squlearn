@@ -46,6 +46,8 @@ class QiskitFeatureMap(FeatureMapBase):
                     parameters. Can be ``features`` or ``parameters`` or ``auto``.
                     With auto, the mode is automatically determined depending on the
                     parameter name. (default: ``auto``)
+        decompose (bool): If True, the decompose method is called on the inputted circuit object.
+                          (default: ``True``)
         **kwargs: Arguments for the Qiskit circuit library function if it is passed as a callable
     """
 
