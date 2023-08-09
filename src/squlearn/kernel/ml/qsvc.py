@@ -81,7 +81,7 @@ class QSVC(SVC):
         if len(set_quantum_kernel_params_dict) > 0:
             self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
 
-        # remove quantum_kernel_kwargs for QSVC initialization
+        # remove quantum_kernel_kwargs for SVC initialization
         for key in set_quantum_kernel_params_dict:
             kwargs.pop(key, None)
 

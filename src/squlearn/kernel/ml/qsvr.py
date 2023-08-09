@@ -1,5 +1,3 @@
-from typing import Union
-
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
@@ -82,7 +80,7 @@ class QSVR(SVR):
         if len(set_quantum_kernel_params_dict) > 0:
             self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
 
-        # remove quantum_kernel_kwargs for QSVR initialization
+        # remove quantum_kernel_kwargs for SVR initialization
         for key in set_quantum_kernel_params_dict:
             kwargs.pop(key, None)
 
