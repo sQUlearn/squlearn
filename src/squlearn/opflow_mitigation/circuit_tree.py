@@ -5,10 +5,18 @@ from qiskit.circuit import ParameterVector,ParameterExpression
 from typing import List, Union, Callable
 import time
 from qiskit.primitives import Estimator
+from qiskit.converters import circuit_to_dag
+from hashlib import blake2b
 
 import dill as pickle
 
 # TODO: better indexing of lists for tree objects for less verbose code
+
+def hash_circuit(circuit:QuantumCircuit):
+    from qiskit.primitives.utils import _circuit_key
+    return _circuit_key(circuit)
+    #return blake2b(str(_circuit_key(circuit)).encode("utf-8"), digest_size=20).hexdigest() # faster for comparison slower for generation
+
 
 class OpTreeElementBase():
 
@@ -49,30 +57,30 @@ class OpTreeElementBase():
     # Maybe use hasing and string for better comparison
     
     # Save but very slow
-    # def __eq__(self, other) -> bool:
-    #     # op is missing!
-    #     if isinstance(other,type(self)):
-    #         # Fast checks
-    #         if len(self._children_list) != len(other._children_list):
-    #             return False
-    #         # Medium fast check
-    #         fac_set_self = set(self._factor_list)
-    #         fac_set_other = set(other._factor_list)
-    #         if len(fac_set_self) != len(fac_set_other):
-    #             return False
-    #         if fac_set_self != fac_set_other:
-    #             return False
-    #         # Slow check
-    #         for child in self._children_list:
-    #             if child not in other._children_list:
-    #                 return False
-    #             else :
-    #                 index = other._children_list.index(child)
-    #                 if self._factor_list[self._children_list.index(child)] != other._factor_list[index]:
-    #                     return False
-    #         return True
-    #     else:
-    #         return False
+    def __eq__(self, other) -> bool:
+        # op is missing!
+        if isinstance(other,type(self)):
+            # Fast checks
+            if len(self._children_list) != len(other._children_list):
+                return False
+            # Medium fast check
+            fac_set_self = set(self._factor_list)
+            fac_set_other = set(other._factor_list)
+            if len(fac_set_self) != len(fac_set_other):
+                return False
+            if fac_set_self != fac_set_other:
+                return False
+            # Slow check
+            for child in self._children_list:
+                if child not in other._children_list:
+                    return False
+                else :
+                    index = other._children_list.index(child)
+                    if self._factor_list[self._children_list.index(child)] != other._factor_list[index]:
+                        return False
+            return True
+        else:
+            return False
 
 class OpTreeList(OpTreeElementBase):
     def __str__(self) -> str:
@@ -106,6 +114,9 @@ class OpTreeCircuit():
         self._expectation = expectation
         self._index = index
         #self._circuit_str = str(circuit)
+        # self._dag_representation = circuit_to_dag(circuit, copy_operations=True)
+        self._hashvalue = hash_circuit(circuit)
+
 
     def __str__(self) -> str:
         #return self._circuit_str
@@ -115,7 +126,13 @@ class OpTreeCircuit():
 
         if isinstance(other,OpTreeCircuit):
             #this has to be faster! -> store dag maybe
-            return (equal_circuit_fast(self._circuit,other._circuit) and
+            # return (equal_circuit_fast(self._circuit,other._circuit) and
+            #         self._expectation == other._expectation and
+            #         self._index == other._index)
+            #return (self._dag_representation == other._dag_representation and
+            #        self._expectation == other._expectation and
+            #        self._index == other._index)
+            return (self._hashvalue == other._hashvalue and
                     self._expectation == other._expectation and
                     self._index == other._index)
 
@@ -130,7 +147,7 @@ class OpTreeOperator():
         return str(self._operator)
 
 def equal_circuit_fast(circuit1:QuantumCircuit,circuit2:QuantumCircuit):
-        from qiskit.converters import circuit_to_dag
+        
         return circuit_to_dag(circuit1, copy_operations=True) == circuit_to_dag(
             circuit2, copy_operations=True
         )
@@ -457,12 +474,14 @@ def evaluate_index_tree(element: Union[OpTreeElementBase,OpTreeCircuit],result_a
         raise ValueError("element must be a Tree element or a integer pointer")
 
 def evaluate(element: Union[OpTreeElementBase,OpTreeCircuit,QuantumCircuit],
-             estimator, operator, dictionary):
+             estimator, operator, dictionary, detect_circuit_duplicates:bool=False):
 
     # dictionary might be slow!
 
     # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
     circuit_list = []
+    if detect_circuit_duplicates:
+        circuit_hash_list = []
     parameter_list = []
     global circuit_counter
     circuit_counter = 0
@@ -488,16 +507,22 @@ def evaluate(element: Union[OpTreeElementBase,OpTreeCircuit,QuantumCircuit],
         else:
             if isinstance(element,QuantumCircuit):
                 circuit = element
+                if detect_circuit_duplicates:
+                    circuit_hash = hash_circuit(circuit)
             elif isinstance(element,OpTreeCircuit):
                 circuit = element._circuit
+                if detect_circuit_duplicates:
+                    circuit_hash = element._hashvalue
             else:
                 raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
 
-            # too slow
-            #if circuit in circuit_list:
-            #    return circuit_list.index(circuit)
-            #else:
+            if detect_circuit_duplicates:
+                if circuit_hash in circuit_hash_list:
+                    return circuit_list.index(circuit)
+                circuit_hash_list.append(circuit_hash)
+
             circuit_list.append(circuit)
+
             parameter_list.append(np.array([dictionary[p] for p in circuit.parameters ]))
             circuit_counter += 1
             return circuit_counter - 1
@@ -521,11 +546,7 @@ def evaluate(element: Union[OpTreeElementBase,OpTreeCircuit,QuantumCircuit],
     # print("op_list",op_list)
     # print("parameter_list",parameter_list)
 
-    print("inital_circuit",circuit_list[0])
-
-    pickle.dump(circuit_list,open("/data/circuit_list.p","wb"))
-    pickle.dump(op_list,open("/data/op_list.p","wb"))
-    pickle.dump(parameter_list,open("/data/parameter_list.p","wb"))
+    #print("inital_circuit",circuit_list[0])
 
     start=time.time()
     res1 = Estimator().run(circuit_list,op_list,parameter_list)
