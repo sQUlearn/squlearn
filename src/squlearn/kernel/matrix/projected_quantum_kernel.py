@@ -491,20 +491,21 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         dict_qnn = {}
 
         if "num_qubits" in params:
-            if isinstance(self._measurement_input, str):
-                self._feature_map.set_params(num_qubits=params["num_qubits"])
-                self.__init__(
-                    self._feature_map,
-                    self._executor,
-                    self._measurement_input,
-                    self._outer_kernel,
-                    None,
-                )
-            else:
-                self._qnn.set_params(**dict_qnn)
-                self._feature_map.set_params(num_qubits=params["num_qubits"])
-                for m in self._measurement:
+            self._feature_map.set_params(num_qubits=params["num_qubits"])
+            if isinstance(self._measurement_input, list):
+                for m in self._measurement_input:
                     m.set_params(num_qubits=params["num_qubits"])
+            elif isinstance(self._measurement_input, ExpectationOperatorBase):
+                self._measurement_input.set_params(num_qubits=params["num_qubits"])
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+                self._parameter_seed,
+                self._regularization,
+            )
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
@@ -514,6 +515,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._measurement_input,
                 self._outer_kernel,
                 None,
+                self._parameter_seed,
+                self._regularization,
             )
 
         # Set QNN parameters
@@ -532,15 +535,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 dict_outer_kernel[key] = value
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
-            self.__init__(
-                self._feature_map,
-                self._executor,
-                self._measurement_input,
-                self._outer_kernel,
-                None,
-            )
 
-        self._parameters = None
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
