@@ -75,7 +75,7 @@ Feature Map Tools
    :toctree: generated/
    :template: class.rst
 
-   feature_map.FeatureMapBase
+   feature_map.feature_map_base.FeatureMapBase
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
    feature_map.FeatureMapDerivatives
