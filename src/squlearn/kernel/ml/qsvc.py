@@ -1,5 +1,3 @@
-from typing import Union
-
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVC
@@ -81,4 +79,17 @@ class QSVC(SVC):
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")
-        return sorted(names + ["quantum_kernel"])
+        return names
+
+    def get_params(self, deep: bool = True) -> dict:
+        params = dict()
+
+        # get parameters from the parent SVC class
+        for key in self._get_param_names():
+            params[key] = getattr(self, key)
+
+        # add qsvc specific parameters
+        params["quantum_kernel"] = self.quantum_kernel
+        if deep:
+            params.update(self.quantum_kernel.get_params(deep=deep))
+        return params
