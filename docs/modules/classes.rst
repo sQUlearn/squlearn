@@ -121,8 +121,8 @@ Operator Tools
    :toctree: generated/
    :template: class.rst
 
-   expectation_operator.ExpectationOperatorBase
-   expectation_operator.ExpectationOperatorDerivatives
+   expectation_operator.expectation_operator_base.ExpectationOperatorBase
+   expectation_operator.expectation_operator_derivatives.ExpectationOperatorDerivatives
 
 
 Execution Tools
