@@ -652,9 +652,9 @@ def evaluate(
 
     start = time.time()
     index_tree = build_lists_and_index_tree(element)
-    print("build_lists_and_index_tree", time.time() - start)
+    #print("build_lists_and_index_tree", time.time() - start)
 
-    print("len(circuit_list)", len(circuit_list))
+    #print("len(circuit_list)", len(circuit_list))
 
     # print(circuit_tree_index)
 
@@ -670,14 +670,14 @@ def evaluate(
 
     start = time.time()
     res1 = Estimator().run(circuit_list, op_list, parameter_list)
-    print("run", time.time() - start)
+    #print("run", time.time() - start)
     start = time.time()
     res2 = res1.result()
-    print("res2", time.time() - start)
+    #print("res2", time.time() - start)
     start = time.time()
     result = res2.values
-    print("result time", time.time() - start)
+    #print("result time", time.time() - start)
 
-    print("result", result)
+    #print("result", result)
 
     return evaluate_index_tree(index_tree, result)
