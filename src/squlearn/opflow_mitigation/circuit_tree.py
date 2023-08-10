@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Any
 import time
 from qiskit.primitives import Estimator
 from qiskit.converters import circuit_to_dag
@@ -245,6 +245,22 @@ class OpTreeLeafOperator(OpTreeLeafBase):
             # TODO: check for same operators
             return False
         return False
+
+class OpTreeLeafContainer(OpTreeLeafBase):
+    """
+    A container for arbitrary objects that can be used as leafs in the OpTree.
+    """
+    def __init__(self, item: Any) -> None:
+        self.item = item
+
+    def __str__(self) -> str:
+        """Returns the string representation of the object."""
+        return str(self.item)
+
+    def __eq__(self, other) -> bool:
+        """Function for comparing two OpTreeLeafContainers."""
+        if isinstance(other, OpTreeLeafContainer):
+            return self.item == other.item
 
 
 class OpTree:
@@ -533,14 +549,14 @@ def circuit_derivative_v2(
         return derivative_list[0]
 
 
-def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OperatorType]) -> Union[OpTreeNodeBase,OpTreeLeafBase,QuantumCircuit,OperatorType]:
+def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]) -> Union[OpTreeNodeBase,OpTreeLeafBase,QuantumCircuit,OperatorType]:
     """
-    Function for simplifying an OpTree structure.
+    Function for simplifying an OpTree structure, the input is kept untouched.
 
     Merges double sums and identifies identical branches or leafs in sums.
 
     Args:
-        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OperatorType]): The OpTree to be simplified.
+        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]): The OpTree to be simplified.
 
     Returns:
         A simplified copy of the OpTree.
@@ -631,25 +647,62 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
         # Reached a leaf -> cancel the recursion
         return copy.deepcopy(element)
 
+def simplify_inplace(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]) -> None:
+    """
+    Function for simplifying an OpTree structure, the input is modified inplace.
 
-def evaluate_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafCircuit], result_array):
+    Merges double sums and identifies identical branches or leafs in sums.
+    The function returns nothing, since the OpTree is modified inplace.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]): The OpTree to be simplified.
+
+    """
+    raise NotImplementedError("Not implemented yet")
+
+
+def _evaluate_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], result_array) -> Union[np.ndarray,float]:
+    """
+    Function for evaluating an OpTree structure that has been indexed with a given result array.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafContainer]): The OpTree to be evaluated.
+                                                              Has to be index first, such that the
+                                                              leafs point to the
+                                                              correct result array entries
+                                                              and all factors have to be numeric.
+        result_array (np.ndarray): The result array that contains the results to be placed in
+                                   the leafs of the OpTree.
+
+    Returns:
+        The evaluated OpTree structure as a numpy array or a float.
+
+    """
     if isinstance(element, OpTreeNodeBase):
+
+        if any(not isinstance(fac, float) for fac in element.factor):
+            raise ValueError("All factors must be numeric for evaluation")
+
+        # Recursive construction of the data array
         temp = np.array(
             [
-                element.factor[i] * evaluate_index_tree(element.children[i], result_array)
-                for i in range(len(element.children))
+                element.factor[i] * _evaluate_index_tree(child, result_array)
+                for i, child in enumerate(element.children)
             ]
         )
         if isinstance(element, OpTreeNodeSum):
+            # OpTreeNodeSum -> sum over the array
             return np.sum(temp, axis=0)
         elif isinstance(element, OpTreeNodeList):
+            # OpTreeNodeList -> return just the array
             return temp
         else:
-            raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-    elif isinstance(element, int):
-        return result_array[element]
+            raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
+    elif isinstance(element, OpTreeLeafContainer):
+        # Return value from the result array
+        return result_array[element.item]
     else:
-        raise ValueError("element must be a Tree element or a integer pointer")
+        raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
 def evaluate(
@@ -659,37 +712,58 @@ def evaluate(
     dictionary,
     detect_circuit_duplicates: bool = False,
 ):
-    # dictionary might be slow!
+    """
+    TODO: docstring
+    """
+    
+    
+    
+    
+    # TODO: dictionary might be slow!
 
     # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
     circuit_list = []
     if detect_circuit_duplicates:
         circuit_hash_list = []
     parameter_list = []
-    global circuit_counter
+
     circuit_counter = 0
 
-    def build_lists_and_index_tree(element):
-        global circuit_counter
+    def build_lists_and_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit]):
+        """
+        Helper function for building the circuit list and the parameter list, and
+        creates a indexed copy of the OpTree structure that references the circuits in the list.
+        """
+
+        # Global counter for indexing the circuits, circuit list and hash list, and parameter list
+        nonlocal circuit_counter
+        nonlocal circuit_list
+        nonlocal circuit_hash_list
+        nonlocal parameter_list
         if isinstance(element, OpTreeNodeBase):
-            l = [build_lists_and_index_tree(c) for c in element.children]
-            f = []
-            for i in range(len(element.factor)):
-                if isinstance(element.factor[i], ParameterExpression):
-                    f.append(
-                        float(element.factor[i].bind(dictionary, allow_unknown_parameters=True))
+            # Index circuits and bind parameters in the OpTreeNode structure
+            child_list_indexed = [build_lists_and_index_tree(c) for c in element.children]
+            factor_list_bound = []
+            for fac in element.factor:
+                if isinstance(fac, ParameterExpression):
+                    factor_list_bound.append(
+                        float(fac.bind(dictionary, allow_unknown_parameters=True))
                     )
                 else:
-                    f.append(element.factor[i])
-            op = element.operation
+                    factor_list_bound.append(fac)
+            op = element.operation # TODO: check if this is correct
+
+            # Recursive rebuild of the OpTree structure
             if isinstance(element, OpTreeNodeSum):
-                return OpTreeNodeSum(l, f, op)
+                return OpTreeNodeSum(child_list_indexed, factor_list_bound, op)
             elif isinstance(element, OpTreeNodeList):
-                return OpTreeNodeList(l, f, op)
+                return OpTreeNodeList(child_list_indexed, factor_list_bound, op)
             else:
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
         else:
+            # Reached a CircuitTreeLeaf
+            # Get the circuit, and if needed also the hash of the circuit
             if isinstance(element, QuantumCircuit):
                 circuit = element
                 if detect_circuit_duplicates:
@@ -701,45 +775,33 @@ def evaluate(
             else:
                 raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
 
+            # In case of duplicate detection, check if the circuit is already in the
+            # circuit list and return the index of the circuit if it is already present
             if detect_circuit_duplicates:
                 if circuit_hash in circuit_hash_list:
-                    return circuit_list.index(circuit)
+                    return OpTreeLeafContainer(circuit_list.index(circuit))
                 circuit_hash_list.append(circuit_hash)
 
+            # Otherwise append the circuit to the circuit list, copy the paramerters into vector form
+            # and append them to the parameter list, increase the counter and return the index
+            # in the OpTreeLeafContainer
             circuit_list.append(circuit)
-
             parameter_list.append(np.array([dictionary[p] for p in circuit.parameters]))
             circuit_counter += 1
-            return circuit_counter - 1
+            return OpTreeLeafContainer(circuit_counter - 1)
 
+    # Build the circuit list and the parameter list, and create a indexed copy
+    # of the OpTree structure
     start = time.time()
     index_tree = build_lists_and_index_tree(element)
-    #print("build_lists_and_index_tree", time.time() - start)
+    print("build_lists_and_index_tree", time.time() - start)
 
-    #print("len(circuit_list)", len(circuit_list))
+    # Build operator list
+    operator_list = [operator] * len(circuit_list)
 
-    # print(circuit_tree_index)
-
-    parameter_list = [parameter_list[0]] * len(circuit_list)
-
-    op_list = [operator] * len(circuit_list)
-
-    # print("circuit_list",circuit_list)
-    # print("op_list",op_list)
-    # print("parameter_list",parameter_list)
-
-    # print("inital_circuit",circuit_list[0])
-
+    # Evaluation via the estimator
     start = time.time()
-    res1 = Estimator().run(circuit_list, op_list, parameter_list)
-    #print("run", time.time() - start)
-    start = time.time()
-    res2 = res1.result()
-    #print("res2", time.time() - start)
-    start = time.time()
-    result = res2.values
-    #print("result time", time.time() - start)
+    estimator_result = estimator.run(circuit_list, operator_list, parameter_list).result().values
+    print("run time", time.time() - start)
 
-    #print("result", result)
-
-    return evaluate_index_tree(index_tree, result)
+    return _evaluate_index_tree(index_tree, estimator_result)
