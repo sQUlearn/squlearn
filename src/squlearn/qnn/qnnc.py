@@ -26,10 +26,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
     Args:
         pqc (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN. For a list
-            of feature maps, check the :ref:`Implemented feature maps in squlearn`.
+            of feature maps, check this list of implemented :ref:`Feature Maps`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
-            list of operators, check the :ref:`Implemented operators for expectation values`
+            list of operators, check this list of implemented :ref:`Operators`.
         executor (Executor): Executor instance.
         loss (LossBase): The loss function to be optimized. Can also be combination of multiple
             loss functions.
