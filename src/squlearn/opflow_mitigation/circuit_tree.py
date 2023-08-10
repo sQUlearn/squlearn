@@ -333,24 +333,24 @@ def circuit_parameter_shift(
 
 
 def circuit_derivative_inplace(
-    element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+    tree_node: OpTreeNodeBase,
     parameter: ParameterExpression,
-) -> OpTreeNodeBase:
+) -> None:
     """"
-    Create the derivative of a Tree (or circuit) wrt a single parameter, modifies the tree inplace.
+    Create the derivative of a OpTreeNode wrt a single parameter, modifies the tree inplace.
+
+    Functions returns nothing, since the OpTree is modified inplace.
 
     Args:
-        element (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit to be differentiated.
+        tree_node (OpTreeNodeBase): The OpTree Node to be differentiated.
         parameter (ParameterExpression): The parameter wrt which the circuit is differentiated.
 
-    Returns:
-        The derivative of the circuit
     """
-    if isinstance(element, OpTreeNodeBase):
-        for i,child in enumerate(element.children):
+    if isinstance(tree_node, OpTreeNodeBase):
+        for i,child in enumerate(tree_node.children):
 
-            if isinstance(element.factor[i], ParameterExpression):
-                grad_fac = element.factor[i].gradient(parameter)
+            if isinstance(tree_node.factor[i], ParameterExpression):
+                grad_fac = tree_node.factor[i].gradient(parameter)
             else:
                 grad_fac = 0.0
 
@@ -364,53 +364,72 @@ def circuit_derivative_inplace(
                 circuit_derivative_inplace(child, parameter)
                 grad = child
 
+            # Product rule for differentiation
             if isinstance(grad_fac, float):
                 # if grad_fac is a numeric value
                 if grad_fac == 0.0:
-                    element.children[i] = grad
+                    tree_node.children[i] = grad
                 else:
-                    element.children[i] = OpTreeNodeSum([child, grad], [grad_fac, element.factor[i]])
-                    element.factor[i] = 1.0
+                    tree_node.children[i] = OpTreeNodeSum([child, grad], [grad_fac, tree_node.factor[i]])
+                    tree_node.factor[i] = 1.0
             else:
                 # if grad_fac is still a parameter
-                element.children[i] = OpTreeNodeSum([child, grad], [grad_fac, element.factor[i]])
-                element.factor[i] = 1.0
+                tree_node.children[i] = OpTreeNodeSum([child, grad], [grad_fac, tree_node.factor[i]])
+                tree_node.factor[i] = 1.0
 
     else:
-        # reached a leaf -> replace with parameter shift derivative
-        element = circuit_parameter_shift(element, parameter)
+        raise ValueError("tree_node must be a CircuitTreeSum or a CircuitTreeList")
+
 
 
 def circuit_derivative(
     element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     parameters: Union[ParameterExpression, List[ParameterExpression], ParameterVector],
-):
-    # preprocessing
+) -> OpTreeNodeBase:
+    """
+    Calculates the derivative of a OpTree (or circuit) wrt to a parameter or a list of parameters.
 
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): OpTree (or circuit)
+                                                                            to be differentiated.
+        parameters (Union[ParameterExpression, List[ParameterExpression], ParameterVector]): Parameter(s) wrt
+                                                                                                the OpTree is
+                                                                                                differentiated
+
+    Returns:
+        The derivative of the OpTree (or circuit) in OpTree form.
+    """
+
+    # Preprocessing
+    # ParameterExpression as list
     is_list = True
     if isinstance(parameters, ParameterExpression):
         parameters = [parameters]
         is_list = False
-
     is_not_circuit = True
+    # QuantumCircuit or OpTreeLeafCircuit as single OpTreeNodeList,
+    #  otherwise inplace operation does not work
     if isinstance(element, QuantumCircuit) or isinstance(element, OpTreeLeafCircuit):
         is_not_circuit = False
         start = OpTreeNodeList([element], [1.0])
     else:
         start = element
-    # start = element
 
     derivative_list = []
     fac_list = []
     for dp in parameters:
+        # copy the circuit tree for inplace operation during derivative calculation
         res = copy.deepcopy(start)
         circuit_derivative_inplace(res, dp)
         if is_not_circuit:
             derivative_list.append(res)
         else:
+            # if the input was a circuit, get rid ouf the outer OpTreeNodeList container
+            # from the preprocessing
             derivative_list.append(res.children[0])
         fac_list.append(1.0)
 
+    # Return either in list form or as single OpTreeNode
     if is_list:
         return OpTreeNodeList(derivative_list, fac_list)
     else:
@@ -420,33 +439,46 @@ def circuit_derivative(
 def circuit_derivative_copy(
     element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     parameter: ParameterExpression,
-):
+) -> OpTreeNodeBase:
+    """
+    Create the derivative of a OpTree or circuit wrt a single parameter, the input is untouched.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The OpTree (or circuit) to be differentiated.
+        parameter (ParameterExpression): The parameter wrt which the circuit is differentiated.
+
+    Returns:
+        The derivative of the circuit as an OpTree
+    """
+
     if isinstance(element, OpTreeNodeBase):
         children_list = []
         factor_list = []
-        for i in range(len(element.children)):
+        for i,child in enumerate(element.children):
             if isinstance(element.factor[i], ParameterExpression):
                 # get derivative of factor
-                df = element.factor[i].gradient(parameter)
-                f = element.factor[i]
-                l = element.children[i]
-                grad = circuit_derivative_copy(element.children[i], parameter)
+                grad_fac = element.factor[i].gradient(parameter)
+                fac = element.factor[i]
+                # recursive call to get the gradient for the child
+                grad = circuit_derivative_copy(child, parameter)
 
-                if isinstance(df, float):
-                    if df == 0.0:
+                # Product rule for differentiation
+                if isinstance(grad_fac, float):
+                    if grad_fac == 0.0:
                         children_list.append(grad)
-                        factor_list.append(f)
+                        factor_list.append(fac)
                     else:
-                        children_list.append(OpTreeNodeSum([l, grad], [df, f]))
+                        children_list.append(OpTreeNodeSum([child, grad], [grad_fac, fac]))
                         factor_list.append(1.0)
                 else:
-                    children_list.append(OpTreeNodeSum([l, grad], [df, f]))
+                    children_list.append(OpTreeNodeSum([child, grad], [grad_fac, fac]))
                     factor_list.append(1.0)
-
             else:
-                children_list.append(circuit_derivative_copy(element.children[i], parameter))
+                # No parameter in factor -> just call recursive call for the children
+                children_list.append(circuit_derivative_copy(child, parameter))
                 factor_list.append(element.factor[i])
 
+        # Rebuild the tree with the new children and factors (copy part)
         if isinstance(element, OpTreeNodeSum):
             return OpTreeNodeSum(children_list, factor_list)
         elif isinstance(element, OpTreeNodeList):
@@ -455,36 +487,70 @@ def circuit_derivative_copy(
             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
     else:
+        # Reached a leaf -> grad by parameter shift function
         return circuit_parameter_shift(element, parameter)
 
 
 def circuit_derivative_v2(
     element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     parameters: Union[ParameterExpression, List[ParameterExpression], ParameterVector],
-):
-    # preprocessing
+) -> OpTreeNodeBase:
+    """
+    Calculates the derivative of a OpTree (or circuit) wrt to a parameter or a list of parameters.
 
+    Second implementation, in which the derivative is calculated during the recursive derivative
+    computation.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): OpTree (or circuit)
+                                                                            to be differentiated.
+        parameters (Union[ParameterExpression, List[ParameterExpression], ParameterVector]): Parameter(s) wrt
+                                                                                                the OpTree is
+                                                                                                differentiated
+
+    Returns:
+        The derivative of the OpTree (or circuit) in OpTree form.
+    """
+
+    # Preprocessing -> ParameterExpression as list
     is_list = True
     if isinstance(parameters, ParameterExpression):
         parameters = [parameters]
         is_list = False
 
-    start = element
 
+    # Loop through all parameters and calculate the derivative
     derivative_list = []
     fac_list = []
     for dp in parameters:
-        derivative_list.append(circuit_derivative_copy(start, dp))
+        derivative_list.append(circuit_derivative_copy(element, dp))
         fac_list.append(1.0)
 
+    # Adjust the output for single parameter input
     if is_list:
         return OpTreeNodeList(derivative_list, fac_list)
     else:
         return derivative_list[0]
 
 
-def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]):
+def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OperatorType]) -> Union[OpTreeNodeBase,OpTreeLeafBase,QuantumCircuit,OperatorType]:
+    """
+    Function for simplifying an OpTree structure.
+
+    Merges double sums and identifies identical branches or leafs in sums.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OperatorType]): The OpTree to be simplified.
+
+    Returns:
+        A simplified copy of the OpTree.
+    """
+
     def _combine_two_ops(op1, op2):
+        """ Helper function for combining two operations into one.
+
+        TODO: not used/tested yet
+        """
         if op1 is None and op2 is None:
             return None
         elif op1 is None and op2 is not None:
@@ -496,24 +562,25 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircu
 
     if isinstance(element, OpTreeNodeBase):
         if len(element.children) > 0:
-            l = []
-            f = []
-            op = []
-            for i in range(len(element.children)):
-                l.append(simplify_copy(element.children[i]))
-                f.append(element.factor[i])
-                op.append(element._operation_list[i])
+            # Recursive call for all children
+            children_list = []
+            factor_list = []
+            operation_list = []
+            for i,child in enumerate(element.children):
+                children_list.append(simplify_copy(child)) # Recursive call
+                factor_list.append(element.factor[i])
+                operation_list.append(element.operation[i])
 
             if isinstance(element, OpTreeNodeSum):
-                new_element = OpTreeNodeSum(l, f, op)
+                new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
             elif isinstance(element, OpTreeNodeList):
-                new_element = OpTreeNodeList(l, f, op)
+                new_element = OpTreeNodeList(children_list, factor_list, operation_list)
             else:
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
-            # Check for double sum
-            if isinstance(new_element, OpTreeNodeSum) and isinstance(
-                new_element.children[0], OpTreeNodeSum
+            # Check for double sum if the element is a sum and all children are sums
+            if (isinstance(new_element, OpTreeNodeSum) and
+                any([isinstance(child, OpTreeNodeSum) for child in new_element.children])
             ):
                 # detected double sum -> combine double some
 
