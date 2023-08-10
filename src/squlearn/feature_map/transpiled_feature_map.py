@@ -41,7 +41,7 @@ class TranspiledFeatureMap(FeatureMapBase):
                                                If no function is specified, Qiskit's transpile
                                                function is used.
         kwargs: Additional arguments for `Qiskit's transpile function
-                <https://qiskit.org/documentation/stubs/qiskit.compiler.transpile.html>`_.
+            <https://qiskit.org/documentation/apidoc/compiler.html#qiskit.compiler.transpile>`_.
 
     """
 
