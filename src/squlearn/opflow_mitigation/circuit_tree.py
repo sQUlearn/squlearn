@@ -546,7 +546,7 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
         A simplified copy of the OpTree.
     """
 
-    def _combine_two_ops(op1, op2):
+    def combine_two_ops(op1, op2):
         """ Helper function for combining two operations into one.
 
         TODO: not used/tested yet
@@ -578,62 +578,57 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
             else:
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
-            # Check for double sum if the element is a sum and all children are sums
+            # Check for double sum if the element is a sum and one of the children is a sums
             if (isinstance(new_element, OpTreeNodeSum) and
                 any([isinstance(child, OpTreeNodeSum) for child in new_element.children])
             ):
-                # detected double sum -> combine double some
-
-                l = []
-                f = []
-                op = []
-                for i in range(len(new_element.children)):
-                    for j in range(len(new_element.children[i].children)):
-                        l.append(new_element.children[i].children[j])
-                        f.append(new_element.factor[i] * new_element.children[i].factor[j])
-                        op.append(
-                            _combine_two_ops(
-                                new_element.operation[i],
-                                new_element.children[i].operation[j],
+                # Merge the sum of a sum into the parent sum
+                children_list = []
+                factor_list = []
+                operation_list = []
+                for i,child in enumerate(new_element.children):
+                    if isinstance(child, OpTreeNodeSum):
+                        for j,childs_child in enumerate(child.children):
+                            children_list.append(childs_child)
+                            factor_list.append(new_element.factor[i] * child.factor[j])
+                            operation_list.append(combine_two_ops(new_element.operation[i],child.operation[j])
                             )
-                        )
-                new_element = OpTreeNodeSum(l, f, op)
-
-            # Check for double circuits in sum
-            if isinstance(new_element, OpTreeNodeSum):
-                dic = {}
-                l = []
-                f = []
-                op = []
-
-                # Better but slower
-                for i in range(len(new_element.children)):
-                    if new_element.children[i] in l:
-                        index = l.index(new_element.children[i])
-                        f[index] += new_element.factor[i]
                     else:
-                        l.append(new_element.children[i])
-                        f.append(new_element.factor[i])
-                        op.append(new_element.operation[i])
+                        children_list.append(child)
+                        factor_list.append(new_element.factor[i])
+                        operation_list.append(new_element.operation[i])
+                # Create OpTreeSum with the new (potentially merged) children
+                new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
 
-                # for i in range(len(new_element.children)):
-                #     element_str = str(new_element.children[i])
-                #     if element_str in dic:
-                #         f[dic[element_str]] += new_element.factor[i]
-                #         print("double circuit in sum")
-                #     else:
-                #         dic[element_str] = len(f)
-                #         l.append(new_element.children[i])
-                #         f.append(new_element.factor[i])
-                #         op.append(new_element._operation_list[i])
-                #
-                new_element = OpTreeNodeSum(l, f, op)
+            # Check for similar branches in the Sum and merge them into a single branch
+            if isinstance(new_element, OpTreeNodeSum):
+
+                children_list = []
+                factor_list = []
+                operation_list = []
+
+                #TODO check for operator
+                for i,child in enumerate(new_element.children):
+                    # Chick if child already exists in the list
+                    # (branch is already present -> merging)
+                    if child in children_list:
+                        index = children_list.index(child)
+                        factor_list[index] += new_element.factor[i]
+                    else:
+                        children_list.append(child)
+                        factor_list.append(new_element.factor[i])
+                        operation_list.append(new_element.operation[i])
+
+                # Create new OpTreeSum with the merged branches
+                new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
 
             return new_element
 
         else:
+            # Reached an empty Node -> cancel the recursion
             return copy.deepcopy(element)
     else:
+        # Reached a leaf -> cancel the recursion
         return copy.deepcopy(element)
 
 
