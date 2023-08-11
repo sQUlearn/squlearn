@@ -43,7 +43,7 @@ autodoc_default_options = {
     "inherited-members": True,
     "member-order": "groupwise",
 }
-
+autodoc_mock_imports = ["sklearn"]
 
 # Skip property members --> They should be defined in Attributes
 def skip_property_member(app, what, name, obj, skip, options):
