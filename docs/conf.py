@@ -38,7 +38,20 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
 ]
 
-autodoc_default_options = {"members": True, "inherited-members": True}
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "member-order": "groupwise",
+}
+
+
+# Skip property members --> They should be defined in Attributes
+def skip_property_member(app, what, name, obj, skip, options):
+    if isinstance(obj, property):
+        return True
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_property_member)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
