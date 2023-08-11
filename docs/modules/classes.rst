@@ -40,6 +40,8 @@ QML Classifiers
 Circuit Design
 ====================================
 
+.. _feature_maps:
+
 Feature Maps
 ------------------------------------
 
@@ -89,6 +91,8 @@ Feature Map Tools
    feature_map.automated_pruning
    feature_map.pruning_from_QFI
 
+
+.. _operators:
 
 Operators
 ------------------------------------
