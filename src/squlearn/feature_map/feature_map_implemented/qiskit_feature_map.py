@@ -16,27 +16,26 @@ class QiskitFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from qiskit.circuit.library import TwoLocal
-       local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-       QiskitFeatureMap(local).draw()
+        from qiskit.circuit.library import TwoLocal
+        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+        QiskitFeatureMap(local).draw()
 
     .. plot::
 
-       from squlearn.feature_map import QiskitFeatureMap
-       from qiskit.circuit.library import TwoLocal
-       local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-       pqc = QiskitFeatureMap(local)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import QiskitFeatureMap
+        from qiskit.circuit.library import TwoLocal
+        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+        pqc = QiskitFeatureMap(local)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     An alternative call can be made by passing the circuit library function and its arguments:
 
     .. code-block:: python
 
-       from squlearn.feature_map import QiskitFeatureMap
-       from qiskit.circuit.library import ZZFeatureMap
-       QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
+        from squlearn.feature_map import QiskitFeatureMap
+        from qiskit.circuit.library import ZZFeatureMap
+        QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
 
     Args:
         qiskit_circuit (Union[BlueprintCircuit, Callable,QuantumCircuit]): A Qiskit circuit or a

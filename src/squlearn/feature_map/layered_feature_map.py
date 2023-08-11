@@ -1850,25 +1850,24 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("x")
-       feature_map.Ry("p")
-       feature_map.cx_entangling("NN")
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("x")
+        feature_map.Ry("p")
+        feature_map.cx_entangling("NN")
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("x")
-       feature_map.Ry("p")
-       feature_map.cx_entangling("NN")
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("x")
+        feature_map.Ry("p")
+        feature_map.cx_entangling("NN")
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
 
     **Create a layered feature map with non-linear input encoding**
@@ -1878,33 +1877,32 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       import numpy as np
-       from squlearn.feature_map import LayeredFeatureMap
+        import numpy as np
+        from squlearn.feature_map import LayeredFeatureMap
 
-       def func(a,b):
-           return a*np.arccos(b)
+        def func(a,b):
+            return a*np.arccos(b)
 
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("p","x",encoding=func)
-       feature_map.cx_entangling("NN")
-       feature_map.draw()
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("p","x",encoding=func)
+        feature_map.cx_entangling("NN")
+        feature_map.draw()
 
     .. plot::
 
-       import numpy as np
-       from squlearn.feature_map import LayeredFeatureMap
+        import numpy as np
+        from squlearn.feature_map import LayeredFeatureMap
 
-       def func(a,b):
-           return a*np.arccos(b)
+        def func(a,b):
+            return a*np.arccos(b)
 
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("p","x",encoding=func)
-       feature_map.cx_entangling("NN")
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("p","x",encoding=func)
+        feature_map.cx_entangling("NN")
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
 
     **Create a layered feature map with layers**
@@ -1913,31 +1911,30 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       from squlearn.feature_map.layered_feature_map import Layer
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       layer = Layer(feature_map)
-       layer.Rz("x")
-       layer.Ry("p")
-       layer.cx_entangling("NN")
-       feature_map.add_layer(layer,num_layers=3)
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.feature_map.layered_feature_map import Layer
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        layer = Layer(feature_map)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        feature_map.add_layer(layer,num_layers=3)
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       from squlearn.feature_map.layered_feature_map import Layer
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       layer = Layer(feature_map)
-       layer.Rz("x")
-       layer.Ry("p")
-       layer.cx_entangling("NN")
-       feature_map.add_layer(layer,num_layers=3)
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.feature_map.layered_feature_map import Layer
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        layer = Layer(feature_map)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        feature_map.add_layer(layer,num_layers=3)
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     **Create a layered feature map from string**
 
@@ -1953,104 +1950,103 @@ class LayeredFeatureMap(FeatureMapBase):
     The following strings are used for the gates:
 
     .. list-table:: Single qubit gates and their string representation
-       :widths: 15 25 15 25 15 25
-       :header-rows: 1
+        :widths: 15 25 15 25 15 25
+        :header-rows: 1
 
-       * - String
-         - Function
-         - String
-         - Function
-         - String
-         - Function
-       * - ``"H"``
-         - :meth:`H`
-         - ``"I"``
-         - :meth:`I`
-         - ``"P"``
-         - :meth:`P`
-       * - ``"Rx"``
-         - :meth:`Rx`
-         - ``"Ry"``
-         - :meth:`Ry`
-         - ``"Rz"``
-         - :meth:`Rz`
-       * - ``"S"``
-         - :meth:`S`
-         - ``"Sc"``
-         - :meth:`S_conjugate`
-         - ``"T"``
-         - :meth:`T`
-       * - ``"Tc"``
-         - :meth:`T_conjugate`
-         - ``"U"``
-         - :meth:`U`
-         - ``"X"``
-         - :meth:`X`
-       * - ``"Y"``
-         - :meth:`Y`
-         - ``"Z"``
-         - :meth:`Z`
-         -
-         -
+        * - String
+          - Function
+          - String
+          - Function
+          - String
+          - Function
+        * - ``"H"``
+          - :meth:`H`
+          - ``"I"``
+          - :meth:`I`
+          - ``"P"``
+          - :meth:`P`
+        * - ``"Rx"``
+          - :meth:`Rx`
+          - ``"Ry"``
+          - :meth:`Ry`
+          - ``"Rz"``
+          - :meth:`Rz`
+        * - ``"S"``
+          - :meth:`S`
+          - ``"Sc"``
+          - :meth:`S_conjugate`
+          - ``"T"``
+          - :meth:`T`
+        * - ``"Tc"``
+          - :meth:`T_conjugate`
+          - ``"U"``
+          - :meth:`U`
+          - ``"X"``
+          - :meth:`X`
+        * - ``"Y"``
+          - :meth:`Y`
+          - ``"Z"``
+          - :meth:`Z`
+          -
+          -
 
     .. list-table:: Two qubit gates and their string representation
-       :widths: 25 25 25 25 25 25
-       :header-rows: 1
+        :widths: 25 25 25 25 25 25
+        :header-rows: 1
 
-       * - String
-         - Function
-         - String
-         - Function
-         - String
-         - Function
-       * - ``"ch"``
-         - :meth:`ch_entangling`
-         - ``"cx"``
-         - :meth:`cx_entangling`
-         - ``"cy"``
-         - :meth:`cy_entangling`
-       * - ``"cz"``
-         - :meth:`cz_entangling`
-         - ``"s"``
-         - :meth:`swap`
-         - ``"cp"``
-         - :meth:`cp_entangling`
-       * - ``"crx"``
-         - :meth:`crx_entangling`
-         - ``"cry"``
-         - :meth:`cry_entangling`
-         - ``"crz"``
-         - :meth:`crz_entangling`
-       * - ``"rxx"``
-         - :meth:`rxx_entangling`
-         - ``"ryy"``
-         - :meth:`ryy_entangling`
-         - ``"rzz"``
-         - :meth:`rzz_entangling`
-       * - ``"rzx"``
-         - :meth:`rzx_entangling`
-         - ``"cu"``
-         - :meth:`cu_entangling`
-         -
-         -
+        * - String
+          - Function
+          - String
+          - Function
+          - String
+          - Function
+        * - ``"ch"``
+          - :meth:`ch_entangling`
+          - ``"cx"``
+          - :meth:`cx_entangling`
+          - ``"cy"``
+          - :meth:`cy_entangling`
+        * - ``"cz"``
+          - :meth:`cz_entangling`
+          - ``"s"``
+          - :meth:`swap`
+          - ``"cp"``
+          - :meth:`cp_entangling`
+        * - ``"crx"``
+          - :meth:`crx_entangling`
+          - ``"cry"``
+          - :meth:`cry_entangling`
+          - ``"crz"``
+          - :meth:`crz_entangling`
+        * - ``"rxx"``
+          - :meth:`rxx_entangling`
+          - ``"ryy"``
+          - :meth:`ryy_entangling`
+          - ``"rzz"``
+          - :meth:`rzz_entangling`
+        * - ``"rzx"``
+          - :meth:`rzx_entangling`
+          - ``"cu"``
+          - :meth:`cu_entangling`
+          -
+          -
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap.from_string(
-           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-       )
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap.from_string(
+            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+        )
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap.from_string(
-           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-       )
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap.from_string(
+            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+        )
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the feature map

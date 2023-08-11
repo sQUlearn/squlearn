@@ -15,11 +15,10 @@ class ChebRx(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import ChebRx
-       pqc = ChebRx(4, 2, 2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import ChebRx
+        pqc = ChebRx(4, 2, 2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the ChebRx feature map

@@ -52,7 +52,6 @@ Feel free to contribute to sQulearn by adding your own feature maps in a Pull Re
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import QEKFeatureMap
    pqc = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
@@ -83,7 +82,6 @@ equal to the sum of the parameters in the two original feature maps.
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import QEKFeatureMap, ChebPQC
    fm1 = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
@@ -108,7 +106,6 @@ It is also possible to utilize the wrapper :class:`QiskitFeatureMap` to build Fe
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import QiskitFeatureMap
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
@@ -148,7 +145,6 @@ the :class:`LayeredFeatureMap` class.
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import LayeredFeatureMap
    from squlearn.feature_map.layered_feature_map import Layer
    feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
@@ -173,7 +169,6 @@ the :class:`LayeredFeatureMap` class.
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import LayeredFeatureMap
    feature_map = LayeredFeatureMap.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
@@ -209,7 +204,6 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import LayeredFeatureMap, automated_pruning
    from squlearn.util import Executor
    feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
@@ -268,7 +262,6 @@ where it is employed internally.
 
 .. plot::
 
-   import matplotlib.pyplot as plt
    from squlearn.feature_map import TranspiledFeatureMap,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
