@@ -16,10 +16,10 @@ class QSVC(SVC):
     The sklearn SVC has kernel specific arguments that are omitted here because they do not apply
     to the quantum kernels. These are
 
-    - kernel
-    - gamma
-    - degree
-    - coef0
+        - kernel
+        - gamma
+        - degree
+        - coef0
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
