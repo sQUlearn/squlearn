@@ -47,6 +47,10 @@ class QiskitFeatureMap(FeatureMapBase):
                     parameter name. (default: ``auto``)
         decompose (bool): If True, the decompose method is called on the inputted circuit object.
                           (default: ``True``)
+        feature_label (str): The label of the parameters that are considered as features.
+                             (default: ``x``)
+        parameter_label (str): The label of the parameters that are considered as trainable
+                               parameters. (default: ``θp``)
         **kwargs: Arguments for the Qiskit circuit library function if it is passed as a callable
     """
 
@@ -55,6 +59,8 @@ class QiskitFeatureMap(FeatureMapBase):
         qiskit_circuit: Union[BlueprintCircuit, Callable, QuantumCircuit],
         mode: str = "auto",
         decompose: bool = True,
+        feature_label: str = "x",
+        parameter_label: str = "θp",
         **kwargs,
     ) -> None:
         if callable(qiskit_circuit):
@@ -67,6 +73,8 @@ class QiskitFeatureMap(FeatureMapBase):
 
         self._num_qubits = self._qiskit_circuit.num_qubits
         self._mode = mode
+        self._feature_label = feature_label
+        self._parameter_label = parameter_label
 
         if self._mode.lower() == "x" or self._mode.lower() == "features":
             self._num_features = len(self._qiskit_circuit.parameters)
@@ -86,14 +94,36 @@ class QiskitFeatureMap(FeatureMapBase):
                 self._num_parameters = 0
                 self._mode = "empty"
             else:
-                if (
-                    "θ" in self._qiskit_circuit.parameters[0].name
-                    or "p" in self._qiskit_circuit.parameters[0].name
-                ):
+                set_of_param_names = [p.name for p in self._qiskit_circuit.parameters]
+
+                param_available = False
+                for label in self._parameter_label:
+                    if label + "[0]" in set_of_param_names:
+                        param_available = True
+                        break
+
+                x_available = False
+                for label in self._feature_label:
+                    if label + "[0]" in set_of_param_names:
+                        x_available = True
+                        break
+
+                if param_available and x_available:
+                    self._num_features = 0
+                    self._num_parameters = 0
+                    for param in self._qiskit_circuit.parameters:
+                        if True in [label in param.name for label in self._parameter_label]:
+                            self._num_parameters += 1
+                        elif True in [label in param.name for label in self._feature_label]:
+                            self._num_features += 1
+                        else:
+                            raise RuntimeError("Could not assign parameter " + param.name)
+                    self._mode = "both"
+                elif param_available and not x_available:
                     self._num_parameters = len(self._qiskit_circuit.parameters)
                     self._num_features = 0
                     self._mode = "p"
-                elif "x" in self._qiskit_circuit.parameters[0].name:
+                elif x_available and not param_available:
                     self._num_features = len(self._qiskit_circuit.parameters)
                     self._num_parameters = 0
                     self._mode = "x"
@@ -111,9 +141,9 @@ class QiskitFeatureMap(FeatureMapBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the Qiskit feature map.
 
-        Here arbitrarily chosen to be [-100,100] for all parameters.
+        Here arbitrarily chosen to be [-pi,pi] for all parameters.
         """
-        return np.array([[-100, 100]] * self.num_parameters)
+        return np.array([[-np.pi, np.pi]] * self.num_parameters)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -149,7 +179,20 @@ class QiskitFeatureMap(FeatureMapBase):
             The circuit of the Qiskit Feature Map with the assigned parameters.
         """
 
-        if self._mode.lower() == "x":
+        if self._mode.lower() == "both":
+            dictionary = {}
+            i = 0
+            j = 0
+            for param in self._qiskit_circuit.parameters:
+                if True in [label in param.name for label in self._parameter_label]:
+                    dictionary[param] = parameters[i]
+                    i += 1
+                elif True in [label in param.name for label in self._feature_label]:
+                    dictionary[param] = features[j]
+                    j += 1
+                else:
+                    raise RuntimeError("Could not assign parameter " + param.name)
+        elif self._mode.lower() == "x":
             dictionary = {p: v for p, v in zip(self._qiskit_circuit.parameters, features)}
             if len(self._qiskit_circuit.parameters) != len(features):
                 raise ValueError("The number of features {} does not match!".format(len(features)))
