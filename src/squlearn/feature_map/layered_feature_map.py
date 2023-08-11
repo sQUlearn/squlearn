@@ -77,6 +77,9 @@ class _operation:
     def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
         """
         Attributes:
+        -----------
+
+        Attributes:
             num_qubits: The number of all qubits
             variablegroup_tuple: A tuple with every variable group used in this operation
             map: A default map, that is used, if the operation has exactly 2 variable groups and no given map (by user)
@@ -729,6 +732,9 @@ class LayeredPQC:
     def __init__(self, num_qubits: int, variable_groups=None):
         """
         Takes number of qubits.
+        Attributes:
+        -----------
+
         Attributes:
             num_qubits (int): Number of qubits in this feature map
             operation_list [list]: List of objects of the class operation with the tuple of the variablegroups used for each operation and the number of variables used in that operation, e.g. [[_H_operation,None], [Rx_operation, (x_var,x_var2), [5,5],...]

@@ -190,6 +190,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits of the feature map and the operators
         num_features (int): Number of features of the feature map
         num_parameters (int): Number of trainable parameters of the feature map

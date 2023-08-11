@@ -29,6 +29,9 @@ class SingleProbability(ExpectationOperatorBase):
         parameterized (bool): If True, the operator is parameterized (default: false).
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the single pauli operator.
         qubit (int): Qubit to measure the probability of.

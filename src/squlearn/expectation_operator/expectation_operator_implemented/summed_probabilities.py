@@ -34,6 +34,9 @@ class SummedProbabilities(ExpectationOperatorBase):
                                  (default: True)
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the summed probabilities operator.
         one_state (bool): If false the :math:`\ket{0}\bra{0}` state is measured,
