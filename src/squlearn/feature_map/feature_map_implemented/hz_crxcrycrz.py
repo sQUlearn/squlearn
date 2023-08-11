@@ -17,7 +17,7 @@ class HZCRxCRyCRz(FeatureMapBase):
 
         from squlearn.feature_map import HZCRxCRyCRz
         pqc = HZCRxCRyCRz(4, 2, 1)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize ': 15})
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     The circuit is repeated for the number of layers.
