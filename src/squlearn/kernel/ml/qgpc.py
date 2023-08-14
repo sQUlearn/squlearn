@@ -53,10 +53,92 @@ class QGPC(GaussianProcessClassifier):
     --------
     """
 
-    def __init__(self, quantum_kernel: KernelMatrixBase, **kwargs):
+    def __init__(self,
+                 *,
+                 quantum_kernel: KernelMatrixBase, 
+                 **kwargs)-> None:
+        
         self._quantum_kernel = quantum_kernel
-        super().__init__(**kwargs)
-        self.kernel = kernel_wrapper(quantum_kernel)
+        # Apply kwargs to set_params of quantum kernel
+        valid_params_quantum_kernel = self._quantum_kernel.get_params(deep=True)
+        set_quantum_kernel_params_dict = {}
+        for key, value in kwargs.items():
+            if key in valid_params_quantum_kernel:
+                set_quantum_kernel_params_dict[key] = value
+
+        if len(set_quantum_kernel_params_dict) > 0:
+            self._quantum_kernel.set_params(**set_quantum_kernel_params_dict)
+
+        # remove quantum_kernel_kwargs for QGPC initialization
+        for key in set_quantum_kernel_params_dict:
+            kwargs.pop(key, None)
+
+        super().__init__(
+            #kernel=kernel_wrapper(self._quantum_kernel),
+            **kwargs)
+        self.kernel = kernel_wrapper(self._quantum_kernel)
+
+    @classmethod
+    def _get_param_names(cls):
+        names = GaussianProcessClassifier._get_param_names()
+        names.remove("kernel")
+        names.remove("warm_start")
+        return names
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the QSVR class.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = dict()
+
+        # get parameters from the parent GPC class
+        for key in self._get_param_names():
+            params[key] = getattr(self, key)
+
+        # add qsvr specific parameters
+        params["quantum_kernel"] = self._quantum_kernel
+        if deep:
+            params.update(self._quantum_kernel.get_params(deep=deep))
+        return params
+
+    def set_params(self, **params) -> None:
+        """
+        Sets value of the QGPC hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. num_qubits=2.
+        """
+        valid_params = self.get_params(deep=True)
+        valid_params_qgpc = self.get_params(deep=False)
+        valid_params_quantum_kernel = self._quantum_kernel.get_params(deep=True)
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+            # Set parameters of the QGPC
+            if key in valid_params_qgpc:
+                try:
+                    setattr(self, key, value)
+                except:
+                    setattr(self, "_" + key, value)
+
+        # Set parameters of the Quantum Kernel and its underlying objects
+        param_dict = {}
+        for key, value in params.items():
+            if key in valid_params_quantum_kernel:
+                param_dict[key] = value
+        if len(param_dict) > 0:
+            self._quantum_kernel.set_params(**param_dict)
 
     @property
     def quantum_kernel(self) -> KernelMatrixBase:
@@ -68,3 +150,5 @@ class QGPC(GaussianProcessClassifier):
         """Sets quantum kernel"""
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
+
+
