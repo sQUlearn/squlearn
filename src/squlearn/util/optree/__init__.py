@@ -11,10 +11,12 @@ from .optree import (
 
 from .optree_derivative import (
     simplify_copy,
-    circuit_derivative_v2,
-    circuit_derivative)
+    simplify_operator,
+    derivative_v2,
+    derivative,
+)
 
-from .optree_evaluate import evaluate,assign_circuit_parameters
+from .optree_evaluate import evaluate, assign_circuit_parameters
 
 
 __all__ = [
@@ -27,8 +29,9 @@ __all__ = [
     "get_tree_depth",
     "get_first_leaf",
     "simplify_copy",
-    "circuit_derivative_v2",
-    "circuit_derivative",
+    "simplify_operator",
+    "derivative_v2",
+    "derivative",
     "evaluate",
     "assign_circuit_parameters",
 ]

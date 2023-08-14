@@ -233,8 +233,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
     def __eq__(self, other) -> bool:
         """Function for comparing two OpTreeLeafOperators."""
         if isinstance(other, OpTreeLeafOperator):
-            # TODO: check for same operators
-            return False
+            return self._operator == other._operator
         return False
 
 

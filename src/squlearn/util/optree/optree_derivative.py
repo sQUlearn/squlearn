@@ -5,7 +5,8 @@ import copy
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
-#from qiskit.opflow.gradients.derivative_base import _coeff_derivative
+
+# from qiskit.opflow.gradients.derivative_base import _coeff_derivative
 
 from .optree import (
     OpTreeNodeBase,
@@ -13,7 +14,6 @@ from .optree import (
     OpTreeNodeList,
     OpTreeNodeSum,
     OpTreeLeafCircuit,
-    OpTreeLeafContainer,
     OpTreeLeafOperator,
 )
 
@@ -83,9 +83,20 @@ def circuit_parameter_shift(
 
     return shift_sum
 
-def operator_derivative(element:Union[OpTreeLeafOperator, SparsePauliOp], parameter: ParameterExpression):
+
+def operator_derivative(
+    element: Union[OpTreeLeafOperator, SparsePauliOp], parameter: ParameterExpression
+) -> Union[OpTreeLeafOperator, SparsePauliOp]:
     """
     Obtain the derivative of an operator wrt a single parameter.
+
+    Args:
+        element (Union[OpTreeLeafOperator, SparsePauliOp]): The operator to be differentiated.
+        parameter (ParameterExpression): The parameter wrt which the operator is differentiated.
+
+    Returns:
+        Operator derivative as OpTreeLeafOperator or SparsePauliOp
+
     """
 
     if isinstance(element, OpTreeLeafOperator):
@@ -96,13 +107,13 @@ def operator_derivative(element:Union[OpTreeLeafOperator, SparsePauliOp], parame
         input_type = "operator"
 
     # Rebuild the operator with the differentiated coefficients
-    op_list=[]
-    param_list=[]
+    op_list = []
+    param_list = []
     for i, coeff in enumerate(operator.coeffs):
         if isinstance(coeff, ParameterExpression):
             # the 1j fixes a bug in qiskit
-            d_coeff = -1j*((1j*coeff).gradient(parameter))
-            if isinstance(d_coeff,complex):
+            d_coeff = -1j * ((1j * coeff).gradient(parameter))
+            if isinstance(d_coeff, complex):
                 if d_coeff.imag == 0:
                     d_coeff = d_coeff.real
         else:
@@ -113,14 +124,14 @@ def operator_derivative(element:Union[OpTreeLeafOperator, SparsePauliOp], parame
             param_list.append(d_coeff)
 
     if len(op_list) > 0:
-        operator_grad = SparsePauliOp(op_list,param_list)
-        if input_type=="leaf":
+        operator_grad = SparsePauliOp(op_list, param_list)
+        if input_type == "leaf":
             return OpTreeLeafOperator(operator_grad)
         return operator_grad
     return None
 
 
-def circuit_derivative_inplace(
+def derivative_inplace(
     tree_node: OpTreeNodeBase,
     parameter: ParameterExpression,
 ) -> None:
@@ -142,11 +153,13 @@ def circuit_derivative_inplace(
                 grad_fac = 0.0
 
             if isinstance(child, QuantumCircuit) or isinstance(child, OpTreeLeafCircuit):
-                # reached a leaf -> grad by parameter shift function
+                # reached a circuit leaf -> grad by parameter shift function
                 grad = circuit_parameter_shift(child, parameter)
+            elif isinstance(child, SparsePauliOp) or isinstance(child, OpTreeLeafOperator):
+                grad = operator_derivative(child, parameter)
             else:
                 # Node -> recursive call
-                circuit_derivative_inplace(child, parameter)
+                derivative_inplace(child, parameter)
                 grad = child
 
             # Product rule for differentiation
@@ -170,8 +183,10 @@ def circuit_derivative_inplace(
         raise ValueError("tree_node must be a CircuitTreeSum or a CircuitTreeList")
 
 
-def circuit_derivative(
-    element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+def derivative(
+    element: Union[
+        OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafOperator, SparsePauliOp
+    ],
     parameters: Union[ParameterExpression, List[ParameterExpression], ParameterVector],
 ) -> OpTreeNodeBase:
     """
@@ -194,11 +209,10 @@ def circuit_derivative(
     if isinstance(parameters, ParameterExpression):
         parameters = [parameters]
         is_list = False
-    is_not_circuit = True
-    # QuantumCircuit or OpTreeLeafCircuit as single OpTreeNodeList,
-    #  otherwise inplace operation does not work
-    if isinstance(element, QuantumCircuit) or isinstance(element, OpTreeLeafCircuit):
-        is_not_circuit = False
+    # For inplace operation, the input must be a OpTreeNodeList
+    is_node = True
+    if not isinstance(element, OpTreeNodeBase):
+        is_node = False
         start = OpTreeNodeList([element], [1.0])
     else:
         start = element
@@ -208,8 +222,8 @@ def circuit_derivative(
     for dp in parameters:
         # copy the circuit tree for inplace operation during derivative calculation
         res = copy.deepcopy(start)
-        circuit_derivative_inplace(res, dp)
-        if is_not_circuit:
+        derivative_inplace(res, dp)
+        if is_node:
             derivative_list.append(res)
         else:
             # if the input was a circuit, get rid ouf the outer OpTreeNodeList container
@@ -224,8 +238,10 @@ def circuit_derivative(
         return derivative_list[0]
 
 
-def circuit_derivative_copy(
-    element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+def derivative_copy(
+    element: Union[
+        OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafOperator, SparsePauliOp
+    ],
     parameter: ParameterExpression,
 ) -> OpTreeNodeBase:
     """
@@ -248,7 +264,7 @@ def circuit_derivative_copy(
                 grad_fac = element.factor[i].gradient(parameter)
                 fac = element.factor[i]
                 # recursive call to get the gradient for the child
-                grad = circuit_derivative_copy(child, parameter)
+                grad = derivative_copy(child, parameter)
 
                 # Product rule for differentiation
                 if isinstance(grad_fac, float):
@@ -263,7 +279,7 @@ def circuit_derivative_copy(
                     factor_list.append(1.0)
             else:
                 # No parameter in factor -> just call recursive call for the children
-                children_list.append(circuit_derivative_copy(child, parameter))
+                children_list.append(derivative_copy(child, parameter))
                 factor_list.append(element.factor[i])
 
         # Rebuild the tree with the new children and factors (copy part)
@@ -274,13 +290,20 @@ def circuit_derivative_copy(
         else:
             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
-    else:
-        # Reached a leaf -> grad by parameter shift function
+    elif isinstance(element, QuantumCircuit) or isinstance(element, OpTreeLeafCircuit):
+        # Reached a circuit leaf -> grad by parameter shift function
         return circuit_parameter_shift(element, parameter)
+    elif isinstance(element, SparsePauliOp) or isinstance(element, OpTreeLeafOperator):
+        # Reached a operator leaf -> grad by parameter shift function
+        return operator_derivative(element, parameter)
+    else:
+        raise ValueError("Unsupported element type: " + str(type(element)))
 
 
-def circuit_derivative_v2(
-    element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+def derivative_v2(
+    element: Union[
+        OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafOperator, SparsePauliOp
+    ],
     parameters: Union[ParameterExpression, List[ParameterExpression], ParameterVector],
 ) -> OpTreeNodeBase:
     """
@@ -310,7 +333,7 @@ def circuit_derivative_v2(
     derivative_list = []
     fac_list = []
     for dp in parameters:
-        derivative_list.append(circuit_derivative_copy(element, dp))
+        derivative_list.append(derivative_copy(element, dp))
         fac_list.append(1.0)
 
     # Adjust the output for single parameter input
@@ -396,7 +419,6 @@ def simplify_copy(
                 factor_list = []
                 operation_list = []
 
-                # TODO check for operator
                 for i, child in enumerate(new_element.children):
                     # Chick if child already exists in the list
                     # (branch is already present -> merging)
@@ -416,6 +438,8 @@ def simplify_copy(
         else:
             # Reached an empty Node -> cancel the recursion
             return copy.deepcopy(element)
+    elif isinstance(element, SparsePauliOp) or isinstance(element, OpTreeLeafOperator):
+        return simplify_operator(element)
     else:
         # Reached a leaf -> cancel the recursion
         return copy.deepcopy(element)
@@ -435,3 +459,35 @@ def simplify_inplace(
 
     """
     raise NotImplementedError("Not implemented yet")
+
+
+def simplify_operator(
+    element: Union[SparsePauliOp, OpTreeLeafOperator]
+) -> Union[SparsePauliOp, OpTreeLeafOperator]:
+    if isinstance(element, OpTreeLeafOperator):
+        operator = element.operator
+        input_type = "leaf"
+    else:
+        operator = element
+        input_type = "operator"
+
+        pauli_list = []
+        coeff_list = []
+
+        # check for identical paulis and merge them
+        for i, pauli in enumerate(operator.paulis):
+            # Check if pauli already exists in the list
+            if pauli in pauli_list:
+                index = pauli_list.index(pauli)
+                coeff_list[index] += operator.coeffs[i]
+            else:
+                pauli_list.append(pauli)
+                coeff_list.append(operator.coeffs[i])
+
+    if len(pauli_list) > 0:
+        operator_simp = SparsePauliOp(pauli_list, coeff_list)
+        if input_type == "leaf":
+            return OpTreeLeafOperator(operator_simp)
+        return operator_simp
+    else:
+        return None
