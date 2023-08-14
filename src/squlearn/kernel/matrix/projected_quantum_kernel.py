@@ -465,6 +465,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         params = dict(measurement=self._measurement_input)
         params.update(self._outer_kernel.get_params())
         params["num_qubits"] = self.num_qubits
+        params["regularization"] = self._regularization
         if deep:
             params.update(self._qnn.get_params())
         return params
@@ -538,6 +539,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
+
+        if "regularization" in params.keys():
+            self._regularization = params["regularization"]
 
     @property
     def num_hyper_parameters(self) -> int:
