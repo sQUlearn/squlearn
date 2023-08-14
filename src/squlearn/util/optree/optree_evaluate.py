@@ -290,25 +290,71 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
 def evaluate_sampler(
     circuit: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     operator: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp],
-    dictionary: Union[dict, List[dict]],
+    dictionary_circuit: Union[dict, List[dict]],
+    dictionary_operator: Union[dict, List[dict]],
     sampler: BaseSampler,
     detect_circuit_duplicates: bool = False,
     detect_operator_duplicates: bool = False,
+    dictionaries_combined: bool = False,
 ):
-    
-    multiple_dictionaries = True
-    if not isinstance(dictionary, list):
-        dictionary = [dictionary]
-        multiple_dictionaries = False
 
-    for dictionary_ in dictionary:
-        # Build operator list and circuit list from the corresponding Optrees
-        operator_list, operator_tree = build_operator_list(
-            operator, dictionary_, detect_operator_duplicates
-        )
+    multiple_circuit_dict = True
+    if not isinstance(dictionary_circuit, list):
+        dictionary_circuit = [dictionary_circuit]
+        multiple_circuit_dict = False
+
+    multiple_operator_dict = True
+    if not isinstance(dictionary_operator, list):
+        dictionary_operator = [dictionary_operator]
+        multiple_operator_dict = False
+
+    if dictionaries_combined:
+        if len(dictionary_circuit) != len(dictionary_operator):
+            raise ValueError("The length of the circuit and operator dictionary must be the same")
+
+    total_circle_list = []
+    total_parameter_list = []
+
+    tree_circuit=[]
+    for i,dictionary_circuit__ in enumerate(dictionary_circuit):
+
         circuit_list, parameter_list, circuit_tree = build_circuit_list(
-            circuit, dictionary_, detect_circuit_duplicates
+            circuit, dictionary_circuit__, detect_circuit_duplicates
         )
+
+        circuit_list = [circuit.measure_all(inplace=False) for circuit in circuit_list]
+
+        tree_circuit.append(_add_offset_to_tree(circuit_tree,len(total_circle_list)))
+
+        total_circle_list += circuit_list
+        total_parameter_list += parameter_list
+
+    if multiple_circuit_dict:
+        evaluation_tree = OpTreeNodeList(tree_circuit)
+    else:
+        evaluation_tree = tree_circuit[0]
+
+    sampler_result = (
+        sampler.run(total_circle_list, total_parameter_list).result().quasi_dists
+    )
+
+    print("sampler_result", sampler_result)
+    print("len(ampler_result)", len(sampler_result))
+
+    # TODO: find out how expectation values are calculated from the distribution
+
+    # if dictionaries_combined:
+    #     dictionary_operator_ = [dictionary_operator[i]]
+    # else:
+    #     dictionary_operator_ = dictionary_operator
+
+    # tree_operator=[]
+    # for dictionary_operator__ in dictionary_operator_:
+
+    #     # Build operator list and circuit list from the corresponding Optrees
+    #     operator_list, operator_tree = build_operator_list(
+    #         operator, dictionary_operator__, detect_operator_duplicates
+    #     )
 
 
 
