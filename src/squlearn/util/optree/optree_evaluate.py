@@ -4,7 +4,7 @@ import time
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qiskit.primitives import BaseEstimator
+from qiskit.primitives import BaseEstimator,BaseSampler
 from qiskit.quantum_info import SparsePauliOp
 
 from .optree import (
@@ -287,13 +287,40 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
-def evaluate_estimator(
+def evaluate_sampler(
     circuit: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     operator: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp],
     dictionary: Union[dict, List[dict]],
+    sampler: BaseSampler,
+    detect_circuit_duplicates: bool = False,
+    detect_operator_duplicates: bool = False,
+):
+    
+    multiple_dictionaries = True
+    if not isinstance(dictionary, list):
+        dictionary = [dictionary]
+        multiple_dictionaries = False
+
+    for dictionary_ in dictionary:
+        # Build operator list and circuit list from the corresponding Optrees
+        operator_list, operator_tree = build_operator_list(
+            operator, dictionary_, detect_operator_duplicates
+        )
+        circuit_list, parameter_list, circuit_tree = build_circuit_list(
+            circuit, dictionary_, detect_circuit_duplicates
+        )
+
+
+
+def evaluate_estimator(
+    circuit: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+    operator: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp],
+    dictionary_circuit: Union[dict, List[dict]],
+    dictionary_operator: Union[dict, List[dict]],
     estimator: BaseEstimator,
     detect_circuit_duplicates: bool = False,
     detect_operator_duplicates: bool = False,
+    dictionaries_combined: bool = False,
 ):
     """ """
 
@@ -321,42 +348,66 @@ def evaluate_estimator(
     total_operator_list = []
     total_parameter_list = []
 
-    tree_list = []
 
-    multiple_dictionaries = True
-    if not isinstance(dictionary, list):
-        dictionary = [dictionary]
-        multiple_dictionaries = False
+    multiple_circuit_dict = True
+    if not isinstance(dictionary_circuit, list):
+        dictionary_circuit = [dictionary_circuit]
+        multiple_circuit_dict = False
 
-    for dictionary_ in dictionary:
-        # Build operator list and circuit list from the corresponding Optrees
-        operator_list, operator_tree = build_operator_list(
-            operator, dictionary_, detect_operator_duplicates
-        )
-        circuit_list, parameter_list, circuit_tree = build_circuit_list(
-            circuit, dictionary_, detect_circuit_duplicates
-        )
+    multiple_operator_dict = True
+    if not isinstance(dictionary_operator, list):
+        dictionary_operator = [dictionary_operator]
+        multiple_operator_dict = False
 
-        # Combine the operator tree and the circuit tree into a single tree
-        # Adjust the offset to match the operator list and the parameter list
-        tree_list.append(
-            _add_offset_to_tree(
-                adjust_tree_operators(circuit_tree, operator_tree, len(operator_list)),
-                len(total_circle_list),
+    if dictionaries_combined:
+        if len(dictionary_circuit) != len(dictionary_operator):
+            raise ValueError("The length of the circuit and operator dictionary must be the same")
+
+
+    tree_circuit=[]
+    for i,dictionary_circuit__ in enumerate(dictionary_circuit):
+
+        if dictionaries_combined:
+            dictionary_operator_ = [dictionary_operator[i]]
+        else:
+            dictionary_operator_ = dictionary_operator
+
+        tree_operator=[]
+        for dictionary_operator__ in dictionary_operator_:
+
+            # Build operator list and circuit list from the corresponding Optrees
+            operator_list, operator_tree = build_operator_list(
+                operator, dictionary_operator__, detect_operator_duplicates
             )
-        )
+            circuit_list, parameter_list, circuit_tree = build_circuit_list(
+                circuit, dictionary_circuit__, detect_circuit_duplicates
+            )
 
-        # Add everything to the total lists that are evaluated by the estimator
-        for i, circ in enumerate(circuit_list):
-            for op in operator_list:
-                total_circle_list.append(circ)
-                total_operator_list.append(op)
-                total_parameter_list.append(parameter_list[i])
+            # Combine the operator tree and the circuit tree into a single tree
+            # Adjust the offset to match the operator list and the parameter list
+            tree_operator.append(
+                _add_offset_to_tree(
+                    adjust_tree_operators(circuit_tree, operator_tree, len(operator_list)),
+                    len(total_circle_list),
+                )
+            )
 
-    if multiple_dictionaries:
-        evaluation_tree = OpTreeNodeList(tree_list)
+            # Add everything to the total lists that are evaluated by the estimator
+            for i, circ in enumerate(circuit_list):
+                for op in operator_list:
+                    total_circle_list.append(circ)
+                    total_operator_list.append(op)
+                    total_parameter_list.append(parameter_list[i])
+
+        if multiple_operator_dict and not dictionaries_combined:
+            tree_circuit.append(OpTreeNodeList(tree_operator))
+        else:
+            tree_circuit.append(tree_operator[0])
+
+    if multiple_circuit_dict:
+        evaluation_tree = OpTreeNodeList(tree_circuit)
     else:
-        evaluation_tree = tree_list[0]
+        evaluation_tree = tree_circuit[0]
 
     # Evaluation via the estimator
     start = time.time()
