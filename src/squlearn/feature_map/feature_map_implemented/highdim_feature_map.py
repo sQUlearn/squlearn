@@ -17,11 +17,10 @@ class HighDimFeatureMap(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import HighDimFeatureMap
-       pqc = HighDimFeatureMap(5, 23, num_layers=2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import HighDimFeatureMap
+        pqc = HighDimFeatureMap(5, 23, num_layers=2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     The indexing of the feature vector can be changed by the arguments
     ``cycling``, ``cycling_type`` and ``layer_type``.

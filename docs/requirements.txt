@@ -1,0 +1,4 @@
+matplotlib
+pylatexenc
+sphinx
+sphinx-rtd-theme

@@ -30,6 +30,9 @@ class SinglePauli(ExpectationOperatorBase):
         parameterized (bool): If True, the operator is parameterized (default: False).
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the single pauli operator.
         qubit (int): Qubit on which the Pauli operator acts.

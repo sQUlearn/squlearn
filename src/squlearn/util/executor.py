@@ -79,6 +79,9 @@ class Executor:
         wait_restart (int): The time to wait before restarting a job in seconds.
 
     Attributes:
+    -----------
+
+    Attributes:
         execution (str): String of the execution environment.
         backend (Backend): The backend that is used in the Executor.
         session (Session): The session that is used in the Executor.
