@@ -20,6 +20,21 @@ def hash_circuit(circuit: QuantumCircuit) -> tuple:
     # return blake2b(str(_circuit_key(circuit)).encode("utf-8"), digest_size=20).hexdigest() # faster for comparison slower for generation
 
 
+def hash_operator(operator: SparsePauliOp) -> tuple:
+    """Hashes an operator using the qiskit _observable_key function.
+
+    Args:
+        operator (SparsePauliOp): The operator to be hashed.
+
+    Returns:
+        A tuple containing the operator information that can be used for comparison.
+    """
+    # TODO: can be replaced by whatever hash function is used in qiskit in the future.
+    from qiskit.primitives.utils import _observable_key
+
+    return _observable_key(operator)
+
+
 class OpTreeElementBase:
     """Base class for elements of the OpTree."""
 
@@ -220,11 +235,16 @@ class OpTreeLeafOperator(OpTreeLeafBase):
 
     def __init__(self, operator: SparsePauliOp) -> None:
         self._operator = operator
+        self._hashvalue = hash_operator(operator)  # Hash tuple for fast comparison
 
     @property
     def operator(self) -> SparsePauliOp:
         """Returns the operator that is represented by the leaf."""
         return self._operator
+
+    def hashvalue(self) -> tuple:
+        """Returns the hashvalue of the circuit."""
+        return self._hashvalue
 
     def __str__(self) -> str:
         """Returns the string representation of the operator."""
@@ -233,7 +253,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
     def __eq__(self, other) -> bool:
         """Function for comparing two OpTreeLeafOperators."""
         if isinstance(other, OpTreeLeafOperator):
-            return self._operator == other._operator
+            return self._hashvalue == other._hashvalue
         return False
 
 
