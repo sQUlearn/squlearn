@@ -13,8 +13,7 @@ class NLL(KernelLossBase):
     This class can be used to compute the negative log likelihood loss function
     for a given quantum kernel
     :math:`K_{θ}` with variational parameters :math:`θ`.
-    The defintion of the function is taken from Equation 5.8 Chapter 5.4 of "Gaussian Processes for
-    Machine Learning" [1]_.
+    The definition of the function is taken from Equation 5.8 Chapter 5.4 of Ref. [1].
 
     The log-likelihood function is defined as:
 
@@ -31,9 +30,9 @@ class NLL(KernelLossBase):
 
     References
     ----------
-    .. [1] `Carl E. Rasmussen and Christopher K.I. Williams,
-       "Gaussian Processes for Machine Learning",
-       MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
+        [1]: `Carl E. Rasmussen and Christopher K.I. Williams,
+        "Gaussian Processes for Machine Learning",
+        MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
 
     Methods:
     --------
