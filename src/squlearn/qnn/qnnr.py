@@ -130,7 +130,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         """
         if not self._is_fitted:
             warn("The model is not fitted.")
-        return self._qnn.evaluate_f(X, self.param, self.param_op)
+        return self._qnn.evaluate_f(X, self._param, self._param_op)
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a model to data.
@@ -144,20 +144,20 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             weights: Weights for each datapoint
         """
 
-        loss = self.loss
+        loss = self._loss
         if self.variance is not None:
             loss = loss + VarianceLoss(alpha=self.variance)
 
-        if isinstance(self.optimizer, SGDMixin) and self.batch_size:
+        if isinstance(self._optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self.param, self.param_op = solve_minibatch(
+                self._param, self._param_op = solve_minibatch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
-                    optimizer=self.optimizer,
+                    optimizer=self._optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -165,14 +165,14 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     opt_param_op=True,
                 )
             else:
-                self.param = solve_minibatch(
+                self._param = solve_minibatch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
-                    optimizer=self.optimizer,
+                    optimizer=self._optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -182,26 +182,26 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         else:
             if self.opt_param_op:
-                self.param, self.param_op = regression(
+                self._param, self._param_op = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self._optimizer.minimize,
                     weights,
                     True,
                 )
             else:
-                self.param = regression(
+                self._param = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self._optimizer.minimize,
                     weights,
                     False,
                 )

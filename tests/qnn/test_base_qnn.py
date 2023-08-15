@@ -1,0 +1,149 @@
+"""Tests for BaseQNN"""
+import pytest
+
+import numpy as np
+
+from squlearn import Executor
+from squlearn.expectation_operator import IsingHamiltonian
+from squlearn.feature_map import ChebPQC
+from squlearn.optimizers import SLSQP
+from squlearn.qnn import SquaredLoss
+from squlearn.qnn.base_qnn import BaseQNN
+
+
+class MockBaseQNN(BaseQNN):
+    """Mock class for BaseQNN."""
+
+    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+        pass
+
+
+class TestBaseQNN:
+    """Test class for BaseQNN."""
+
+    @pytest.fixture(scope="module")
+    def qnn_single_op(self) -> MockBaseQNN:
+        """BaseQNN module with single operator."""
+        np.random.seed(42)
+        executor = Executor("statevector_simulator")
+        pqc = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
+        loss = SquaredLoss()
+        optimizer = SLSQP(options={"maxiter": 2})
+        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+
+    @pytest.fixture(scope="module")
+    def qnn_multi_op(self) -> MockBaseQNN:
+        """BaseQNN module with multiple operators."""
+        np.random.seed(42)
+        executor = Executor("statevector_simulator")
+        pqc = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        operator = [IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S") for _ in range(5)]
+        loss = SquaredLoss()
+        optimizer = SLSQP(options={"maxiter": 2})
+        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+
+    def test_set_params_invalid_param(self, qnn_single_op: MockBaseQNN):
+        """
+        Test if setting an invalid parameter raises a ValueError.
+
+        Args:
+            qnn_single_op (MockBaseQNN): The MockBaseQNN object to test.
+
+        Returns:
+            None
+        """
+        with pytest.raises(ValueError):
+            qnn_single_op.set_params(invalid_param=3)
+
+    def test_set_params_seed(self, qnn_single_op: MockBaseQNN):
+        """
+        Test `set_params` with `parameter_seed`.
+
+        Args:
+            qnn_single_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_single_op.set_params(parameter_seed=42)
+        assert qnn_single_op.parameter_seed == 42
+
+    def test_set_params_num_qubits_single_op(self, qnn_single_op: MockBaseQNN):
+        """
+        Test `set_params` with `num_qubits` for single operator.
+
+        Args:
+            qnn_single_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_single_op.set_params(num_qubits=5)
+        assert qnn_single_op._feature_map.num_qubits == 5
+        assert qnn_single_op._operator.num_qubits == 5
+        assert qnn_single_op._qnn.num_qubits == 5
+
+    def test_set_params_num_qubits_multi_op(self, qnn_multi_op):
+        """
+        Test `set_params` with `num_qubits` for mutiple operators.
+
+        Args:
+            qnn_multi_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_multi_op.set_params(num_qubits=5)
+        assert qnn_multi_op._feature_map.num_qubits == 5
+        for operator in qnn_multi_op._operator:
+            assert operator.num_qubits == 5
+        assert qnn_multi_op._qnn.num_qubits == 5
+
+    def test_set_params_feature_map(self, qnn_single_op):
+        """
+        Test `set_params` for pqc parameters.
+
+        Args:
+            qnn_single_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_single_op.set_params(num_layers=3, closed=True)
+        assert qnn_single_op._feature_map.num_layers == 3
+        assert qnn_single_op._feature_map.closed
+        assert qnn_single_op._qnn.pqc.get_params()["num_layers"] == 3
+        assert qnn_single_op._qnn.pqc.get_params()["closed"]
+
+    def test_set_params_single_operator(self, qnn_single_op):
+        """
+        Test `set_params` for single operator parameters.
+
+        Args:
+            qnn_single_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_single_op.set_params(operator__X="S", operator__Z="N")
+        assert qnn_single_op._operator.X == "S"
+        assert qnn_single_op._operator.Z == "N"
+        assert qnn_single_op._qnn.operator.X == "S"
+        assert qnn_single_op._qnn.operator.Z == "N"
+
+    def test_set_params_multi_operator(self, qnn_multi_op):
+        """
+        Test `set_params` for multiple operator parameters.
+
+        Args:
+            qnn_multi_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
+
+        Returns:
+            None
+        """
+        qnn_multi_op.set_params(op0__X="S", op3__Z="N")
+        assert qnn_multi_op._operator[0].X == "S"
+        assert qnn_multi_op._operator[3].Z == "N"
+        assert qnn_multi_op._qnn.operator[0].X == "S"
+        assert qnn_multi_op._qnn.operator[3].Z == "N"
