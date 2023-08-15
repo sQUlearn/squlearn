@@ -15,7 +15,7 @@ class KernelLossBase:
     def compute(self):
         """
         Empty function for holding the actual implementation for computing the respective
-        kernel loss fucntion.
+        kernel loss function.
 
         Args:
             self :

@@ -6,7 +6,7 @@ sQUlearn is a novel Python package introducing quantum machine learning (QML) ca
 traditional machine learning pipelines via a 'high-level / low-level' design approach. The software
 features an array of algorithms including Quantum Support Vector Machines, Regression,
 Gaussian Processes, Kernel Ridge Regression, and a Quantum Neural Network (QNN), all designed to
-seamlessly integrate with sklearn. The QNN engine facilitates efficient gradient computation and
+seamlessly integrate with scikit-learn. The QNN engine facilitates efficient gradient computation and
 automated training with non-linear parametrized circuits. Users can further customize their QNN
 models, enhancing flexibility and potential outcomes. sQUlearn's kernel engines are designed to
 meet various needs, with fidelity kernels and projected quantum kernels, the latter leveraging

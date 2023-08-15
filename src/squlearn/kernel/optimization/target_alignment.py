@@ -11,7 +11,7 @@ class TargetAlignment(KernelLossBase):
     Target alignment loss function.
     This class can be used to compute the target alignment for a given quantum kernel
     :math:`K_{θ}` with variational parameters :math:`θ`.
-    The defintion of the function is taken from Equation (27,28) of [1].
+    The definition of the function is taken from Equation (27,28) of [1].
     The log-likelihood function is defined as:
 
     .. math::
@@ -52,7 +52,7 @@ class TargetAlignment(KernelLossBase):
                 The parameter values for the variational quantum kernel parameters.
             data (np.ndarray): The  training data to be used for the kernel matrix.
             labels (np.ndarray): The training labels.
-            rescale_class_labels: (bool), defaul=True:
+            rescale_class_labels: (bool), default=True:
                 Whether to rescale the class labels to -1 and 1.
 
         Returns:

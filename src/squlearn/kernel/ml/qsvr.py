@@ -9,22 +9,22 @@ class QSVR(SVR):
     """
     Quantum Support Vector Regression
 
-    This class is a wrapper of sklearn.svm.SVR. It uses a quantum kernel matrix
-    to replace the kernel matrix in the sklearn.svm.SVR class.
+    This class is a wrapper of :class:`sklearn.svm.SVR`. It uses a quantum kernel matrix
+    to replace the kernel matrix in the :class:`sklearn.svm.SVR` class.
     See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
     for additional information about the standard SVR parameters.
-    The sklearn SVR has kernel specific arguments that are omitted here because they do not apply
+    The scikit-learn SVR has kernel specific arguments that are omitted here because they do not apply
     to the quantum kernels. These are
 
-        - kernel
-        - gamma
-        - degree
-        - coef0
+        - `kernel`
+        - `gamma`
+        - `degree`
+        - `coef0`
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
             a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
-        **kwargs: Other parameters that are passed to sklearn.svm.SVR
+        **kwargs: Other parameters that are passed to :class:`sklearn.svm.SVR`
 
     See Also
     --------

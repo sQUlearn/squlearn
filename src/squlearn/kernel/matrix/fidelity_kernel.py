@@ -25,11 +25,11 @@ class FidelityKernel(KernelMatrixBase):
 
         K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
 
-    This class wraps to the respective Quantum Kernel implemenations from `Qiskit Machine Learning
+    This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
     Depending on the choice of the Qiskit Primitive or Quantum Instance,
     and dependent on the choice of trainable parameters, the
-    appropraite Quantum Kernel implementation is chosen.
+    appropriate Quantum Kernel implementation is chosen.
 
     Args:
         feature_map (FeatureMapBase): PQC feature map.
@@ -39,13 +39,13 @@ class FidelityKernel(KernelMatrixBase):
         evaluate_duplicates (str), default='off_diagonal':
             Option for evaluating duplicates ('all', 'off_diagonal', 'none').
         mit_depol_noise (Union[str, None]), default=None:
-            Option for mitigating depolarizing noise ('msplit' or 'mmean') after
+            Option for mitigating depolarizing noise (``"msplit"`` or ``"mmean"``) after
             Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
         regularization  (Union[str, None], default=None) :
-            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [4] for the training kernel matrix, prior to  solving the linear system
-            in the ``fit()``-procedure.
+            Option for choosing different regularization techniques (``"thresholding"`` or
+            ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
+            linear system in the ``fit()``-procedure.
 
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
@@ -143,7 +143,7 @@ class FidelityKernel(KernelMatrixBase):
         Sets value of the fidelity kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
