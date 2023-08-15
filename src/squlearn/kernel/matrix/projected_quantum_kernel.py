@@ -520,6 +520,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._regularization,
             )
 
+        if "num_layers" in params:
+            self._feature_map.set_params(num_layers=params["num_layers"])
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+                self._parameter_seed,
+                self._regularization,
+            )
+
         # Set QNN parameters
         for key, value in params.items():
             if key in self._qnn.get_params():
