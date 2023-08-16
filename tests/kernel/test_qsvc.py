@@ -1,7 +1,7 @@
 """Tests for QSVC"""
 import pytest
 import numpy as np
-
+from unittest.mock import MagicMock
 
 from sklearn.datasets import make_blobs
 from sklearn.exceptions import NotFittedError
@@ -141,3 +141,21 @@ class TestQSVC:
         assert qsvc_instance.C == 1.0
         qsvc_instance.set_params(C=4)
         assert qsvc_instance.C == 4
+
+    @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
+    def test_that_regularization_is_called_when_not_none(self, qsvc, request, data):
+        """Asserts that regularization is called."""
+        qsvc_instance = request.getfixturevalue(qsvc)
+        X, y = data
+
+        qsvc_instance.set_params(regularization='tikhonov')
+
+        qsvc_instance.quantum_kernel._regularize_matrix = MagicMock()
+        qsvc_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+
+        qsvc_instance.fit(X, y)
+        qsvc_instance.predict(X)
+
+        assert qsvc_instance.quantum_kernel._regularize_matrix.call_count == 2
+
+# check projected quantum kernel param changes and fidelity changes separately
