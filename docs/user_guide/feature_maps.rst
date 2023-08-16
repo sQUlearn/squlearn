@@ -48,15 +48,14 @@ Feel free to contribute to sQulearn by adding your own feature maps in a Pull Re
 
    from squlearn.feature_map import QEKFeatureMap
    pqc = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=2)
-   pqc.draw()
+   pqc.draw(output="mpl")
 
 .. plot::
 
    from squlearn.feature_map import QEKFeatureMap
    pqc = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=2)
-   plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
+   pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 
 Combining Quantum Feature Maps
@@ -79,7 +78,7 @@ equal to the sum of the parameters in the two original feature maps.
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both feature maps
    fm3 = fm1 + fm2
-   fm3.draw()
+   fm3.draw(output="mpl")
 
 .. plot::
 
@@ -88,9 +87,8 @@ equal to the sum of the parameters in the two original feature maps.
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both feature maps
    fm3 = fm1 + fm2
-   plt = fm3.draw(style={'fontsize':15,'subfontsize': 10})
+   fm3.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 
 Wrapping Qiskit Feature Maps
@@ -104,7 +102,7 @@ It is also possible to utilize the wrapper :class:`QiskitFeatureMap` to build Fe
    from squlearn.feature_map import QiskitFeatureMap
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-   QiskitFeatureMap(local).draw()
+   QiskitFeatureMap(local).draw(output="mpl")
 
 .. plot::
 
@@ -112,9 +110,8 @@ It is also possible to utilize the wrapper :class:`QiskitFeatureMap` to build Fe
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    pqc = QiskitFeatureMap(local)
-   plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
+   pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 
 Create your custom Feature Map via :class:`LayeredFeatureMap`
@@ -144,7 +141,7 @@ the :class:`LayeredFeatureMap` class.
    layer.Ry("p")
    layer.cx_entangling("NN")
    feature_map.add_layer(layer,num_layers=3)
-   feature_map.draw()
+   feature_map.draw(output="mpl")
 
 .. plot::
 
@@ -157,9 +154,8 @@ the :class:`LayeredFeatureMap` class.
    layer.Ry("p")
    layer.cx_entangling("NN")
    feature_map.add_layer(layer,num_layers=3)
-   plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+   feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 **Example: Create your custom layered feature map from a string**
 
@@ -169,7 +165,7 @@ the :class:`LayeredFeatureMap` class.
    feature_map = LayeredFeatureMap.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1, num_layers=2
    )
-   feature_map.draw()
+   feature_map.draw(output="mpl")
 
 .. plot::
 
@@ -177,9 +173,8 @@ the :class:`LayeredFeatureMap` class.
    feature_map = LayeredFeatureMap.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
    )
-   plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+   plt = feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 Pruning of Quantum Feature Maps
 -------------------------------
@@ -205,7 +200,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
    from squlearn.util import Executor
    feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
    pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
-   pruned_feature_map.draw()
+   pruned_feature_map.draw(output="mpl")
 
 .. plot::
 
@@ -213,9 +208,8 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
    from squlearn.util import Executor
    feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
    pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
-   plt = pruned_feature_map.draw(style={'fontsize':15,'subfontsize': 10})
+   pruned_feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt
 
 Different Quantum Feature Maps via :class:`FeatureMapDerivatives`
 -----------------------------------------------------------------
@@ -264,13 +258,12 @@ where it is employed internally.
    from qiskit.providers.fake_provider import FakeManilaV2
 
    fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-   fm.draw()
+   fm.draw(output="mpl")
 
 .. plot::
 
    from squlearn.feature_map import TranspiledFeatureMap,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-   plt = fm.draw(style={'fontsize':15,'subfontsize': 10})
+   fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
-   plt

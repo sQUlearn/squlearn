@@ -51,6 +51,9 @@ class IsingHamiltonian(ExpectationOperatorBase):
             ``ZZ='F'`` all :math:`d_{ij}` values are considered
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): number of qubits
         num_parameters (int): number of trainable parameters in the Ising Hamiltonian
         I (str): parameter options for identity term

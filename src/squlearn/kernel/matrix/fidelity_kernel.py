@@ -25,7 +25,7 @@ class FidelityKernel(KernelMatrixBase):
 
         K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
 
-    This class wraps to the respective Quantum Kernel implemenations from *`Qiskit Machine Learning
+    This class wraps to the respective Quantum Kernel implemenations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
     Depending on the choice of the Qiskit Primitive or Quantum Instance,
     and dependent on the choice of trainable parameters, the
@@ -198,7 +198,7 @@ class FidelityKernel(KernelMatrixBase):
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
         if self._mit_depol_noise is not None:
-            print("WARNING: Adavnced option. Do not use it within an squlearn.kernel.ml workflow")
+            print("WARNING: Advanced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
                 raise ValueError(
                     "Mitigating depolarizing noise works only for square matrices computed on real"

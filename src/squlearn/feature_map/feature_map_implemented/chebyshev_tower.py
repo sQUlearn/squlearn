@@ -16,11 +16,10 @@ class ChebyshevTower(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import ChebyshevTower
-       pqc = ChebyshevTower(4, 2, 2, num_layers=2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import ChebyshevTower
+        pqc = ChebyshevTower(4, 2, 2, num_layers=2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     The encoding gate and the scaling factor can be adjusted by parameters.
     It is also possible to change the indexing of the feautures.

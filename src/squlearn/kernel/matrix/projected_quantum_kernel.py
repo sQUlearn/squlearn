@@ -190,6 +190,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits of the feature map and the operators
         num_features (int): Number of features of the feature map
         num_parameters (int): Number of trainable parameters of the feature map
@@ -510,6 +513,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+                self._parameter_seed,
+                self._regularization,
+            )
+
+        if "num_layers" in params:
+            self._feature_map.set_params(num_layers=params["num_layers"])
             self.__init__(
                 self._feature_map,
                 self._executor,
