@@ -43,7 +43,7 @@ pip install .[examples]
 ```
 
 ## Contribution
-Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](./.github/CONTRIBUTING.md) before you submit a pull request.
+Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](https://github.com/sQUlearn/squlearn/blob/main/.github/CONTRIBUTING.md) before you submit a pull request.
 
 ---
 
@@ -54,6 +54,6 @@ Thanks for considering to contribute to sQUlearn! Please read our [contribution 
 ## Imprint
 This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA. It started as a collection of implementations of quantum machine learning methods.
 
-http://www.ipa.fraunhofer.de/quantum
+[http://www.ipa.fraunhofer.de/quantum](http://www.ipa.fraunhofer.de/quantum)
 
 ---
