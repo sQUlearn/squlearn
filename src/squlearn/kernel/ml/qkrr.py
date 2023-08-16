@@ -92,7 +92,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
         Fit the Quantum Kernel Ridge regression model.
-        
+
         Depending on whether ``regularization`` is set, the training kernel matrix is pre-processed
         accordingly prior to the actual fitting step is performed. The respective solution of the
         QKRR problem is obtained by solving the linear system using scipy's Cholesky decomposition
