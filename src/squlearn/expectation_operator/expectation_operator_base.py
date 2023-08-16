@@ -16,6 +16,9 @@ class ExpectationOperatorBase(ABC):
         num_qubits (int): Number of qubits.
 
     Attributes:
+    -----------
+
+    Attributes:
         num_parameters (int): Number of trainable parameters in the expectation operator.
         num_qubits (int): Number of qubits in the expectation operator.
 

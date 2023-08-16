@@ -316,6 +316,7 @@ class SquaredLoss(LossBase):
 
         This function calculates the squared loss between the values in value_dict and ground_truth
         as
+
         .. math::
             \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|^2
 
@@ -343,6 +344,7 @@ class SquaredLoss(LossBase):
 
         This function calculates the gradient of the squared loss between the values in value_dict
         and ground_truth as
+
         .. math::
             2 * \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|
 
@@ -410,8 +412,9 @@ class VarianceLoss(LossBase):
         r"""Returns the variance.
 
         This function returns the weighted variance as
+
         .. math::
-            L_\text{var} = \alpha \sum_i \var_i
+            L_\operatorname{Var} = \alpha \sum_i \operatorname{Var}_i
 
         Args:
             value_dict (dict): Contains calculated values of the model
@@ -482,10 +485,9 @@ class ParameterRegularizationLoss(LossBase):
     Args:
         alpha (float, Callable[[int], float]): Weight value :math:`\alpha`
         mode (str): Type of regularization, either 'L1' or 'L2' (default: 'L2').
-        parameter_list (list): List of parameters to regularize, None: all
-                               (default: None).
+        parameter_list (list): List of parameters to regularize, None: all (default: None).
         parameter_operator_list (list): List of operator parameters to regularize, None: all
-                                        (default: []).
+            (default: []).
     """
 
     def __init__(
@@ -518,6 +520,7 @@ class ParameterRegularizationLoss(LossBase):
         r"""Returns the variance.
 
         This function returns the weighted variance as
+
         .. math::
             L_\text{var} = \alpha \sum_i \var_i
 

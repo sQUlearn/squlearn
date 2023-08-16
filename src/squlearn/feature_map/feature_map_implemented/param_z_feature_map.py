@@ -14,11 +14,10 @@ class ParamZFeatureMap(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import ParamZFeatureMap
-       pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import ParamZFeatureMap
+        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits

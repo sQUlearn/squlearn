@@ -24,7 +24,7 @@ The following figure summarizes the structure of the Executor class; ingoing arr
 that the Executor class can be initialized or adjusted with the corresponding object.
 Outgoing arrows indicate that the Executor class can return the corresponding object.
 
-.. image:: ../images/executor.png
+.. image:: ../_static/util/executor.png
     :width: 525
     :align: center
 

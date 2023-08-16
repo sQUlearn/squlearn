@@ -26,21 +26,21 @@ class PrunedFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
-       fm = QEKFeatureMap(4,2,2)
-       fm.draw()
-       PrunedFeatureMap(fm,[4,7,11,15]).draw()
+        from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
+        fm = QEKFeatureMap(4,2,2)
+        fm.draw()
+        PrunedFeatureMap(fm,[4,7,11,15]).draw()
 
     .. plot::
 
-       from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
-       fm = QEKFeatureMap(4,2,2)
-       plt = fm.draw()
-       plt.text(0.55,0.88,'QEK Feature Map',fontsize=14,ha='center',va='center')
-       plt
-       plt2 = PrunedFeatureMap(fm,[4,7,11,15]).draw()
-       plt2.text(0.55,0.88,'Pruned Feature Map',fontsize=14,ha='center',va='center')
-       plt2
+        from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
+        fm = QEKFeatureMap(4,2,2)
+        plt = fm.draw(output="mpl")
+        plt.suptitle("QEK Feature Map", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
+        plt.tight_layout()
+        plt2 = PrunedFeatureMap(fm,[4,7,11,15]).draw(output="mpl")
+        plt2.suptitle("Pruned Feature Map", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
+        plt2.tight_layout()
 
     Args:
         feature_map (FeatureMapBase): FeatureMap from which the parameters are removed

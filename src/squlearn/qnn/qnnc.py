@@ -28,7 +28,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             For a list of feature maps, check the :ref:`Implemented feature maps in squlearn`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
-            list of operators, check the :ref:`Implemented operators for expectation values`
+            list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
         loss (LossBase): The loss function to be optimized. Can also be combination of multiple
             loss functions.

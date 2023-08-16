@@ -1,0 +1,18 @@
+name: Documentation check
+on:
+- pull_request
+
+jobs:
+  doc_checks:
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Cancel Workflow Action
+          uses: styfle/cancel-workflow-action@0.11.0
+
+        - uses: actions/checkout@v2
+        - uses: sQUlearn/sphinx-action@master
+          with:
+            docs-folder: "docs/"
+            pre-build-command: "pip3 install ."
+            build-command: "sphinx-build -b html . _build -W --keep-going"

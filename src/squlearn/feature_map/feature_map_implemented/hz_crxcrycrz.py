@@ -15,11 +15,10 @@ class HZCRxCRyCRz(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import HZCRxCRyCRz
-       pqc = HZCRxCRyCRz(4, 2, 1)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import HZCRxCRyCRz
+        pqc = HZCRxCRyCRz(4, 2, 1)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     The circuit is repeated for the number of layers.
     The circuit is closed by default, i.e. the last qubit is entangled with the first one.

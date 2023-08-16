@@ -25,7 +25,7 @@ class FidelityKernel(KernelMatrixBase):
 
         K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
 
-    This class wraps to the respective Quantum Kernel implemenations from *`Qiskit Machine Learning
+    This class wraps to the respective Quantum Kernel implemenations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
     Depending on the choice of the Qiskit Primitive or Quantum Instance,
     and dependent on the choice of trainable parameters, the
@@ -133,6 +133,7 @@ class FidelityKernel(KernelMatrixBase):
         params = {}
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
+        params["regularization"] = self._regularization
         if deep:
             # params = self._feature_map.get_params()
             params.update(self._feature_map.get_params())
@@ -167,6 +168,8 @@ class FidelityKernel(KernelMatrixBase):
             self._evaluate_duplicates = params["evaluate_duplicates"].lower()
         if "mit_depol_noise" in params.keys():
             self._mit_depol_noise = params["mit_depol_noise"]
+        if "regularization" in params.keys():
+            self._regularization = params["regularization"]
 
         self.__init__(
             self._feature_map,

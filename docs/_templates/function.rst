@@ -5,5 +5,3 @@
 
 .. autofunction:: {{ objname }}
 
-.. include:: {{module}}.{{objname}}.examples
-

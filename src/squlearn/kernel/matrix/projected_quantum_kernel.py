@@ -190,6 +190,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits of the feature map and the operators
         num_features (int): Number of features of the feature map
         num_parameters (int): Number of trainable parameters of the feature map
@@ -465,6 +468,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         params = dict(measurement=self._measurement_input)
         params.update(self._outer_kernel.get_params())
         params["num_qubits"] = self.num_qubits
+        params["regularization"] = self._regularization
         if deep:
             params.update(self._qnn.get_params())
         return params
@@ -538,6 +542,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
+
+        if "regularization" in params.keys():
+            self._regularization = params["regularization"]
 
     @property
     def num_hyper_parameters(self) -> int:
