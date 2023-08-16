@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Union, List
+
 import time
 
 from qiskit import QuantumCircuit
@@ -7,6 +8,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.quantum_info import SparsePauliOp, PauliList
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
+from qiskit.primitives.base import SamplerResult
 
 from .optree import (
     hash_circuit,
@@ -294,13 +296,19 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
-def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],SparsePauliOp], results, index:int=-1):
+def evaluate_expectation_from_sampler(
+    observable: Union[List[SparsePauliOp], SparsePauliOp],
+    results: SamplerResult,
+    index_slice: Union[None, slice] = None,
+):
     """
     Function for evaluating the expectation value of an observable from the results of a sampler.
 
     Args:
         observable (SparsePauliOp): The observable to be evaluated.
         results (BaseSamplerResult): The results of the sampler primitive.
+        index_slice (Union[None, slice]): The index slice that is used to select a subset of the
+                                          results.
 
     Returns:
         The expectation value of the observable as a numpy array.
@@ -315,10 +323,15 @@ def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],Spar
     # Create a list of PauliList objects from the observable
     op_pauli_list = [PauliList(obs.paulis) for obs in observable]
 
-    if index < 0:
+    # Index slice that is used to select a subset of the results
+    if index_slice is None:
+        index_slice_ = slice(0, len(results.quasi_dists))
+    else:
+        index_slice_ = index_slice
 
-        # Calulate the expectation value with internal Qiskit function
-        exp_val = np.array([
+    # Calulate the expectation value with internal Qiskit function
+    exp_val = np.array(
+        [
             [
                 np.real_if_close(
                     np.dot(
@@ -326,23 +339,11 @@ def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],Spar
                         observable[i].coeffs,
                     )
                 )
-                for i,pauli in enumerate(op_pauli_list)
+                for i, pauli in enumerate(op_pauli_list)
             ]
-            for quasi in results.quasi_dists
-        ])
-    else:
-        # Calulate the expectation value with internal Qiskit function
-        exp_val = np.array([
-            
-                np.real_if_close(
-                    np.dot(
-                        _pauli_expval_with_variance(results.quasi_dists[index].binary_probabilities(), pauli)[0],
-                        observable[i].coeffs,
-                    )
-                )
-                for i,pauli in enumerate(op_pauli_list)
-            
-        ])
+            for quasi in results.quasi_dists[index_slice_]
+        ]
+    )
 
     # Format results
     if no_list:
@@ -362,11 +363,14 @@ def evaluate_sampler(
     detect_operator_duplicates: bool = False,
     dictionaries_combined: bool = False,
 ):
+    start = time.time()
+    # Preprocess the circuit dictionary
     multiple_circuit_dict = True
     if not isinstance(dictionary_circuit, list):
         dictionary_circuit = [dictionary_circuit]
         multiple_circuit_dict = False
 
+    # Preprocess the operator dictionary
     multiple_operator_dict = True
     if not isinstance(dictionary_operator, list):
         dictionary_operator = [dictionary_operator]
@@ -378,8 +382,10 @@ def evaluate_sampler(
 
     total_circle_list = []
     total_parameter_list = []
-
+    index_offsets = [0]
     tree_circuit = []
+    # Build list of circuits and parameters that are evaluated by the sampler
+    # Also creates the evluation tree for the assembling the final results
     for i, dictionary_circuit_ in enumerate(dictionary_circuit):
         circuit_list, parameter_list, circuit_tree = build_circuit_list(
             circuit, dictionary_circuit_, detect_circuit_duplicates
@@ -394,51 +400,55 @@ def evaluate_sampler(
 
         total_circle_list += circuit_list
         total_parameter_list += parameter_list
+        index_offsets.append(len(total_circle_list))
 
     if multiple_circuit_dict:
         evaluation_tree = OpTreeNodeList(tree_circuit)
     else:
         evaluation_tree = tree_circuit[0]
+    print("post processing", time.time() - start)
 
+    # Run the sampler primtive
+    start = time.time()
     sampler_result = sampler.run(total_circle_list, total_parameter_list).result()
+    print("sampler run time", time.time() - start)
 
-
+    start = time.time()
     final_result = []
-
-    for i,dictionary_operator_ in enumerate(dictionary_operator):
-
+    # Assemble the final results from the sampler measurements
+    for i, dictionary_operator_ in enumerate(dictionary_operator):
         operator_list, operator_tree = build_operator_list(
-         operator, dictionary_operator_, detect_operator_duplicates
+            operator, dictionary_operator_, detect_operator_duplicates
         )
+
         if multiple_circuit_dict and dictionaries_combined:
-            expec = evaluate_expectation_from_sampler(operator_list, sampler_result,i)
-            expec2 = [_evaluate_index_tree(operator_tree, expec)]
-            final_result.append(_evaluate_index_tree(evaluation_tree.children[i], expec2))
+            # Pick subset of the circuits that are linked to the current operator dictionary
+            circ_tree = evaluation_tree.children[i]
+            index_slice = slice(index_offsets[i], index_offsets[i + 1] + 1)
         else:
-            expec = evaluate_expectation_from_sampler(operator_list, sampler_result)
-            expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
-            final_result.append(_evaluate_index_tree(evaluation_tree, expec2))
+            # Pick all circuits
+            circ_tree = evaluation_tree
+            index_slice = None
 
-        print("expec",expec)
-        
+        # Evaluate the expectation value of the current operator and operator dict and
+        # (a subset of) the circuit measurements
+        expec = evaluate_expectation_from_sampler(operator_list, sampler_result, index_slice)
+        # Evaluate the operator tree for assembling the final operator values
+        expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
+        # Evluate the circuit tree for assembling the final circuit values
+        final_result.append(_evaluate_index_tree(circ_tree, expec2))
+    print("post processing", time.time() - start)
 
-        print("operator_tree",operator_tree)
-        print("expec2",expec2)
 
-
-        
-
-    if multiple_operator_dict and multiple_circuit_dict:
-        return np.swapaxes(np.array(final_result),0,1)
+    if multiple_operator_dict and multiple_circuit_dict and not dictionaries_combined:
+        # Swap axes to match the order of the dictionaries (circuit dict first, operator dict second)
+        return np.swapaxes(np.array(final_result), 0, 1)
+    if multiple_operator_dict and multiple_circuit_dict and dictionaries_combined:
+        return np.array(final_result)
     elif multiple_operator_dict and not multiple_circuit_dict:
         return np.array(final_result)
     else:
         return np.array(final_result[0])
-
-
-
-
-
 
 
 def evaluate_estimator(
@@ -453,6 +463,7 @@ def evaluate_estimator(
 ):
     """ """
 
+    start = time.time()
     # Combine the operator tree and the circuit tree into a single tree
     def adjust_tree_operators(element, operator_tree, operator_list_length):
         if isinstance(element, OpTreeNodeBase):
@@ -533,6 +544,8 @@ def evaluate_estimator(
         evaluation_tree = OpTreeNodeList(tree_circuit)
     else:
         evaluation_tree = tree_circuit[0]
+    print("pre-processing", time.time() - start)
+
 
     # Evaluation via the estimator
     start = time.time()
@@ -541,11 +554,11 @@ def evaluate_estimator(
     )
     print("run time", time.time() - start)
 
-    print("estimator_result", estimator_result)
+    start = time.time()
+    final_results = _evaluate_index_tree(evaluation_tree, estimator_result)
+    print("post processing", time.time() - start)
 
-    print("evaluation_tree", evaluation_tree)
-
-    return _evaluate_index_tree(evaluation_tree, estimator_result)
+    return final_results
 
 
 def assign_circuit_parameters(
