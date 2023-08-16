@@ -102,6 +102,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
+        **kwargs,
     ) -> None:
         super().__init__(
             feature_map,
@@ -117,6 +118,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             opt_param_op,
             variance,
             parameter_seed=parameter_seed,
+            **kwargs,
         )
         self._label_binarizer = None
 

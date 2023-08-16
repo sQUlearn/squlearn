@@ -57,6 +57,7 @@ class BaseQNN(BaseEstimator, ABC):
         variance: Union[float, Callable] = None,
         shot_adjusting: shot_adjusting_options = None,
         parameter_seed: Union[int, None] = 0,
+        **kwargs,
     ) -> None:
         super().__init__()
         self.feature_map = feature_map
@@ -103,6 +104,10 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
         self._qnn = QNN(self.feature_map, self.operator, executor)
+
+        update_params = self.get_params().keys() & kwargs.keys()
+        if update_params:
+            self.set_params(**{key: kwargs[key] for key in update_params})
 
         self._is_fitted = False
 

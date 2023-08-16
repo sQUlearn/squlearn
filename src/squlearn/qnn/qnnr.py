@@ -101,6 +101,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
+        **kwargs,
     ) -> None:
         super().__init__(
             feature_map,
@@ -116,6 +117,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             opt_param_op,
             variance,
             parameter_seed=parameter_seed,
+            **kwargs,
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
