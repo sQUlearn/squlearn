@@ -47,8 +47,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             None, the variance regularization will not be used. Else this determines the strength
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
-                                                      parameter initialization, if param_ini or
-                                                      param_op_ini is None.
+            parameter initialization, if param_ini or param_op_ini is None.
 
     See Also
     --------
