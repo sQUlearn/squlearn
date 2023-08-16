@@ -66,7 +66,6 @@ class TestQSVC:
             'verbose',
             'quantum_kernel'
         ]
-    # test kernel params as well?
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_predict_unfitted(self, qsvc, request, data):
@@ -104,11 +103,15 @@ class TestQSVC:
         """Tests concerning the kernel parameter changes.
         """
         qsvc_instance = request.getfixturevalue(qsvc)
-        assert qsvc_instance.quantum_kernel.num_qubits == 3
-        assert qsvc_instance.quantum_kernel._regularization == 'thresholding'
+
+        qsvc_params = qsvc_instance.get_params()
+        assert qsvc_params['num_qubits'] == 3
+        assert qsvc_params['regularization'] == 'thresholding'
         qsvc_instance.set_params(num_qubits=4, regularization='tikhonov')
-        assert qsvc_instance.quantum_kernel.num_qubits == 4
-        assert qsvc_instance.quantum_kernel._regularization == 'tikhonov'
+
+        qsvc_params_updated = qsvc_instance.get_params()
+        assert qsvc_params_updated['num_qubits'] == 4
+        assert qsvc_params_updated['regularization'] == 'tikhonov'
 
         # Check if fit is still possible
         X, y = data
@@ -122,9 +125,9 @@ class TestQSVC:
         """Tests concerning the feature map parameter changes.
         """
         qsvc_instance = request.getfixturevalue(qsvc)
-        assert qsvc_instance.quantum_kernel.feature_map.num_layers == 2
+        assert qsvc_instance.get_params()['num_layers'] == 2
         qsvc_instance.set_params(num_layers=4)
-        assert qsvc_instance.quantum_kernel.feature_map.num_layers == 4
+        assert qsvc_instance.get_params()['num_layers'] == 4
 
         # Check if fit is still possible
         X, y = data
@@ -133,14 +136,33 @@ class TestQSVC:
         except:
             assert False, f"fitting not possible after changes to feature map parameters"
 
+    def test_pqk_params_can_be_changed_after_initialization(self, qsvc_pqk, data):
+        """Tests concerning the feature map parameter changes.
+        """
+        qsvc_params = qsvc_pqk.get_params()
+        assert qsvc_params['gamma'] == 1.0
+        assert qsvc_params['measurement'] == 'XYZ'
+        qsvc_pqk.set_params(gamma=0.5, measurement='Z')
+
+        qsvc_params_updated = qsvc_pqk.get_params()
+        assert qsvc_params_updated['gamma'] == 0.5
+        assert qsvc_params_updated['measurement'] == 'Z'
+
+        # Check if fit is still possible
+        X, y = data
+        try:
+            qsvc_pqk.fit(X, y)
+        except:
+            assert False, f"fitting not possible after changes to feature map parameters"
+
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvc, request):
         """Tests concerning the parameters of the classical SVC changes.
         """
         qsvc_instance = request.getfixturevalue(qsvc)
-        assert qsvc_instance.C == 1.0
+        assert qsvc_instance.get_params()['C'] == 1.0
         qsvc_instance.set_params(C=4)
-        assert qsvc_instance.C == 4
+        assert qsvc_instance.get_params()['C'] == 4
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_that_regularization_is_called_when_not_none(self, qsvc, request, data):
@@ -157,5 +179,3 @@ class TestQSVC:
         qsvc_instance.predict(X)
 
         assert qsvc_instance.quantum_kernel._regularize_matrix.call_count == 2
-
-# check projected quantum kernel param changes and fidelity changes separately
