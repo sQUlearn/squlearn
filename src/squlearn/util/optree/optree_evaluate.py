@@ -294,7 +294,7 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
-def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],SparsePauliOp], results):
+def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],SparsePauliOp], results, index:int=-1):
     """
     Function for evaluating the expectation value of an observable from the results of a sampler.
 
@@ -315,19 +315,34 @@ def evaluate_expectation_from_sampler(observable: Union[List[SparsePauliOp],Spar
     # Create a list of PauliList objects from the observable
     op_pauli_list = [PauliList(obs.paulis) for obs in observable]
 
-    # Calulate the expectation value with internal Qiskit function
-    exp_val = np.array([
-        [
-            np.real_if_close(
-                np.dot(
-                    _pauli_expval_with_variance(quasi.binary_probabilities(), pauli)[0],
-                    observable[i].coeffs,
+    if index < 0:
+
+        # Calulate the expectation value with internal Qiskit function
+        exp_val = np.array([
+            [
+                np.real_if_close(
+                    np.dot(
+                        _pauli_expval_with_variance(quasi.binary_probabilities(), pauli)[0],
+                        observable[i].coeffs,
+                    )
                 )
-            )
-            for i,pauli in enumerate(op_pauli_list)
-        ]
-        for quasi in results.quasi_dists
-    ])
+                for i,pauli in enumerate(op_pauli_list)
+            ]
+            for quasi in results.quasi_dists
+        ])
+    else:
+        # Calulate the expectation value with internal Qiskit function
+        exp_val = np.array([
+            
+                np.real_if_close(
+                    np.dot(
+                        _pauli_expval_with_variance(results.quasi_dists[index].binary_probabilities(), pauli)[0],
+                        observable[i].coeffs,
+                    )
+                )
+                for i,pauli in enumerate(op_pauli_list)
+            
+        ])
 
     # Format results
     if no_list:
@@ -372,7 +387,10 @@ def evaluate_sampler(
 
         circuit_list = [circuit.measure_all(inplace=False) for circuit in circuit_list]
 
-        tree_circuit.append(_add_offset_to_tree(circuit_tree, len(total_circle_list)))
+        if multiple_circuit_dict and dictionaries_combined:
+            tree_circuit.append(circuit_tree)
+        else:
+            tree_circuit.append(_add_offset_to_tree(circuit_tree, len(total_circle_list)))
 
         total_circle_list += circuit_list
         total_parameter_list += parameter_list
@@ -385,15 +403,40 @@ def evaluate_sampler(
     sampler_result = sampler.run(total_circle_list, total_parameter_list).result()
 
 
+    final_result = []
 
-    # TODO: note finished!
     for i,dictionary_operator_ in enumerate(dictionary_operator):
 
         operator_list, operator_tree = build_operator_list(
          operator, dictionary_operator_, detect_operator_duplicates
         )
+        if multiple_circuit_dict and dictionaries_combined:
+            expec = evaluate_expectation_from_sampler(operator_list, sampler_result,i)
+            expec2 = [_evaluate_index_tree(operator_tree, expec)]
+            final_result.append(_evaluate_index_tree(evaluation_tree.children[i], expec2))
+        else:
+            expec = evaluate_expectation_from_sampler(operator_list, sampler_result)
+            expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
+            final_result.append(_evaluate_index_tree(evaluation_tree, expec2))
 
-        print(evaluate_expectation_from_sampler(operator_list, sampler_result))
+        print("expec",expec)
+        
+
+        print("operator_tree",operator_tree)
+        print("expec2",expec2)
+
+
+        
+
+    if multiple_operator_dict and multiple_circuit_dict:
+        return np.swapaxes(np.array(final_result),0,1)
+    elif multiple_operator_dict and not multiple_circuit_dict:
+        return np.array(final_result)
+    else:
+        return np.array(final_result[0])
+
+
+
 
 
 
