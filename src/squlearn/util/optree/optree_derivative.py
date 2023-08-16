@@ -152,10 +152,10 @@ def derivative_inplace(
             else:
                 grad_fac = 0.0
 
-            if isinstance(child, QuantumCircuit) or isinstance(child, OpTreeLeafCircuit):
+            if isinstance(child, (QuantumCircuit, OpTreeLeafCircuit)):
                 # reached a circuit leaf -> grad by parameter shift function
                 grad = circuit_parameter_shift(child, parameter)
-            elif isinstance(child, SparsePauliOp) or isinstance(child, OpTreeLeafOperator):
+            elif isinstance(child, (SparsePauliOp, OpTreeLeafOperator)):
                 grad = operator_derivative(child, parameter)
             else:
                 # Node -> recursive call
@@ -290,10 +290,10 @@ def derivative_copy(
         else:
             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
-    elif isinstance(element, QuantumCircuit) or isinstance(element, OpTreeLeafCircuit):
+    elif isinstance(element, (QuantumCircuit, OpTreeLeafCircuit)):
         # Reached a circuit leaf -> grad by parameter shift function
         return circuit_parameter_shift(element, parameter)
-    elif isinstance(element, SparsePauliOp) or isinstance(element, OpTreeLeafOperator):
+    elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
         # Reached a operator leaf -> grad by parameter shift function
         return operator_derivative(element, parameter)
     else:
@@ -375,13 +375,9 @@ def simplify_copy(
     if isinstance(element, OpTreeNodeBase):
         if len(element.children) > 0:
             # Recursive call for all children
-            children_list = []
-            factor_list = []
-            operation_list = []
-            for i, child in enumerate(element.children):
-                children_list.append(simplify_copy(child))  # Recursive call
-                factor_list.append(element.factor[i])
-                operation_list.append(element.operation[i])
+            children_list = [simplify_copy(child) for child in element.children]
+            factor_list = element.factor
+            operation_list = element.operation
 
             if isinstance(element, OpTreeNodeSum):
                 new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
@@ -438,7 +434,7 @@ def simplify_copy(
         else:
             # Reached an empty Node -> cancel the recursion
             return copy.deepcopy(element)
-    elif isinstance(element, SparsePauliOp) or isinstance(element, OpTreeLeafOperator):
+    elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
         return simplify_operator(element)
     else:
         # Reached a leaf -> cancel the recursion

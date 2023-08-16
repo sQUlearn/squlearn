@@ -242,6 +242,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
         """Returns the operator that is represented by the leaf."""
         return self._operator
 
+    @property
     def hashvalue(self) -> tuple:
         """Returns the hashvalue of the circuit."""
         return self._hashvalue
@@ -254,6 +255,45 @@ class OpTreeLeafOperator(OpTreeLeafBase):
         """Function for comparing two OpTreeLeafOperators."""
         if isinstance(other, OpTreeLeafOperator):
             return self._hashvalue == other._hashvalue
+        return False
+
+
+class OpTreeLeafExpectationValue(OpTreeLeafBase):
+    def __init__(
+        self,
+        circuit: Union[OpTreeLeafCircuit, QuantumCircuit],
+        operator: Union[OpTreeLeafOperator, SparsePauliOp],
+    ) -> None:
+        if isinstance(circuit, QuantumCircuit):
+            circuit = OpTreeLeafCircuit(circuit)
+        self._circuit = circuit
+
+        if isinstance(operator, SparsePauliOp):
+            operator = OpTreeLeafOperator(operator)
+        self._operator = operator
+
+    @property
+    def circuit(self) -> QuantumCircuit:
+        """Returns the circuit that is represented by the leaf."""
+        return self._circuit.circuit
+
+    @property
+    def operator(self) -> SparsePauliOp:
+        """Returns the operator that is represented by the leaf."""
+        return self._operator.operator
+
+    @property
+    def hashvalue(self) -> tuple:
+        """Returns the hashvalue of the circuit."""
+        return self._circuit.hashvalue + self._operator.hashvalue
+
+    def __str__(self) -> str:
+        return str(self._circuit) + "\n with observable \n" + str(self._operator) + "\n"
+
+    def __eq__(self, other) -> bool:
+        """Function for comparing two OpTreeLeafOperators."""
+        if isinstance(other, OpTreeLeafExpectationValue):
+            return self._circuit == other._circuit and self._operator == other._operator
         return False
 
 
@@ -326,7 +366,50 @@ def get_first_leaf(
         return element.circuit
     elif isinstance(element, OpTreeLeafOperator):
         return element.operator
-    elif isinstance(element, SparsePauliOp) or isinstance(element, QuantumCircuit):
+    elif isinstance(element, (SparsePauliOp, QuantumCircuit)):
         return element
     else:
         raise ValueError("Unknown element type: " + str(type(element)))
+
+
+def gen_expectation_tree(
+    circuit_tree: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+    operator_tree: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp],
+):
+    if isinstance(circuit_tree, OpTreeNodeBase):
+        children_list = [
+            gen_expectation_tree(child, operator_tree) for child in circuit_tree.children
+        ]
+        factor_list = circuit_tree.factor
+        operation_list = circuit_tree.operation
+
+        if isinstance(circuit_tree, OpTreeNodeSum):
+            return OpTreeNodeSum(children_list, factor_list, operation_list)
+        elif isinstance(circuit_tree, OpTreeNodeList):
+            return OpTreeNodeList(children_list, factor_list, operation_list)
+        else:
+            raise ValueError("wrong type of circuit_tree")
+
+    elif isinstance(circuit_tree, (OpTreeLeafCircuit, QuantumCircuit)):
+        # Reached a circuit node -> append operation tree
+
+        if isinstance(operator_tree, OpTreeNodeBase):
+            children_list = [
+                gen_expectation_tree(circuit_tree, child) for child in operator_tree.children
+            ]
+            factor_list = operator_tree.factor
+            operation_list = operator_tree.operation
+
+            if isinstance(operator_tree, OpTreeNodeSum):
+                return OpTreeNodeSum(children_list, factor_list, operation_list)
+            elif isinstance(operator_tree, OpTreeNodeList):
+                return OpTreeNodeList(children_list, factor_list, operation_list)
+            else:
+                raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+        elif isinstance(operator_tree, (OpTreeLeafOperator, SparsePauliOp)):
+            return OpTreeLeafExpectationValue(circuit_tree, operator_tree)
+        else:
+            raise ValueError("wrong type of operator_tree")
+    else:
+        print("circuit_tree: ", circuit_tree)
+        raise ValueError("circuit_tree must be a CircuitTreeSum or a CircuitTreeList",type(circuit_tree))
