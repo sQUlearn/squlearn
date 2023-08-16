@@ -40,6 +40,9 @@ class SummedPaulis(ExpectationOperatorBase):
     -----------
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the summed Paulis operator.
         op_str (Union[str,tuple[str]]): String of the Pauli operator that is  measured.

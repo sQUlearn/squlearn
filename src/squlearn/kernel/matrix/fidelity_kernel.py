@@ -133,6 +133,7 @@ class FidelityKernel(KernelMatrixBase):
         params = {}
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
+        params["regularization"] = self._regularization
         if deep:
             # params = self._feature_map.get_params()
             params.update(self._feature_map.get_params())
@@ -167,6 +168,8 @@ class FidelityKernel(KernelMatrixBase):
             self._evaluate_duplicates = params["evaluate_duplicates"].lower()
         if "mit_depol_noise" in params.keys():
             self._mit_depol_noise = params["mit_depol_noise"]
+        if "regularization" in params.keys():
+            self._regularization = params["regularization"]
 
         self.__init__(
             self._feature_map,
@@ -195,7 +198,7 @@ class FidelityKernel(KernelMatrixBase):
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
         if self._mit_depol_noise is not None:
-            print("WARNING: Adavnced option. Do not use it within an squlearn.kernel.ml workflow")
+            print("WARNING: Advanced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
                 raise ValueError(
                     "Mitigating depolarizing noise works only for square matrices computed on real"

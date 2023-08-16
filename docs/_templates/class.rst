@@ -1,5 +1,5 @@
 :mod:`{{module}}`.\ :spelling:word:`{{objname}}`
-{{ underline }}===============================
+{{ underline }}=================================
 
 .. currentmodule:: {{ module }}
 
