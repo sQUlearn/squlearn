@@ -766,21 +766,44 @@ def evaluate_estimator(
 
     return final_results
 
-def evaluate_expectation_tree_from_estimator(expectation_tree, dictionary, estimator,detect_expectation_duplicates:bool=False):
+def evaluate_expectation_tree_from_estimator(expectation_tree: Union[OpTreeNodeBase,OpTreeLeafExpectationValue], dictionary:Union[List[dict],dict], estimator:BaseEstimator,detect_expectation_duplicates:bool=False):
+    """
+    Evaluate a expectation tree with an estimator.
 
+    Args:
+        expectation_tree (Union[OpTreeNodeBase,OpTreeLeafExpectationValue]): The expectation tree to be evaluated.
+        dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and their values. Can be list for the evaluation of multiple dictionaries.
+        estimator (BaseEstimator): The estimator that is used for the evaluation.
+        detect_expectation_duplicates (bool, optional): If True, duplicate expectation values are detected and only evaluated once. Defaults to False.
+    """
 
-    # TODO: multiple dictionaries
+    total_circle_list, total_operator_list, total_parameter_list, total_tree_list = [], [], [],[]
 
-    circuit_list, operator_list, parameter_list, index_tree = build_expectation_list(expectation_tree, dictionary)
+    multiple_dict = True
+    if not isinstance(dictionary, list):
+        dictionary = [dictionary]
+        multiple_dict = False
+
+    for dict_ in dictionary:
+        circuit_list, operator_list, parameter_list, tree_list = build_expectation_list(expectation_tree, dict_,detect_expectation_duplicates)
+        total_tree_list.append(_add_offset_to_tree(tree_list,len(total_circle_list)))
+        total_circle_list += circuit_list
+        total_operator_list += operator_list
+        total_parameter_list += parameter_list
+
+    if multiple_dict:
+        evaluation_tree = OpTreeNodeList(total_tree_list)
+    else:
+        evaluation_tree = total_tree_list[0]
 
     # Evaluation via the estimator
     start = time.time()
     estimator_result = (
-        estimator.run(circuit_list, operator_list, parameter_list).result().values
+        estimator.run(total_circle_list, total_operator_list, total_parameter_list).result().values
     )
     print("post processing", time.time() - start)
     print("estimator_result", estimator_result)
-    return _evaluate_index_tree(index_tree, estimator_result)
+    return _evaluate_index_tree(evaluation_tree, estimator_result)
 
 
 
@@ -790,20 +813,25 @@ def evaluate_expectation_tree_from_sampler(expectation_tree, dictionary, sampler
 
     # TODO: multiple dictionaries
 
+    start = time.time()
     circuit_list, operator_list, parameter_list, circuit_eval_list, index_tree = build_expectation_list_v2(expectation_tree, dictionary)
-
     circuit_list = [circuit.measure_all(inplace=False) for circuit in circuit_list]
+    print("build_lists_and_index_tree", time.time() - start)
 
     # Evaluation via the estimator
-    #start = time.time()
+    start = time.time()
     sampler_result = (
         sampler.run(circuit_list, parameter_list).result()
     )
+    print("run time", time.time() - start)
 
+    start = time.time()
     expec = evaluate_expectation_from_sampler(operator_list, sampler_result, index_list=circuit_eval_list)
+    result = _evaluate_index_tree(index_tree, expec)
+    print("post processing", time.time() - start)
     print("expec", expec)
 
-    return _evaluate_index_tree(index_tree, expec)
+    return result
 
 
 
