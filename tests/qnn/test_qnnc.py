@@ -60,8 +60,8 @@ class TestQNNClassifier:
         X, y = data
         qnn_classifier.fit(X, y)
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier._param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier._param_op_ini)
+        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)
 
     def test_partial_fit(self, qnn_classifier, data):
         """Tests concerning the partial_fit function of the QNNClassifier.
@@ -101,8 +101,8 @@ class TestQNNClassifier:
         qnn_classifier.fit(X, y)
 
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier._param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier._param_op_ini)
+        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)
 
     def test_predict(self, qnn_classifier, data):
         """Tests concerning the predict function of the QNNClassifier.
@@ -136,5 +136,5 @@ class TestQNNClassifier:
         qnn_classifier.fit(X, y)
 
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier._param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier._param_op_ini)
+        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)

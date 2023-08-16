@@ -80,8 +80,8 @@ class TestBaseQNN:
             None
         """
         qnn_single_op.set_params(num_qubits=5)
-        assert qnn_single_op._feature_map.num_qubits == 5
-        assert qnn_single_op._operator.num_qubits == 5
+        assert qnn_single_op.feature_map.num_qubits == 5
+        assert qnn_single_op.operator.num_qubits == 5
         assert qnn_single_op._qnn.num_qubits == 5
 
     def test_set_params_num_qubits_multi_op(self, qnn_multi_op):
@@ -95,8 +95,8 @@ class TestBaseQNN:
             None
         """
         qnn_multi_op.set_params(num_qubits=5)
-        assert qnn_multi_op._feature_map.num_qubits == 5
-        for operator in qnn_multi_op._operator:
+        assert qnn_multi_op.feature_map.num_qubits == 5
+        for operator in qnn_multi_op.operator:
             assert operator.num_qubits == 5
         assert qnn_multi_op._qnn.num_qubits == 5
 
@@ -111,8 +111,8 @@ class TestBaseQNN:
             None
         """
         qnn_single_op.set_params(num_layers=3, closed=True)
-        assert qnn_single_op._feature_map.num_layers == 3
-        assert qnn_single_op._feature_map.closed
+        assert qnn_single_op.feature_map.num_layers == 3
+        assert qnn_single_op.feature_map.closed
         assert qnn_single_op._qnn.pqc.get_params()["num_layers"] == 3
         assert qnn_single_op._qnn.pqc.get_params()["closed"]
 
@@ -126,9 +126,9 @@ class TestBaseQNN:
         Returns:
             None
         """
-        qnn_single_op.set_params(operator__X="S", operator__Z="N")
-        assert qnn_single_op._operator.X == "S"
-        assert qnn_single_op._operator.Z == "N"
+        qnn_single_op.set_params(X="S", Z="N")
+        assert qnn_single_op.operator.X == "S"
+        assert qnn_single_op.operator.Z == "N"
         assert qnn_single_op._qnn.operator.X == "S"
         assert qnn_single_op._qnn.operator.Z == "N"
 
@@ -143,7 +143,7 @@ class TestBaseQNN:
             None
         """
         qnn_multi_op.set_params(op0__X="S", op3__Z="N")
-        assert qnn_multi_op._operator[0].X == "S"
-        assert qnn_multi_op._operator[3].Z == "N"
+        assert qnn_multi_op.operator[0].X == "S"
+        assert qnn_multi_op.operator[3].Z == "N"
         assert qnn_multi_op._qnn.operator[0].X == "S"
         assert qnn_multi_op._qnn.operator[3].Z == "N"

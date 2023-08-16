@@ -63,8 +63,8 @@ class TestQNNRegressor:
         X, y = data
         qnn_regressor.fit(X, y)
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor._param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor._param_op_ini)
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
 
     def test_partial_fit(self, qnn_regressor, data):
         """Tests concerning the partial_fit function of the QNNRegressor.
@@ -104,8 +104,8 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor._param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor._param_op_ini)
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
 
     def test_predict(self, qnn_regressor, data):
         """Tests concerning the predict function of the QNNRegressor.
@@ -140,5 +140,5 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor._param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor._param_op_ini)
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
