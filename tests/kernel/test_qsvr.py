@@ -31,10 +31,9 @@ class TestQSVR:
         np.random.seed(42)
         executor = Executor("statevector_simulator")
         feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
-        kernel = FidelityKernel(feature_map,
-                                executor=executor,
-                                regularization='thresholding',
-                                mit_depol_noise='msplit')
+        kernel = FidelityKernel(
+            feature_map, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+        )
         return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
 
     @pytest.fixture(scope="module")
@@ -43,23 +42,23 @@ class TestQSVR:
         np.random.seed(42)
         executor = Executor("statevector_simulator")
         feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
-        kernel = ProjectedQuantumKernel(feature_map,
-                                executor=executor,
-                                regularization='thresholding')
+        kernel = ProjectedQuantumKernel(
+            feature_map, executor=executor, regularization="thresholding"
+        )
         return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
 
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
         qsvr_instance = QSVR(quantum_kernel=MagicMock())
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
-            'C',
-            'cache_size',
-            'epsilon',
-            'max_iter',
-            'shrinking',
-            'tol',
-            'verbose',
-            'quantum_kernel'
+            "C",
+            "cache_size",
+            "epsilon",
+            "max_iter",
+            "shrinking",
+            "tol",
+            "verbose",
+            "quantum_kernel",
         ]
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
@@ -93,18 +92,17 @@ class TestQSVR:
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_kernel_params_can_be_changed_after_initialization(self, qsvr, request, data):
-        """Tests concerning the kernel parameter changes.
-        """
+        """Tests concerning the kernel parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
 
         qsvr_params = qsvr_instance.get_params()
-        assert qsvr_params['num_qubits'] == 3
-        assert qsvr_params['regularization'] == 'thresholding'
-        qsvr_instance.set_params(num_qubits=4, regularization='tikhonov')
+        assert qsvr_params["num_qubits"] == 3
+        assert qsvr_params["regularization"] == "thresholding"
+        qsvr_instance.set_params(num_qubits=4, regularization="tikhonov")
 
         qsvr_params_updated = qsvr_instance.get_params()
-        assert qsvr_params_updated['num_qubits'] == 4
-        assert qsvr_params_updated['regularization'] == 'tikhonov'
+        assert qsvr_params_updated["num_qubits"] == 4
+        assert qsvr_params_updated["regularization"] == "tikhonov"
 
         # Check if fit is still possible
         X, y = data
@@ -115,32 +113,30 @@ class TestQSVR:
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_feature_map_params_can_be_changed_after_initialization(self, qsvr, request, data):
-        """Tests concerning the feature map parameter changes.
-        """
+        """Tests concerning the feature map parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
-        assert qsvr_instance.get_params()['num_layers'] == 2
+        assert qsvr_instance.get_params()["num_layers"] == 2
         qsvr_instance.set_params(num_layers=4)
-        assert qsvr_instance.get_params()['num_layers'] == 4
+        assert qsvr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
         X, y = data
         try:
             qsvr_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"\
+            assert False, f"fitting not possible after changes to feature map parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qsvr_pqk, data):
-        """Tests concerning the feature map parameter changes.
-        """
+        """Tests concerning the feature map parameter changes."""
 
         qsvr_params = qsvr_pqk.get_params()
-        assert qsvr_params['gamma'] == 1.0
-        assert qsvr_params['measurement'] == 'XYZ'
-        qsvr_pqk.set_params(gamma=0.5, measurement='Z')
+        assert qsvr_params["gamma"] == 1.0
+        assert qsvr_params["measurement"] == "XYZ"
+        qsvr_pqk.set_params(gamma=0.5, measurement="Z")
 
         qsvr_params_updated = qsvr_pqk.get_params()
-        assert qsvr_params_updated['gamma'] == 0.5
-        assert qsvr_params_updated['measurement'] == 'Z'
+        assert qsvr_params_updated["gamma"] == 0.5
+        assert qsvr_params_updated["measurement"] == "Z"
 
         # Check if fit is still possible
         X, y = data
@@ -151,18 +147,17 @@ class TestQSVR:
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvr, request):
-        """Tests concerning the parameters of the classical SVC changes.
-        """
+        """Tests concerning the parameters of the classical SVC changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
 
         qsvr_params = qsvr_instance.get_params()
-        assert qsvr_params['C'] == 1.0
-        assert qsvr_params['epsilon'] == 0.1
+        assert qsvr_params["C"] == 1.0
+        assert qsvr_params["epsilon"] == 0.1
         qsvr_instance.set_params(C=4, epsilon=0.5)
 
         qsvr_params_updated = qsvr_instance.get_params()
-        assert qsvr_params_updated['C'] == 4
-        assert qsvr_params_updated['epsilon'] == 0.5
+        assert qsvr_params_updated["C"] == 4
+        assert qsvr_params_updated["epsilon"] == 0.5
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_that_regularization_is_called_when_not_none(self, qsvr, request, data):
@@ -170,7 +165,7 @@ class TestQSVR:
         qsvr_instance = request.getfixturevalue(qsvr)
         X, y = data
 
-        qsvr_instance.set_params(regularization='tikhonov')
+        qsvr_instance.set_params(regularization="tikhonov")
 
         qsvr_instance.quantum_kernel._regularize_matrix = MagicMock()
         qsvr_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x

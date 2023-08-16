@@ -31,10 +31,9 @@ class TestQSVC:
         np.random.seed(42)
         executor = Executor("statevector_simulator")
         feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
-        kernel = FidelityKernel(feature_map,
-                                executor=executor,
-                                regularization='thresholding',
-                                mit_depol_noise='msplit')
+        kernel = FidelityKernel(
+            feature_map, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+        )
         return QSVC(quantum_kernel=kernel)
 
     @pytest.fixture(scope="module")
@@ -43,27 +42,27 @@ class TestQSVC:
         np.random.seed(42)
         executor = Executor("statevector_simulator")
         feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
-        kernel = ProjectedQuantumKernel(feature_map,
-                                executor=executor,
-                                regularization='thresholding')
+        kernel = ProjectedQuantumKernel(
+            feature_map, executor=executor, regularization="thresholding"
+        )
         return QSVC(quantum_kernel=kernel)
 
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
         qsvc_instance = QSVC(quantum_kernel=MagicMock())
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
-            'C',
-            'break_ties',
-            'cache_size',
-            'class_weight',
-            'decision_function_shape',
-            'max_iter',
-            'probability',
-            'random_state',
-            'shrinking',
-            'tol',
-            'verbose',
-            'quantum_kernel'
+            "C",
+            "break_ties",
+            "cache_size",
+            "class_weight",
+            "decision_function_shape",
+            "max_iter",
+            "probability",
+            "random_state",
+            "shrinking",
+            "tol",
+            "verbose",
+            "quantum_kernel",
         ]
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
@@ -99,18 +98,17 @@ class TestQSVC:
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_kernel_params_can_be_changed_after_initialization(self, qsvc, request, data):
-        """Tests concerning the kernel parameter changes.
-        """
+        """Tests concerning the kernel parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
 
         qsvc_params = qsvc_instance.get_params()
-        assert qsvc_params['num_qubits'] == 3
-        assert qsvc_params['regularization'] == 'thresholding'
-        qsvc_instance.set_params(num_qubits=4, regularization='tikhonov')
+        assert qsvc_params["num_qubits"] == 3
+        assert qsvc_params["regularization"] == "thresholding"
+        qsvc_instance.set_params(num_qubits=4, regularization="tikhonov")
 
         qsvc_params_updated = qsvc_instance.get_params()
-        assert qsvc_params_updated['num_qubits'] == 4
-        assert qsvc_params_updated['regularization'] == 'tikhonov'
+        assert qsvc_params_updated["num_qubits"] == 4
+        assert qsvc_params_updated["regularization"] == "tikhonov"
 
         # Check if fit is still possible
         X, y = data
@@ -121,12 +119,11 @@ class TestQSVC:
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_feature_map_params_can_be_changed_after_initialization(self, qsvc, request, data):
-        """Tests concerning the feature map parameter changes.
-        """
+        """Tests concerning the feature map parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
-        assert qsvc_instance.get_params()['num_layers'] == 2
+        assert qsvc_instance.get_params()["num_layers"] == 2
         qsvc_instance.set_params(num_layers=4)
-        assert qsvc_instance.get_params()['num_layers'] == 4
+        assert qsvc_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
         X, y = data
@@ -136,16 +133,15 @@ class TestQSVC:
             assert False, f"fitting not possible after changes to feature map parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qsvc_pqk, data):
-        """Tests concerning the feature map parameter changes.
-        """
+        """Tests concerning the feature map parameter changes."""
         qsvc_params = qsvc_pqk.get_params()
-        assert qsvc_params['gamma'] == 1.0
-        assert qsvc_params['measurement'] == 'XYZ'
-        qsvc_pqk.set_params(gamma=0.5, measurement='Z')
+        assert qsvc_params["gamma"] == 1.0
+        assert qsvc_params["measurement"] == "XYZ"
+        qsvc_pqk.set_params(gamma=0.5, measurement="Z")
 
         qsvc_params_updated = qsvc_pqk.get_params()
-        assert qsvc_params_updated['gamma'] == 0.5
-        assert qsvc_params_updated['measurement'] == 'Z'
+        assert qsvc_params_updated["gamma"] == 0.5
+        assert qsvc_params_updated["measurement"] == "Z"
 
         # Check if fit is still possible
         X, y = data
@@ -156,12 +152,11 @@ class TestQSVC:
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvc, request):
-        """Tests concerning the parameters of the classical SVC changes.
-        """
+        """Tests concerning the parameters of the classical SVC changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
-        assert qsvc_instance.get_params()['C'] == 1.0
+        assert qsvc_instance.get_params()["C"] == 1.0
         qsvc_instance.set_params(C=4)
-        assert qsvc_instance.get_params()['C'] == 4
+        assert qsvc_instance.get_params()["C"] == 4
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_that_regularization_is_called_when_not_none(self, qsvc, request, data):
@@ -169,7 +164,7 @@ class TestQSVC:
         qsvc_instance = request.getfixturevalue(qsvc)
         X, y = data
 
-        qsvc_instance.set_params(regularization='tikhonov')
+        qsvc_instance.set_params(regularization="tikhonov")
 
         qsvc_instance.quantum_kernel._regularize_matrix = MagicMock()
         qsvc_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
