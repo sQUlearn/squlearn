@@ -48,10 +48,9 @@ class TestQSVR:
                                 regularization='thresholding')
         return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
 
-    @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
-    def test_that_qsvr_params_are_present(self, qsvr, request):
-        """Asserts that all parameters are present in the QSVR."""
-        qsvr_instance = request.getfixturevalue(qsvr)
+    def test_that_qsvr_params_are_present(self):
+        """Asserts that all classical parameters are present in the QSVR."""
+        qsvr_instance = QSVR(quantum_kernel=MagicMock())
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             'C',
             'cache_size',

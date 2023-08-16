@@ -48,10 +48,9 @@ class TestQSVC:
                                 regularization='thresholding')
         return QSVC(quantum_kernel=kernel)
 
-    @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
-    def test_that_qsvc_params_are_present(self, qsvc, request):
-        """Asserts that all parameters are present in the QSVC."""
-        qsvc_instance = request.getfixturevalue(qsvc)
+    def test_that_qsvc_params_are_present(self):
+        """Asserts that all classical parameters are present in the QSVC."""
+        qsvc_instance = QSVC(quantum_kernel=MagicMock())
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             'C',
             'break_ties',
