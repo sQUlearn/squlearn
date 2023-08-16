@@ -25,7 +25,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     Args:
         feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
-            For a list of feature maps, check the :ref:`Implemented feature maps in squlearn`.
+            For a list of feature maps, check this list of implemented :ref:`feature_maps`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
