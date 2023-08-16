@@ -24,8 +24,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
     training is possible.
 
     Args:
-        pqc (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN. For a list
-            of feature maps, check the :ref:`Implemented feature maps in squlearn`.
+        feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
+            For a list of feature maps, check the :ref:`Implemented feature maps in squlearn`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check the :ref:`Implemented operators for expectation values`
@@ -89,7 +89,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     def __init__(
         self,
-        pqc: FeatureMapBase,
+        feature_map: FeatureMapBase,
         operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
         executor: Executor,
         loss: LossBase,
@@ -104,7 +104,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         parameter_seed: Union[int, None] = 0,
     ) -> None:
         super().__init__(
-            pqc,
+            feature_map,
             operator,
             executor,
             loss,
@@ -144,11 +144,11 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             weights: Weights for each datapoint
         """
 
-        loss = self._loss
+        loss = self.loss
         if self.variance is not None:
             loss = loss + VarianceLoss(alpha=self.variance)
 
-        if isinstance(self._optimizer, SGDMixin) and self.batch_size:
+        if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
                 self._param, self._param_op = solve_minibatch(
                     self._qnn,
@@ -157,7 +157,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param,
                     self._param_op,
                     loss=loss,
-                    optimizer=self._optimizer,
+                    optimizer=self.optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -172,7 +172,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param,
                     self._param_op,
                     loss=loss,
-                    optimizer=self._optimizer,
+                    optimizer=self.optimizer,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -189,7 +189,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param,
                     self._param_op,
                     loss,
-                    self._optimizer.minimize,
+                    self.optimizer.minimize,
                     weights,
                     True,
                 )
@@ -201,7 +201,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param,
                     self._param_op,
                     loss,
-                    self._optimizer.minimize,
+                    self.optimizer.minimize,
                     weights,
                     False,
                 )
