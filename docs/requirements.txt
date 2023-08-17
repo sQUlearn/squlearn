@@ -1,4 +1,5 @@
 matplotlib
 pylatexenc
 sphinx
+sphinxcontrib-spelling
 sphinx-rtd-theme
