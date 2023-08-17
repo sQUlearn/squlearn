@@ -75,7 +75,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         sigma: float = 1.0e-6,
         normalize_y: bool = False,
         full_regularization: bool = True,
-        **kwargs
+        **kwargs,
     ):
         self._quantum_kernel = quantum_kernel
         self.X_train = None
@@ -90,14 +90,10 @@ class QGPR(BaseEstimator, RegressorMixin):
         self._L = None
         self._alpha = None
 
-        # Apply kwargs to quantum kernel set_params
-        valid_params = self.get_params().keys()
-        set_params_dict = {}
-        for key, value in kwargs.items():
-            if key in valid_params:
-                set_params_dict[key] = value
-        if len(set_params_dict) > 0:
-            self.set_params(**set_params_dict)
+        # Apply kwargs to set_params
+        update_params = self.get_params().keys() & kwargs.keys()
+        if update_params:
+            self.set_params(**{key: kwargs[key] for key in update_params})
 
     def fit(self, X_train, y_train):
         """Fit Quantum Gaussian process regression model.
@@ -133,7 +129,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             self.y_train = y_train
         return self
 
-    def predict(self, X_test, return_std=True, return_cov=False):
+    def predict(self, X_test, return_std=False, return_cov=False):
         """Predict using the  Quantum Gaussian process regression model.
         Depending on the choice of regularization the quantum kernel matrix is regularized.
         The respective solution of the QKRR problem

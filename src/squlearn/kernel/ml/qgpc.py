@@ -53,11 +53,7 @@ class QGPC(GaussianProcessClassifier):
     --------
     """
 
-    def __init__(self,
-                 *,
-                 quantum_kernel: KernelMatrixBase, 
-                 **kwargs)-> None:
-        
+    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
         self._quantum_kernel = quantum_kernel
         # Apply kwargs to set_params of quantum kernel
         valid_params_quantum_kernel = self._quantum_kernel.get_params(deep=True)
@@ -74,8 +70,9 @@ class QGPC(GaussianProcessClassifier):
             kwargs.pop(key, None)
 
         super().__init__(
-            #kernel=kernel_wrapper(self._quantum_kernel),
-            **kwargs)
+            # kernel=kernel_wrapper(self._quantum_kernel),
+            **kwargs
+        )
         self.kernel = kernel_wrapper(self._quantum_kernel)
 
     @classmethod
@@ -87,7 +84,7 @@ class QGPC(GaussianProcessClassifier):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the QSVR class.
+        Returns hyper-parameters and their values of the QGPC class.
 
         Args:
             deep (bool): If True, also the parameters for
@@ -102,7 +99,7 @@ class QGPC(GaussianProcessClassifier):
         for key in self._get_param_names():
             params[key] = getattr(self, key)
 
-        # add qsvr specific parameters
+        # add qgpc specific parameters
         params["quantum_kernel"] = self._quantum_kernel
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
@@ -150,5 +147,3 @@ class QGPC(GaussianProcessClassifier):
         """Sets quantum kernel"""
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
-
-
