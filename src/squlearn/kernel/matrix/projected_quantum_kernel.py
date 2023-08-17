@@ -183,7 +183,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
         initial_parameters (np.ndarray): Initial parameters of the feature map and the
             operator (if parameterized)
-        regularization  (Union[str, None], default=None) :
+        parameter_seed (Union[int, None], default=0):
+            Seed for the random number generator for the parameter initialization, if
+            initial_parameters is None.
+        regularization  (Union[str, None], default=None):
             Option for choosing different regularization techniques (``"thresholding"`` or
             ``"tikhonov"``) after Ref. [2] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.

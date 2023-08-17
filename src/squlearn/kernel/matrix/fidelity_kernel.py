@@ -34,15 +34,18 @@ class FidelityKernel(KernelMatrixBase):
     Args:
         feature_map (FeatureMapBase): PQC feature map.
         executor (Executor): Executor object.
-        initial_parameters (Union[np.ndarray, None], default=None):
-            Initial parameters for the feature map.
         evaluate_duplicates (str), default='off_diagonal':
             Option for evaluating duplicates ('all', 'off_diagonal', 'none').
         mit_depol_noise (Union[str, None]), default=None:
             Option for mitigating depolarizing noise (``"msplit"`` or ``"mmean"``) after
             Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
-        regularization  (Union[str, None], default=None) :
+        initial_parameters (Union[np.ndarray, None], default=None):
+            Initial parameters for the feature map.
+        parameter_seed (Union[int, None], default=0):
+            Seed for the random number generator for the parameter initialization, if
+            initial_parameters is None.
+        regularization  (Union[str, None], default=None):
             Option for choosing different regularization techniques (``"thresholding"`` or
             ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.

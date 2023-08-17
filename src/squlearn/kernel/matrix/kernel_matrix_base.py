@@ -17,7 +17,10 @@ class KernelMatrixBase:
             Executor object
         initial_parameters (Union[np.ndarray, None], default=None) :
             Initial parameters of the PQC feature map
-        regularization (str, None) :
+        parameter_seed (Union[int, None], default=0) :
+            Seed for the random number generator for the parameter initialization, if
+            initial_parameters is None.
+        regularization  (Union[str, None], default=None):
             Str that specifies the method with which the kernel matrix should be regularized.
             See method attribute from KernMatrixBase._regularize_matrix() method for valid
             options.
