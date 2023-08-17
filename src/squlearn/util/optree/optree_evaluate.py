@@ -6,7 +6,8 @@ import time
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
 from qiskit.primitives import BaseEstimator, BaseSampler
-from qiskit.quantum_info import SparsePauliOp, PauliList
+from qiskit.primitives import BackendEstimator
+from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
 
@@ -505,6 +506,11 @@ def evaluate_expectation_from_sampler(
     # Create a list of PauliList objects from the observable
     op_pauli_list = [PauliList(obs.paulis) for obs in observable]
 
+    # Check if only the Z and I Paulis are used in the obersevable
+    for p in op_pauli_list:
+        if p.x.any():
+            raise ValueError("Observable only with Z and I Paulis are supported")
+
     # Index slice that is used to select a subset of the results
     if index_slice is None:
         index_slice_ = slice(0, len(results.quasi_dists))
@@ -824,7 +830,7 @@ def evaluate_expectation_tree_from_sampler(expectation_tree, dictionary, sampler
         total_tree_list.append(_add_offset_to_tree(index_tree,len(total_circuit_eval_list)))
         offset = len(total_circuit_list)
         total_circuit_eval_list += [i+offset for i in circuit_eval_list]
-        total_circuit_list += [circuit.measure_all(inplace=False) for circuit in circuit_list]
+        total_circuit_list += [circuit.measure_all(inplace=False) if circuit.num_clbits == 0 else circuit for circuit in circuit_list]
         total_operator_list += operator_list
         total_parameter_list += parameter_list
         print("build_lists_and_index_tree", time.time() - start)
@@ -850,13 +856,75 @@ def evaluate_expectation_tree_from_sampler(expectation_tree, dictionary, sampler
     return result
 
 
+def adjust_measurements(element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue],abelian_grouping:bool=True):
 
+    if isinstance(element, OpTreeNodeBase):
+        # Recursive call for all children
+        children_list = [adjust_measurements(child,abelian_grouping) for child in element.children]
+        factor_list = element.factor
+        operation_list = element.operation
 
+        if isinstance(element, OpTreeNodeSum):
+            return OpTreeNodeSum(children_list, factor_list, operation_list)
+        elif isinstance(element, OpTreeNodeList):
+            return OpTreeNodeList(children_list, factor_list, operation_list)
+        else:
+            raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
+    elif isinstance(element, OpTreeLeafExpectationValue):
 
+        # Adjust measurements to be possible in Z basis
+        operator = element.operator
+        circuit = element.circuit
 
+        children_list = []
 
-def assign_circuit_parameters(
+        # fast check, if there is anything to do (checks for X and Y gates)
+        any_changes = False
+        for op in operator:
+            any_changes = any_changes or op.paulis.x.any()
+        if not any_changes:
+            return element
+
+        if abelian_grouping:
+            for obs in operator.group_commuting(qubit_wise=True):
+                # Build the measurement circuit and the adjusted measurements
+                basis = Pauli(
+                    (np.logical_or.reduce(obs.paulis.z), np.logical_or.reduce(obs.paulis.x))
+                )
+                meas_circuit, indices = BackendEstimator._measurement_circuit(circuit.num_qubits, basis)
+                z_list = [[obs.paulis.z[j, indices][i] or obs.paulis.x[j, indices][i] for i in range(len(obs.paulis.z[0, indices]))] for j in range(len(obs.paulis.z[:,indices]))]
+                x_list = [[False for i in range(len(obs.paulis.z[0, indices]))]for j in range(len(obs.paulis.z[:,indices]))]
+                paulis = PauliList.from_symplectic(
+                    z_list,
+                    x_list,
+                    obs.paulis.phase, # TODO: Check that
+                )
+
+                # Build the expectation value leaf with the adjusted measurements
+                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, obs.coeffs)))
+
+        else:
+            for basis, obs in zip(operator.paulis, operator):  # type: ignore
+                # Build the measurement circuit and the adjusted measurements
+                meas_circuit, indices = BackendEstimator._measurement_circuit(circuit.num_qubits, basis)
+                z_list = [[obs.paulis.z[j, indices][i] or obs.paulis.x[j, indices][i] for i in range(len(obs.paulis.z[0, indices]))] for j in range(len(obs.paulis.z[:,indices]))]
+                x_list = [[False for i in range(len(obs.paulis.z[0, indices]))]for j in range(len(obs.paulis.z[:,indices]))]
+                paulis = PauliList.from_symplectic(
+                    z_list,
+                    x_list,
+                    obs.paulis.phase,
+                )
+
+                # Build the expectation value leaf with the adjusted measurements
+                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, obs.coeffs)))
+
+        if len(children_list) == 1:
+            return children_list[0]
+        # If there are multiple measurements created build a Sum
+        return OpTreeNodeSum(children_list)
+
+def assign_parameters(
     element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     dictionary,
     inplace: bool = False,
@@ -875,10 +943,12 @@ def assign_circuit_parameters(
         The OpTree structure with all parameters assigned, (copied)
     """
 
+    # TODO: add operator assignment
+
     if isinstance(element, OpTreeNodeBase):
         if inplace:
             for c in element.children:
-                assign_circuit_parameters(c, dictionary, inplace=True)
+                assign_parameters(c, dictionary, inplace=True)
             for i, fac in enumerate(element.factor):
                 if isinstance(fac, ParameterExpression):
                     element.factor[i] = float(fac.bind(dictionary, allow_unknown_parameters=True))
@@ -886,7 +956,7 @@ def assign_circuit_parameters(
         else:
             # Index circuits and bind parameters in the OpTreeNode structure
             child_list_assigned = [
-                assign_circuit_parameters(c, dictionary) for c in element.children
+                assign_parameters(c, dictionary) for c in element.children
             ]
             factor_list_bound = []
             for fac in element.factor:

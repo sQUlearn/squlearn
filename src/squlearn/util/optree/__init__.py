@@ -16,7 +16,7 @@ from .optree_derivative import (
     derivative,
 )
 
-from .optree_evaluate import evaluate, assign_circuit_parameters
+from .optree_evaluate import evaluate, assign_parameters
 
 
 __all__ = [
@@ -33,5 +33,5 @@ __all__ = [
     "derivative_v2",
     "derivative",
     "evaluate",
-    "assign_circuit_parameters",
+    "assign_parameters",
 ]
