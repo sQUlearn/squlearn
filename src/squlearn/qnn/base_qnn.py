@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-import re
 from typing import Callable, Union
 from warnings import warn
 
@@ -17,8 +16,6 @@ from ..util import Executor
 from .loss import LossBase
 from .qnn import QNN
 from .training import shot_adjusting_options
-
-MULTI_OP_KEY_PATTERN = re.compile(r"op(\d+)__(.*)")
 
 
 class BaseQNN(BaseEstimator, ABC):
