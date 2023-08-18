@@ -603,7 +603,7 @@ def evaluate_sampler(
             circuit, dictionary_circuit_, detect_circuit_duplicates
         )
 
-        circuit_list = [circuit.measure_all(inplace=False) for circuit in circuit_list]
+        circuit_list = [circuit.measure_all(inplace=False) if circuit.num_clbits == 0 else circuit for circuit in circuit_list]
 
         if multiple_circuit_dict and dictionaries_combined:
             tree_circuit.append(circuit_tree)
@@ -887,37 +887,37 @@ def adjust_measurements(element: Union[OpTreeNodeBase, OpTreeLeafExpectationValu
             return element
 
         if abelian_grouping:
-            for obs in operator.group_commuting(qubit_wise=True):
+            for op in operator.group_commuting(qubit_wise=True):
                 # Build the measurement circuit and the adjusted measurements
                 basis = Pauli(
-                    (np.logical_or.reduce(obs.paulis.z), np.logical_or.reduce(obs.paulis.x))
+                    (np.logical_or.reduce(op.paulis.z), np.logical_or.reduce(op.paulis.x))
                 )
                 meas_circuit, indices = BackendEstimator._measurement_circuit(circuit.num_qubits, basis)
-                z_list = [[obs.paulis.z[j, indices][i] or obs.paulis.x[j, indices][i] for i in range(len(obs.paulis.z[0, indices]))] for j in range(len(obs.paulis.z[:,indices]))]
-                x_list = [[False for i in range(len(obs.paulis.z[0, indices]))]for j in range(len(obs.paulis.z[:,indices]))]
+                z_list = [[op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i] for i in range(len(op.paulis.z[0, indices]))] for j in range(len(op.paulis.z[:,indices]))]
+                x_list = [[False for i in range(len(op.paulis.z[0, indices]))]for j in range(len(op.paulis.z[:,indices]))]
                 paulis = PauliList.from_symplectic(
                     z_list,
                     x_list,
-                    obs.paulis.phase, # TODO: Check that
+                    op.paulis.phase, # TODO: Check that
                 )
 
                 # Build the expectation value leaf with the adjusted measurements
-                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, obs.coeffs)))
+                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, op.coeffs)))
 
         else:
-            for basis, obs in zip(operator.paulis, operator):  # type: ignore
+            for basis, op in zip(operator.paulis, operator):  # type: ignore
                 # Build the measurement circuit and the adjusted measurements
                 meas_circuit, indices = BackendEstimator._measurement_circuit(circuit.num_qubits, basis)
-                z_list = [[obs.paulis.z[j, indices][i] or obs.paulis.x[j, indices][i] for i in range(len(obs.paulis.z[0, indices]))] for j in range(len(obs.paulis.z[:,indices]))]
-                x_list = [[False for i in range(len(obs.paulis.z[0, indices]))]for j in range(len(obs.paulis.z[:,indices]))]
+                z_list = [[op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i] for i in range(len(op.paulis.z[0, indices]))] for j in range(len(op.paulis.z[:,indices]))]
+                x_list = [[False for i in range(len(op.paulis.z[0, indices]))]for j in range(len(op.paulis.z[:,indices]))]
                 paulis = PauliList.from_symplectic(
                     z_list,
                     x_list,
-                    obs.paulis.phase,
+                    op.paulis.phase,
                 )
 
                 # Build the expectation value leaf with the adjusted measurements
-                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, obs.coeffs)))
+                children_list.append(OpTreeLeafExpectationValue(circuit.compose(meas_circuit),SparsePauliOp(paulis, op.coeffs)))
 
         if len(children_list) == 1:
             return children_list[0]
