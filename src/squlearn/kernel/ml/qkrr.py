@@ -13,7 +13,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     """
     Quantum Kernel Ridge Regression.
 
-    This class implements the Quantum Kernel Ridge Regression analogous to KRR [1] in sklearn
+    This class implements the Quantum Kernel Ridge Regression analogous to KRR [1] in scikit-learn
     but is not a wrapper.
     Read more about the theoretical background of KRR in, e.g., the
     `scikit-learn user guide <https://scikit-learn.org/stable/modules/kernel_ridge.html#kernel-ridge>`_.
@@ -141,14 +141,14 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the QKRR method.
+        Returns hyperparameters and their values of the QKRR method.
 
         Args:
             deep (bool): If True, also the parameters for
                          contained objects are returned (default=True).
 
         Return:
-            Dictionary with hyper-parameters and values.
+            Dictionary with hyperparameters and values.
         """
         params = dict()
         params["quantum_kernel"] = self._quantum_kernel
@@ -159,10 +159,10 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map hyper-parameters.
+        Sets value of the feature map hyperparameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2.
+            params: Hyperparameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
         valid_params_qkrr = self.get_params(deep=False)

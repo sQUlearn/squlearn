@@ -92,7 +92,7 @@ def get_barren_slope(pqc_func, cost_op_func, x, QI, num_qubits, layer_fac=5, n_s
         n_sample = 100 : (optional) Number of samples considered for the variance computation of the gradient
 
     Returns:
-        Model containing the linear regression (based on sklearn.linear_model.LinearRegression)
+        Model containing the linear regression (based on :class:`sklearn.linear_model.LinearRegression`)
         Numpy array with the variance values
     """
 

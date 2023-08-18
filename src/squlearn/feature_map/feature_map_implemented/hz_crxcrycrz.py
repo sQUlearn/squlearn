@@ -9,7 +9,7 @@ from ..feature_map_base import FeatureMapBase
 
 class HZCRxCRyCRz(FeatureMapBase):
     """
-    Featuremap with HZ encoding followed by controlled Rx, Ry Rz rotations.
+    Feature map with HZ encoding followed by controlled Rx, Ry Rz rotations.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 1 layer:**
 

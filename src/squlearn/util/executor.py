@@ -39,7 +39,7 @@ class Executor:
 
     The Executor class is the central component of sQUlearn, responsible for running quantum jobs.
     Both high- and low-level methods utilize the Executor class to execute jobs seamlessly.
-    It automatically creates the necessary primitives when they are required in the sQulearn
+    It automatically creates the necessary primitives when they are required in the sQUlearn
     sub-program. The Executor takes care about session handling, result caching, and automatic
     restarts of failed jobs.
 
@@ -63,7 +63,7 @@ class Executor:
                                                                                                                      * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                                                                                                                      * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-                                                                                                                     Default is the initilization with the statevector simulator.
+                                                                                                                     Default is the initialization with the :class:`StatevectorSimulator`.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
                                              Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
@@ -956,7 +956,7 @@ class ExecutorEstimator(BaseEstimator):
         **run_options,
     ) -> EstimatorResult:
         """Has to be passed through, otherwise python will complain about the abstract method.
-        Input arguments are the same as in qiskit's estimator.call()
+        Input arguments are the same as in Qiskit's estimator.call()
         """
         return self._executor.estimator._call(
             circuits, observables, parameter_values, **run_options
@@ -970,7 +970,7 @@ class ExecutorEstimator(BaseEstimator):
         **run_options,
     ) -> Job:
         """Has to be passed through, otherwise python will complain about the abstract method.
-        Input arguments are the same as in qiskit's estimator.run().
+        Input arguments are the same as in Qiskit's estimator.run().
         """
         return self._executor.estimator_run(
             circuits=circuits,
@@ -990,7 +990,7 @@ class ExecutorEstimator(BaseEstimator):
         Overwrites the sampler primitive run method, to evaluate expectation values.
         Uses the Executor class for automatic session handling.
 
-        Input arguments are the same as in qiskit's estimator.run()
+        Input arguments are the same as in Qiskit's estimator.run()
 
         """
         return self._executor.estimator_run(
@@ -1023,7 +1023,8 @@ class ExecutorEstimator(BaseEstimator):
         """Parameters of the quantum circuits.
 
         Returns:
-            Parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
+            Parameters, where ``parameters[i][j]`` is the j-\ :spelling:word:`th` parameter of the
+            i-th circuit.
         """
         return tuple(self._executor.estimator.parameters)
 
@@ -1081,7 +1082,7 @@ class ExecutorSampler(BaseSampler):
         Overwrites the sampler primitive run method, to evaluate circuits.
         Uses the Executor class for automatic session handling.
 
-        Input arguments are the same as in qiskit's sampler.run()
+        Input arguments are the same as in Qiskit's sampler.run()
 
         """
         return self._executor.sampler_run(
@@ -1100,7 +1101,7 @@ class ExecutorSampler(BaseSampler):
         Overwrites the sampler primitive run method, to evaluate circuits.
         Uses the Executor class for automatic session handling.
 
-        Input arguments are the same as in qiskit's sampler.run()
+        Input arguments are the same as in Qiskit's sampler.run()
 
         """
         return self._executor.sampler_run(

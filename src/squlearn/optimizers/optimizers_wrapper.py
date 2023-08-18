@@ -60,7 +60,7 @@ class LBFGSB(OptimizerBase):
 
 
 class SPSA(OptimizerBase):
-    """Wrapper class for qiskit's SPSA implementation."""
+    """Wrapper class for Qiskit's SPSA implementation."""
 
     def __init__(self, options: dict = None):
         if options is None:

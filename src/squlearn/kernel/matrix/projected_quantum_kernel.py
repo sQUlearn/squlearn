@@ -68,7 +68,7 @@ class OuterKernelBase:
         Sets value of the outer kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         raise NotImplementedError()
 
@@ -84,20 +84,20 @@ class OuterKernelBase:
 
     @classmethod
     def from_sklearn_kernel(cls, kernel: SklearnKernel, **kwarg):
-        """Converts a sklearn kernel into a squlearn kernel
+        """Converts a scikit-learn kernel into a squlearn kernel
 
         Args:
-            kernel: sklearn kernel
-            kwarg: arguments for the sklearn kernel parameters
+            kernel: scikit-learn kernel
+            kwarg: arguments for the scikit-learn kernel parameters
         """
 
         class SklearnOuterKernel(BaseException):
             """
-            Class for creating outer kernels for the projected quantum kernel from sklearn kernels
+            Class for creating outer kernels for the projected quantum kernel from scikit-learn kernels
 
             Args:
-                kernel (sklearn.gaussian_process.kernels): Sklearn kernel
-                **kwarg: Arguments for the sklearn kernel parameters
+                kernel (:py:mod:`sklearn.gaussian_process.kernels`): Scikit-learn kernel
+                **kwarg: Arguments for the scikit-learn kernel parameters
             """
 
             def __init__(self, kernel: SklearnKernel, **kwarg):
@@ -130,7 +130,7 @@ class OuterKernelBase:
 
             def get_params(self, deep: bool = True) -> dict:
                 """
-                Returns hyper-parameters and their values of the sklearn kernel.
+                Returns hyper-parameters and their values of the scikit-learn kernel.
 
                 Args:
                     deep (bool): If True, also the parameters for
@@ -143,7 +143,7 @@ class OuterKernelBase:
 
             def set_params(self, **params):
                 """
-                Sets value of the sklearn kernel.
+                Sets value of the scikit-learn kernel.
 
                 Args:
                     params: Hyper-parameters and their values
@@ -164,7 +164,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     to given Pauli operators. This is achieved by supplying a list of
     :class:`squlearn.expectation_operator` objects to the Projected Quantum Kernel.
     The expectation values are than used as features for the classical kernel, for which
-    the different implementations of sklearn's kernels can be used.
+    the different implementations of scikit-learn's kernels can be used.
 
     The implementation is based on Ref. [1].
 
@@ -183,10 +183,13 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
         initial_parameters (np.ndarray): Initial parameters of the feature map and the
             operator (if parameterized)
-        regularization  (Union[str, None], default=None) :
-            Option for choosing different regularization techniques ('thresholding' or 'tikhonov')
-            after Ref. [2] for the training kernel matrix, prior to  solving the linear system
-            in the ``fit()``-procedure.
+        parameter_seed (Union[int, None], default=0):
+            Seed for the random number generator for the parameter initialization, if
+            initial_parameters is None.
+        regularization  (Union[str, None], default=None):
+            Option for choosing different regularization techniques (``"thresholding"`` or
+            ``"tikhonov"``) after Ref. [2] for the training kernel matrix, prior to  solving the
+            linear system in the ``fit()``-procedure.
 
 
     Attributes:
@@ -268,7 +271,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     PairwiseKernel:
     ---------------
 
-    sklearn's PairwiseKernel is used.
+    scikit-learn's PairwiseKernel is used.
 
     *Keyword Args:*
 
@@ -478,7 +481,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Sets value of the Projected Quantum Kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
@@ -513,6 +516,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
+            self.__init__(
+                self._feature_map,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+                self._parameter_seed,
+                self._regularization,
+            )
+
+        if "num_layers" in params:
+            self._feature_map.set_params(num_layers=params["num_layers"])
             self.__init__(
                 self._feature_map,
                 self._executor,

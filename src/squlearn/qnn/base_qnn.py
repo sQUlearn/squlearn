@@ -29,9 +29,9 @@ class BaseQNN(BaseEstimator, ABC):
         optimizer : Optimizer instance
         param_ini : Initialization values of the parameters of the PQC
         param_op_ini : Initialization values of the cost operator
-        batch_size : Number of datapoints in each batch, for SGDMixin optimizers
+        batch_size : Number of data points in each batch, for SGDMixin optimizers
         epochs : Number of epochs of SGD to perform, for SGDMixin optimizers
-        shuffle : If True, datapoints get shuffled before each epoch (default: False),
+        shuffle : If True, data points get shuffled before each epoch (default: False),
             for SGDMixin optimizers
         opt_param_op : If True, operators parameters get optimized
         variance : Variance factor
@@ -116,7 +116,7 @@ class BaseQNN(BaseEstimator, ABC):
         Args:
             X: Input data
             y: Labels
-            weights: Weights for each datapoint
+            weights: Weights for each data point
         """
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
