@@ -135,7 +135,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         Sets value of the feature map hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         self._feature_map.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
@@ -147,7 +147,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit of the traspiled feature map
+        Return the circuit of the transpiled feature map
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features

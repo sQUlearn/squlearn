@@ -103,7 +103,7 @@ class TestQNNRegressor:
         assert not np.allclose(param_2, param_3)
 
     def test_fit_minibtach(self, qnn_regressor, data):
-        """Tests concerning fit with minibatch GD.
+        """Tests concerning fit with mini-batch GD.
 
         Tests include
             - whether `_is_fitted` is True

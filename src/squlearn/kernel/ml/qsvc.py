@@ -7,17 +7,17 @@ class QSVC(SVC):
     """
     Quantum Support Vector Classification
 
-    This class is a wrapper of sklearn.svm.SVC. It uses a quantum kernel matrix
-    to replace the kernel matrix in the sklearn.svm.SVC class.
+    This class is a wrapper of :class:`sklearn.svm.SVC`. It uses a quantum kernel matrix
+    to replace the kernel matrix in the :class:`sklearn.svm.SVC` class.
     See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
     for additional information about the standard SVC parameters.
-    The sklearn SVC has kernel specific arguments that are omitted here because they do not apply
+    The scikit-learn SVC has kernel specific arguments that are omitted here because they do not apply
     to the quantum kernels. These are
 
-        - kernel
-        - gamma
-        - degree
-        - coef0
+        - `kernel`
+        - `gamma`
+        - `degree`
+        - `coef0`
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
@@ -127,7 +127,7 @@ class QSVC(SVC):
         Sets value of the QSVC hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2.
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params(deep=True)
         valid_params_qsvc = self.get_params(deep=False)

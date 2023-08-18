@@ -34,7 +34,7 @@ class SinglePauli(ExpectationOperatorBase):
 
     Attributes:
         num_qubits (int): Number of qubits.
-        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        num_parameters (int): Number of trainable parameters in the single Pauli operator.
         qubit (int): Qubit on which the Pauli operator acts.
         op_str (str): Pauli operator to measure.
         parameterized (bool): If True, the operator is parameterized.
@@ -55,7 +55,7 @@ class SinglePauli(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """The number of trainable parameters in the single pauli operator"""
+        """The number of trainable parameters in the single Pauli operator"""
 
         if self.parameterized:
             return 1
@@ -81,14 +81,14 @@ class SinglePauli(ExpectationOperatorBase):
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
-        Function for generating the PauliOp expression of the single pauli operator.
+        Function for generating the PauliOp expression of the single Pauli operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                                                             pauli operator.
+                                                             Pauli operator.
 
         Return:
-            PauliOp expression of the specified single pauli operator.
+            PauliOp expression of the specified single Pauli operator.
         """
 
         i = self.qubit

@@ -119,7 +119,7 @@ class KernelMatrixBase:
 
         Args:
             parameters (np.ndarray) :
-                Array contraining numerical values to be assigned to the trainable parameters
+                Array containing numerical values to be assigned to the trainable parameters
                 of the feature map
         """
         self._parameters = parameters
@@ -136,7 +136,7 @@ class KernelMatrixBase:
             y (np.ndarray) :
                 Vector of training or test data for which the kernel matrix is evaluated
             parameters (np.ndarray) :
-                Array contraining numerical values to be assigned to the trainable parameters
+                Array containing numerical values to be assigned to the trainable parameters
                 of the feature map
         """
         self.assign_parameters(parameters)
@@ -224,7 +224,7 @@ class KernelMatrixBase:
         Sets value of the fidelity kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         raise NotImplementedError()
 
@@ -350,7 +350,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         Sets value of the composed kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         valid_params = self.get_params()
         km1_dict = {}

@@ -54,7 +54,7 @@ class FeatureMapDerivatives:
          - Laplace operator with respect to :math:`x`:
            :math:`\Delta = \nabla^2 = \sum_i \frac{\partial^2}{\partial x^2_i}`
        * - ``laplace_dp``
-         - Derivative of the laplace operator with respect to parameter :math:`p`:
+         - Derivative of the Laplacian with respect to parameter :math:`p`:
            :math:`\nabla_p \circ \Delta = \big( \frac{\partial }{\partial p_1}\Delta,\ldots,
            \frac{\partial}{\partial p_m} \Delta \big)`
        * - ``"dpdp"``
@@ -113,7 +113,7 @@ class FeatureMapDerivatives:
         if self.opflow_caching:
             self.opflow_cache["f"] = self.opflow
 
-        # get the instruction gates from the inital circuit for transpiling the circuits
+        # get the instruction gates from the initial circuit for transpiling the circuits
         # back to this basis
         self.instruction_set = set()
         for instruction in circuit.data:
@@ -177,7 +177,7 @@ class FeatureMapDerivatives:
             diff_tuple (tuple): Tuple of parameters for specifying the derivation.
 
         Return:
-            Derivaitve circuit in Qiskit Opflow format.
+            Derivative circuit in Qiskit Opflow format.
         """
         return self.get_derivative(diff_tuple)
 
@@ -190,7 +190,7 @@ class FeatureMapDerivatives:
             input_string (str): String for specifying the derivation.
 
         Return:
-            Derivaitve circuit in Qiskit Opflow format.
+            Derivative circuit in Qiskit Opflow format.
         """
         return self.get_derivative(input_string)
 
@@ -206,7 +206,7 @@ class FeatureMapDerivatives:
                                 determining the derivation
 
         Return:
-            Derivaitve circuit in Qiskit Opflow format.
+            Derivative circuit in Qiskit Opflow format.
         """
         # TODO: support tuple of lists of parameter elements
 
@@ -368,7 +368,7 @@ def _remove_measure(operator: OperatorBase) -> OperatorBase:
 
         return ~Zero @ One
 
-    # We reached a CircuitStateFn term -> apply the measurement to the wavefunction
+    # We reached a CircuitStateFn term -> apply the measurement to the wave function
     elif isinstance(operator, CircuitStateFn):
         return operator
 
@@ -421,7 +421,7 @@ def measure_feature_map_derivative(
                     operator.oplist[i] = measurement
         return operator
 
-    # We reached a CircuitStateFn term -> apply the measurement to the wavefunction
+    # We reached a CircuitStateFn term -> apply the measurement to the wave function
     elif isinstance(operator, CircuitStateFn):
         coeff = operator._coeff
         operator._coeff = 1.0
@@ -513,7 +513,7 @@ def _clean_opflow_circ(operator: OperatorBase, instruction_set: list[str] = None
         The opflow expression without the zero contributions and transpiled circuits
     """
 
-    # We reached the Composed object or the wavefunction
+    # We reached the Composed object or the wave function
     if isinstance(operator, CircuitStateFn):
         # If coefficient is zero replace by Zero @ One which is sorted out later
         ZeroParameterExpr = False
