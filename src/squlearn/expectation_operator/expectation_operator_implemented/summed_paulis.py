@@ -34,7 +34,10 @@ class SummedPaulis(ExpectationOperatorBase):
                          i.e. the sum is :math:`b\sum_i \hat{Z}_i`
                          instead of :math:`\sum_i b_i \hat{Z}_i` (default: True).
         include_identity (bool): If True, the identity operator is included in the sum.
-                                 (defualt: True)
+                                 (default: True)
+
+    Attributes:
+    -----------
 
     Attributes:
     -----------
@@ -66,7 +69,7 @@ class SummedPaulis(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Number of trainable parameters in the summed pauli operator"""
+        """Number of trainable parameters in the summed Pauli operator"""
         num_param = 0
         if self.include_identity:
             num_param += 1
@@ -77,7 +80,7 @@ class SummedPaulis(ExpectationOperatorBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the single summed paulis operator.
+        Returns hyper-parameters and their values of the single summed Pauli operator.
 
         Args:
             deep (bool): If True, also the parameters for

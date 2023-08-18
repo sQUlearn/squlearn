@@ -17,7 +17,10 @@ class KernelMatrixBase:
             Executor object
         initial_parameters (Union[np.ndarray, None], default=None) :
             Initial parameters of the PQC feature map
-        regularization (str, None) :
+        parameter_seed (Union[int, None], default=0) :
+            Seed for the random number generator for the parameter initialization, if
+            initial_parameters is None.
+        regularization  (Union[str, None], default=None):
             Str that specifies the method with which the kernel matrix should be regularized.
             See method attribute from KernMatrixBase._regularize_matrix() method for valid
             options.
@@ -116,7 +119,7 @@ class KernelMatrixBase:
 
         Args:
             parameters (np.ndarray) :
-                Array contraining numerical values to be assigned to the trainable parameters
+                Array containing numerical values to be assigned to the trainable parameters
                 of the feature map
         """
         self._parameters = parameters
@@ -133,7 +136,7 @@ class KernelMatrixBase:
             y (np.ndarray) :
                 Vector of training or test data for which the kernel matrix is evaluated
             parameters (np.ndarray) :
-                Array contraining numerical values to be assigned to the trainable parameters
+                Array containing numerical values to be assigned to the trainable parameters
                 of the feature map
         """
         self.assign_parameters(parameters)
@@ -221,7 +224,7 @@ class KernelMatrixBase:
         Sets value of the fidelity kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         raise NotImplementedError()
 
@@ -347,7 +350,7 @@ class _ComposedKernelMatrix(KernelMatrixBase):
         Sets value of the composed kernel hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         valid_params = self.get_params()
         km1_dict = {}

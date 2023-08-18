@@ -35,6 +35,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "sphinxcontrib.spelling",
     "matplotlib.sphinxext.plot_directive",
     "myst_parser",
 ]

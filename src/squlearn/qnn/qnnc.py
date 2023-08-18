@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelBinarizer
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_minibatch, regression
+from .training import solve_mini_batch, regression
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
 from ..feature_map.feature_map_base import FeatureMapBase
@@ -19,10 +19,10 @@ from ..util import Executor
 class QNNClassifier(BaseQNN, ClassifierMixin):
     """Quantum Neural Network for Classification.
 
-    This class implements a quantum neural network (QNN) for classification with a sklearn
+    This class implements a quantum neural network (QNN) for classification with a scikit-learn
     interface. A parameterized quantum circuit and a possibly parameterized operator are used
     as a ML model. They are trained according to a specified loss using the specified optimizer.
-    Minibatch training is possible.
+    Mini-batch training is possible.
 
     Args:
         pqc (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN. For a list
@@ -37,19 +37,18 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             function.
         param_ini (np.ndarray, default=None): Initial values of the parameters of the PQC.
         param_op_ini (np.ndarray, default=None): Initial values of the parameters of the operator.
-        batch_size (int, default=None): Number of datapoints in each batch in minibatch training.
+        batch_size (int, default=None): Number of data points in each batch in mini-batch training.
             Will only be used if optimizer is of type SGDMixin.
         epochs (int, default=None): Number of epochs of SGD to perform. Will only be used if
             optimizer is of type SGDMixin.
-        shuffle (bool, default=None): If True, datapoints get shuffled before each epoch. Will only
-            be used if optimizer is of type SGDMixin.
+        shuffle (bool, default=None): If True, data points get shuffled before each epoch. Will
+            only be used if optimizer is of type SGDMixin.
         opt_param_op (bool, default=True): If True, the operators parameters get optimized.
         variance (Union[float, Callable], default=None): The variance factor to be used. If it is
             None, the variance regularization will not be used. Else this determines the strength
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
-                                                      parameter initialization, if param_ini or
-                                                      param_op_ini is None.
+            parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
 
     See Also
     --------
@@ -160,7 +159,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Args:
             X: Input data
             y: Labels
-            weights: Weights for each datapoint
+            weights: Weights for each data point
         """
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
@@ -177,7 +176,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self.param, self.param_op = solve_minibatch(
+                self.param, self.param_op = solve_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -192,7 +191,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     opt_param_op=True,
                 )
             else:
-                self.param = solve_minibatch(
+                self.param = solve_mini_batch(
                     self._qnn,
                     X,
                     y,

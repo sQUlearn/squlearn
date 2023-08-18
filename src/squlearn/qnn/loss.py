@@ -11,8 +11,8 @@ class LossBase(abc.ABC):
     def __init__(self):
         self._opt_param_op = True
 
-    def set_optimize_param_op(self, opt_param_op: bool = True):
-        """Sets the optimize_param_op flag.
+    def set_opt_param_op(self, opt_param_op: bool = True):
+        """Sets the `opt_param_op` flag.
 
         Args:
             opt_param_op (bool): True, if operator has trainable parameters
@@ -134,18 +134,18 @@ class _ComposedLoss(LossBase):
         self._l2 = l2
         self._composition = composition
         self._opt_param_op = self._l1._opt_param_op or self._l2._opt_param_op
-        self._l1.set_optimize_param_op(self._opt_param_op)
-        self._l2.set_optimize_param_op(self._opt_param_op)
+        self._l1.set_opt_param_op(self._opt_param_op)
+        self._l2.set_opt_param_op(self._opt_param_op)
 
-    def set_optimize_param_op(self, opt_param_op: bool = True):
-        """Sets the optimize_param_op flag.
+    def set_opt_param_op(self, opt_param_op: bool = True):
+        """Sets the `opt_param_op` flag.
 
         Args:
             opt_param_op (bool): True, if operator has trainable parameters
         """
         self._opt_param_op = opt_param_op
-        self._l1.set_optimize_param_op(opt_param_op)
-        self._l2.set_optimize_param_op(opt_param_op)
+        self._l1.set_opt_param_op(opt_param_op)
+        self._l2.set_opt_param_op(opt_param_op)
 
     @property
     def loss_args_tuple(self) -> tuple:
@@ -323,7 +323,7 @@ class SquaredLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each datapoint, if None all datapoints count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
 
         Returns:
             Loss value
@@ -351,8 +351,8 @@ class SquaredLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each datapoint, if None all datapoints count the same
-            multiple_output (bool): True if the qnn has multiple outputs
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
             Gradient values
@@ -443,7 +443,7 @@ class VarianceLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             iteration (int): iteration number, if variance_factor is a function
-            multiple_output (bool): True if the qnn has multiple outputs
+            multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
             Gradient values

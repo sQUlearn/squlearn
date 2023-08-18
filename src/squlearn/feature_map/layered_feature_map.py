@@ -771,7 +771,7 @@ class LayeredPQC:
             variablegroup_tuple [tuple]: a tuple of variablegroups
             variable_num_list [list or None type]: gives information about how often a parameter is used in each operation;
                 for example in a 5 qubit system with R_x-Layers: There are 5 (number of qubits) R_x-Gates used,
-                whereas in nearest neighbour entangling there are only 4 (number of qubits - 1) variables per group used.
+                whereas in nearest neighbor entangling there are only 4 (number of qubits - 1) variables per group used.
         """
         if variablegroup_tuple == None:
             self.operation_list.append([operation, None])
@@ -928,7 +928,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -942,7 +942,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -956,7 +956,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -970,7 +970,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -984,7 +984,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -997,7 +997,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1019,7 +1019,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1041,7 +1041,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1063,7 +1063,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1085,7 +1085,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1107,7 +1107,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1129,7 +1129,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1151,7 +1151,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1173,7 +1173,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be tuple with 4 entries
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: is not provided for a controlled unitary gate (raises Error if user gives a map)
         """
@@ -1850,7 +1850,7 @@ class LayeredFeatureMap(FeatureMapBase):
     Some gates have a input variable, as for example rotation gates, that can be set by supplying
     the string ``"x"`` for feature or ``"p"`` for parameter. Non-linear mapping can
     be added by setting the map variable ``map=``. Two qubit gates can be placed either
-    in a nearest-neighbour ``NN`` or a all to all entangling pattern ``AA``.
+    in a nearest-neighbor ``NN`` or a all to all entangling pattern ``AA``.
 
     **Simple Layered Feature Map**
 
@@ -2136,7 +2136,7 @@ class LayeredFeatureMap(FeatureMapBase):
 
     def add_layer(self, layer, num_layers=1) -> None:
         """
-        Add a layer num_layers times.
+        Add a layer `num_layers` times.
 
         Args:
             layer: Layer structure

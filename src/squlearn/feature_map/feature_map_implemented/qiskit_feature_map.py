@@ -9,7 +9,7 @@ from ..feature_map_base import FeatureMapBase
 
 class QiskitFeatureMap(FeatureMapBase):
     """
-    Wrapper to create sQulearn feature maps from the `Qiskit circuit library
+    Wrapper to create sQUlearn feature maps from the `Qiskit circuit library
     <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
     **Example: create a feature map from Qiskit TwoLocal map**

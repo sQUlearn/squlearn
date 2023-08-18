@@ -33,7 +33,7 @@ class SingleProbability(ExpectationOperatorBase):
 
     Attributes:
         num_qubits (int): Number of qubits.
-        num_parameters (int): Number of trainable parameters in the single pauli operator.
+        num_parameters (int): Number of trainable parameters in the single Pauli operator.
         qubit (int): Qubit to measure the probability of.
         one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
         parameterized (bool): If True, the operator is parameterized.
