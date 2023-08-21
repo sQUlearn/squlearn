@@ -297,6 +297,16 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
         return False
 
 
+class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
+    def measure_circuit(
+        self, circuit: Union[QuantumCircuit, OpTreeLeafCircuit]
+    ) -> OpTreeLeafExpectationValue:
+        circuit_ = circuit
+        if isinstance(circuit, OpTreeLeafCircuit):
+            circuit_ = circuit
+        return OpTreeLeafExpectationValue(circuit_.compose(self.circuit), self.operator)
+
+
 class OpTreeLeafContainer(OpTreeLeafBase):
     """
     A container for arbitrary objects that can be used as leafs in the OpTree.
@@ -374,7 +384,9 @@ def get_first_leaf(
 
 def gen_expectation_tree(
     circuit_tree: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
-    operator_tree: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp],
+    operator_tree: Union[
+        OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp
+    ],
 ):
     if isinstance(circuit_tree, OpTreeNodeBase):
         children_list = [
@@ -408,8 +420,11 @@ def gen_expectation_tree(
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
         elif isinstance(operator_tree, (OpTreeLeafOperator, SparsePauliOp)):
             return OpTreeLeafExpectationValue(circuit_tree, operator_tree)
+        elif isinstance(operator_tree, OpTreeLeafMeasuredOperator):
+            return operator_tree.measure_circuit(circuit_tree)
         else:
             raise ValueError("wrong type of operator_tree")
     else:
-        print("circuit_tree: ", circuit_tree)
-        raise ValueError("circuit_tree must be a CircuitTreeSum or a CircuitTreeList",type(circuit_tree))
+        raise ValueError(
+            "circuit_tree must be a CircuitTreeSum or a CircuitTreeList", type(circuit_tree)
+        )
