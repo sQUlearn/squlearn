@@ -442,7 +442,8 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
 def evaluate_expectation_from_sampler2(
     observable: List[SparsePauliOp],
     results: SamplerResult,
-    resort_list: Union[None,List[List[int]]] = None
+    resort_list: Union[None,List[List[int]]] = None,
+    offset:int=0
 ):
     """
     Function for evaluating the expectation value of an observable from the results of a sampler.
@@ -456,6 +457,8 @@ def evaluate_expectation_from_sampler2(
     Returns:
         The expectation value of the observable as a numpy array.
     """
+    print("resort_list",resort_list)
+    print("offset",offset)
 
     # Create a list of PauliList objects from the observable
     op_pauli_list = [PauliList(obs.paulis) for obs in observable]
@@ -478,7 +481,7 @@ def evaluate_expectation_from_sampler2(
             np.real_if_close(
                 np.dot(
                     _pauli_expval_with_variance(
-                        results.quasi_dists[icirc].binary_probabilities(), op_pauli_list[iop]
+                        results.quasi_dists[icirc+offset].binary_probabilities(), op_pauli_list[iop]
                     )[0],
                     observable[iop].coeffs,
                 )
@@ -634,6 +637,7 @@ def evaluate_sampler_v2(
     # Build list of circuits and parameters that are evaluated by the sampler
     # Also creates the evluation tree for the assembling the final results
     offset=0
+    offset_list=[]
     for dictionary_circuit_ in dictionary_circuit:
         print("input:",circuit, dictionary_circuit_, detect_circuit_duplicates)
         circuit_list, parameter_list, circuit_tree = _build_circuit_list(
@@ -641,6 +645,7 @@ def evaluate_sampler_v2(
         )
         print("New dict")
         print("circuit_list",circuit_list)
+        offset_list.append(len(total_circuit_list))
 
         num_circuits = len(circuit_list)
         for i,circ_unmeasured in enumerate(circuit_list):
@@ -695,18 +700,21 @@ def evaluate_sampler_v2(
         if multiple_circuit_dict and dictionaries_combined:
             # Pick subset of the circuits that are linked to the current operator dictionary
             circ_tree = evaluation_tree.children[i]
-            index_slice = slice(index_offsets[i], index_offsets[i + 1] + 1)
+            index_slice = slice(index_offsets[i], index_offsets[i + 1])
+            offset = offset_list[i]
         else:
             # Pick all circuits
             circ_tree = evaluation_tree
-            index_slice = None
+            index_slice = slice(0, len(total_circuit_list))
+            offset = 0
+
         print("circ_tree",circ_tree)
         # Evaluate the expectation value of the current operator and operator dict and
         # (a subset of) the circuit measurements
 
         # expec = evaluate_expectation_from_sampler(operator_list, sampler_result, index_slice)
 
-        expec = evaluate_expectation_from_sampler2(operator_list, sampler_result, resort_list=resort_list)
+        expec = evaluate_expectation_from_sampler2(operator_list, sampler_result, resort_list=resort_list[index_slice], offset=offset)
         print("expec",expec)
         # Evaluate the operator tree for assembling the final operator values
         expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
