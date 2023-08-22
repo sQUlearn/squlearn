@@ -53,7 +53,7 @@ class QGPC(GaussianProcessClassifier):
     --------
     """
 
-    def __init__(self, *, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
+    def __init__(self, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
         self._quantum_kernel = quantum_kernel
         # Apply kwargs to set_params of quantum kernel
         valid_params_quantum_kernel = self._quantum_kernel.get_params(deep=True)
@@ -69,10 +69,7 @@ class QGPC(GaussianProcessClassifier):
         for key in set_quantum_kernel_params_dict:
             kwargs.pop(key, None)
 
-        super().__init__(
-            # kernel=kernel_wrapper(self._quantum_kernel),
-            **kwargs
-        )
+        super().__init__(**kwargs)
         self.kernel = kernel_wrapper(self._quantum_kernel)
 
     @classmethod

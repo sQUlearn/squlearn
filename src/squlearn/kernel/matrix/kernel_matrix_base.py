@@ -215,9 +215,7 @@ class KernelMatrixBase:
             Dictionary with hyper-parameters and values.
         """
         # Create a dictionary of all public parameters
-        params = {}
-        params["feature_map"] = self._feature_map
-        params["executor"] = self._executor
+        params = {"feature_map": self._feature_map, "executor": self._executor}
 
         if deep:
             params.update(self._feature_map.get_params(deep=True))

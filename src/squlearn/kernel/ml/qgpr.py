@@ -208,11 +208,12 @@ class QGPR(BaseEstimator, RegressorMixin):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = dict()
-        params["quantum_kernel"] = self._quantum_kernel
-        params["sigma"] = self.sigma
-        params["normalize_y"] = self.normalize_y
-        params["full_regularization"] = self._full_regularization
+        params = {
+            "quantum_kernel": self._quantum_kernel,
+            "sigma": self.sigma,
+            "normalize_y": self.normalize_y,
+            "full_regularization": self._full_regularization,
+        }
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
         return params

@@ -467,7 +467,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params(deep=False)
-        # params = dict(measurement=self._measurement_input)
         params.update(self._outer_kernel.get_params())
         params["num_qubits"] = self.num_qubits
         params["regularization"] = self._regularization
@@ -625,11 +624,9 @@ class GaussianOuterKernel(OuterKernelBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = {}
-        params
-        params["gamma"] = self.gamma
+        params = {"gamma": self.gamma}
 
-        return {"gamma": self.gamma}
+        return params
 
     def set_params(self, **params) -> None:
         """
