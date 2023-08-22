@@ -277,12 +277,15 @@ def _build_operator_list(
 
 def _build_measurements(
     element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp],
-    detect_measurement_duplicates: bool = True,
+    detect_measurement_duplicates: bool = False,
+    detect_operator_duplicates: bool = False,
 ):
     # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
     measurement_circuits = []
     if detect_measurement_duplicates:
         measurement_hash_dict = {}
+    if detect_operator_duplicates:
+        operator_hash_dict = {}
     measurement_counter = 0
     operator_counter = 0
     operator_measurement_list = []
@@ -296,6 +299,7 @@ def _build_measurements(
         # Global counter for indexing the circuits, circuit list and hash list, and parameter list
         nonlocal measurement_circuits
         nonlocal measurement_hash_dict
+        nonlocal operator_hash_dict
         nonlocal measurement_counter
         nonlocal operator_counter
         nonlocal operator_measurement_list
@@ -306,34 +310,56 @@ def _build_measurements(
                 build_list(c)
 
         elif isinstance(element, OpTreeLeafMeasuredOperator):
+            if detect_operator_duplicates:
+                if element.hashvalue in operator_hash_dict:
+                    return None
+                operator_hash_dict[element.hashvalue] = operator_counter
+
             circuit = element.circuit
             if circuit.num_clbits == 0:
                 raise ValueError("Circuit missing a measurement")
 
-            measurement_hash = hash_circuit(circuit)
-            if measurement_hash in measurement_hash_dict:
-                operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
-                    operator_counter
-                )
-            else:
-                measurement_circuits.append(circuit)
+            if detect_measurement_duplicates:
+                measurement_hash = hash_circuit(circuit)
+                if measurement_hash in measurement_hash_dict:
+                    operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
+                        operator_counter
+                    )
+                    operator_counter += 1
+                    return None
                 measurement_hash_dict[measurement_hash] = measurement_counter
-                measurement_counter += 1
-                operator_measurement_list.append([operator_counter])
+            measurement_circuits.append(circuit)
+            operator_measurement_list.append([operator_counter])
+            measurement_counter += 1
             operator_counter += 1
+            return None
 
         elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
-            measurement_hash = "None"
-            if measurement_hash in measurement_hash_dict:
-                operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
-                    operator_counter
-                )
-            else:
-                measurement_circuits.append(None)
+
+            if detect_operator_duplicates:
+                if isinstance(element, SparsePauliOp):
+                    hashvalue = hash_operator(element)
+                else:
+                    hashvalue = element.hashvalue
+                if hashvalue in operator_hash_dict:
+                    return None
+                operator_hash_dict[hashvalue] = operator_counter
+
+            if detect_measurement_duplicates:
+                measurement_hash = "None"
+                if measurement_hash in measurement_hash_dict:
+                    operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
+                        operator_counter
+                    )
+                    operator_counter += 1
+                    return None
                 measurement_hash_dict[measurement_hash] = measurement_counter
-                measurement_counter += 1
-                operator_measurement_list.append([operator_counter])
+
+            measurement_circuits.append(None)
+            operator_measurement_list.append([operator_counter])
+            measurement_counter += 1
             operator_counter += 1
+            return None
 
         else:
             raise ValueError("Wrong OpTree type detected!")
@@ -633,7 +659,7 @@ def evaluate_sampler_v2(
     dictionary_circuit: Union[dict, List[dict]],
     dictionary_operator: Union[dict, List[dict]],
     sampler: BaseSampler,
-    detect_circuit_duplicates: bool = False,
+    detect_circuit_duplicates: bool = True,
     detect_operator_duplicates: bool = False,
     dictionaries_combined: bool = False,
 ):
