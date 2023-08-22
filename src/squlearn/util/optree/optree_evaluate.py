@@ -375,7 +375,7 @@ def _build_measurement_list_v2(element: Union[OpTreeNodeBase, OpTreeLeafMeasured
     print("operator_list",operator_list)
     print("resort_list",resort_list)
 
-    return measurement_list
+    return measurement_list,resort_list
 
 
 def _build_expectation_list(
@@ -664,8 +664,8 @@ def evaluate_sampler_v2(
     dictionary_circuit: Union[dict, List[dict]],
     dictionary_operator: Union[dict, List[dict]],
     sampler: BaseSampler,
-    detect_circuit_duplicates: bool = True,
-    detect_operator_duplicates: bool = True,
+    detect_circuit_duplicates: bool = False,
+    detect_operator_duplicates: bool = False,
     dictionaries_combined: bool = False,
 ):
     start = time.time()
@@ -690,28 +690,28 @@ def evaluate_sampler_v2(
     index_offsets = [0]
     tree_circuit = []
 
-    #measure_list_v2 =_build_measurement_list_v2(operator)
-    measure_list = _build_measurement_list(operator)
+    measure_list,measure_index_list =_build_measurement_list_v2(operator)
+    #measure_list = _build_measurement_list(operator)
 
 
-    non_list = []
-    meas_list = []
-    for i,v in enumerate(measure_list):
-        print("v",i,v)
-        if v is None:
-            non_list.append(i)
-        else:
-            meas_list.append(i)
+    # non_list = []
+    # meas_list = []
+    # for i,v in enumerate(measure_list):
+    #     print("v",i,v)
+    #     if v is None:
+    #         non_list.append(i)
+    #     else:
+    #         meas_list.append(i)
 
-    measure_index_list = []
-    if len(non_list) > 0:
-        measure_index_list.append(non_list)
-    for j in meas_list:
-        measure_index_list.append([j])
+    # measure_index_list = []
+    # if len(non_list) > 0:
+    #     measure_index_list.append(non_list)
+    # for j in meas_list:
+    #     measure_index_list.append([j])
 
-    print("measure_list",measure_list)
-    print("non_list",non_list)
-    print("meas_list",meas_list)
+    # print("measure_list",measure_list)
+    # print("non_list",non_list)
+    # print("meas_list",meas_list)
 
     #print("measure_list",measure_list)
     #print("measure_index_list",measure_index_list)
@@ -734,10 +734,11 @@ def evaluate_sampler_v2(
 
         num_circuits = len(circuit_list)
         for i,circ_unmeasured in enumerate(circuit_list):
-            if len(non_list) > 0:
-                total_circuit_list.append(circ_unmeasured.measure_all(inplace=False))
-            for j in meas_list:
-                total_circuit_list.append(circ_unmeasured.compose(measure_list[j], inplace=False))
+            for measure in measure_list:
+                if measure is None:
+                    total_circuit_list.append(circ_unmeasured.measure_all(inplace=False))
+                else:
+                    total_circuit_list.append(circ_unmeasured.compose(measure, inplace=False))
             total_parameter_list += [parameter_list[i]]*len(measure_index_list)
             resort_list.append(measure_index_list)
 
