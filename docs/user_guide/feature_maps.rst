@@ -39,7 +39,7 @@ There are several Quantum Feature Maps implemented in sQUlearn:
    ParamZFeatureMap
    QiskitZFeatureMap
 
-Feel free to contribute to sQulearn by adding your own feature maps in a Pull Request.
+Feel free to contribute to sQUlearn by adding your own feature maps in a Pull Request.
 
 
 **Example: Create a QEK feature map**
@@ -185,7 +185,7 @@ This class accepts a quantum feature map as input and removes the parameterized 
 from the feature map for the parameters which indices are specified in the supplied list.
 The pruned feature map automatically adjusts the number of parameters and features.
 
-Furthermore it is possible to determine the redundat parameters in feature map automatically.
+Furthermore it is possible to determine the redundant parameters in feature map automatically.
 The algorithm is based on https://doi.org/10.1103/PRXQuantum.2.040309 and is based on evaluating
 the Quantum Fisher Information Matrix (QFIM) of the feature map.
 

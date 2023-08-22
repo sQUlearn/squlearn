@@ -22,7 +22,7 @@ class ChebyshevTower(FeatureMapBase):
         plt.tight_layout()
 
     The encoding gate and the scaling factor can be adjusted by parameters.
-    It is also possible to change the indexing of the feautures.
+    It is also possible to change the indexing of the features.
 
     Args:
         num_qubits (int): Number of qubits of the ChebyshevTower feature map
@@ -35,7 +35,7 @@ class ChebyshevTower(FeatureMapBase):
                                (default: True)
         arrangement (str): Arrangement of the layers, either ``block`` or ``alternating``.
                           ``block``: The features are stacked together, ``alternating``:
-                          The features are placed alternatingly (default: ``block``).
+                          The features are placed alternately (default: ``block``).
     """
 
     def __init__(

@@ -14,7 +14,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     """
     Quantum Gaussian Process Regression (QGPR).
 
-    This class implements the Gaussian process regression analogous to sklearn
+    This class implements the Gaussian process regression analogous to scikit-learn
     but is not a wrapper.
     The implementation is based on Algorithm 2.1 of Ref. [1].
 
@@ -32,7 +32,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 the target values y by removing the mean and scaling to
                 unit-variance. This is recommended for cases where zero-mean,
                 unit-variance priors are used. Note that, in this implementation,
-                the normalisation is reversed before the GP predictions are reported.
+                the normalization is reversed before the GP predictions are reported.
         full_regularization: (bool), default=True: enable full gram matrix regularization.
 
     See Also

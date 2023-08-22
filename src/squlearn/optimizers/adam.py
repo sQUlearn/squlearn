@@ -56,6 +56,15 @@ class Adam(OptimizerBase, SGDMixin):
             f.write(output)
             f.close()
 
+    def reset(self):
+        self.gradient_deque = deque(maxlen=self.num_average)
+        self.m = None
+        self.v = None
+        self.x = None
+        self.lr_eff = 0.0
+        self.iteration = 0
+        self._update_lr()
+
     def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
         # set-up number of iterations of the current run (needed for restarts)
         if self.maxiter != self.maxiter_total:
@@ -75,7 +84,8 @@ class Adam(OptimizerBase, SGDMixin):
             else:
                 fval = fun(self.x)
 
-            #  Calculate the gradient and average it over the last num_average gradients (1 is default: no averaging)
+            # Calculate the gradient and average it over the last num_average gradients
+            # (1 is default: no averaging)
             self.gradient_deque.append(grad(self.x))
             gradient = np.average(self.gradient_deque, axis=0)
 

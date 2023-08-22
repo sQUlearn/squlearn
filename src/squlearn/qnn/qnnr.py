@@ -7,7 +7,7 @@ from sklearn.base import RegressorMixin
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_minibatch, regression
+from .training import solve_mini_batch, regression
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
 from ..feature_map.feature_map_base import FeatureMapBase
@@ -18,14 +18,14 @@ from ..util import Executor
 class QNNRegressor(BaseQNN, RegressorMixin):
     """Quantum Neural Network for Regression.
 
-    This class implements a quantum neural network (QNN) for regression with a sklearn interface.
+    This class implements a quantum neural network (QNN) for regression with a scikit-learn interface.
     A parameterized quantum circuit and a possibly parameterized operator are used as a ML model.
-    They are trained according to a specified loss using the specified optimizer. Minibatch
+    They are trained according to a specified loss using the specified optimizer. Mini-batch
     training is possible.
 
     Args:
-        pqc (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN. For a list
-            of feature maps, check this list of implemented :ref:`feature_maps`.
+        feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
+            For a list of feature maps, check this list of implemented :ref:`feature_maps`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
@@ -36,19 +36,18 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             function.
         param_ini (np.ndarray, default=None): Initial values of the parameters of the PQC.
         param_op_ini (np.ndarray, default=None): Initial values of the parameters of the operator.
-        batch_size (int, default=None): Number of datapoints in each batch in minibatch training.
+        batch_size (int, default=None): Number of data points in each batch in mini-batch training.
             Will only be used if optimizer is of type SGDMixin.
         epochs (int, default=None): Number of epochs of SGD to perform. Will only be used if
             optimizer is of type SGDMixin.
-        shuffle (bool, default=None): If True, datapoints get shuffled before each epoch. Will only
-            be used if optimizer is of type SGDMixin.
+        shuffle (bool, default=None): If True, data points get shuffled before each epoch. Will
+            only be used if optimizer is of type SGDMixin.
         opt_param_op (bool, default=True): If True, the operators parameters get optimized.
         variance (Union[float, Callable], default=None): The variance factor to be used. If it is
             None, the variance regularization will not be used. Else this determines the strength
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
-                                                      parameter initialization, if param_ini or
-                                                      param_op_ini is None.
+            parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
 
     See Also
     --------
@@ -89,7 +88,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     def __init__(
         self,
-        pqc: FeatureMapBase,
+        feature_map: FeatureMapBase,
         operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
         executor: Executor,
         loss: LossBase,
@@ -102,9 +101,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
+        **kwargs,
     ) -> None:
         super().__init__(
-            pqc,
+            feature_map,
             operator,
             executor,
             loss,
@@ -117,6 +117,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             opt_param_op,
             variance,
             parameter_seed=parameter_seed,
+            **kwargs,
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -130,7 +131,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         """
         if not self._is_fitted:
             warn("The model is not fitted.")
-        return self._qnn.evaluate_f(X, self.param, self.param_op)
+        return self._qnn.evaluate_f(X, self._param, self._param_op)
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a model to data.
@@ -141,7 +142,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Args:
             X: Input data
             y: Labels
-            weights: Weights for each datapoint
+            weights: Weights for each data point
         """
 
         loss = self.loss
@@ -150,12 +151,12 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self.param, self.param_op = solve_minibatch(
+                self._param, self._param_op = solve_mini_batch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
@@ -165,12 +166,12 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     opt_param_op=True,
                 )
             else:
-                self.param = solve_minibatch(
+                self._param = solve_mini_batch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
@@ -182,24 +183,24 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         else:
             if self.opt_param_op:
-                self.param, self.param_op = regression(
+                self._param, self._param_op = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
                     self.optimizer.minimize,
                     weights,
                     True,
                 )
             else:
-                self.param = regression(
+                self._param = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
                     self.optimizer.minimize,
                     weights,

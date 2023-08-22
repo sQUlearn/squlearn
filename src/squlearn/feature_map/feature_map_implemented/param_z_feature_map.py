@@ -8,7 +8,7 @@ from ..feature_map_base import FeatureMapBase
 
 class ParamZFeatureMap(FeatureMapBase):
     """
-    Parameterized ZFeatureMap with optional cnot gates between the default layers.
+    Parameterized ZFeatureMap with optional CNOT gates between the default layers.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers with entangling:**
 

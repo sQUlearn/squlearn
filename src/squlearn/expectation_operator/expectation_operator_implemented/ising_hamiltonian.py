@@ -114,7 +114,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the Ising hamiltonian operator.
+        Returns hyper-parameters and their values of the Ising Hamiltonian operator.
 
         Args:
             deep (bool): If True, also the parameters for

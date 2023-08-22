@@ -192,7 +192,7 @@ QNN Core
    :template: class.rst
 
    qnn.qnn.QNN
-   qnn.qnn.expec
+   qnn.qnn.Expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss

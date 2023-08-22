@@ -1,4 +1,6 @@
 matplotlib
+myst-parser
 pylatexenc
 sphinx
+sphinxcontrib-spelling
 sphinx-rtd-theme

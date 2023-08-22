@@ -6,7 +6,7 @@
 Quantum Kernel Methods
 ######################
 
-Quantum Kernel Methods are amongst the most promising approaches to (supervised) Quantum Machine 
+Quantum Kernel Methods are among the most promising approaches to (supervised) Quantum Machine 
 Learning (QML). This is due to the fact that it has been shown [1] that they can be formally 
 embedded into the rich mathematical framework of classical kernel theory. The key idea in kernel 
 theory is to solve the general task of machine learning, i.e. finding and studying patterns in data, 
@@ -14,13 +14,13 @@ in a high dimensional feature space - the reproducing kernel Hilbert space (RKHS
 original learning problem attains a trivial form. The mapping from the original space to the RKHS 
 (which in general can be infinite-dimensional) is done by so called feature maps. The RKHS is 
 endowed with an inner product which provides access to the high dimensional space without the need 
-to ever explicitly calculate the high- (infinite-) dimensional feature vecotrs. This is known as 
+to ever explicitly calculate the high- (infinite-) dimensional feature vectors. This is known as 
 the *kernel trick*: the feature map and the inner product define a kernel function and vice versa, 
 via
 
 :math:`K(x,y) = \Braket{\phi(x), \phi(y)}`
 
-Due to the inner product, the kernel function formally computes the distance betweed data points
+Due to the inner product, the kernel function formally computes the distance between data points
 :math:`x` and :math:`y` and thus effectively reduces to the illustrative interpretation of a 
 similarity measure between data points.
 
@@ -36,9 +36,9 @@ the exponentially increasing quantum Hilbert space via a quantum feature map
 
 :math:`\ket{\psi(x,\boldsymbol{\theta})} = U_{\boldsymbol{\theta}}(x)\ket{0}`
 
-with :math:`U_{\boldsymbol{\theta}}(x)` a parametrized quantum circuit for data enconding applied 
+with :math:`U_{\boldsymbol{\theta}}(x)` a parametrized quantum circuit for data encoding applied 
 to the initial qubit state :math:`\ket{0}` (as discussed below, trainable parameters can be 
-introduced to optimally align a resulting quantum kernel to a given datatset). This fundamental 
+introduced to optimally align a resulting quantum kernel to a given data set). This fundamental 
 ansatz marks the bridge between QML and kernel methods. But for this to hold, we need to define the 
 data encoding density matrices 
 
@@ -46,7 +46,7 @@ data encoding density matrices
 
 as the feature "vectors". Therefore, we can consider the space of complex density matrices
 enriched with the *Hilbert-Schmidt inner product* as the feature space of a quantum model and 
-state [1]. In the quantum computaional practice, the Hilbert-Schmidt inner products are revealed by 
+state [1]. In the quantum computational practice, the Hilbert-Schmidt inner products are revealed by 
 measurements. Consequently, in quantum computing, access to the Hilbert space of quantum states is 
 given by measurements.
 
@@ -64,8 +64,8 @@ In the NISQ era (no access to fast linear algebra algorithms such as HHL), the b
 quantum kernel methods is to merely compute the kernel matrix with a quantum computer and 
 subsequently pass it to an conventional kernel algorithms. For this task, sQUlearn provides a 
 convenient workflow by either wrapping the corresponding scikit-learn estimators or by 
-independetly implementing them analogously, adapted to the needs of quantum kernel methods. 
-sQUlearn offers SVMs for both classifciation (QSVC) and regression (QSVR) tasks, Gaussian 
+independently implementing them analogously, adapted to the needs of quantum kernel methods. 
+sQUlearn offers SVMs for both classification (QSVC) and regression (QSVR) tasks, Gaussian 
 Processes (GPs) for both classification (QGPC) and regression (QGPR) tasks as well as a 
 quantum kernel ridge regression routine (QKRR).
 
@@ -109,7 +109,7 @@ Central to both approaches is the embedding of data into the quantum Hilbert spa
 quantum feature maps, which are nothing but encoding quantum circuits. These can optionally be
 parametrized (as already implicitly introduced above) for optimally adjusting the resulting 
 quantum kernel to a given data set. If a feature map with trainable parameters is used, sQUlearn 
-initializes them to some predefined and resonable values, which can be controlled, within FQK 
+initializes them to some predefined and reasonable values, which can be controlled, within FQK 
 *and* PQK definitions via the argument :code:`parameter_seed` (defaults to zero).
 
 Beyond that, for both FQKs and PQKs, sQUlearn provides the option for regularizing the respective
@@ -133,7 +133,7 @@ which, for pure states, reduces to
 :math:`k^Q(x,x^\prime)=\left|\Braket{\psi(x,\boldsymbol{\theta})|\psi(x^\prime, \boldsymbol{\theta})}\right|^2`,
 
 i.e. a *fidelity-type metric*. From this, it immediately follows that evaluating the FQK scales 
-quadratically in the dataset size. Therefore, the applicability of FQKs is naturally restricted to small dataset
+quadratically in the data set size. Therefore, the applicability of FQKs is naturally restricted to small data set
 instances.
 
 In sQUlearn a FQK (instance) can be defined as shown by the following example:
@@ -176,12 +176,12 @@ and define the kernel as (RBF-inspired)
 where :math:`\rho(x,\boldsymbol{\theta})_k=\mathrm{tr}_{j\neq k}\left[\rho(x,\boldsymbol{\theta})\right]` 
 refers to the 1-RDM, which is the partial trace of the quantum state 
 :math:`\rho(x,\boldsymbol{\theta})=\ket{\psi(x,\boldsymbol{\theta})}\bra{\psi(x,\boldsymbol{\theta})}`
-over all qubits except for the :math:`k`-th qubit. After some lines of algebra, it can be seen that
+over all qubits except for the :math:`k`-\ :spelling:word:`th` qubit. After some lines of algebra, it can be seen that
 these :math:`\mathrm{tr}` arguments are nothing but expectation values for measuring the Paulis 
 :math:`X,Y,Z` on each qubit in the state :math:`\ket{\psi(x,\boldsymbol{\theta})}` and thus can be 
 viewed as QNNs. The definition of PQKs is ambiguous. This concerns the outer form of the kernel, i.e. 
 the function into which the QNN is put, the choice measurement operators used to evaluate the QNN 
-as well as their respective locallity, which eventually reflects in the order of RDMs used in the 
+as well as their respective locality, which eventually reflects in the order of RDMs used in the 
 definition. Currently, sQUlearn implements different outer forms :math:`f(\cdot)`, which represent 
 standard scikit-learn kernel functions (`Gaussian`, `Matern`, `ExpSineSquared`, `RationalQuadratic`,
 `DotProduct`, `PariwiseKernel`), i.e. generally speaking, sQUlearn provides PQKs of the form
@@ -217,7 +217,7 @@ Training of quantum kernels
 
 As mentioned above, the definition of quantum kernels (both FQK and PQK) relies quantum feature maps 
 that are represented through parametrized quantum circuits (PQC). This results in quantum kernels 
-that contain trainable parameters to obtimally adjust to a given learning problem. The trainable
+that contain trainable parameters to optimally adjust to a given learning problem. The trainable
 parameters are obtained from classical optimization loops which attempt to minimize a given loss 
 function.
 
