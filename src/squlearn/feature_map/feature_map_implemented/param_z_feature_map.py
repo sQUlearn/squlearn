@@ -8,17 +8,16 @@ from ..feature_map_base import FeatureMapBase
 
 class ParamZFeatureMap(FeatureMapBase):
     """
-    Parameterized ZFeatureMap with optional cnot gates between the default layers.
+    Parameterized ZFeatureMap with optional CNOT gates between the default layers.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers with entangling:**
 
     .. plot::
 
-       from squlearn.feature_map import ParamZFeatureMap
-       pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import ParamZFeatureMap
+        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits

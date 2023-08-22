@@ -72,6 +72,9 @@ class ExpectationOperatorDerivatives:
        print(ExpectationOperatorDerivatives(op).get_operator_squared())
 
     Attributes:
+    -----------
+
+    Attributes:
         parameter_vector (ParameterVector): Parameter vector used in the expectation operator
         num_parameters (int): Total number of trainable parameters in the expectation operator
         num_operators (int): Number operators in case of multiple expectation operators

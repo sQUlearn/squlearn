@@ -40,6 +40,8 @@ QML Classifiers
 Circuit Design
 ====================================
 
+.. _feature_maps:
+
 Feature Maps
 ------------------------------------
 
@@ -75,7 +77,7 @@ Feature Map Tools
    :toctree: generated/
    :template: class.rst
 
-   feature_map.FeatureMapBase
+   feature_map.feature_map_base.FeatureMapBase
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
    feature_map.FeatureMapDerivatives
@@ -89,6 +91,8 @@ Feature Map Tools
    feature_map.automated_pruning
    feature_map.pruning_from_QFI
 
+
+.. _operators:
 
 Operators
 ------------------------------------
@@ -121,8 +125,8 @@ Operator Tools
    :toctree: generated/
    :template: class.rst
 
-   expectation_operator.ExpectationOperatorBase
-   expectation_operator.ExpectationOperatorDerivatives
+   expectation_operator.expectation_operator_base.ExpectationOperatorBase
+   expectation_operator.expectation_operator_derivatives.ExpectationOperatorDerivatives
 
 
 Execution Tools
@@ -188,7 +192,7 @@ QNN Core
    :template: class.rst
 
    qnn.qnn.QNN
-   qnn.qnn.expec
+   qnn.qnn.Expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss

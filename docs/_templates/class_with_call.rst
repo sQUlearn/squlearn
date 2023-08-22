@@ -3,8 +3,8 @@
     is added before the :mod: directive. Otherwise, the rendering will show as a
     paragraph instead of a header.
 
-:mod:`{{module}}`.{{objname}}
-{{ underline }}===============
+:mod:`{{module}}`.\ :spelling:word:`{{objname}}`
+{{ underline }}=================================
 
 .. currentmodule:: {{ module }}
 
@@ -13,8 +13,6 @@
    {% block methods %}
    .. automethod:: __call__
    {% endblock %}
-
-.. include:: {{module}}.{{objname}}.examples
 
 .. raw:: html
 

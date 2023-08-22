@@ -9,17 +9,16 @@ from ..feature_map_base import FeatureMapBase
 
 class HZCRxCRyCRz(FeatureMapBase):
     """
-    Featuremap with HZ encoding followed by controlled Rx, Ry Rz rotations.
+    Feature map with HZ encoding followed by controlled Rx, Ry Rz rotations.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 1 layer:**
 
     .. plot::
 
-       from squlearn.feature_map import HZCRxCRyCRz
-       pqc = HZCRxCRyCRz(4, 2, 1)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize ': 15})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import HZCRxCRyCRz
+        pqc = HZCRxCRyCRz(4, 2, 1)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     The circuit is repeated for the number of layers.
     The circuit is closed by default, i.e. the last qubit is entangled with the first one.

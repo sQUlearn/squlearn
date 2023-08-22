@@ -16,6 +16,9 @@ class ExpectationOperatorBase(ABC):
         num_qubits (int): Number of qubits.
 
     Attributes:
+    -----------
+
+    Attributes:
         num_parameters (int): Number of trainable parameters in the expectation operator.
         num_qubits (int): Number of qubits in the expectation operator.
 
@@ -105,7 +108,7 @@ class ExpectationOperatorBase(ABC):
         Sets value of the operator hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2.
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
         for key, value in params.items():
@@ -146,7 +149,7 @@ class ExpectationOperatorBase(ABC):
                                                              in the operator
 
         Returns:
-            Expectation operator in qiskit's PauliOp class
+            Expectation operator in Qiskit's PauliOp class
         """
         raise NotImplementedError
 
@@ -160,14 +163,14 @@ class ExpectationOperatorBase(ABC):
                                                              the operator
 
         Return:
-            Expectation operator in qiskit's PauliOp class with qubits mapped to
+            Expectation operator in Qiskit's PauliOp class with qubits mapped to
             physical ones
         """
 
         def map_expectation_op(operator: OperatorBase) -> OperatorBase:
             """Recrusive method that replaces that resets the qubits to the mapped ones."""
 
-            # We reached the Composed object or the wavefunction
+            # We reached the Composed object or the wave function
             if isinstance(operator, PauliOp):
                 blank = Pauli("I" * self._num_all_qubits)
                 for i, p in enumerate(operator.primitive):
@@ -280,7 +283,7 @@ class ExpectationOperatorBase(ABC):
                 Sets value of the composed kernel hyper-parameters.
 
                 Args:
-                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                    params: Hyper-parameters and their values, e.g. ``num_qubits=2``
                 """
                 valid_params = self.get_params()
                 op1_dict = {}
@@ -359,7 +362,7 @@ class ExpectationOperatorBase(ABC):
                                                                      in the operator
 
                 Return:
-                    PauliOp: Expectation operator in qiskit's PauliOp class
+                    PauliOp: Expectation operator in Qiskit's PauliOp class
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
@@ -430,7 +433,7 @@ class ExpectationOperatorBase(ABC):
                 Sets value of the composed kernel hyper-parameters.
 
                 Args:
-                    params: Hyper-parameters and their values, e.g. num_qubits=2
+                    params: Hyper-parameters and their values, e.g. ``num_qubits=2``
                 """
                 valid_params = self.get_params()
                 op1_dict = {}
@@ -478,7 +481,7 @@ class ExpectationOperatorBase(ABC):
                                                                      in the operator
 
                 Return:
-                    PauliOp: Expectation operator in qiskit's PauliOp class
+                    PauliOp: Expectation operator in Qiskit's PauliOp class
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)

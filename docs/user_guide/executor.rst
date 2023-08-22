@@ -24,7 +24,7 @@ The following figure summarizes the structure of the Executor class; ingoing arr
 that the Executor class can be initialized or adjusted with the corresponding object.
 Outgoing arrows indicate that the Executor class can return the corresponding object.
 
-.. image:: ../images/executor.png
+.. image:: ../_static/util/executor.png
     :width: 525
     :align: center
 
@@ -56,7 +56,7 @@ The Executor class provides the following key comfort features when executing a 
   :meth:`get_sampler` methods. The modified primitives route all executions through the Executor
   class, and thus benefit from all comfort features. The primitives are fully compatible with
   the Qiskit framework, and can be used in the same way as regular primitives.
-  The Executor primitives are automatically utilized in the sQulearn
+  The Executor primitives are automatically utilized in the sQUlearn
   sub-programs.
 
 Initialization of the Executor class
@@ -73,7 +73,7 @@ execution environment:
       from squlearn import Executor
       executor = Executor(execution="statevector_simulator")
 
-  The argument ``execution`` is ommitted in the following examples since it is not necessary,
+  The argument ``execution`` is omitted in the following examples since it is not necessary,
   if the environment is specified as the first argument.
 
 - A backend following the Qiskit backend standard, e.g. a Qiskit Aer backend, a fake backend,
@@ -191,7 +191,7 @@ Executor primitive.
       qfi = QFI(LinCombQGT(executor.get_estimator()))
       # Quantum Fischer Information can be evaluated as usual with qfi.run()
 
-If only the run function of the Executor Primtive is wanted, this can be achieved by utilizing the
+If only the run function of the Executor Primitive is wanted, this can be achieved by utilizing the
 Executor class function :meth:`estimator_run` and :meth:`sampler_run`.
 
 Note that the attributes :meth:`estimator` and :meth:`sampler` of the Executor class are

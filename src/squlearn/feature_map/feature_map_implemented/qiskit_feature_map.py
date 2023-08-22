@@ -9,34 +9,33 @@ from ..feature_map_base import FeatureMapBase
 
 class QiskitFeatureMap(FeatureMapBase):
     """
-    Wrapper to create sQulearn feature maps from the `Qiskit circuit library
+    Wrapper to create sQUlearn feature maps from the `Qiskit circuit library
     <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
     **Example: create a feature map from Qiskit TwoLocal map**
 
     .. code-block:: python
 
-       from qiskit.circuit.library import TwoLocal
-       local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-       QiskitFeatureMap(local).draw()
+        from qiskit.circuit.library import TwoLocal
+        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+        QiskitFeatureMap(local).draw()
 
     .. plot::
 
-       from squlearn.feature_map import QiskitFeatureMap
-       from qiskit.circuit.library import TwoLocal
-       local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-       pqc = QiskitFeatureMap(local)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import QiskitFeatureMap
+        from qiskit.circuit.library import TwoLocal
+        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+        pqc = QiskitFeatureMap(local)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     An alternative call can be made by passing the circuit library function and its arguments:
 
     .. code-block:: python
 
-       from squlearn.feature_map import QiskitFeatureMap
-       from qiskit.circuit.library import ZZFeatureMap
-       QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
+        from squlearn.feature_map import QiskitFeatureMap
+        from qiskit.circuit.library import ZZFeatureMap
+        QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
 
     Args:
         qiskit_circuit (Union[BlueprintCircuit, Callable,QuantumCircuit]): A Qiskit circuit or a
@@ -99,13 +98,14 @@ class QiskitFeatureMap(FeatureMapBase):
 
                 param_available = False
                 for label in self._parameter_label:
-                    if label+"[0]" in set_of_param_names:
+
+                    if label + "[0]" in set_of_param_names:
                         param_available = True
                         break
 
                 x_available = False
                 for label in self._feature_label:
-                    if label+"[0]" in set_of_param_names:
+                    if label + "[0]" in set_of_param_names:
                         x_available = True
                         break
 
@@ -142,9 +142,9 @@ class QiskitFeatureMap(FeatureMapBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the Qiskit feature map.
 
-        Here arbitrarily chosen to be [-100,100] for all parameters.
+        Here arbitrarily chosen to be [-pi,pi] for all parameters.
         """
-        return np.array([[-100, 100]] * self.num_parameters)
+        return np.array([[-np.pi, np.pi]] * self.num_parameters)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -182,15 +182,15 @@ class QiskitFeatureMap(FeatureMapBase):
 
         if self._mode.lower() == "both":
             dictionary = {}
-            i=0
-            j=0
+            i = 0
+            j = 0
             for param in self._qiskit_circuit.parameters:
                 if True in [label in param.name for label in self._parameter_label]:
                     dictionary[param] = parameters[i]
-                    i+=1
+                    i += 1
                 elif True in [label in param.name for label in self._feature_label]:
                     dictionary[param] = features[j]
-                    j+=1
+                    j += 1
                 else:
                     raise RuntimeError("Could not assign parameter " + param.name)
         elif self._mode.lower() == "x":

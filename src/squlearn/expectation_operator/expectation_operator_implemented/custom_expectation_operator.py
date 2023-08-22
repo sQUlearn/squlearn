@@ -27,6 +27,9 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         parameterized (bool): If True, the operator is parameterized.
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the custom operator.
         operator_string (Union[str, list[str], tuple[str]]): String of operator to measure.

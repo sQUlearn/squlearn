@@ -26,11 +26,10 @@ class ChebPQC(FeatureMapBase):
 
     .. plot::
 
-       from squlearn.feature_map import ChebPQC
-       pqc = ChebPQC(4, 2, 2)
-       plt = pqc.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import ChebPQC
+        pqc = ChebPQC(4, 2, 2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     The entangling gate can be chosen between ``crz`` and ``rzz``.
     The latter is more hardware efficient.

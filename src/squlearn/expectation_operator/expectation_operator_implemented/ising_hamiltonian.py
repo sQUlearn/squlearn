@@ -51,6 +51,9 @@ class IsingHamiltonian(ExpectationOperatorBase):
             ``ZZ='F'`` all :math:`d_{ij}` values are considered
 
     Attributes:
+    -----------
+
+    Attributes:
         num_qubits (int): number of qubits
         num_parameters (int): number of trainable parameters in the Ising Hamiltonian
         I (str): parameter options for identity term
@@ -111,7 +114,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the Ising hamiltonian operator.
+        Returns hyper-parameters and their values of the Ising Hamiltonian operator.
 
         Args:
             deep (bool): If True, also the parameters for

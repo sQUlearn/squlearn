@@ -6,7 +6,8 @@
 Welcome to sQUlearn's documentation!
 ====================================
 
-Here comes some description of the sQUlearn package and the documentation.
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 2
@@ -16,10 +17,3 @@ Here comes some description of the sQUlearn package and the documentation.
    user_guide/user_guide_index
    modules/classes
    examples/examples_index
-
-Indices and tables
-==================
-* :ref:`api_reference`
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

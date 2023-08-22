@@ -17,20 +17,19 @@ class TranspiledFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
-       from qiskit.providers.fake_provider import FakeManilaV2
+        from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+        from qiskit.providers.fake_provider import FakeManilaV2
 
-       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-       fm.draw()
+        fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+        fm.draw()
 
     .. plot::
 
-       from squlearn.feature_map import TranspiledFeatureMap,ChebRx
-       from qiskit.providers.fake_provider import FakeManilaV2
-       fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-       plt = fm.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+        from qiskit.providers.fake_provider import FakeManilaV2
+        fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+        plt = fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
 
     Args:
@@ -41,7 +40,7 @@ class TranspiledFeatureMap(FeatureMapBase):
                                                If no function is specified, Qiskit's transpile
                                                function is used.
         kwargs: Additional arguments for `Qiskit's transpile function
-                <https://qiskit.org/documentation/stubs/qiskit.compiler.transpile.html>`_.
+            <https://qiskit.org/documentation/apidoc/compiler.html#qiskit.compiler.transpile>`_.
 
     """
 
@@ -136,7 +135,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         Sets value of the feature map hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
         self._feature_map.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
@@ -148,7 +147,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit of the traspiled feature map
+        Return the circuit of the transpiled feature map
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features

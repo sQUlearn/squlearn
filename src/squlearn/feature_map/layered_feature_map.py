@@ -77,6 +77,9 @@ class _operation:
     def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
         """
         Attributes:
+        -----------
+
+        Attributes:
             num_qubits: The number of all qubits
             variablegroup_tuple: A tuple with every variable group used in this operation
             map: A default map, that is used, if the operation has exactly 2 variable groups and no given map (by user)
@@ -730,6 +733,9 @@ class LayeredPQC:
         """
         Takes number of qubits.
         Attributes:
+        -----------
+
+        Attributes:
             num_qubits (int): Number of qubits in this feature map
             operation_list [list]: List of objects of the class operation with the tuple of the variablegroups used for each operation and the number of variables used in that operation, e.g. [[_H_operation,None], [Rx_operation, (x_var,x_var2), [5,5],...]
             variable_groups [tuple]: Tuple of all variable groups used in this feature map; ATTENTION: If there is only one variable group, be sure to type in "(x,)" and not "(x)" initializing the feature map
@@ -765,7 +771,7 @@ class LayeredPQC:
             variablegroup_tuple [tuple]: a tuple of variablegroups
             variable_num_list [list or None type]: gives information about how often a parameter is used in each operation;
                 for example in a 5 qubit system with R_x-Layers: There are 5 (number of qubits) R_x-Gates used,
-                whereas in nearest neighbour entangling there are only 4 (number of qubits - 1) variables per group used.
+                whereas in nearest neighbor entangling there are only 4 (number of qubits - 1) variables per group used.
         """
         if variablegroup_tuple == None:
             self.operation_list.append([operation, None])
@@ -922,7 +928,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -936,7 +942,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -950,7 +956,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -964,7 +970,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -978,7 +984,7 @@ class LayeredPQC:
         args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -991,7 +997,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1013,7 +1019,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1035,7 +1041,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1057,7 +1063,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1079,7 +1085,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1101,7 +1107,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1123,7 +1129,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1145,7 +1151,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be an empty tuple, because there are no variable groups needed
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
@@ -1167,7 +1173,7 @@ class LayeredPQC:
             *variablegroup_tuple: should be tuple with 4 entries
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
-                    Default ("NN"): Adds a controlled x nearest neighbour entangling operation
+                    Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: is not provided for a controlled unitary gate (raises Error if user gives a map)
         """
@@ -1844,31 +1850,30 @@ class LayeredFeatureMap(FeatureMapBase):
     Some gates have a input variable, as for example rotation gates, that can be set by supplying
     the string ``"x"`` for feature or ``"p"`` for parameter. Non-linear mapping can
     be added by setting the map variable ``map=``. Two qubit gates can be placed either
-    in a nearest-neighbour ``NN`` or a all to all entangling pattern ``AA``.
+    in a nearest-neighbor ``NN`` or a all to all entangling pattern ``AA``.
 
     **Simple Layered Feature Map**
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("x")
-       feature_map.Ry("p")
-       feature_map.cx_entangling("NN")
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("x")
+        feature_map.Ry("p")
+        feature_map.cx_entangling("NN")
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("x")
-       feature_map.Ry("p")
-       feature_map.cx_entangling("NN")
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("x")
+        feature_map.Ry("p")
+        feature_map.cx_entangling("NN")
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
 
     **Create a layered feature map with non-linear input encoding**
@@ -1878,33 +1883,32 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       import numpy as np
-       from squlearn.feature_map import LayeredFeatureMap
+        import numpy as np
+        from squlearn.feature_map import LayeredFeatureMap
 
-       def func(a,b):
-           return a*np.arccos(b)
+        def func(a,b):
+            return a*np.arccos(b)
 
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("p","x",encoding=func)
-       feature_map.cx_entangling("NN")
-       feature_map.draw()
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("p","x",encoding=func)
+        feature_map.cx_entangling("NN")
+        feature_map.draw()
 
     .. plot::
 
-       import numpy as np
-       from squlearn.feature_map import LayeredFeatureMap
+        import numpy as np
+        from squlearn.feature_map import LayeredFeatureMap
 
-       def func(a,b):
-           return a*np.arccos(b)
+        def func(a,b):
+            return a*np.arccos(b)
 
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       feature_map.Rz("p","x",encoding=func)
-       feature_map.cx_entangling("NN")
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        feature_map.Rz("p","x",encoding=func)
+        feature_map.cx_entangling("NN")
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
 
     **Create a layered feature map with layers**
@@ -1913,31 +1917,30 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       from squlearn.feature_map.layered_feature_map import Layer
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       layer = Layer(feature_map)
-       layer.Rz("x")
-       layer.Ry("p")
-       layer.cx_entangling("NN")
-       feature_map.add_layer(layer,num_layers=3)
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.feature_map.layered_feature_map import Layer
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        layer = Layer(feature_map)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        feature_map.add_layer(layer,num_layers=3)
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       from squlearn.feature_map.layered_feature_map import Layer
-       feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-       feature_map.H()
-       layer = Layer(feature_map)
-       layer.Rz("x")
-       layer.Ry("p")
-       layer.cx_entangling("NN")
-       feature_map.add_layer(layer,num_layers=3)
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.feature_map.layered_feature_map import Layer
+        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
+        feature_map.H()
+        layer = Layer(feature_map)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        feature_map.add_layer(layer,num_layers=3)
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     **Create a layered feature map from string**
 
@@ -1953,104 +1956,103 @@ class LayeredFeatureMap(FeatureMapBase):
     The following strings are used for the gates:
 
     .. list-table:: Single qubit gates and their string representation
-       :widths: 15 25 15 25 15 25
-       :header-rows: 1
+        :widths: 15 25 15 25 15 25
+        :header-rows: 1
 
-       * - String
-         - Function
-         - String
-         - Function
-         - String
-         - Function
-       * - ``"H"``
-         - :meth:`H`
-         - ``"I"``
-         - :meth:`I`
-         - ``"P"``
-         - :meth:`P`
-       * - ``"Rx"``
-         - :meth:`Rx`
-         - ``"Ry"``
-         - :meth:`Ry`
-         - ``"Rz"``
-         - :meth:`Rz`
-       * - ``"S"``
-         - :meth:`S`
-         - ``"Sc"``
-         - :meth:`S_conjugate`
-         - ``"T"``
-         - :meth:`T`
-       * - ``"Tc"``
-         - :meth:`T_conjugate`
-         - ``"U"``
-         - :meth:`U`
-         - ``"X"``
-         - :meth:`X`
-       * - ``"Y"``
-         - :meth:`Y`
-         - ``"Z"``
-         - :meth:`Z`
-         -
-         -
+        * - String
+          - Function
+          - String
+          - Function
+          - String
+          - Function
+        * - ``"H"``
+          - :meth:`H`
+          - ``"I"``
+          - :meth:`I`
+          - ``"P"``
+          - :meth:`P`
+        * - ``"Rx"``
+          - :meth:`Rx`
+          - ``"Ry"``
+          - :meth:`Ry`
+          - ``"Rz"``
+          - :meth:`Rz`
+        * - ``"S"``
+          - :meth:`S`
+          - ``"Sc"``
+          - :meth:`S_conjugate`
+          - ``"T"``
+          - :meth:`T`
+        * - ``"Tc"``
+          - :meth:`T_conjugate`
+          - ``"U"``
+          - :meth:`U`
+          - ``"X"``
+          - :meth:`X`
+        * - ``"Y"``
+          - :meth:`Y`
+          - ``"Z"``
+          - :meth:`Z`
+          -
+          -
 
     .. list-table:: Two qubit gates and their string representation
-       :widths: 25 25 25 25 25 25
-       :header-rows: 1
+        :widths: 25 25 25 25 25 25
+        :header-rows: 1
 
-       * - String
-         - Function
-         - String
-         - Function
-         - String
-         - Function
-       * - ``"ch"``
-         - :meth:`ch_entangling`
-         - ``"cx"``
-         - :meth:`cx_entangling`
-         - ``"cy"``
-         - :meth:`cy_entangling`
-       * - ``"cz"``
-         - :meth:`cz_entangling`
-         - ``"s"``
-         - :meth:`swap`
-         - ``"cp"``
-         - :meth:`cp_entangling`
-       * - ``"crx"``
-         - :meth:`crx_entangling`
-         - ``"cry"``
-         - :meth:`cry_entangling`
-         - ``"crz"``
-         - :meth:`crz_entangling`
-       * - ``"rxx"``
-         - :meth:`rxx_entangling`
-         - ``"ryy"``
-         - :meth:`ryy_entangling`
-         - ``"rzz"``
-         - :meth:`rzz_entangling`
-       * - ``"rzx"``
-         - :meth:`rzx_entangling`
-         - ``"cu"``
-         - :meth:`cu_entangling`
-         -
-         -
+        * - String
+          - Function
+          - String
+          - Function
+          - String
+          - Function
+        * - ``"ch"``
+          - :meth:`ch_entangling`
+          - ``"cx"``
+          - :meth:`cx_entangling`
+          - ``"cy"``
+          - :meth:`cy_entangling`
+        * - ``"cz"``
+          - :meth:`cz_entangling`
+          - ``"s"``
+          - :meth:`swap`
+          - ``"cp"``
+          - :meth:`cp_entangling`
+        * - ``"crx"``
+          - :meth:`crx_entangling`
+          - ``"cry"``
+          - :meth:`cry_entangling`
+          - ``"crz"``
+          - :meth:`crz_entangling`
+        * - ``"rxx"``
+          - :meth:`rxx_entangling`
+          - ``"ryy"``
+          - :meth:`ryy_entangling`
+          - ``"rzz"``
+          - :meth:`rzz_entangling`
+        * - ``"rzx"``
+          - :meth:`rzx_entangling`
+          - ``"cu"``
+          - :meth:`cu_entangling`
+          -
+          -
 
     .. code-block:: python
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap.from_string(
-           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-       )
-       feature_map.draw()
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap.from_string(
+            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+        )
+        feature_map.draw()
 
     .. plot::
 
-       from squlearn.feature_map import LayeredFeatureMap
-       feature_map = LayeredFeatureMap.from_string(
-           "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-       )
-       plt = feature_map.draw(style={'fontsize':15,'subfontsize': 10})
-       plt.tight_layout()
-       plt
+        from squlearn.feature_map import LayeredFeatureMap
+        feature_map = LayeredFeatureMap.from_string(
+            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
+        )
+        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the feature map
@@ -2134,7 +2136,7 @@ class LayeredFeatureMap(FeatureMapBase):
 
     def add_layer(self, layer, num_layers=1) -> None:
         """
-        Add a layer num_layers times.
+        Add a layer `num_layers` times.
 
         Args:
             layer: Layer structure

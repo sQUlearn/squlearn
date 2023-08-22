@@ -8,6 +8,7 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
 set SOURCEDIR=.
+set MODDIR=.\modules\generated
 set BUILDDIR=_build
 
 %SPHINXBUILD% >NUL 2>NUL
@@ -24,12 +25,21 @@ if errorlevel 9009 (
 )
 
 if "%1" == "" goto help
+if "%1" == "clean" goto clean
 
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 goto end
 
 :help
 %SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+goto end
+
+:clean
+%SPHINXBUILD% -M clean %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+if exist %MODDIR% (
+	echo Removing %MODDIR%
+	@RD /S /Q %MODDIR%
+)
 
 :end
 popd
