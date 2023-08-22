@@ -690,7 +690,7 @@ def evaluate_sampler_v2(
     index_offsets = [0]
     tree_circuit = []
 
-    measure_list_v2 =_build_measurement_list_v2(operator)
+    #measure_list_v2 =_build_measurement_list_v2(operator)
     measure_list = _build_measurement_list(operator)
 
 
