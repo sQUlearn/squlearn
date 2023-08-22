@@ -302,6 +302,82 @@ def _build_measurement_list(element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOpe
 
     return measurement_list
 
+
+
+def _build_measurement_list_v2(element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp],
+                               detect_operator_duplicates: bool = True):
+
+    # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
+    measurement_list = []
+    if detect_operator_duplicates:
+        operator_dict = {}
+    measure_counter = 0
+    operator_counter = 0
+    operator_list=[]
+    resort_list = []
+
+    def build_list(
+        element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]
+    ):
+        """
+        Helper function for building the circuit list and the parameter list, and
+        creates a indexed copy of the OpTree structure that references the circuits in the list.
+        """
+
+        # Global counter for indexing the circuits, circuit list and hash list, and parameter list
+        nonlocal measurement_list
+        nonlocal operator_dict
+        nonlocal measure_counter
+        nonlocal operator_counter
+        nonlocal operator_list
+        nonlocal resort_list
+
+        if isinstance(element, OpTreeNodeBase):
+            # Index circuits and bind parameters in the OpTreeNode structure
+            for c in element.children:
+                build_list(c)
+
+        elif isinstance(element, OpTreeLeafMeasuredOperator):
+            circuit = element.circuit
+            if circuit.num_clbits == 0:
+                raise ValueError("Circuit missing a measurement")
+
+            measurement_hash = hash_circuit(circuit)
+            if measurement_hash in operator_dict:
+                operator_list.append(operator_dict[measurement_hash])
+                resort_list[operator_dict[measurement_hash]].append(operator_counter)
+            else:
+                measurement_list.append(circuit)
+                operator_list.append(measure_counter)
+                operator_dict[measurement_hash] = measure_counter
+                measure_counter += 1
+                resort_list.append([operator_counter])
+
+            operator_counter += 1
+        elif isinstance(element, (SparsePauliOp,OpTreeLeafOperator)):
+            measurement_hash = "None"
+            if measurement_hash in operator_dict:
+                operator_list.append(operator_dict[measurement_hash])
+                resort_list[operator_dict[measurement_hash]].append(operator_counter)
+            else:
+                measurement_list.append(None)
+                operator_list.append(measure_counter)
+                operator_dict[measurement_hash] = measure_counter
+                measure_counter += 1
+                resort_list.append([operator_counter])
+            operator_counter += 1
+        else:
+            raise ValueError("Wrong OpTree type detected!")
+
+    build_list(element)
+
+    print("measurement_list",measurement_list)
+    print("operator_list",operator_list)
+    print("resort_list",resort_list)
+
+    return measurement_list
+
+
 def _build_expectation_list(
     element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue],
     dictionary: dict,
@@ -614,7 +690,9 @@ def evaluate_sampler_v2(
     index_offsets = [0]
     tree_circuit = []
 
+    measure_list_v2 =_build_measurement_list_v2(operator)
     measure_list = _build_measurement_list(operator)
+
 
     non_list = []
     meas_list = []
