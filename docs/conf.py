@@ -13,6 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath("."))
+from squlearn import __version__
 
 
 # -- Project information -----------------------------------------------------
@@ -22,8 +23,7 @@ copyright = "2023, Fraunhofer IPA"
 author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.0"
-
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -38,6 +38,8 @@ extensions = [
     "sphinxcontrib.spelling",
     "matplotlib.sphinxext.plot_directive",
     "myst_parser",
+    "nbsphinx",
+    "nbsphinx_link",
 ]
 
 source_suffix = {
@@ -89,3 +91,6 @@ latex_elements = {
     \usepackage{braket}
     """,
 }
+
+# Allow numbering for figures
+numfig = True
