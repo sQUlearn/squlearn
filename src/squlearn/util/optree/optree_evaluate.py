@@ -183,7 +183,13 @@ def _build_circuit_list(
 
 
 def _build_operator_list(
-    element: Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue,OpTreeLeafMeasuredOperator,SparsePauliOp],
+    element: Union[
+        OpTreeNodeBase,
+        OpTreeLeafOperator,
+        OpTreeLeafExpectationValue,
+        OpTreeLeafMeasuredOperator,
+        SparsePauliOp,
+    ],
     dictionary: dict,
     detect_operator_duplicates: bool = True,
 ):
@@ -234,7 +240,10 @@ def _build_operator_list(
                 operator = element
                 if detect_operator_duplicates:
                     operator_hash = hash_operator(operator)
-            elif isinstance(element, (OpTreeLeafOperator,OpTreeLeafExpectationValue,OpTreeLeafMeasuredOperator)):
+            elif isinstance(
+                element,
+                (OpTreeLeafOperator, OpTreeLeafExpectationValue, OpTreeLeafMeasuredOperator),
+            ):
                 operator = element.operator
                 if detect_operator_duplicates:
                     operator_hash = element.hashvalue
@@ -266,71 +275,30 @@ def _build_operator_list(
 
     return operator_list, index_tree
 
-def _build_measurement_list(element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp]):
-
+def _build_measurements(
+    element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp],
+    detect_measurement_duplicates: bool = True,
+):
     # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
-    measurement_list = []
-
-    def build_list(
-        element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]
-    ):
-        """
-        Helper function for building the circuit list and the parameter list, and
-        creates a indexed copy of the OpTree structure that references the circuits in the list.
-        """
-
-        # Global counter for indexing the circuits, circuit list and hash list, and parameter list
-        nonlocal measurement_list
-
-        if isinstance(element, OpTreeNodeBase):
-            # Index circuits and bind parameters in the OpTreeNode structure
-            for c in element.children:
-                build_list(c)
-
-        elif isinstance(element, OpTreeLeafMeasuredOperator):
-            circuit = element.circuit
-            if circuit.num_clbits == 0:
-                raise ValueError("Circuit missing a measurement")
-
-            measurement_list.append(circuit)
-        elif isinstance(element, (SparsePauliOp,OpTreeLeafOperator)):
-            measurement_list.append(None)
-        else:
-            raise ValueError("Wrong OpTree type detected!")
-
-    build_list(element)
-
-    return measurement_list
-
-
-
-def _build_measurement_list_v2(element: Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp],
-                               detect_operator_duplicates: bool = True):
-
-    # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
-    measurement_list = []
-    if detect_operator_duplicates:
-        operator_dict = {}
-    measure_counter = 0
+    measurement_circuits = []
+    if detect_measurement_duplicates:
+        measurement_hash_dict = {}
+    measurement_counter = 0
     operator_counter = 0
-    operator_list=[]
-    resort_list = []
+    operator_measurement_list = []
 
-    def build_list(
-        element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]
-    ):
+    def build_list(element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]):
         """
         Helper function for building the circuit list and the parameter list, and
         creates a indexed copy of the OpTree structure that references the circuits in the list.
         """
 
         # Global counter for indexing the circuits, circuit list and hash list, and parameter list
-        nonlocal measurement_list
-        nonlocal operator_dict
-        nonlocal measure_counter
+        nonlocal measurement_circuits
+        nonlocal measurement_hash_dict
+        nonlocal measurement_counter
         nonlocal operator_counter
-        nonlocal operator_list
-        nonlocal resort_list
+        nonlocal operator_measurement_list
 
         if isinstance(element, OpTreeNodeBase):
             # Index circuits and bind parameters in the OpTreeNode structure
@@ -343,39 +311,36 @@ def _build_measurement_list_v2(element: Union[OpTreeNodeBase, OpTreeLeafMeasured
                 raise ValueError("Circuit missing a measurement")
 
             measurement_hash = hash_circuit(circuit)
-            if measurement_hash in operator_dict:
-                operator_list.append(operator_dict[measurement_hash])
-                resort_list[operator_dict[measurement_hash]].append(operator_counter)
+            if measurement_hash in measurement_hash_dict:
+                operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
+                    operator_counter
+                )
             else:
-                measurement_list.append(circuit)
-                operator_list.append(measure_counter)
-                operator_dict[measurement_hash] = measure_counter
-                measure_counter += 1
-                resort_list.append([operator_counter])
+                measurement_circuits.append(circuit)
+                measurement_hash_dict[measurement_hash] = measurement_counter
+                measurement_counter += 1
+                operator_measurement_list.append([operator_counter])
+            operator_counter += 1
 
-            operator_counter += 1
-        elif isinstance(element, (SparsePauliOp,OpTreeLeafOperator)):
+        elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
             measurement_hash = "None"
-            if measurement_hash in operator_dict:
-                operator_list.append(operator_dict[measurement_hash])
-                resort_list[operator_dict[measurement_hash]].append(operator_counter)
+            if measurement_hash in measurement_hash_dict:
+                operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
+                    operator_counter
+                )
             else:
-                measurement_list.append(None)
-                operator_list.append(measure_counter)
-                operator_dict[measurement_hash] = measure_counter
-                measure_counter += 1
-                resort_list.append([operator_counter])
+                measurement_circuits.append(None)
+                measurement_hash_dict[measurement_hash] = measurement_counter
+                measurement_counter += 1
+                operator_measurement_list.append([operator_counter])
             operator_counter += 1
+
         else:
             raise ValueError("Wrong OpTree type detected!")
 
     build_list(element)
 
-    print("measurement_list",measurement_list)
-    print("operator_list",operator_list)
-    print("resort_list",resort_list)
-
-    return measurement_list,resort_list
+    return measurement_circuits, operator_measurement_list
 
 
 def _build_expectation_list(
@@ -393,7 +358,6 @@ def _build_expectation_list(
     expectation_counter = 0
     circuit_eval_counter = 0
     circuit_eval_list = []
-
 
     def build_lists_and_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue]):
         """
@@ -453,7 +417,8 @@ def _build_expectation_list(
                 if hashvalue_circuit in circuit_dict:
                     index = circuit_dict[hashvalue_circuit]
                     if np.array_equal(
-                        parameter_list[index], np.array([dictionary[p] for p in circuit.parameters])
+                        parameter_list[index],
+                        np.array([dictionary[p] for p in circuit.parameters]),
                     ):
                         circuit_already_in_list = True
             if circuit_already_in_list:
@@ -519,8 +484,8 @@ def _add_offset_to_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], off
 def evaluate_expectation_from_sampler2(
     observable: List[SparsePauliOp],
     results: SamplerResult,
-    resort_list: Union[None,List[List[int]]] = None,
-    offset:int=0
+    resort_list: Union[None, List[List[int]]] = None,
+    offset: int = 0,
 ):
     """
     Function for evaluating the expectation value of an observable from the results of a sampler.
@@ -534,8 +499,8 @@ def evaluate_expectation_from_sampler2(
     Returns:
         The expectation value of the observable as a numpy array.
     """
-    print("resort_list",resort_list)
-    print("offset",offset)
+    print("resort_list", resort_list)
+    print("offset", offset)
 
     # Create a list of PauliList objects from the observable
     op_pauli_list = [PauliList(obs.paulis) for obs in observable]
@@ -547,7 +512,7 @@ def evaluate_expectation_from_sampler2(
 
     # Index slice that is used to select a subset of the results
     if resort_list is None:
-        resort_list_ = [list(range(0, len(observable)))]*len(results.quasi_dists)
+        resort_list_ = [list(range(0, len(observable)))] * len(results.quasi_dists)
     else:
         resort_list_ = resort_list
     flatted_resort_list = [item2 for item in resort_list_ for item2 in item]
@@ -558,12 +523,14 @@ def evaluate_expectation_from_sampler2(
             np.real_if_close(
                 np.dot(
                     _pauli_expval_with_variance(
-                        results.quasi_dists[icirc+offset].binary_probabilities(), op_pauli_list[iop]
+                        results.quasi_dists[icirc + offset].binary_probabilities(),
+                        op_pauli_list[iop],
                     )[0],
                     observable[iop].coeffs,
                 )
             )
-            for icirc,oplist in enumerate(flatted_resort_list) for iop in oplist
+            for icirc, oplist in enumerate(flatted_resort_list)
+            for iop in oplist
         ]
     )
 
@@ -576,6 +543,7 @@ def evaluate_expectation_from_sampler2(
         ioff += len(flatted_resort_list_circ)
 
     return exp_val[index_list]
+
 
 def evaluate_expectation_from_sampler(
     observable: Union[List[SparsePauliOp], SparsePauliOp],
@@ -658,6 +626,7 @@ def evaluate_expectation_from_sampler(
 
     return exp_val
 
+
 def evaluate_sampler_v2(
     circuit: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     operator: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafMeasuredOperator],
@@ -690,64 +659,36 @@ def evaluate_sampler_v2(
     index_offsets = [0]
     tree_circuit = []
 
-    measure_list,measure_index_list =_build_measurement_list_v2(operator)
-    #measure_list = _build_measurement_list(operator)
-
-
-    # non_list = []
-    # meas_list = []
-    # for i,v in enumerate(measure_list):
-    #     print("v",i,v)
-    #     if v is None:
-    #         non_list.append(i)
-    #     else:
-    #         meas_list.append(i)
-
-    # measure_index_list = []
-    # if len(non_list) > 0:
-    #     measure_index_list.append(non_list)
-    # for j in meas_list:
-    #     measure_index_list.append([j])
-
-    # print("measure_list",measure_list)
-    # print("non_list",non_list)
-    # print("meas_list",meas_list)
-
-    #print("measure_list",measure_list)
-    #print("measure_index_list",measure_index_list)
-
-    resort_list=[]
+    measurement_circuits, operator_measurement_list = _build_measurements(operator)
+    circuit_operator_list = []
 
     # Build list of circuits and parameters that are evaluated by the sampler
     # Also creates the evluation tree for the assembling the final results
-    offset=0
-    offset_list=[]
+    offset = 0
+    offset_for_dict_combo = []
     for dictionary_circuit_ in dictionary_circuit:
-        #print("input:",circuit, dictionary_circuit_, detect_circuit_duplicates)
+
         circuit_list, parameter_list, circuit_tree = _build_circuit_list(
             circuit, dictionary_circuit_, detect_circuit_duplicates
         )
-        #print("New dict")
-        #print("circuit_list",circuit_list)
-        print("circuit_tree",circuit_tree)
-        offset_list.append(len(total_circuit_list))
 
-        num_circuits = len(circuit_list)
-        for i,circ_unmeasured in enumerate(circuit_list):
-            for measure in measure_list:
+        offset_for_dict_combo.append(len(total_circuit_list))
+
+        for i, circ_unmeasured in enumerate(circuit_list):
+            for measure in measurement_circuits:
                 if measure is None:
                     total_circuit_list.append(circ_unmeasured.measure_all(inplace=False))
                 else:
                     total_circuit_list.append(circ_unmeasured.compose(measure, inplace=False))
-            total_parameter_list += [parameter_list[i]]*len(measure_index_list)
-            resort_list.append(measure_index_list)
+            total_parameter_list += [parameter_list[i]] * len(operator_measurement_list)
+            circuit_operator_list.append(operator_measurement_list)
 
         if multiple_circuit_dict and dictionaries_combined:
             tree_circuit.append(circuit_tree)
         else:
             tree_circuit.append(_add_offset_to_tree(circuit_tree, offset))
 
-        offset += num_circuits
+        offset += len(circuit_list)
         index_offsets.append(offset)
 
     if multiple_circuit_dict:
@@ -758,16 +699,16 @@ def evaluate_sampler_v2(
 
     # Run the sampler primtive
     start = time.time()
-    print("len(total_circuit_list)",len(total_circuit_list))    
+    print("len(total_circuit_list)", len(total_circuit_list))
     sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
     print("sampler run time", time.time() - start)
 
     # for s in sampler_result.quasi_dists:
     #     print(s)
 
-    #print("evaluation_tree",evaluation_tree)
+    # print("evaluation_tree",evaluation_tree)
 
-    #print("resort_list",resort_list)
+    # print("resort_list",resort_list)
 
     start = time.time()
     final_result = []
@@ -777,8 +718,8 @@ def evaluate_sampler_v2(
             operator, dictionary_operator_, detect_operator_duplicates
         )
 
-        #print("operator_list",operator_list)
-        #print("operator_tree",operator_tree)
+        # print("operator_list",operator_list)
+        # print("operator_tree",operator_tree)
 
         # there is something needed that group operator_list and circuit_list, such that not all combos are evaluated
 
@@ -786,24 +727,26 @@ def evaluate_sampler_v2(
             # Pick subset of the circuits that are linked to the current operator dictionary
             circ_tree = evaluation_tree.children[i]
             index_slice = slice(index_offsets[i], index_offsets[i + 1])
-            offset = offset_list[i]
+            offset = offset_for_dict_combo[i]
         else:
             # Pick all circuits
             circ_tree = evaluation_tree
             index_slice = slice(0, len(total_circuit_list))
             offset = 0
 
-        #print("circ_tree",circ_tree)
+        # print("circ_tree",circ_tree)
         # Evaluate the expectation value of the current operator and operator dict and
         # (a subset of) the circuit measurements
 
         # expec = evaluate_expectation_from_sampler(operator_list, sampler_result, index_slice)
 
-        expec = evaluate_expectation_from_sampler2(operator_list, sampler_result, resort_list=resort_list[index_slice], offset=offset)
-        #print("expec",expec)
+        expec = evaluate_expectation_from_sampler2(
+            operator_list, sampler_result, resort_list=circuit_operator_list[index_slice], offset=offset
+        )
+        # print("expec",expec)
         # Evaluate the operator tree for assembling the final operator values
         expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
-        #print("expec2",expec2)
+        # print("expec2",expec2)
         # Evluate the circuit tree for assembling the final circuit values
         final_result.append(_evaluate_index_tree(circ_tree, expec2))
     print("post processing", time.time() - start)
@@ -1088,7 +1031,6 @@ def evaluate_expectation_tree_from_estimator(
 def evaluate_expectation_tree_from_sampler(
     expectation_tree, dictionary, sampler, detect_expectation_duplicates: bool = False
 ):
-
     total_circuit_list = []
     total_operator_list = []
     total_parameter_list = []
@@ -1108,7 +1050,12 @@ def evaluate_expectation_tree_from_sampler(
             parameter_list,
             circuit_eval_list,
             index_tree,
-        ) = _build_expectation_list(expectation_tree, dict_, detect_expectation_duplicates=detect_expectation_duplicates, group_circuits=detect_expectation_duplicates)
+        ) = _build_expectation_list(
+            expectation_tree,
+            dict_,
+            detect_expectation_duplicates=detect_expectation_duplicates,
+            group_circuits=detect_expectation_duplicates,
+        )
         total_tree_list.append(_add_offset_to_tree(index_tree, len(total_circuit_eval_list)))
         offset = len(total_circuit_list)
         total_circuit_eval_list += [i + offset for i in circuit_eval_list]
@@ -1125,9 +1072,8 @@ def evaluate_expectation_tree_from_sampler(
     else:
         evaluation_tree = total_tree_list[0]
 
-    
-    print("number of circuits", len(total_circuit_list))	
-    
+    print("number of circuits", len(total_circuit_list))
+
     # Evaluation via the sampler
     start = time.time()
     sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
@@ -1145,6 +1091,7 @@ def evaluate_expectation_tree_from_sampler(
 
     return result
 
+
 def transform_operator_to_zbasis(
     operator: Union[OpTreeLeafOperator, SparsePauliOp], abelian_grouping: bool = True
 ) -> Union[OpTreeLeafOperator, OpTreeNodeBase, OpTreeNodeSum, OpTreeLeafMeasuredOperator]:
@@ -1160,7 +1107,7 @@ def transform_operator_to_zbasis(
 
     Return:
         Returns the transformed operator together with the measurement circuits.either as
-        an OpTreeLeafMeasuredOperator or an OpTreeNodeSum if the operator is grouped into different 
+        an OpTreeLeafMeasuredOperator or an OpTreeNodeSum if the operator is grouped into different
         terms. If no transformation is needed, the input operator is returned.
     """
 
@@ -1207,9 +1154,7 @@ def transform_operator_to_zbasis(
     else:
         for basis, op in zip(operator.paulis, operator):  # type: ignore
             # Build the measurement circuit and the adjusted measurements
-            meas_circuit, indices = BackendEstimator._measurement_circuit(
-                op.num_qubits, basis
-            )
+            meas_circuit, indices = BackendEstimator._measurement_circuit(op.num_qubits, basis)
             z_list = [
                 [
                     op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i]
@@ -1239,7 +1184,8 @@ def transform_operator_to_zbasis(
 
 
 def transform_tree_to_zbasis(
-    element: Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue,SparsePauliOp], abelian_grouping: bool = True
+    element: Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue, SparsePauliOp],
+    abelian_grouping: bool = True,
 ):
     if isinstance(element, OpTreeNodeBase):
         # Recursive call for all children
@@ -1264,7 +1210,9 @@ def transform_tree_to_zbasis(
         return gen_expectation_tree(element.circuit, operator_in_zbasis)
     else:
         print("type(element)", type(element))
-        raise ValueError("element must be a OpTreeNodeBase, OpTreeLeafOperator or a OpTreeLeafExpectationValue")
+        raise ValueError(
+            "element must be a OpTreeNodeBase, OpTreeLeafOperator or a OpTreeLeafExpectationValue"
+        )
 
 
 def assign_parameters(
