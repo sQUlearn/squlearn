@@ -1,3 +1,6 @@
 {
-    "path": "../../examples/tutorials/kernel_classification_mnist.ipynb"
+    "path": "../../examples/tutorials/kernel_classification_mnist.ipynb",
+    "extra-media": [
+        "../../examples/tutorials/images"
+    ]
 }
