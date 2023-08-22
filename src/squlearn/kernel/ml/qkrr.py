@@ -11,7 +11,7 @@ from ..matrix.regularization import thresholding_regularization, tikhonov_regula
 
 class QKRR(BaseEstimator, RegressorMixin):
     """
-    Quantum Kernel Ridge Regression
+    Quantum Kernel Ridge Regression.
 
     This class implements the Quantum Kernel Ridge Regression analogous to KRR [1] in scikit-learn
     but is not a wrapper.
@@ -84,22 +84,19 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_train = None
         self.dual_coeff_ = None
 
-        # Apply kwargs to quantum kernel set_params
-        valid_params = self.get_params().keys()
-        set_params_dict = {}
-        for key, value in kwargs.items():
-            if key in valid_params:
-                set_params_dict[key] = value
-        if len(set_params_dict) > 0:
-            self.set_params(**set_params_dict)
+        # Apply kwargs to set_params
+        update_params = self.get_params().keys() & kwargs.keys()
+        if update_params:
+            self.set_params(**{key: kwargs[key] for key in update_params})
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray):
         """
-        Fit the Quantum Kernel Ridge regression model. Depending on whether ``regularization``
-        is set, the training kernel matrix is pre-processed accordingly prior to the
-        actual fitting step is performed. The respective solution of the QKRR problem
-        is obtained by solving the linear system using scipy's Cholesky decomposition for
-        providing numerical stability
+        Fit the Quantum Kernel Ridge regression model.
+
+        Depending on whether ``regularization`` is set, the training kernel matrix is pre-processed
+        accordingly prior to the actual fitting step is performed. The respective solution of the
+        QKRR problem is obtained by solving the linear system using scipy's Cholesky decomposition
+        for providing numercial stability.
 
         Args:
             x_train (np.ndarray) : Training data of shape (n_samples, n_features)

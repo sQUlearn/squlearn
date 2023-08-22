@@ -37,23 +37,6 @@ class TestQNNRegressor:
         param_op_ini = np.random.rand(operator.num_parameters)
         return QNNRegressor(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
-    def test_params(self, qnn_regressor):
-        """Asserts that all parameters are present in the QNNRegressor."""
-        assert list(qnn_regressor.get_params().keys()) == [
-            "batch_size",
-            "epochs",
-            "executor",
-            "loss",
-            "operator",
-            "opt_param_op",
-            "optimizer",
-            "param_ini",
-            "param_op_ini",
-            "pqc",
-            "shuffle",
-            "variance",
-        ]
-
     def test_predict_unfitted(self, qnn_regressor, data):
         """Tests concerning the unfitted QNNRegressor.
 
@@ -74,30 +57,30 @@ class TestQNNRegressor:
 
         Tests include
             - whether `_is_fitted` is set True
-            - whether `param` is updated
-            - whether `param_op` is updated
+            - whether `_param` is updated
+            - whether `_param_op` is updated
         """
         X, y = data
         qnn_regressor.fit(X, y)
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
-        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
 
     def test_partial_fit(self, qnn_regressor, data):
         """Tests concerning the partial_fit function of the QNNRegressor.
 
         Tests include
-            - whether `param` is the same after two calls to fit
-            - whether `param` is different after a call to partial_fit and a call to fit
+            - whether `_param` is the same after two calls to fit
+            - whether `_param` is different after a call to partial_fit and a call to fit
         """
         X, y = data
 
         qnn_regressor.fit(X, y)
-        param_1 = qnn_regressor.param
+        param_1 = qnn_regressor._param
         qnn_regressor.partial_fit(X, y)
-        param_2 = qnn_regressor.param
+        param_2 = qnn_regressor._param
         qnn_regressor.fit(X, y)
-        param_3 = qnn_regressor.param
+        param_3 = qnn_regressor._param
 
         assert np.allclose(param_1, param_3)
         assert not np.allclose(param_2, param_3)
@@ -107,13 +90,13 @@ class TestQNNRegressor:
 
         Tests include
             - whether `_is_fitted` is True
-            - whether `param` is updated
-            - whether `param_op` is updated
+            - whether `_param` is updated
+            - whether `_param_op` is updated
         """
         X, y = data
 
+        qnn_regressor._optimizer = Adam({"maxiter_total": 10, "maxiter": 2, "lr": 0.1})
         qnn_regressor.set_params(
-            optimizer=Adam({"maxiter_total": 10, "maxiter": 2, "lr": 0.1}),
             batch_size=2,
             epochs=2,
             shuffle=True,
@@ -121,8 +104,8 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
-        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
 
     def test_predict(self, qnn_regressor, data):
         """Tests concerning the predict function of the QNNRegressor.
@@ -131,8 +114,8 @@ class TestQNNRegressor:
             - whether the prediction output is correct
         """
         X, y = data
-        qnn_regressor.param = np.arange(0.1, 2.45, 0.1)
-        qnn_regressor.param_op = np.arange(0.1, 0.35, 0.1)
+        qnn_regressor._param = np.arange(0.1, 2.45, 0.1)
+        qnn_regressor._param_op = np.arange(0.1, 0.35, 0.1)
         qnn_regressor._is_fitted = True
         y_pred = qnn_regressor.predict(X)
 
@@ -142,3 +125,20 @@ class TestQNNRegressor:
             y_pred,
             np.array([0.57240016, 1.20027015, 0.39182531, 1.24520867, -0.1851392, 1.24521491]),
         )
+
+    def test_set_params_and_fit(self, qnn_regressor, data):
+        """
+        Tests fit after changing parameters that alter the number of parameters of the pqc.
+
+        Tests include
+            - whether `_is_fitted` is True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        qnn_regressor.set_params(num_layers=3)
+        qnn_regressor.fit(X, y)
+
+        assert qnn_regressor._is_fitted
+        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)

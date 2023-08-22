@@ -6,7 +6,7 @@ import pytest
 from squlearn import Executor
 from squlearn.expectation_operator import SummedPaulis
 from squlearn.feature_map import ChebPQC
-from squlearn.optimizers import Adam, SLSQP
+from squlearn.optimizers import SLSQP
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.qnn import QNN
 from squlearn.qnn.training import solve_mini_batch
