@@ -685,13 +685,22 @@ def _add_offset_to_tree(optree_element: Union[OpTreeNodeBase, OpTreeLeafContaine
 
 
 def evaluate_expectation_from_sampler2(
-    observable: List[SparsePauliOp],
+    operator: List[SparsePauliOp],
     results: SamplerResult,
     operator_measurement_list: Union[None, List[List[int]]] = None,
     offset: int = 0,
 ):
     """
-    Function for evaluating the expectation value of an observable from the results of a sampler.
+    Function for evaluating the expectation value of an operator from the results of a sampler.
+
+    operator_measurement_list connects the measured circuits with the operators.
+    If operator_measurement_list is two level nested (e.g. [[0,1],[2]]), this means that
+    the outer list represents the circuits, and the inner list represents the operators.
+
+    As an alternative the depth of operator_measurement_list can be 3, where the outer list
+    represents the circuits, the middle list represents different measurements of the same circuit,
+    and the inner list represents the operators that are computed. In this case, the results have
+    to be sorted in the same way as the operators occur in the observable list.
 
     Args:
         observable (SparsePauliOp): The observable to be evaluated.
@@ -702,14 +711,14 @@ def evaluate_expectation_from_sampler2(
         offset (int): The offset that is added to the index of the circuits in the sampler results.
 
     Returns:
-        The expectation value of the observable as a numpy array.
+        The expectation value of the operator as a numpy array.
     """
 
     # Get depth of a nested list
     depth = lambda L: isinstance(L, list) and max(map(depth, L))+1
 
     # Create a list of PauliList objects from the observable
-    op_pauli_list = [PauliList(obs.paulis) for obs in observable]
+    op_pauli_list = [PauliList(obs.paulis) for obs in operator]
 
     # Check if only the Z and I Paulis are used in the observable
     # Too late for a basis change
@@ -717,28 +726,23 @@ def evaluate_expectation_from_sampler2(
         if p.x.any():
             raise ValueError("Observable only with Z and I Paulis are supported")
 
-    # If no measurement is present, create one where every measurement is connected to all
+    # If no measurement is present, create one where every circuit is connected to all
     # operators
     if operator_measurement_list is None:
-        operator_measurement_list_ = [list(range(0, len(observable)))] * len(results.quasi_dists)
+        operator_measurement_list_ = list(range(0, len(operator))) * len(results.quasi_dists)
     else:
         operator_measurement_list_ = operator_measurement_list
 
-    print("operator_measurement_list",operator_measurement_list)
-
-    # Flatten the list to avoid nested loops
-
     depth_om_list = depth(operator_measurement_list_)
-
     if depth_om_list == 3:
+        # Flatten the list to avoid nested loops
+        # three nested lists -> circuit and measurements are considered separated
         flatted_resort_list = [item2 for item in operator_measurement_list_ for item2 in item]
     elif depth_om_list == 2:
+        # two nested lists -> circuit and measurements are not separated
         flatted_resort_list = operator_measurement_list_
     else:
         raise ValueError("Wrong depth of operator_measurement_list")
-
-
-    print("flatted_resort_list",flatted_resort_list)
 
     # Calulate the expectation value with internal Qiskit function
     exp_val = np.array(
@@ -749,7 +753,7 @@ def evaluate_expectation_from_sampler2(
                         results.quasi_dists[icirc + offset].binary_probabilities(),
                         op_pauli_list[iop],
                     )[0],
-                    observable[iop].coeffs,
+                    operator[iop].coeffs,
                 )
             )
             for icirc, oplist in enumerate(flatted_resort_list)
@@ -757,20 +761,18 @@ def evaluate_expectation_from_sampler2(
         ]
     )
 
-    # Resort results into the operator order (so far in measurement order)
     if depth_om_list == 3:
+        # Resort results into the operator order (so far in measurement order)
         ioff = 0
         index_list = []
         for outer_circ in operator_measurement_list_:
             flatted_resort_list_circ = [item2 for item in outer_circ for item2 in item]
             index_list.append(list(np.argsort(flatted_resort_list_circ) + ioff))
             ioff += len(flatted_resort_list_circ)
-
-        print("index_list",index_list)
         return exp_val[index_list]
     else:
+        # two nested lists -> No need to resort
         return exp_val
-
 
 # TODO: Remove this function
 def evaluate_expectation_from_sampler(
@@ -1312,7 +1314,7 @@ def evaluate_expectation_tree_from_sampler2(
         print("index_tree", index_tree)
         print("operator_list", operator_list)
 
-        total_tree_list.append(_add_offset_to_tree(index_tree, len(total_circuit_eval_list)))
+        total_tree_list.append(_add_offset_to_tree(index_tree, len(total_operator_list)))
         offset = len(total_operator_list)
         #total_circuit_eval_list += [i + offset for i in circuit_eval_list]
         total_circuit_eval_list += [[j+offset for j in i]for i in circuit_eval_list ]
