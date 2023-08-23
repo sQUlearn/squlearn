@@ -1,3 +1,4 @@
+ipython
 matplotlib
 myst-parser
 nbsphinx
