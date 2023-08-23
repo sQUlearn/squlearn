@@ -13,8 +13,6 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath("."))
-from squlearn import __version__
-
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +21,7 @@ copyright = "2023, Fraunhofer IPA"
 author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = __version__
+release = "0.2.0"
 
 # -- General configuration ---------------------------------------------------
 
