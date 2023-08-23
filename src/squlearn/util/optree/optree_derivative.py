@@ -104,10 +104,9 @@ def operator_derivative(
         input_type = "leaf"
     elif isinstance(element, SparsePauliOp):
         operator = element
-        input_type = "operator"
 
     # Return None when the parameter is part of the operator
-    if parameter not in operator.coeffs:
+    if parameter not in operator.parameters:
         return None
 
     # Rebuild the operator with the differentiated coefficients
@@ -496,18 +495,18 @@ def simplify_operator(
         operator = element
         input_type = "operator"
 
-        pauli_list = []
-        coeff_list = []
+    pauli_list = []
+    coeff_list = []
 
-        # check for identical paulis and merge them
-        for i, pauli in enumerate(operator.paulis):
-            # Check if pauli already exists in the list
-            if pauli in pauli_list:
-                index = pauli_list.index(pauli)
-                coeff_list[index] += operator.coeffs[i]
-            else:
-                pauli_list.append(pauli)
-                coeff_list.append(operator.coeffs[i])
+    # check for identical paulis and merge them
+    for i, pauli in enumerate(operator.paulis):
+        # Check if pauli already exists in the list
+        if pauli in pauli_list:
+            index = pauli_list.index(pauli)
+            coeff_list[index] += operator.coeffs[i]
+        else:
+            pauli_list.append(pauli)
+            coeff_list.append(operator.coeffs[i])
 
     if len(pauli_list) > 0:
         operator_simp = SparsePauliOp(pauli_list, coeff_list)

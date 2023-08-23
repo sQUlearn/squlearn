@@ -1,5 +1,5 @@
 import numpy as np
-
+from typing import Tuple
 
 def assign_all_parameters(
     opflow,
@@ -60,8 +60,16 @@ def assign_all_parameters(
     return rec_assign({}, todo_list, param_list, multi_list)
 
 
-def adjust_input(x, x_length: int):
-    # check shape of the x and adjust to [[]] form if necessary
+def adjust_input(x, x_length: int) -> Tuple[np.ndarray, bool]:
+    """Adjust the input to the form [[]] if necessary.
+
+    Args:
+        x (np.ndarray): Input array.
+        x_length (int): Dimension of the input array, e.g. feature dimension.
+
+    Return:
+        Adjusted input array and a boolean flag for multiple inputs.
+    """
     multiple_inputs = False
     error = False
     shape = np.shape(x)

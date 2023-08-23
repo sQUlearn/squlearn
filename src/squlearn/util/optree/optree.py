@@ -1,6 +1,7 @@
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from typing import List, Union, Callable, Any
+import copy
 
 
 def hash_circuit(circuit: QuantumCircuit) -> tuple:
@@ -180,6 +181,9 @@ class OpTreeNodeBase(OpTreeElementBase):
         else:
             return False
 
+    def copy(self):
+        """ Function for copying a OpTreeNodeBase object. """
+        return type(self)(copy.deepcopy(self._children_list), copy.deepcopy(self._factor_list), copy.deepcopy(self._operation_list))
 
 class OpTreeNodeList(OpTreeNodeBase):
     """A OpTree node that represents its children as a list/array/vector.
@@ -264,6 +268,10 @@ class OpTreeLeafCircuit(OpTreeLeafBase):
             return self._hashvalue == other._hashvalue
         return False
 
+    def copy(self):
+        """ Function for copying a OpTreeLeafCircuit object. """
+        return OpTreeLeafCircuit(self._circuit.copy())
+
 
 class OpTreeLeafOperator(OpTreeLeafBase):
     """A leaf of the OpTree that represents an operator.
@@ -295,6 +303,10 @@ class OpTreeLeafOperator(OpTreeLeafBase):
         if isinstance(other, OpTreeLeafOperator):
             return self._hashvalue == other._hashvalue
         return False
+
+    def copy(self):
+        """ Function for copying a OpTreeLeafOperator object. """
+        return OpTreeLeafOperator(self._operator.copy())
 
 
 class OpTreeLeafExpectationValue(OpTreeLeafBase):
@@ -344,6 +356,9 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
             return self._circuit == other._circuit and self._operator == other._operator
         return False
 
+    def copy(self):
+        """ Function for copying a OpTreeLeafExpectationValue object. """
+        return OpTreeLeafExpectationValue(self._circuit.copy(), self._operator.copy())
 
 class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
     """
@@ -369,6 +384,9 @@ class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
             circuit_ = circuit
         return OpTreeLeafExpectationValue(circuit_.compose(self.circuit), self.operator)
 
+    def copy(self):
+        """ Function for copying a OpTreeLeafMeasuredOperator object."""
+        return OpTreeLeafMeasuredOperator(self._circuit.copy(), self._operator.copy())
 
 class OpTreeLeafContainer(OpTreeLeafBase):
     """
@@ -390,6 +408,9 @@ class OpTreeLeafContainer(OpTreeLeafBase):
         if isinstance(other, OpTreeLeafContainer):
             return self.item == other.item
 
+    def copy(self):
+        """ Function for copying a OpTreeLeafContainer object. """
+        return OpTreeLeafContainer(copy.deepcopy(self.item))
 
 def get_number_of_leafs(tree: OpTreeElementBase) -> int:
     """Returns the number of leafs of the OpTree.
