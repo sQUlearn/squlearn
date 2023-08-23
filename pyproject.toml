@@ -40,7 +40,7 @@ dynamic = ["version", "description"]
 dev = [
     "black",
     "flit",
-    "myst-parser"
+    "myst-parser",
     "nbsphinx",
     "nbsphinx_link",
     "pylint",
