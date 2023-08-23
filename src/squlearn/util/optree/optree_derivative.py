@@ -18,7 +18,7 @@ from .optree import (
 
 def circuit_parameter_shift(
     element: Union[OpTreeLeafCircuit, QuantumCircuit], parameter: ParameterExpression
-) -> Union[None,OpTreeNodeSum]:
+) -> Union[None, OpTreeNodeSum]:
     """
     Build the parameter shift derivative of a circuit wrt a single parameter.
 
@@ -107,7 +107,7 @@ def operator_derivative(
         input_type = "operator"
 
     # Return None when the parameter is part of the operator
-    if parameter not in operator._parameter_table:
+    if parameter not in operator.coeffs:
         return None
 
     # Rebuild the operator with the differentiated coefficients
@@ -139,7 +139,7 @@ def derivative_inplace(
     tree_node: OpTreeNodeBase,
     parameter: ParameterExpression,
 ) -> None:
-    """ "
+    """
     Create the derivative of a OpTreeNode wrt a single parameter, modifies the tree inplace.
 
     Functions returns nothing, since the OpTree is modified inplace.
@@ -150,6 +150,7 @@ def derivative_inplace(
 
     """
     if isinstance(tree_node, OpTreeNodeBase):
+        remove_list = []
         for i, child in enumerate(tree_node.children):
             if isinstance(tree_node.factor[i], ParameterExpression):
                 grad_fac = tree_node.factor[i].gradient(parameter)
@@ -166,23 +167,19 @@ def derivative_inplace(
                 derivative_inplace(child, parameter)
                 grad = child
 
-            print("grad",grad)
-            print("grad_fac",grad_fac)
-            
             # Product rule for differentiation
             if isinstance(grad_fac, float):
                 # if grad_fac is a numeric value
                 if grad_fac == 0.0 and grad is not None:
-                    print("a")
                     tree_node.children[i] = grad
+                elif grad_fac == 0.0 and grad is None:
+                    remove_list.append(i)
                 elif grad is not None:
-                    print("b")
                     tree_node.children[i] = OpTreeNodeSum(
                         [child, grad], [grad_fac, tree_node.factor[i]]
                     )
                     tree_node.factor[i] = 1.0
                 else:
-                    print("c")
                     tree_node.factor[i] = grad_fac
             else:
                 # if grad_fac is still a parameter
@@ -194,8 +191,10 @@ def derivative_inplace(
                 else:
                     tree_node.factor[i] = grad_fac
 
+        if len(remove_list) > 0:
+            tree_node.remove(remove_list)
     else:
-        raise ValueError("tree_node must be a CircuitTreeSum or a CircuitTreeList")
+        raise ValueError("tree_node must be a OpTreeNodeSum or a OpTreeNodeList")
 
 
 def derivative(
@@ -240,14 +239,16 @@ def derivative(
         derivative_inplace(res, dp)
         if is_node:
             derivative_list.append(res)
+            fac_list.append(1.0)
         else:
             # if the input was a circuit, get rid ouf the outer OpTreeNodeList container
             # from the preprocessing
-            derivative_list.append(res.children[0])
-        fac_list.append(1.0)
+            if len(res.children) > 0:
+                derivative_list.append(res.children[0])
+                fac_list.append(res.factor[0])
 
     # Return either in list form or as single OpTreeNode
-    if is_list:
+    if is_list or len(derivative_list) == 0:
         return OpTreeNodeList(derivative_list, fac_list)
     else:
         return derivative_list[0]
@@ -283,19 +284,30 @@ def derivative_copy(
 
                 # Product rule for differentiation
                 if isinstance(grad_fac, float):
-                    if grad_fac == 0.0:
+                    if grad_fac == 0.0 and grad is not None:
                         children_list.append(grad)
                         factor_list.append(fac)
-                    else:
+                    elif grad_fac == 0.0 and grad is None:
+                        pass
+                    elif grad is not None:
                         children_list.append(OpTreeNodeSum([child, grad], [grad_fac, fac]))
                         factor_list.append(1.0)
+                    else:
+                        children_list.append(child)
+                        factor_list.append(grad_fac)
                 else:
-                    children_list.append(OpTreeNodeSum([child, grad], [grad_fac, fac]))
-                    factor_list.append(1.0)
+                    if grad is not None:
+                        children_list.append(OpTreeNodeSum([child, grad], [grad_fac, fac]))
+                        factor_list.append(1.0)
+                    else:
+                        children_list.append(child)
+                        factor_list.append(grad_fac)
             else:
                 # No parameter in factor -> just call recursive call for the children
-                children_list.append(derivative_copy(child, parameter))
-                factor_list.append(element.factor[i])
+                deriva = derivative_copy(child, parameter)
+                if deriva is not None:
+                    children_list.append(deriva)
+                    factor_list.append(element.factor[i])
 
         # Rebuild the tree with the new children and factors (copy part)
         if isinstance(element, OpTreeNodeSum):
@@ -348,11 +360,13 @@ def derivative_v2(
     derivative_list = []
     fac_list = []
     for dp in parameters:
-        derivative_list.append(derivative_copy(element, dp))
-        fac_list.append(1.0)
+        deriv_result = derivative_copy(element, dp)
+        if deriv_result is not None:
+            derivative_list.append(deriv_result)
+            fac_list.append(1.0)
 
     # Adjust the output for single parameter input
-    if is_list:
+    if is_list or len(derivative_list) == 0:
         return OpTreeNodeList(derivative_list, fac_list)
     else:
         return derivative_list[0]

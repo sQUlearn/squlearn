@@ -114,6 +114,33 @@ class OpTreeNodeBase(OpTreeElementBase):
         self._factor_list.append(factor)
         self._operation_list.append(operation)
 
+    def remove(self, index: Union[List[int], int]):
+        """Removes children from the node.
+
+        Args:
+            index (int): The list of indices of the children to be removed.
+                         Can also be a single index.
+        """
+
+        if isinstance(index, int):
+            index = [index]
+
+        if len(index) > len(self._children_list):
+            raise ValueError("index must not be larger than the number of children")
+
+        if len(index) == 0:
+            return None
+
+        self._children_list = [
+            child for i, child in enumerate(self._children_list) if i not in index
+        ]
+        self._factor_list = [
+            factor for i, factor in enumerate(self._factor_list) if i not in index
+        ]
+        self._operation_list = [
+            operation for i, operation in enumerate(self._operation_list) if i not in index
+        ]
+
     def __eq__(self, other) -> bool:
         """Function for comparing two OpTreeNodes.
 
@@ -155,7 +182,13 @@ class OpTreeNodeBase(OpTreeElementBase):
 
 
 class OpTreeNodeList(OpTreeNodeBase):
-    """A OpTree node that represents its children as a list/array/vector."""
+    """A OpTree node that represents its children as a list/array/vector.
+
+    Args:
+        children_list (list): A list of children of the list.
+        factor_list (list): A list of factors for each child.
+        operation_list (list): A list of operations that are applied to each child.
+    """
 
     def __str__(self) -> str:
         """Returns a string representation of the node as a list of its children."""
@@ -172,7 +205,13 @@ class OpTreeNodeList(OpTreeNodeBase):
 
 
 class OpTreeNodeSum(OpTreeNodeBase):
-    """A OpTree node that sums over its children."""
+    """A OpTree node that sums over its children.
+
+    Args:
+        children_list (list): A list of children of the summation.
+        factor_list (list): A list of factors for each child.
+        operation_list (list): A list of operations that are applied to each child.
+    """
 
     def __str__(self) -> str:
         """Returns a string representation of the node as a sum of its children."""
@@ -230,7 +269,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
     """A leaf of the OpTree that represents an operator.
 
     Args:
-        operator (TODO): The operator that is represented by the leaf.
+        operator (SparsePauliOp): The operator that is represented by the leaf.
     """
 
     def __init__(self, operator: SparsePauliOp) -> None:
@@ -259,6 +298,14 @@ class OpTreeLeafOperator(OpTreeLeafBase):
 
 
 class OpTreeLeafExpectationValue(OpTreeLeafBase):
+    """
+    Leaf of the OpTree that represents an expectation value of a circuit and an operator.
+
+    Args:
+        circuit (Union[OpTreeLeafCircuit, QuantumCircuit]): The circuit in the expectation value.
+        operator (Union[OpTreeLeafOperator, SparsePauliOp]): The operator in the expectation value.
+    """
+
     def __init__(
         self,
         circuit: Union[OpTreeLeafCircuit, QuantumCircuit],
@@ -288,6 +335,7 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
         return self._circuit.hashvalue + self._operator.hashvalue
 
     def __str__(self) -> str:
+        """Returns the string representation of the expectation value."""
         return str(self._circuit) + "\n with observable \n" + str(self._operator) + "\n"
 
     def __eq__(self, other) -> bool:
@@ -298,9 +346,24 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
 
 
 class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
+    """
+    Leaf of the OpTree that represents an measurement.
+
+    The circuit in the class represents the circuit that is measured for the given operator.
+    """
+
     def measure_circuit(
         self, circuit: Union[QuantumCircuit, OpTreeLeafCircuit]
     ) -> OpTreeLeafExpectationValue:
+        """
+        Applies the measurement of the leaf to the circuit and returns an expectation value.
+
+        Args:
+            circuit (Union[QuantumCircuit, OpTreeLeafCircuit]): The circuit that is measured.
+
+        Returns:
+            OpTreeLeafExpectationValue: The expectation value leaf with the measured circuit.
+        """
         circuit_ = circuit
         if isinstance(circuit, OpTreeLeafCircuit):
             circuit_ = circuit
@@ -310,6 +373,9 @@ class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
 class OpTreeLeafContainer(OpTreeLeafBase):
     """
     A container for arbitrary objects that can be used as leafs in the OpTree.
+
+    Args:
+        item (Any): Any kind of item that is represented by the leaf.
     """
 
     def __init__(self, item: Any) -> None:
@@ -323,12 +389,6 @@ class OpTreeLeafContainer(OpTreeLeafBase):
         """Function for comparing two OpTreeLeafContainers."""
         if isinstance(other, OpTreeLeafContainer):
             return self.item == other.item
-
-
-class OpTree:
-    """Dummy in case we want a full tree structure."""
-
-    pass
 
 
 def get_number_of_leafs(tree: OpTreeElementBase) -> int:
@@ -369,17 +429,19 @@ def get_tree_depth(tree: OpTreeElementBase) -> int:
 
 def get_first_leaf(
     element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
-) -> QuantumCircuit:
+) -> Union[OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
+    """Returns the first leaf of the supplied OpTree.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree.
+
+    Returns:
+        The first found leaf of the OpTree.
+    """
     if isinstance(element, OpTreeNodeBase):
         return get_first_leaf(element.children[0])
-    elif isinstance(element, OpTreeLeafCircuit):
-        return element.circuit
-    elif isinstance(element, OpTreeLeafOperator):
-        return element.operator
-    elif isinstance(element, (SparsePauliOp, QuantumCircuit)):
-        return element
     else:
-        raise ValueError("Unknown element type: " + str(type(element)))
+        return element
 
 
 def gen_expectation_tree(
@@ -388,6 +450,19 @@ def gen_expectation_tree(
         OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp
     ],
 ):
+    """
+    Function that generates an expectation tree from a circuit tree and an operator tree.
+
+    The operator tree is applied to each leaf of the circuit tree and the
+    resulting expectation values are returned as ``OpTreeExpectationValueLeafs``.
+
+    Args:
+        circuit_tree (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit tree.
+        operator_tree (Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp]): The operator tree.
+
+    Returns:
+        The combined tree with ``OpTreeExpectationValueLeafs`` at the leafs.
+    """
     if isinstance(circuit_tree, OpTreeNodeBase):
         children_list = [
             gen_expectation_tree(child, operator_tree) for child in circuit_tree.children

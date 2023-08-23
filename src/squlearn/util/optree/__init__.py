@@ -4,6 +4,8 @@ from .optree import (
     OpTreeLeafCircuit,
     OpTreeLeafOperator,
     OpTreeLeafContainer,
+    OpTreeLeafExpectationValue,
+    OpTreeLeafMeasuredOperator,
     get_number_of_leafs,
     get_tree_depth,
     get_first_leaf,
@@ -11,7 +13,6 @@ from .optree import (
 
 from .optree_derivative import (
     simplify_copy,
-    simplify_operator,
     derivative_v2,
     derivative,
 )
@@ -32,11 +33,12 @@ __all__ = [
     "OpTreeLeafCircuit",
     "OpTreeLeafOperator",
     "OpTreeLeafContainer",
+    "OpTreeLeafExpectationValue",
+    "OpTreeLeafMeasuredOperator",
     "get_number_of_leafs",
     "get_tree_depth",
     "get_first_leaf",
     "simplify_copy",
-    "simplify_operator",
     "derivative_v2",
     "derivative",
     "evaluate_sampler",
