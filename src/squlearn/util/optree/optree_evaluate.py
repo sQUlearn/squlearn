@@ -132,13 +132,16 @@ def _build_circuit_list(
                     )
                 else:
                     factor_list_bound.append(fac)
-            op = optree_element.operation  # TODO: check if this is correct
 
             # Recursive rebuild of the OpTree structure
             if isinstance(optree_element, OpTreeNodeSum):
-                return OpTreeNodeSum(child_list_indexed, factor_list_bound, op)
+                return OpTreeNodeSum(
+                    child_list_indexed, factor_list_bound, optree_element.operation
+                )
             elif isinstance(optree_element, OpTreeNodeList):
-                return OpTreeNodeList(child_list_indexed, factor_list_bound, op)
+                return OpTreeNodeList(
+                    child_list_indexed, factor_list_bound, optree_element.operation
+                )
             else:
                 raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
 
@@ -163,8 +166,8 @@ def _build_circuit_list(
                     return OpTreeLeafContainer(circuit_hash_dict[circuit_hash])
                 circuit_hash_dict[circuit_hash] = circuit_counter
 
-            # Otherwise append the circuit to the circuit list, copy the paramerters into vector form
-            # and append them to the parameter list, increase the counter and return the index
+            # Otherwise append the circuit to the circuit list, copy the paramerters into vector
+            # form and append them to the parameter list, increase the counter and return the index
             # in the OpTreeLeafContainer
             circuit_list.append(circuit)
             parameter_list.append(np.array([dictionary[p] for p in circuit.parameters]))
@@ -597,7 +600,7 @@ def _add_offset_to_tree(optree_element: Union[OpTreeNodeBase, OpTreeLeafContaine
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
-def evaluate_expectation_from_sampler(
+def _evaluate_expectation_from_sampler(
     operator: List[SparsePauliOp],
     results: SamplerResult,
     operator_measurement_list: Union[None, List[List[int]]] = None,
@@ -836,7 +839,7 @@ def evaluate_sampler(
         print("circuit_operator_list[index_slice]", circuit_operator_list[index_slice])
 
         # Evaluate the expectation values from the sampler results
-        expec = evaluate_expectation_from_sampler(
+        expec = _evaluate_expectation_from_sampler(
             operator_list,
             sampler_result,
             operator_measurement_list=circuit_operator_list[index_slice],
@@ -855,7 +858,8 @@ def evaluate_sampler(
     print("post processing", time.time() - start)
 
     if multiple_operator_dict and multiple_circuit_dict and not dictionaries_combined:
-        # Swap axes to match the order of the dictionaries (circuit dict first, operator dict second)
+        # Swap axes to match the order of the dictionaries
+        # (circuit dict first, operator dict second)
         return np.swapaxes(np.array(final_result), 0, 1)
     if multiple_operator_dict and multiple_circuit_dict and dictionaries_combined:
         return np.array(final_result)
@@ -1197,7 +1201,7 @@ def evaluate_expectation_tree_from_sampler(
 
     # Computation of the expectation values from the sampler results
     start = time.time()
-    expec = evaluate_expectation_from_sampler(
+    expec = _evaluate_expectation_from_sampler(
         total_operator_list, sampler_result, operator_measurement_list=total_circuit_operator_list
     )
 

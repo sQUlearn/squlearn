@@ -6,8 +6,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-# from qiskit.opflow.gradients.derivative_base import _coeff_derivative
-
 from .optree import (
     OpTreeNodeBase,
     OpTreeLeafBase,
@@ -20,7 +18,7 @@ from .optree import (
 
 def circuit_parameter_shift(
     element: Union[OpTreeLeafCircuit, QuantumCircuit], parameter: ParameterExpression
-) -> OpTreeNodeSum:
+) -> Union[None,OpTreeNodeSum]:
     """
     Build the parameter shift derivative of a circuit wrt a single parameter.
 
@@ -32,8 +30,6 @@ def circuit_parameter_shift(
         The parameter shift derivative of the circuit (always a OpTreeNodeSum)
     """
 
-    # TODO: fix what happens if parameter is not present!
-
     if isinstance(element, OpTreeLeafCircuit):
         circuit = element.circuit
         input_type = "leaf"
@@ -42,6 +38,10 @@ def circuit_parameter_shift(
         input_type = "circuit"
     else:
         raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
+
+    # Return None when the parameter is not in the circuit
+    if parameter not in circuit._parameter_table:
+        return None
 
     iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
     shift_sum = OpTreeNodeSum()
@@ -106,6 +106,10 @@ def operator_derivative(
         operator = element
         input_type = "operator"
 
+    # Return None when the parameter is part of the operator
+    if parameter not in operator._parameter_table:
+        return None
+
     # Rebuild the operator with the differentiated coefficients
     op_list = []
     param_list = []
@@ -162,22 +166,33 @@ def derivative_inplace(
                 derivative_inplace(child, parameter)
                 grad = child
 
+            print("grad",grad)
+            print("grad_fac",grad_fac)
+            
             # Product rule for differentiation
             if isinstance(grad_fac, float):
                 # if grad_fac is a numeric value
-                if grad_fac == 0.0:
+                if grad_fac == 0.0 and grad is not None:
+                    print("a")
                     tree_node.children[i] = grad
-                else:
+                elif grad is not None:
+                    print("b")
                     tree_node.children[i] = OpTreeNodeSum(
                         [child, grad], [grad_fac, tree_node.factor[i]]
                     )
                     tree_node.factor[i] = 1.0
+                else:
+                    print("c")
+                    tree_node.factor[i] = grad_fac
             else:
                 # if grad_fac is still a parameter
-                tree_node.children[i] = OpTreeNodeSum(
-                    [child, grad], [grad_fac, tree_node.factor[i]]
-                )
-                tree_node.factor[i] = 1.0
+                if grad is not None:
+                    tree_node.children[i] = OpTreeNodeSum(
+                        [child, grad], [grad_fac, tree_node.factor[i]]
+                    )
+                    tree_node.factor[i] = 1.0
+                else:
+                    tree_node.factor[i] = grad_fac
 
     else:
         raise ValueError("tree_node must be a CircuitTreeSum or a CircuitTreeList")
