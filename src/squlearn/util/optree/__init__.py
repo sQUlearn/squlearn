@@ -16,7 +16,8 @@ from .optree_derivative import (
     derivative,
 )
 
-# from .optree_evaluate import
+from .optree_evaluate import evaluate_sampler,evaluate_estimator,evaluate_expectation_tree_from_estimator,evaluate_expectation_tree_from_sampler,transform_to_zbasis,assign_parameters
+
 
 
 __all__ = [
@@ -32,4 +33,10 @@ __all__ = [
     "simplify_operator",
     "derivative_v2",
     "derivative",
+    "evaluate_sampler",
+    "evaluate_estimator",
+    "evaluate_expectation_tree_from_estimator",
+    "evaluate_expectation_tree_from_sampler",
+    "transform_to_zbasis",
+    "assign_parameters",
 ]
