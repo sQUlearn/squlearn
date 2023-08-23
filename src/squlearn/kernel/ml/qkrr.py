@@ -150,9 +150,10 @@ class QKRR(BaseEstimator, RegressorMixin):
         Return:
             Dictionary with hyperparameters and values.
         """
-        params = dict()
-        params["quantum_kernel"] = self._quantum_kernel
-        params["alpha"] = self.alpha
+        params = {
+            "quantum_kernel": self._quantum_kernel,
+            "alpha": self.alpha,
+        }
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
         return params

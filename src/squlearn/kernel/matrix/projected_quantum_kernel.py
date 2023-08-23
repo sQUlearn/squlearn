@@ -368,6 +368,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set-up of the outer kernel
         if isinstance(outer_kernel, str):
+            kwargs.pop("num_qubits", None)
             if outer_kernel.lower() == "gaussian":
                 self._outer_kernel = GaussianOuterKernel(**kwargs)
             elif outer_kernel.lower() == "matern":
@@ -468,7 +469,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = dict(measurement=self._measurement_input)
+        params = super().get_params(deep=False)
         params.update(self._outer_kernel.get_params())
         params["num_qubits"] = self.num_qubits
         params["regularization"] = self._regularization
@@ -626,7 +627,9 @@ class GaussianOuterKernel(OuterKernelBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        return {"gamma": self.gamma}
+        params = {"gamma": self.gamma}
+
+        return params
 
     def set_params(self, **params) -> None:
         """
