@@ -17,6 +17,7 @@ Ising
 Laplacian
 Matern
 Mohseni
+multiclass
 ndarray
 np
 opflow
@@ -25,6 +26,7 @@ Pauli
 Paulis
 pre
 prefactor
+preprocessing
 QFI
 Qiskit
 qubit
