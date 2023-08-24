@@ -9,6 +9,7 @@ from .optree import (
     get_number_of_leafs,
     get_tree_depth,
     get_first_leaf,
+    gen_expectation_tree,
 )
 
 from .optree_derivative import (
@@ -47,4 +48,5 @@ __all__ = [
     "evaluate_expectation_tree_from_sampler",
     "transform_to_zbasis",
     "assign_parameters",
+    "gen_expectation_tree",
 ]

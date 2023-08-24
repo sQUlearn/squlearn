@@ -18,6 +18,8 @@ from ..util.optree.optree_derivative import simplify_copy,derivative
 from ..util.optree.optree_evaluate import assign_parameters
 from ..util.data_preprocessing import adjust_input
 
+
+
 class ExpectationOperatorDerivatives:
     r"""Class for calculating derivatives of expectation operators.
 
@@ -126,6 +128,11 @@ class ExpectationOperatorDerivatives:
 
         if self._optree_caching:
             self._optree_cache["O"] = optree
+
+    @property
+    def parameter_vector(self):
+        """Parameter vector of the expectation operator"""
+        return self._parameter_vector
 
     def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
         """Determine the derivative of the expectation operator.

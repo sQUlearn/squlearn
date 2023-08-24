@@ -1,12 +1,13 @@
 import numpy as np
 from typing import Union
 
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
 from qiskit.compiler import transpile # TODO
 
 from .feature_map_base import FeatureMapBase
-from ..util.optree.optree import OpTreeElementBase,OpTreeLeafCircuit,OpTreeNodeSum,OpTreeNodeList
+from ..util.optree.optree import OpTreeElementBase,OpTreeLeafCircuit,OpTreeNodeSum,OpTreeNodeList,OpTreeNodeBase
 from ..util.optree.optree_derivative import simplify_copy,derivative
 from ..util.optree.optree_evaluate import assign_parameters
 from ..util.data_preprocessing import adjust_input
@@ -112,6 +113,16 @@ class FeatureMapDerivatives:
         for instruction in self._circuit.data:
             self._inital_instructions.add(instruction.operation.name)
         self._inital_instructions = list(self._inital_instructions)
+
+    @property
+    def feature_vector(self) -> ParameterVector:
+        """ParameterVector ``x`` utilized in the feature map circuit."""
+        return self._x
+    
+    @property
+    def parameter_vector(self) -> ParameterVector:
+        """ParameterVector ``p`` utilized in the feature map circuit."""
+        return self._p
 
     def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
         """Determine the derivative of the feature map circuit.
@@ -397,6 +408,42 @@ def _optree_differentiation(
         # Gates are transpiled in Gradient(), this can yield different set of gates
         # than supported by the QC hardware, this is also fixed by clean_opflow_circ
         return simplify_copy(derivative(optree, parameters)) # TODO:backtranspile maybe in derivative
+
+
+def _optree_transpile_back(optree_element: Union[OpTreeNodeBase,OpTreeLeafCircuit,QuantumCircuit],instruction_set)->Union[OpTreeNodeBase,OpTreeLeafCircuit,QuantumCircuit]:
+
+    if isinstance(optree_element, OpTreeNodeBase):
+        # Recursive call for all children
+        children_list = [
+            _optree_transpile_back(child, instruction_set) for child in optree_element.children
+        ]
+        if isinstance(optree_element, OpTreeNodeSum):
+            return OpTreeNodeSum(children_list, optree_element.factor, optree_element.operation)
+        elif isinstance(optree_element, OpTreeNodeList):
+            return OpTreeNodeList(children_list, optree_element.factor, optree_element.operation)
+        else:
+            raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+    elif isinstance(optree_element, (OpTreeLeafCircuit,QuantumCircuit)):
+
+        circuit = optree_element
+        if isinstance(optree_element, OpTreeLeafCircuit):
+            circuit = optree_element.circuit
+
+        # Transpile back to the given instruction set
+        transpiled_circ = transpile(
+            circuit,
+            basis_gates=instruction_set,
+            optimization_level=1,  # 1 for reducing number of gates
+            layout_method="trivial",
+        )
+
+        if isinstance(optree_element, OpTreeLeafCircuit):
+            return OpTreeLeafCircuit(transpiled_circ)
+
+        return transpiled_circ
+
+    else:
+        raise ValueError("Unsupported type in _optree_transpile_back:", type(optree_element))
 
 
 # def _clean_opflow_circ(operator: OperatorBase, instruction_set: list[str] = None) -> OperatorBase:
