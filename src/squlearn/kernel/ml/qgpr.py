@@ -240,6 +240,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                     setattr(self, key, value)
                 except:
                     setattr(self, "_" + key, value)
+        return self
 
         # Set parameters of the Quantum Kernel and its underlying objects
         param_dict = {}
