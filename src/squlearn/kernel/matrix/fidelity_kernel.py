@@ -212,7 +212,9 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
-        if self._regularization is not None:
+        if (self._regularization is not None) and (
+            kernel_matrix.shape[0] == kernel_matrix.shape[1]
+        ):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 

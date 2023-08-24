@@ -454,7 +454,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             raise ValueError("Parameters have not been set yet!")
 
         kernel_matrix = self._outer_kernel(self._qnn, self._parameters, x, y)
-        if self._regularization is not None:
+        if (self._regularization is not None) and (
+            kernel_matrix.shape[0] == kernel_matrix.shape[1]
+        ):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 
