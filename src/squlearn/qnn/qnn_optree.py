@@ -141,6 +141,8 @@ class Expec:
                 return cls("dpdp", "O", "dfdpdp")
             elif val == "dfdopdp":
                 return cls("dp", "dop", "dfdop")
+            elif val == "dfdpdop":
+                raise ValueError("Not implemented, please use dfdopdp instead and transpose!")
             elif val == "dfdop":
                 return cls("I", "dop", "dfdop")
             elif val == "dfdopdop":
@@ -907,31 +909,14 @@ class QNN:
         # variance set-up is created here
         real_todo_dic = generate_real_todo_dic(values, value_dict)
 
-        operator_listed=False
         for key, op_list in real_todo_dic.items():
             # Obtained the derivative from the operator module
 
-            operators_list = []
-            for expec_ in op_list:
-                operator = self.operator_derivatives.get_derivative(expec_.operator)
-                if isinstance(operator, OpTreeNodeList):
-                    operator_listed=True
-                operators_list.append(operator)
-
-            operators = OpTreeNodeList(operators_list)
-            print("operators",operators)
+            operators = OpTreeNodeList([self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list])
 
             # get the circuits of the PQC derivatives from the feature map module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
-
-            #print("pqc_optree",pqc_optree)
-
-
             num_nested = get_num_nested_lists(pqc_optree)
-
-
-            # Evaluation with the primitive TODO: store primitive once
-            #val = evaluate_estimator(pqc_optree,operators,dict_feature_map,dict_operator,self.executor.get_estimator())
 
             val = evaluate_sampler(pqc_optree,operators,dict_feature_map,dict_operator,self.executor.get_sampler())
 
@@ -940,54 +925,33 @@ class QNN:
             # 2. different input data/ feature map parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)
-            # 5. if existend the remaining dimensions of the output (e.g. array for gradient)
-            #print("val",val)
-            print("val.shape",val.shape)
-
-
+            # 5. If there, lists of the operators (e.g. operator derivatives)
+            # 6. if there, lists of the circuits (e.g. array for gradient)
 
             ilist = list(range(len(val.shape)))
-            print("swapp_list inital",ilist)
-            print("num_nested",num_nested)
 
+            #             # Op_list index       # fm dict   # op dict
             swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]
 
             length = 3+num_nested
-            print("self.multiple_output",self.multiple_output)
+            # Add multiple output data next
             if self.multiple_output:
                 length += 1
                 swapp_list = swapp_list + [ilist[-1]]
-            print("length",length)
-            print("len(ilist)",len(ilist))
-            if len(ilist) > length:
-                swapp_list = swapp_list + ilist[3+num_nested:-1]
 
+            # If there are lists in the operators, add them next (e.g. dfdop)
+            if len(ilist) > length:
+                if self.multiple_output:
+                    swapp_list = swapp_list + ilist[3+num_nested:-1]
+                else:
+                    swapp_list = swapp_list + ilist[3+num_nested:]
+
+            # If there are lists in the circuits, add them here (e.g. dfdp)
             if num_nested > 0:
+                print("c")
                 swapp_list = swapp_list + ilist[2:2+num_nested]
 
-
-            # #swapp_list = [swapp_list[2+num_nested_circs]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[2]]
-            # if num_nested > 0:
-            #     swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]+ilist[2:2+num_nested]
-            # else:
-            #     swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]
-
-
-            #swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:1]+ilist[2:2+num_nested]+ilist[2+num_nested+2:]
-            # if operator_listed:
-            #     #if len(op_list) > 1:
-            #     swapp_list = [swapp_list[-2]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[-1]]+swapp_list[2:-2]
-            #     #else:
-            # else:
-            #     if len(op_list) > 1:
-            #         swapp_list = [swapp_list[-1]]+[swapp_list[0]]+[swapp_list[1]]+swapp_list[2:-1]
-            #     else:
-            #         swapp_list = [swapp_list[-1]]+[swapp_list[0]]+[swapp_list[1]]+swapp_list[2:-1]
-
-            print("swapp_list",swapp_list)
             val = np.transpose(val, axes=swapp_list)
-            print("after val.shape",val.shape)
-            #print("after val",val)
 
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
@@ -1010,8 +974,6 @@ class QNN:
                 else:
                     if len(shape) > 2:
                         reshape_list += list(shape[2:])
-
-                print("reshape_list",reshape_list)
 
                 if len(reshape_list) == 0:
                     value_dict[expec_] = val_final.reshape(-1)[0]
