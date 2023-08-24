@@ -249,3 +249,4 @@ class QGPR(BaseEstimator, RegressorMixin):
                 param_dict[key] = value
         if len(param_dict) > 0:
             self._quantum_kernel.set_params(**param_dict)
+        return self
