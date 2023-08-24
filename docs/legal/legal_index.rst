@@ -9,4 +9,4 @@ The following Editorial Notes (Impressum) and Data Protection Information (Daten
    :maxdepth: 1
 
    Editorial Notes <https://dsi.informationssicherheit.fraunhofer.de/en/impressum/squlearn.github.io/full>
-   data_protection <https://dsi.informationssicherheit.fraunhofer.de/en/dsi/squlearn.github.io/full>
+   Data Protection <https://dsi.informationssicherheit.fraunhofer.de/en/dsi/squlearn.github.io/full>
