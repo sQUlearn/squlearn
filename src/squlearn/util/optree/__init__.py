@@ -24,7 +24,7 @@ from .optree_evaluate import (
     evaluate_expectation_tree_from_estimator,
     evaluate_expectation_tree_from_sampler,
     transform_to_zbasis,
-    assign_parameters,
+    optree_assign_parameters,
 )
 
 
@@ -47,6 +47,6 @@ __all__ = [
     "evaluate_expectation_tree_from_estimator",
     "evaluate_expectation_tree_from_sampler",
     "transform_to_zbasis",
-    "assign_parameters",
+    "optree_assign_parameters",
     "gen_expectation_tree",
 ]

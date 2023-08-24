@@ -9,7 +9,7 @@ from qiskit.compiler import transpile # TODO
 from .feature_map_base import FeatureMapBase
 from ..util.optree.optree import OpTreeElementBase,OpTreeLeafCircuit,OpTreeNodeSum,OpTreeNodeList,OpTreeNodeBase
 from ..util.optree.optree_derivative import simplify_copy,derivative
-from ..util.optree.optree_evaluate import assign_parameters
+from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
 
 class FeatureMapDerivatives:
@@ -118,7 +118,7 @@ class FeatureMapDerivatives:
     def feature_vector(self) -> ParameterVector:
         """ParameterVector ``x`` utilized in the feature map circuit."""
         return self._x
-    
+
     @property
     def parameter_vector(self) -> ParameterVector:
         """ParameterVector ``p`` utilized in the feature map circuit."""
@@ -297,7 +297,7 @@ class FeatureMapDerivatives:
                         rec_assign(dic.copy(), todo_list[1:], param_list[1:], multi_list[1:])
                     )
                 else:
-                    return_list.append(assign_parameters(optree, dic))
+                    return_list.append(optree_assign_parameters(optree, dic))
 
             if multi_list[0]:
                 return OpTreeNodeList(return_list)

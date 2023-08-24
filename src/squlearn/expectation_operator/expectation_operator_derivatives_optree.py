@@ -15,7 +15,7 @@ from ..util.data_preprocessing import adjust_input
 
 from ..util.optree.optree import OpTreeElementBase,OpTreeLeafCircuit,OpTreeNodeSum,OpTreeNodeList,OpTreeLeafOperator
 from ..util.optree.optree_derivative import simplify_copy,derivative
-from ..util.optree.optree_evaluate import assign_parameters
+from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
 
 
@@ -128,11 +128,6 @@ class ExpectationOperatorDerivatives:
 
         if self._optree_caching:
             self._optree_cache["O"] = optree
-
-    @property
-    def parameter_vector(self):
-        """Parameter vector of the expectation operator"""
-        return self._parameter_vector
 
     def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
         """Determine the derivative of the expectation operator.
@@ -256,9 +251,9 @@ class ExpectationOperatorDerivatives:
                 elif isinstance(op, SparsePauliOp):
                     return op.operator.power(2)
                 elif isinstance(op, OpTreeNodeSum):
-                    return OpTreeNodeSum([recursive_squaring(op.children[0])],op.factor,op.operation)
+                    return OpTreeNodeSum([recursive_squaring(child) for child in op.children],op.factor,op.operation)
                 elif isinstance(op, OpTreeNodeList):
-                    return OpTreeNodeList([recursive_squaring(op.children[0])],op.factor,op.operation)
+                    return OpTreeNodeList([recursive_squaring(child) for child in op.children],op.factor,op.operation)
                 else:
                     raise ValueError("Unknown type in recursive_squaring:", type(op))
 
@@ -299,7 +294,7 @@ class ExpectationOperatorDerivatives:
         return_list = []
         for p in param_op_inp:
             dic = dict(zip(self._parameter_vector, p))
-            return_list.append(assign_parameters(operator, dic))
+            return_list.append(optree_assign_parameters(operator, dic))
 
         if multi_param_op:
             return OpTreeNodeList(return_list)

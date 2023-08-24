@@ -1,3 +1,4 @@
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 # from qiskit.opflow import OperatorBase, CircuitStateFn, OperatorStateFn
@@ -24,7 +25,8 @@ from ..util.data_preprocessing import adjust_input
 
 from ..util import Executor
 
-from ..util.optree import gen_expectation_tree
+from ..util.optree.optree import gen_expectation_tree, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafCircuit,get_num_nested_lists
+from ..util.optree.optree_evaluate import evaluate_estimator,evaluate_sampler,optree_assign_parameters
 
 
 class Expec:
@@ -737,350 +739,339 @@ class QNN:
             List of probabilities stored in the SparseVectorStateFn format.
             (dictionary can be obtained by `.to_dict_fn()` or `to_dict_fn().primitive`)
         """
-        # # TODO: Implementation with Sampler
-        # opflow = self.get_optree_from_string("f")
-        # opflow_with_param = self.pqc_derivatives.assign_parameters(opflow, x, param)
-        # if self.quantum_instance is not None:
-        #     return evaluate_opflow_qi(self.quantum_instance, opflow_with_param)
-        # else:
-        #     raise RuntimeError("Probabilities are only implemented for Quantum Instances!")
 
-    # def evaluate(
-    #     self,
-    #     values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
-    #     x: Union[float, np.ndarray],
-    #     param: Union[float, np.ndarray],
-    #     param_op: Union[float, np.ndarray],
-    # ) -> dict:
-    #     """General function for evaluating the output of derivatives of the QNN.
+        optree = self.pqc_derivatives.get_derivative("I")
+        dictionary = dict(zip(self.parameters, param))
+        dictionary.update(zip(self.features, x))
+        optree_assign_parameters(optree, dictionary, inplace=True)
 
-    #     Evaluation works for given combination of
-    #     input features `x` and parameters `param` and `param_op`.
-    #     The function includes caching of results
+        if isinstance(optree,QuantumCircuit):
+            circuit = optree
+        elif isinstance(optree,OpTreeLeafCircuit):
+            circuit = optree.circuit
+        else:
+            raise TypeError("Unsported optree type:",type(optree))
 
-    #     If `x`, `param`, and/or `param_op` are given as a nested list
-    #     (for example multiple sets of parameters),
-    #     the values are returned in a nested list.
+        if circuit.num_clbits==0:
+            circuit.measure_all()
 
-    #     Args:
-    #         values : list of what values and derivatives of the QNN are evaluated.
-    #             Multiple inputs have to be a tuple.
-    #         x (np.ndarray): Values of the input feature data.
-    #         param (np.ndarray): Parameter values of the PQC parameters
-    #         param_op (np.ndarray): Parameter values of the operator parameters
+        sampler = self.executor.get_sampler()
+        result = sampler.run(circuit).result()
+        return result.quasi_dists[0].binary_probabilities()
+
+    def evaluate(
+        self,
+        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_op: Union[float, np.ndarray],
+    ) -> dict:
+        """General function for evaluating the output of derivatives of the QNN.
+
+        Evaluation works for given combination of
+        input features `x` and parameters `param` and `param_op`.
+        The function includes caching of results
+
+        If `x`, `param`, and/or `param_op` are given as a nested list
+        (for example multiple sets of parameters),
+        the values are returned in a nested list.
+
+        Args:
+            values : list of what values and derivatives of the QNN are evaluated.
+                Multiple inputs have to be a tuple.
+            x (np.ndarray): Values of the input feature data.
+            param (np.ndarray): Parameter values of the PQC parameters
+            param_op (np.ndarray): Parameter values of the operator parameters
 
 
-    #     Results:
-    #         Returns a dictionary with the computed values.
-    #         The keys of the dictionary are given by the entries in the values tuple
+        Results:
+            Returns a dictionary with the computed values.
+            The keys of the dictionary are given by the entries in the values tuple
 
-    #     """
+        """
 
-    #     def generate_real_todo_dic(values, value_dict):
-    #         """Converts the input values into a sorted dictionary
-    #         of of Expec items"""
+        def generate_real_todo_dic(values, value_dict):
+            """Converts the input values into a sorted dictionary
+            of of Expec items"""
 
-    #         # helper function for adding elemets to the real todo dict
-    #         def add_to_real_todo_dic(item: Expec, real_todo_dic, value_dict):
-    #             if item not in value_dict:
-    #                 if item.wave_function in real_todo_dic:
-    #                     #  check if i is already in the real todo list
-    #                     if item not in real_todo_dic[item.wave_function]:
-    #                         real_todo_dic[item.wave_function].append(item)
-    #                 else:
-    #                     real_todo_dic[item.wave_function] = [item]
-    #             return real_todo_dic
+            # helper function for adding elemets to the real todo dict
+            def add_to_real_todo_dic(item: Expec, real_todo_dic, value_dict):
+                if item not in value_dict:
+                    if item.wave_function in real_todo_dic:
+                        #  check if i is already in the real todo list
+                        if item not in real_todo_dic[item.wave_function]:
+                            real_todo_dic[item.wave_function].append(item)
+                    else:
+                        real_todo_dic[item.wave_function] = [item]
+                return real_todo_dic
 
-    #         # labels can be overwritten
-    #         try:
-    #             expec_list = [Expec.from_variable(i) for i in values]
-    #         except TypeError:
-    #             expec_list = [Expec.from_variable(values)]
-    #         # build dictionary for later use
-    #         real_todo_dic = {}
-    #         for i in expec_list:
-    #             # special cases of variance computation for post-processing:
-    #             if i.operator == "var" and i.wave_function == "I":
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "OO"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "O"), real_todo_dic, value_dict
-    #                 )
-    #             elif i.operator == "var" and i.wave_function == "dx":
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("dx", "OO"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "O"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("dx", "O"), real_todo_dic, value_dict
-    #                 )
-    #             elif i.operator == "var" and i.wave_function == "dp":
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("dp", "OO"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "O"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("dp", "O"), real_todo_dic, value_dict
-    #                 )
-    #             elif i.operator == "dvardop" and i.wave_function == "I":
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "OOdop"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "O"), real_todo_dic, value_dict
-    #                 )
-    #                 real_todo_dic = add_to_real_todo_dic(
-    #                     Expec("I", "dop"), real_todo_dic, value_dict
-    #                 )
-    #             else:
-    #                 real_todo_dic = add_to_real_todo_dic(i, real_todo_dic, value_dict)
-    #         return real_todo_dic
+            # labels can be overwritten
+            try:
+                expec_list = [Expec.from_variable(i) for i in values]
+            except TypeError:
+                expec_list = [Expec.from_variable(values)]
+            # build dictionary for later use
+            real_todo_dic = {}
+            for i in expec_list:
+                # special cases of variance computation for post-processing:
+                if i.operator == "var" and i.wave_function == "I":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "OO"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "O"), real_todo_dic, value_dict
+                    )
+                elif i.operator == "var" and i.wave_function == "dx":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("dx", "OO"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "O"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("dx", "O"), real_todo_dic, value_dict
+                    )
+                elif i.operator == "var" and i.wave_function == "dp":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("dp", "OO"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "O"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("dp", "O"), real_todo_dic, value_dict
+                    )
+                elif i.operator == "dvardop" and i.wave_function == "I":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "OOdop"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "O"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "dop"), real_todo_dic, value_dict
+                    )
+                else:
+                    real_todo_dic = add_to_real_todo_dic(i, real_todo_dic, value_dict)
+            return real_todo_dic
 
-    #     def to_tuple(x):
-    #         """helper function for converting data into hashable tuples"""
+        def to_tuple(x):
+            """helper function for converting data into hashable tuples"""
 
-    #         def flatten(container):
-    #             for i in container:
-    #                 if isinstance(i, (list, tuple, np.ndarray)):
-    #                     for j in flatten(i):
-    #                         yield j
-    #                 else:
-    #                     yield i
+            def flatten(container):
+                for i in container:
+                    if isinstance(i, (list, tuple, np.ndarray)):
+                        for j in flatten(i):
+                            yield j
+                    else:
+                        yield i
 
-    #         if isinstance(x, float):
-    #             return tuple([x])
-    #         elif len(np.shape(x)) == 1:
-    #             return tuple(list(x))
-    #         else:
-    #             return tuple(flatten(x))
+            if isinstance(x, float):
+                return tuple([x])
+            elif len(np.shape(x)) == 1:
+                return tuple(list(x))
+            else:
+                return tuple(flatten(x))
 
-    #     def measure_to_list(measure_op, offset=0):
-    #         """
-    #         Creates a list the numbers multpile measuremnt operators for later resorting
-    #         """
+        # Done with the helper functions, start of the evaluate function
 
-    #         measure_list = []
-    #         global countervar
-    #         countervar = offset - 1
+        # input adjustments for x, param, param_op to get correct stacking of values
+        x_inp, multi_x = adjust_input(x, self.num_features)
+        param_inp, multi_param = adjust_input(param, self.num_parameters)
+        param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
 
-    #         def build_circuit_list(operator: OperatorBase):
-    #             if isinstance(operator, CircuitStateFn):
-    #                 raise RuntimeError("No circuits are allows at this point!")
-    #             elif isinstance(operator, OperatorStateFn):
-    #                 global countervar
-    #                 countervar = countervar + 1
-    #                 measure_list.append(operator)
-    #                 return countervar
-    #             elif isinstance(operator, ListOp):
-    #                 list = []
-    #                 for op in operator.oplist:
-    #                     list.append(build_circuit_list(op))
-    #                 return list
+        # build dictionary for later use
+        dict_feature_map  = []
+        for x_inp_ in x_inp:
+            dd = dict(zip(self.pqc_derivatives.feature_vector,x_inp_))
+            for param_inp_ in param_inp:
+                ddd = dd.copy()
+                ddd.update(zip(self.pqc_derivatives.parameter_vector,param_inp_))
+                dict_feature_map.append(ddd)
+        dict_operator = [dict(zip(self.operator_derivatives.parameter_vector,p)) for p in param_op_inp]
 
-    #         index_list = build_circuit_list(measure_op)
+        # If values is not a tuple, convert it
+        if not isinstance(values, tuple):
+            values = (values,)
 
-    #         return index_list, measure_list
+        # return dictionary for input data, it will be empty
+        # if the combination of x,param,param_op is touched the first time
+        if self._result_caching == True:
+            caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_op))
+            value_dict = self.result_container.get(caching_tuple, {})
+        else:
+            value_dict = {}
 
-    #     def sort_back_to_nparray(index_list, val):
-    #         """
-    #         Uses the list generated by measure_to_list to sort back the values into the nested
-    #         output list structure
-    #         """
+        # create dictionary sorted w.r.t. the circuits
+        # expectation values with the same circuits are evaluated only once
+        # variance set-up is created here
+        real_todo_dic = generate_real_todo_dic(values, value_dict)
 
-    #         def sort_back_val(index_list):
-    #             if isinstance(index_list, list):
-    #                 return [sort_back_val(op) for op in index_list]
-    #             elif isinstance(index_list, int):
-    #                 return val[index_list]
-    #             else:
-    #                 raise RuntimeError("Wrong format of inputed index list")
+        operator_listed=False
+        for key, op_list in real_todo_dic.items():
+            # Obtained the derivative from the operator module
 
-    #         return sort_back_val(index_list)
+            operators_list = []
+            for expec_ in op_list:
+                operator = self.operator_derivatives.get_derivative(expec_.operator)
+                if isinstance(operator, OpTreeNodeList):
+                    operator_listed=True
+                operators_list.append(operator)
 
-    #     # Done with the helper functions, start of the evaluate function
+            operators = OpTreeNodeList(operators_list)
+            print("operators",operators)
 
-    #     # input adjustments for x, param, param_op to get correct stacking of values
-    #     x_inp, multi_x = adjust_input(x, self.num_features)
-    #     param_inp, multi_param = adjust_input(param, self.num_parameters)
-    #     param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
+            # get the circuits of the PQC derivatives from the feature map module
+            pqc_optree = self.pqc_derivatives.get_derivative(key)
 
-    #     # If values is not a tuple, convert it
-    #     if not isinstance(values, tuple):
-    #         values = (values,)
+            print("pqc_optree",pqc_optree)
 
-    #     # return dictionary for input data, it will be empty
-    #     # if the combination of x,param,param_op is touched the first time
-    #     if self._result_caching == True:
-    #         caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_op))
-    #         value_dict = self.result_container.get(caching_tuple, {})
-    #     else:
-    #         value_dict = {}
 
-    #     # create dictionary sorted w.r.t. the circuits
-    #     # expectation values with the same circuits are evaluated only once
-    #     # variance set-up is created here
-    #     real_todo_dic = generate_real_todo_dic(values, value_dict)
+            num_nested = get_num_nested_lists(pqc_optree)
 
-    #     for key, op_list in real_todo_dic.items():
-    #         # creates list of operators that can be evaluated for the same circuit
-    #         measure_list = []  #  listoff all considered measure operators
-    #         index_list = []  # list for index counting
-    #         offset = 0
-    #         for expec_ in op_list:
-    #             # Obtained the derivative from the operator module
-    #             operator = self.operator_derivatives.get_derivative(expec_.operator)
-    #             # Assign parameters and convert to sparse Pauli representation
-    #             op_with_param = self.operator_derivatives.assign_parameters(operator, param_op_inp)
 
-    #             # flatten the measurement operator list,
-    #             # but keep the nested list structure in index_list for later reconstruction
-    #             index_list_op, measure_list_op = measure_to_list(op_with_param, offset)
-    #             offset = offset + len(measure_list_op)
-    #             measure_list = measure_list + measure_list_op
-    #             index_list.append(index_list_op)
+            # Evaluation with the primitive TODO: store primitive once
+            #val = evaluate_estimator(pqc_optree,operators,dict_feature_map,dict_operator,self.executor.get_estimator())
 
-    #         # get the circuits of the PQC derivatives from the feature map module
-    #         pqc_opflow = self.pqc_derivatives.get_derivative(key)
+            val = evaluate_sampler(pqc_optree,operators,dict_feature_map,dict_operator,self.executor.get_sampler())
 
-    #         # check for multiple circuits (e.g. gradient)
-    #         if isinstance(pqc_opflow, ListOp):
-    #             array_circ = True
-    #         else:
-    #             array_circ = False
+            # Swapp results into the following order:
+            # 1. different expectation operators (op_list)
+            # 2. different input data/ feature map parameters (x_inp,params) -> separated later
+            # 3. different operator parameters (param_op_inp)
+            # 4. different output values (multi_output)
+            # 5. if existend the remaining dimensions of the output (e.g. array for gradient)
+            #print("val",val)
+            print("val.shape",val.shape)
+            ilist = list(range(len(val.shape)))
+            print("swapp_list inital",ilist)
+            print("num_nested",num_nested)
 
-    #         # add operator measurments to the circuits
-    #         opflow_measured = measure_feature_map_derivative(pqc_opflow, ListOp(measure_list))
+            #swapp_list = [swapp_list[2+num_nested_circs]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[2]]
+            if num_nested > 0:
+                swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]+ilist[2:2+num_nested]
+            else:
+                swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]
+            #swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:1]+ilist[2:2+num_nested]+ilist[2+num_nested+2:]
+            # if operator_listed:
+            #     #if len(op_list) > 1:
+            #     swapp_list = [swapp_list[-2]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[-1]]+swapp_list[2:-2]
+            #     #else:
+            # else:
+            #     if len(op_list) > 1:
+            #         swapp_list = [swapp_list[-1]]+[swapp_list[0]]+[swapp_list[1]]+swapp_list[2:-1]
+            #     else:
+            #         swapp_list = [swapp_list[-1]]+[swapp_list[0]]+[swapp_list[1]]+swapp_list[2:-1]
 
-    #         if self._split_paulis:
-    #             # If necessary, split the measurements containing X and Y operators
-    #             # into extra measurements
-    #             opflow_measured = _split_paulis(opflow_measured, len(measure_list) == 1)
+            print("swapp_list",swapp_list)
+            val = np.transpose(val, axes=swapp_list)
+            print("after val.shape",val.shape)
+            #print("after val",val)
 
-    #         # assign parameters of the circuit
-    #         opflow_with_param = self.pqc_derivatives.assign_parameters(
-    #             opflow_measured, x_inp, param_inp
-    #         )
+            # store results in value_dict
+            # if get rid of unncessary arrays to fit the input vector nesting
+            ioff = 0
+            for iexpec, expec_ in enumerate(op_list):
+                val_final = val[iexpec]
+                reshape_list = []
+                shape = val_final.shape
+                if multi_x:
+                    reshape_list.append(len(x))
+                if multi_param:
+                    reshape_list.append(len(param))
+                if multi_param_op:
+                    reshape_list.append(shape[1])
+                if self.multiple_output:
+                    reshape_list.append(shape[2])
+                if self.multiple_output:
+                    if len(shape) > 3:
+                        reshape_list += list(shape[3:])
+                else:
+                    if len(shape) > 2:
+                        reshape_list += list(shape[2:])
 
-    #         # evaluate the list of opflows
-    #         val = self.executor.opflow_exec(opflow_with_param)
+                print("reshape_list",reshape_list)
 
-    #         # In case of multiple circuits, swapp measurment operator to index 2 for a clearer nesting
-    #         if array_circ:
-    #             swapp_list = list(np.arange(len(val.shape), dtype=int))
-    #             swapp_list = [swapp_list[0]] + [swapp_list[1]] + swapp_list[-1:] + swapp_list[2:-1]
-    #             val = np.transpose(val, axes=swapp_list)
+                if len(reshape_list) == 0:
+                    value_dict[expec_] = val_final.reshape(-1)[0]
+                else:
+                    value_dict[expec_] = val_final.reshape(reshape_list)
+                ioff = ioff + 1
 
-    #         # store results in value_dict
-    #         # if get rid of unncessary arrays to fit the input vector nesting
-    #         ioff = 0
-    #         for iexpec, expec_ in enumerate(op_list):
-    #             val_x = []
-    #             for i in range(len(val)):
-    #                 val_param = []
-    #                 for j in range(len(val[i])):
-    #                     val_param.append(
-    #                         np.array(sort_back_to_nparray(index_list[iexpec], val[i][j]))
-    #                     )
-    #                 val_x.append(np.array(val_param))
-    #             val_final = np.array(val_x)
+        # Set-up lables from the input list
+        for todo in values:
+            todo_expec = Expec.from_variable(todo)
 
-    #             reshape_list = []
-    #             shape = val_final.shape
-    #             if multi_x:
-    #                 reshape_list.append(shape[0])
-    #             if multi_param:
-    #                 reshape_list.append(shape[1])
-    #             if multi_param_op:
-    #                 reshape_list.append(shape[2])
-    #             if len(shape) == 4:
-    #                 reshape_list.append(shape[3])
-    #             if len(shape) > 4:
-    #                 reshape_list += list(shape[3:])
-    #             if len(reshape_list) == 0:
-    #                 value_dict[expec_] = val_final.reshape(-1)[0]
-    #             else:
-    #                 value_dict[expec_] = val_final.reshape(reshape_list)
-    #             ioff = ioff + 1
+            # post-processing of the variance
+            # variance
+            if todo_expec.operator == "var" and todo_expec.wave_function == "I":
+                value_dict[todo_expec] = value_dict[Expec("I", "OO")] - np.square(
+                    value_dict[Expec("I", "O")]
+                )
+            # d/dx variance
+            elif todo_expec.operator == "var" and todo_expec.wave_function == "dx":
+                if self.num_features == 1:
+                    value_dict[todo_expec] = value_dict[Expec("dx", "OO")] - 2.0 * (
+                        np.multiply(value_dict[Expec("dx", "O")], value_dict[Expec("I", "O")])
+                    )
+                else:
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("dx", "OO")].shape)
+                    for i in range(value_dict[Expec("dx", "OO")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("dx", "OO")][
+                            ..., i
+                        ] - 2.0 * (
+                            np.multiply(
+                                value_dict[Expec("dx", "O")][..., i],
+                                value_dict[Expec("I", "O")],
+                            )
+                        )
+            # d/dp variance
+            elif todo_expec.operator == "var" and todo_expec.wave_function == "dp":
+                if self.num_parameters == 1:
+                    value_dict[todo_expec] = value_dict[Expec("dp", "OO")] - 2.0 * (
+                        np.multiply(value_dict[Expec("dp", "O")], value_dict[Expec("I", "O")])
+                    )
+                else:
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("dp", "OO")].shape)
+                    for i in range(value_dict[Expec("dp", "OO")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("dp", "OO")][
+                            ..., i
+                        ] - 2.0 * (
+                            np.multiply(
+                                value_dict[Expec("dp", "O")][..., i],
+                                value_dict[Expec("I", "O")],
+                            )
+                        )
+            # d/dop variance
+            elif todo_expec.operator == "dvardop" and todo_expec.wave_function == "I":
+                if self.num_parameters_operator == 1:
+                    value_dict[todo_expec] = value_dict[Expec("I", "OOdop")] - 2.0 * (
+                        np.multiply(value_dict[Expec("I", "dop")], value_dict[Expec("I", "O")])
+                    )
+                else:
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("I", "OOdop")].shape)
+                    for i in range(value_dict[Expec("I", "OOdop")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("I", "OOdop")][
+                            ..., i
+                        ] - 2.0 * (
+                            np.multiply(
+                                value_dict[Expec("I", "dop")][..., i],
+                                value_dict[Expec("I", "O")],
+                            )
+                        )
 
-    #     # Set-up lables from the input list
-    #     for todo in values:
-    #         todo_expec = Expec.from_variable(todo)
+            # assign values to the label of the expectation value
+            value_dict[todo] = value_dict[todo_expec]
+            if isinstance(todo, Expec) and todo.label != "":
+                value_dict[todo.label] = value_dict[todo_expec]
 
-    #         # post-processing of the variance
-    #         # variance
-    #         if todo_expec.operator == "var" and todo_expec.wave_function == "I":
-    #             value_dict[todo_expec] = value_dict[Expec("I", "OO")] - np.square(
-    #                 value_dict[Expec("I", "O")]
-    #             )
-    #         # d/dx variance
-    #         elif todo_expec.operator == "var" and todo_expec.wave_function == "dx":
-    #             if self.num_features == 1:
-    #                 value_dict[todo_expec] = value_dict[Expec("dx", "OO")] - 2.0 * (
-    #                     np.multiply(value_dict[Expec("dx", "O")], value_dict[Expec("I", "O")])
-    #                 )
-    #             else:
-    #                 value_dict[todo_expec] = np.zeros(value_dict[Expec("dx", "OO")].shape)
-    #                 for i in range(value_dict[Expec("dx", "OO")].shape[-1]):
-    #                     value_dict[todo_expec][..., i] = value_dict[Expec("dx", "OO")][
-    #                         ..., i
-    #                     ] - 2.0 * (
-    #                         np.multiply(
-    #                             value_dict[Expec("dx", "O")][..., i],
-    #                             value_dict[Expec("I", "O")],
-    #                         )
-    #                     )
-    #         # d/dp variance
-    #         elif todo_expec.operator == "var" and todo_expec.wave_function == "dp":
-    #             if self.num_parameters == 1:
-    #                 value_dict[todo_expec] = value_dict[Expec("dp", "OO")] - 2.0 * (
-    #                     np.multiply(value_dict[Expec("dp", "O")], value_dict[Expec("I", "O")])
-    #                 )
-    #             else:
-    #                 value_dict[todo_expec] = np.zeros(value_dict[Expec("dp", "OO")].shape)
-    #                 for i in range(value_dict[Expec("dp", "OO")].shape[-1]):
-    #                     value_dict[todo_expec][..., i] = value_dict[Expec("dp", "OO")][
-    #                         ..., i
-    #                     ] - 2.0 * (
-    #                         np.multiply(
-    #                             value_dict[Expec("dp", "O")][..., i],
-    #                             value_dict[Expec("I", "O")],
-    #                         )
-    #                     )
-    #         # d/dop variance
-    #         elif todo_expec.operator == "dvardop" and todo_expec.wave_function == "I":
-    #             if self.num_parameters_operator == 1:
-    #                 value_dict[todo_expec] = value_dict[Expec("I", "OOdop")] - 2.0 * (
-    #                     np.multiply(value_dict[Expec("I", "dop")], value_dict[Expec("I", "O")])
-    #                 )
-    #             else:
-    #                 value_dict[todo_expec] = np.zeros(value_dict[Expec("I", "OOdop")].shape)
-    #                 for i in range(value_dict[Expec("I", "OOdop")].shape[-1]):
-    #                     value_dict[todo_expec][..., i] = value_dict[Expec("I", "OOdop")][
-    #                         ..., i
-    #                     ] - 2.0 * (
-    #                         np.multiply(
-    #                             value_dict[Expec("I", "dop")][..., i],
-    #                             value_dict[Expec("I", "O")],
-    #                         )
-    #                     )
+        # Add x, param, and param_op to the dictionary as default
+        value_dict["x"] = x
+        value_dict["param"] = param
+        value_dict["param_op"] = param_op
 
-    #         # assign values to the label of the expectation value
-    #         value_dict[todo] = value_dict[todo_expec]
-    #         if isinstance(todo, Expec) and todo.label != "":
-    #             value_dict[todo.label] = value_dict[todo_expec]
+        # Store the updated dictionary for the theta value
+        if self._result_caching:
+            self.result_container[caching_tuple] = value_dict
 
-    #     # Add x, param, and param_op to the dictionary as default
-    #     value_dict["x"] = x
-    #     value_dict["param"] = param
-    #     value_dict["param_op"] = param_op
-
-    #     # Store the updated dictionary for the theta value
-    #     if self._result_caching:
-    #         self.result_container[caching_tuple] = value_dict
-
-    #     return value_dict
+        return value_dict

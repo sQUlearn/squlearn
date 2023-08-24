@@ -21,6 +21,7 @@ from .optree import (
     OpTreeLeafCircuit,
     OpTreeLeafOperator,
     OpTreeLeafContainer,
+    OpTreeLeafValue,
     OpTreeLeafExpectationValue,
     OpTreeLeafMeasuredOperator,
     gen_expectation_tree,
@@ -28,7 +29,7 @@ from .optree import (
 
 
 def _evaluate_index_tree(
-    element: Union[OpTreeNodeBase, OpTreeLeafContainer], result_array
+    element: Union[OpTreeNodeBase, OpTreeLeafContainer, OpTreeLeafValue], result_array
 ) -> Union[np.ndarray, float]:
     """
     Function for evaluating an OpTree structure that has been indexed with a given result array.
@@ -67,16 +68,19 @@ def _evaluate_index_tree(
     elif isinstance(element, OpTreeLeafContainer):
         # Return value from the result array
         return result_array[element.item]
+    elif isinstance(element, OpTreeLeafValue):
+        # Return the value
+        return element.value
     else:
         print(type(element))
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
 def _build_circuit_list(
-    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit,OpTreeLeafValue],
     dictionary: dict,
     detect_circuit_duplicates: bool = True,
-) -> Tuple[List[QuantumCircuit], List[np.ndarray], Union[OpTreeNodeBase, OpTreeLeafContainer]]:
+) -> Tuple[List[QuantumCircuit], List[np.ndarray], Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue]]:
     """
     Helper function for creating a list of circuits from an OpTree structure.
 
@@ -107,7 +111,7 @@ def _build_circuit_list(
     circuit_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OpTreeLeafValue]
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -156,6 +160,8 @@ def _build_circuit_list(
                 circuit = optree_element.circuit
                 if detect_circuit_duplicates:
                     circuit_hash = optree_element.hashvalue
+            elif isinstance(optree_element, OpTreeLeafValue):
+                return optree_element # Add nothing to the lists
             else:
                 raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
 
@@ -185,11 +191,12 @@ def _build_operator_list(
         OpTreeLeafOperator,
         OpTreeLeafExpectationValue,
         OpTreeLeafMeasuredOperator,
+        OpTreeLeafValue,
         SparsePauliOp,
     ],
     dictionary: dict,
     detect_operator_duplicates: bool = True,
-) -> Tuple[List[SparsePauliOp], Union[OpTreeNodeBase, OpTreeLeafContainer]]:
+) -> Tuple[List[SparsePauliOp], Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue]]:
     """
     Helper function for creating a list of operators from an OpTree structure.
 
@@ -220,7 +227,7 @@ def _build_operator_list(
     operator_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue]
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -255,7 +262,8 @@ def _build_operator_list(
                 )
             else:
                 raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
-
+        elif isinstance(optree_element, OpTreeLeafValue):
+            return optree_element # Add nothing to the lists
         else:
             # Reached a Operator
 
@@ -301,7 +309,7 @@ def _build_operator_list(
 
 def _build_measurement_list(
     optree_element: Union[
-        OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp
+        OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue
     ],
     detect_measurement_duplicates: bool = True,
     detect_operator_duplicates: bool = True,
@@ -337,7 +345,7 @@ def _build_measurement_list(
     operator_counter = 0
     operator_measurement_list = []
 
-    def build_list(element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]):
+    def build_list(optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue]):
         """
         Helper function for building the circuit list and the parameter list, and
         creates a indexed copy of the OpTree structure that references the circuits in the list.
@@ -351,19 +359,19 @@ def _build_measurement_list(
         nonlocal operator_counter
         nonlocal operator_measurement_list
 
-        if isinstance(element, OpTreeNodeBase):
+        if isinstance(optree_element, OpTreeNodeBase):
             # Recursive Call of the function for traversing the OpTree structure
-            for c in element.children:
+            for c in optree_element.children:
                 build_list(c)
 
-        elif isinstance(element, OpTreeLeafMeasuredOperator):
+        elif isinstance(optree_element, OpTreeLeafMeasuredOperator):
             # Measurement operator detected, check for duplicates of the operator if necessary
             if detect_operator_duplicates:
-                if element.hashvalue in operator_hash_dict:
+                if optree_element.hashvalue in operator_hash_dict:
                     return None
-                operator_hash_dict[element.hashvalue] = operator_counter
+                operator_hash_dict[optree_element.hashvalue] = operator_counter
 
-            circuit = element.circuit
+            circuit = optree_element.circuit
             if circuit.num_clbits == 0:
                 raise ValueError("Circuit missing a measurement")
 
@@ -385,14 +393,17 @@ def _build_measurement_list(
             operator_counter += 1
             return None
 
-        elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
+        elif isinstance(optree_element, OpTreeLeafValue):
+            return None
+
+        elif isinstance(optree_element, (SparsePauliOp, OpTreeLeafOperator)):
             # Measure free Operator detected, check for duplicates of the operator if necessary
             # (Conversion of X and Y Paulis is done elsewhere!)
             if detect_operator_duplicates:
-                if isinstance(element, SparsePauliOp):
-                    hashvalue = hash_operator(element)
+                if isinstance(optree_element, SparsePauliOp):
+                    hashvalue = hash_operator(optree_element)
                 else:
-                    hashvalue = element.hashvalue
+                    hashvalue = optree_element.hashvalue
                 if hashvalue in operator_hash_dict:
                     return None
                 operator_hash_dict[hashvalue] = operator_counter
@@ -424,7 +435,7 @@ def _build_measurement_list(
 
 
 def _build_expectation_list(
-    optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue],
+    optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue,OpTreeLeafValue],
     dictionary: dict,
     detect_expectation_duplicates: bool = True,
     group_circuits: bool = True,
@@ -433,7 +444,7 @@ def _build_expectation_list(
     List[SparsePauliOp],
     List[np.ndarray],
     List[List[int]],
-    Union[OpTreeNodeBase, OpTreeLeafContainer],
+    Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue],
 ]:
     """
     Helper function for creating a lists of circuits and operator from an expectation OpTree.
@@ -476,7 +487,7 @@ def _build_expectation_list(
     circuit_operator_list = []
 
     def build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue, OpTreeLeafValue]
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -517,6 +528,9 @@ def _build_expectation_list(
                 )
             else:
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+
+        elif isinstance(optree_element, OpTreeLeafValue):
+            return optree_element # Add nothing to the lists
 
         else:
             # Reached a Expecation Value Leaf
@@ -836,8 +850,6 @@ def evaluate_sampler(
             index_slice = slice(0, len(total_circuit_list))
             offset = 0
 
-        print("circuit_operator_list[index_slice]", circuit_operator_list[index_slice])
-
         # Evaluate the expectation values from the sampler results
         expec = _evaluate_expectation_from_sampler(
             operator_list,
@@ -846,12 +858,8 @@ def evaluate_sampler(
             offset=offset,
         )
 
-        print("expec", expec)
-
         # Evaluate the operator tree
         expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
-
-        print("expec2", expec2)
 
         # Evaluate the circuit tree for assembling the final results
         final_result.append(_evaluate_index_tree(circ_tree, expec2))
@@ -1339,7 +1347,7 @@ def transform_to_zbasis(
         raise ValueError("Wrong type of Optree Element:", type(optree_element))
 
 
-def assign_parameters(
+def optree_assign_parameters(
     element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
     dictionary,
     inplace: bool = False,
@@ -1361,14 +1369,14 @@ def assign_parameters(
     if isinstance(element, OpTreeNodeBase):
         if inplace:
             for c in element.children:
-                assign_parameters(c, dictionary, inplace=True)
+                optree_assign_parameters(c, dictionary, inplace=True)
             for i, fac in enumerate(element.factor):
                 if isinstance(fac, ParameterExpression):
                     element.factor[i] = float(fac.bind(dictionary, allow_unknown_parameters=True))
 
         else:
             # Index circuits and bind parameters in the OpTreeNode structure
-            child_list_assigned = [assign_parameters(c, dictionary) for c in element.children]
+            child_list_assigned = [optree_assign_parameters(c, dictionary) for c in element.children]
             factor_list_bound = []
             for fac in element.factor:
                 if isinstance(fac, ParameterExpression):

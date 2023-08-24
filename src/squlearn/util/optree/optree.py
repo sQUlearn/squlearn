@@ -412,6 +412,30 @@ class OpTreeLeafContainer(OpTreeLeafBase):
         """ Function for copying a OpTreeLeafContainer object. """
         return OpTreeLeafContainer(copy.deepcopy(self.item))
 
+class OpTreeLeafValue(OpTreeLeafBase):
+    """
+    A leaf that containes an evaluated value.
+
+    Args:
+        value (float): A float value that is represented by the leaf.
+    """
+
+    def __init__(self, value: float) -> None:
+        self.value = value
+
+    def __str__(self) -> str:
+        """Returns the string representation of the value."""
+        return str(self.value)
+
+    def __eq__(self, other) -> bool:
+        """Function for comparing two OpTreeLeafValues."""
+        if isinstance(other, OpTreeLeafValue):
+            return self.value == other.value
+
+    def copy(self):
+        """ Function for copying a OpTreeLeafValue object. """
+        return OpTreeLeafValue(self.value)
+
 def get_number_of_leafs(tree: OpTreeElementBase) -> int:
     """Returns the number of leafs of the OpTree.
 
@@ -447,6 +471,24 @@ def get_tree_depth(tree: OpTreeElementBase) -> int:
             depth = max(depth, get_tree_depth(child))
         return depth + 1
 
+def get_num_nested_lists(tree: OpTreeElementBase) -> int:
+    """Returns the depth of the OpTree.
+
+    Args:
+        tree (OpTreeElementBase): The OpTree.
+
+    Returns:
+        int: The depth of the OpTree.
+    """
+    if isinstance(tree, OpTreeLeafBase):
+        return 0
+    else:
+        depth = 0
+        for child in tree.children:
+            depth = min(depth, get_tree_depth(child))
+        if isinstance(tree, OpTreeNodeList):
+            return depth + 1
+        return depth
 
 def get_first_leaf(
     element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]

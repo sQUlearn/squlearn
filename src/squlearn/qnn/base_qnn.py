@@ -14,7 +14,7 @@ from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase
-from .qnn import QNN
+from .qnn_optree import QNN
 from .training import shot_adjusting_options
 
 
