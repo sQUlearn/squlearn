@@ -924,7 +924,7 @@ class QNN:
             # get the circuits of the PQC derivatives from the feature map module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
 
-            print("pqc_optree",pqc_optree)
+            #print("pqc_optree",pqc_optree)
 
 
             num_nested = get_num_nested_lists(pqc_optree)
@@ -943,15 +943,36 @@ class QNN:
             # 5. if existend the remaining dimensions of the output (e.g. array for gradient)
             #print("val",val)
             print("val.shape",val.shape)
+
+
+
             ilist = list(range(len(val.shape)))
             print("swapp_list inital",ilist)
             print("num_nested",num_nested)
 
-            #swapp_list = [swapp_list[2+num_nested_circs]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[2]]
+            swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]
+
+            length = 3+num_nested
+            print("self.multiple_output",self.multiple_output)
+            if self.multiple_output:
+                length += 1
+                swapp_list = swapp_list + [ilist[-1]]
+            print("length",length)
+            print("len(ilist)",len(ilist))
+            if len(ilist) > length:
+                swapp_list = swapp_list + ilist[3+num_nested:-1]
+
             if num_nested > 0:
-                swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]+ilist[2:2+num_nested]
-            else:
-                swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]
+                swapp_list = swapp_list + ilist[2:2+num_nested]
+
+
+            # #swapp_list = [swapp_list[2+num_nested_circs]]+[swapp_list[0]]+[swapp_list[1]]+[swapp_list[2]]
+            # if num_nested > 0:
+            #     swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]+ilist[2:2+num_nested]
+            # else:
+            #     swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:]
+
+
             #swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]+ilist[2+num_nested+1:1]+ilist[2:2+num_nested]+ilist[2+num_nested+2:]
             # if operator_listed:
             #     #if len(op_list) > 1:
