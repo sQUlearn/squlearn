@@ -98,7 +98,6 @@ class QiskitFeatureMap(FeatureMapBase):
 
                 param_available = False
                 for label in self._parameter_label:
-
                     if label + "[0]" in set_of_param_names:
                         param_available = True
                         break

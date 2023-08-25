@@ -2,8 +2,6 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import Pauli
 from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
@@ -80,16 +78,16 @@ class SinglePauli(ExpectationOperatorBase):
         params["parameterized"] = self.parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
-        Function for generating the PauliOp expression of the single Pauli operator.
+        Function for generating the SparsePauliOp expression of the single Pauli operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
                                                              Pauli operator.
 
         Return:
-            PauliOp expression of the specified single Pauli operator.
+            SparsePauliOp expression of the specified single Pauli operator.
         """
 
         i = self.qubit
@@ -97,33 +95,7 @@ class SinglePauli(ExpectationOperatorBase):
             raise ValueError("Specified qubit out of range")
 
         H = "I" * self.num_qubits
-        H = PauliOp(Pauli(H[(i + 1) :] + self.op_str + H[:i]))
-
         if self.parameterized:
-            H = H * parameters[0]
+            SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]], [parameters[0]])
 
-        return H.reduce()
-
-    def get_pauli_new(self, parameters: Union[ParameterVector, np.ndarray]):
-        """
-        Function for generating the PauliOp expression of the single Pauli operator.
-
-        Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                                                             Pauli operator.
-
-        Return:
-            PauliOp expression of the specified single Pauli operator.
-        """
-
-        i = self.qubit
-        if 0 > i or self.num_qubits <= i:
-            raise ValueError("Specified qubit out of range")
-
-        H = "I" * self.num_qubits
-        H = PauliOp(Pauli(H[(i + 1) :] + self.op_str + H[:i]))
-
-        if self.parameterized:
-            H = H * parameters[0]
-
-        return H.reduce()
+        return SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]])

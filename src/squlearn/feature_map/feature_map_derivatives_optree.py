@@ -4,13 +4,20 @@ from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.compiler import transpile # TODO
+from qiskit.compiler import transpile  # TODO
 
 from .feature_map_base import FeatureMapBase
-from ..util.optree.optree import OpTreeElementBase,OpTreeLeafCircuit,OpTreeNodeSum,OpTreeNodeList,OpTreeNodeBase
-from ..util.optree.optree_derivative import simplify_copy,derivative
+from ..util.optree.optree import (
+    OpTreeElementBase,
+    OpTreeLeafCircuit,
+    OpTreeNodeSum,
+    OpTreeNodeList,
+    OpTreeNodeBase,
+)
+from ..util.optree.optree_derivative import simplify_copy, derivative
 from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
+
 
 class FeatureMapDerivatives:
     r"""
@@ -98,9 +105,8 @@ class FeatureMapDerivatives:
         self._circuit = feature_map.get_circuit(self._x, self._p)
         self._optree_start = OpTreeLeafCircuit(self._circuit)
 
-        #self.circuit_opflow = CircuitStateFn(primitive=circuit, coeff=1.0)
+        # self.circuit_opflow = CircuitStateFn(primitive=circuit, coeff=1.0)
         self.num_qubits = self._circuit.num_qubits
-
 
         self._optree_cache = {}
         self._optree_caching = optree_caching
@@ -307,8 +313,6 @@ class FeatureMapDerivatives:
         return rec_assign({}, todo_list, param_list, multi_list)
 
 
-
-
 # def measure_feature_map_derivative(
 #     operator: OperatorBase, measurement: OperatorBase
 # ) -> OperatorBase:
@@ -367,7 +371,8 @@ class FeatureMapDerivatives:
 
 
 def _optree_differentiation(
-    optree: OpTreeElementBase, parameters: Union[list, tuple, ParameterVectorElement, ParameterVector]
+    optree: OpTreeElementBase,
+    parameters: Union[list, tuple, ParameterVectorElement, ParameterVector],
 ) -> OpTreeElementBase:
     """
     Routine for the automatic differentiation based on qiskit routines
@@ -393,7 +398,9 @@ def _optree_differentiation(
         # ParameterExpression(0) is removed by clean_opflow_circ
         # Gates are transpiled in Gradient(), this can yield different set of gates
         # than supported by the QC hardware, this is also fixed by clean_opflow_circ
-        return simplify_copy(derivative(optree, parameters).children[0]) # TODO:backtranspile maybe in derivative
+        return simplify_copy(
+            derivative(optree, parameters).children[0]
+        )  # TODO:backtranspile maybe in derivative
     else:
         # If multiple variables are differentiated -> results are returned in array
 
@@ -407,11 +414,14 @@ def _optree_differentiation(
         # ParameterExpression(0) is removed by clean_opflow_circ
         # Gates are transpiled in Gradient(), this can yield different set of gates
         # than supported by the QC hardware, this is also fixed by clean_opflow_circ
-        return simplify_copy(derivative(optree, parameters)) # TODO:backtranspile maybe in derivative
+        return simplify_copy(
+            derivative(optree, parameters)
+        )  # TODO:backtranspile maybe in derivative
 
 
-def _optree_transpile_back(optree_element: Union[OpTreeNodeBase,OpTreeLeafCircuit,QuantumCircuit],instruction_set)->Union[OpTreeNodeBase,OpTreeLeafCircuit,QuantumCircuit]:
-
+def _optree_transpile_back(
+    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
+) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
     if isinstance(optree_element, OpTreeNodeBase):
         # Recursive call for all children
         children_list = [
@@ -423,8 +433,7 @@ def _optree_transpile_back(optree_element: Union[OpTreeNodeBase,OpTreeLeafCircui
             return OpTreeNodeList(children_list, optree_element.factor, optree_element.operation)
         else:
             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-    elif isinstance(optree_element, (OpTreeLeafCircuit,QuantumCircuit)):
-
+    elif isinstance(optree_element, (OpTreeLeafCircuit, QuantumCircuit)):
         circuit = optree_element
         if isinstance(optree_element, OpTreeLeafCircuit):
             circuit = optree_element.circuit

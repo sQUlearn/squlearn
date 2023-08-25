@@ -246,10 +246,12 @@ class OpTreeLeafOperator(OpTreeLeafBase):
             return False
         return False
 
+
 class OpTreeLeafContainer(OpTreeLeafBase):
     """
     A container for arbitrary objects that can be used as leafs in the OpTree.
     """
+
     def __init__(self, item: Any) -> None:
         self.item = item
 
@@ -309,8 +311,7 @@ def circuit_parameter_shift(
     iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
     shift_sum = OpTreeNodeSum()
     # Loop through all parameter occurences in the circuit
-    for param_reference in circuit._parameter_table[parameter]: # pylint: disable=protected-access
-
+    for param_reference in circuit._parameter_table[parameter]:  # pylint: disable=protected-access
         # Get the gate in which the parameter is located
         original_gate, param_index = param_reference
         m = iref_to_data_index[id(original_gate)]
@@ -352,7 +353,7 @@ def circuit_derivative_inplace(
     tree_node: OpTreeNodeBase,
     parameter: ParameterExpression,
 ) -> None:
-    """"
+    """ "
     Create the derivative of a OpTreeNode wrt a single parameter, modifies the tree inplace.
 
     Functions returns nothing, since the OpTree is modified inplace.
@@ -363,17 +364,14 @@ def circuit_derivative_inplace(
 
     """
     if isinstance(tree_node, OpTreeNodeBase):
-        for i,child in enumerate(tree_node.children):
-
+        for i, child in enumerate(tree_node.children):
             if isinstance(tree_node.factor[i], ParameterExpression):
                 grad_fac = tree_node.factor[i].gradient(parameter)
             else:
                 grad_fac = 0.0
 
-            if isinstance(child, QuantumCircuit) or isinstance(
-                child, OpTreeLeafCircuit
-            ):
-    	        # reached a leaf -> grad by parameter shift function
+            if isinstance(child, QuantumCircuit) or isinstance(child, OpTreeLeafCircuit):
+                # reached a leaf -> grad by parameter shift function
                 grad = circuit_parameter_shift(child, parameter)
             else:
                 # Node -> recursive call
@@ -386,16 +384,19 @@ def circuit_derivative_inplace(
                 if grad_fac == 0.0:
                     tree_node.children[i] = grad
                 else:
-                    tree_node.children[i] = OpTreeNodeSum([child, grad], [grad_fac, tree_node.factor[i]])
+                    tree_node.children[i] = OpTreeNodeSum(
+                        [child, grad], [grad_fac, tree_node.factor[i]]
+                    )
                     tree_node.factor[i] = 1.0
             else:
                 # if grad_fac is still a parameter
-                tree_node.children[i] = OpTreeNodeSum([child, grad], [grad_fac, tree_node.factor[i]])
+                tree_node.children[i] = OpTreeNodeSum(
+                    [child, grad], [grad_fac, tree_node.factor[i]]
+                )
                 tree_node.factor[i] = 1.0
 
     else:
         raise ValueError("tree_node must be a CircuitTreeSum or a CircuitTreeList")
-
 
 
 def circuit_derivative(
@@ -470,7 +471,7 @@ def circuit_derivative_copy(
     if isinstance(element, OpTreeNodeBase):
         children_list = []
         factor_list = []
-        for i,child in enumerate(element.children):
+        for i, child in enumerate(element.children):
             if isinstance(element.factor[i], ParameterExpression):
                 # get derivative of factor
                 grad_fac = element.factor[i].gradient(parameter)
@@ -534,7 +535,6 @@ def circuit_derivative_v2(
         parameters = [parameters]
         is_list = False
 
-
     # Loop through all parameters and calculate the derivative
     derivative_list = []
     fac_list = []
@@ -549,7 +549,9 @@ def circuit_derivative_v2(
         return derivative_list[0]
 
 
-def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]) -> Union[OpTreeNodeBase,OpTreeLeafBase,QuantumCircuit,OperatorType]:
+def simplify_copy(
+    element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]
+) -> Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]:
     """
     Function for simplifying an OpTree structure, the input is kept untouched.
 
@@ -563,7 +565,7 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
     """
 
     def combine_two_ops(op1, op2):
-        """ Helper function for combining two operations into one.
+        """Helper function for combining two operations into one.
 
         TODO: not used/tested yet
         """
@@ -582,8 +584,8 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
             children_list = []
             factor_list = []
             operation_list = []
-            for i,child in enumerate(element.children):
-                children_list.append(simplify_copy(child)) # Recursive call
+            for i, child in enumerate(element.children):
+                children_list.append(simplify_copy(child))  # Recursive call
                 factor_list.append(element.factor[i])
                 operation_list.append(element.operation[i])
 
@@ -595,19 +597,20 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
             # Check for double sum if the element is a sum and one of the children is a sums
-            if (isinstance(new_element, OpTreeNodeSum) and
-                any([isinstance(child, OpTreeNodeSum) for child in new_element.children])
+            if isinstance(new_element, OpTreeNodeSum) and any(
+                [isinstance(child, OpTreeNodeSum) for child in new_element.children]
             ):
                 # Merge the sum of a sum into the parent sum
                 children_list = []
                 factor_list = []
                 operation_list = []
-                for i,child in enumerate(new_element.children):
+                for i, child in enumerate(new_element.children):
                     if isinstance(child, OpTreeNodeSum):
-                        for j,childs_child in enumerate(child.children):
+                        for j, childs_child in enumerate(child.children):
                             children_list.append(childs_child)
                             factor_list.append(new_element.factor[i] * child.factor[j])
-                            operation_list.append(combine_two_ops(new_element.operation[i],child.operation[j])
+                            operation_list.append(
+                                combine_two_ops(new_element.operation[i], child.operation[j])
                             )
                     else:
                         children_list.append(child)
@@ -618,13 +621,12 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
 
             # Check for similar branches in the Sum and merge them into a single branch
             if isinstance(new_element, OpTreeNodeSum):
-
                 children_list = []
                 factor_list = []
                 operation_list = []
 
-                #TODO check for operator
-                for i,child in enumerate(new_element.children):
+                # TODO check for operator
+                for i, child in enumerate(new_element.children):
                     # Chick if child already exists in the list
                     # (branch is already present -> merging)
                     if child in children_list:
@@ -647,7 +649,10 @@ def simplify_copy(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,
         # Reached a leaf -> cancel the recursion
         return copy.deepcopy(element)
 
-def simplify_inplace(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]) -> None:
+
+def simplify_inplace(
+    element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OperatorType]
+) -> None:
     """
     Function for simplifying an OpTree structure, the input is modified inplace.
 
@@ -661,7 +666,9 @@ def simplify_inplace(element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircu
     raise NotImplementedError("Not implemented yet")
 
 
-def _evaluate_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], result_array) -> Union[np.ndarray,float]:
+def _evaluate_index_tree(
+    element: Union[OpTreeNodeBase, OpTreeLeafContainer], result_array
+) -> Union[np.ndarray, float]:
     """
     Function for evaluating an OpTree structure that has been indexed with a given result array.
 
@@ -679,7 +686,6 @@ def _evaluate_index_tree(element: Union[OpTreeNodeBase, OpTreeLeafContainer], re
 
     """
     if isinstance(element, OpTreeNodeBase):
-
         if any(not isinstance(fac, float) for fac in element.factor):
             raise ValueError("All factors must be numeric for evaluation")
 
@@ -715,10 +721,7 @@ def evaluate(
     """
     TODO: docstring
     """
-    
-    
-    
-    
+
     # TODO: dictionary might be slow!
 
     # create a list of circuit and a copy of the circuit tree with indices pointing to the circuit
@@ -751,7 +754,7 @@ def evaluate(
                     )
                 else:
                     factor_list_bound.append(fac)
-            op = element.operation # TODO: check if this is correct
+            op = element.operation  # TODO: check if this is correct
 
             # Recursive rebuild of the OpTree structure
             if isinstance(element, OpTreeNodeSum):

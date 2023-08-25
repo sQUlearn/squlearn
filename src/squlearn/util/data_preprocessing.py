@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple
 
+
 def assign_all_parameters(
     opflow,
     x=None,

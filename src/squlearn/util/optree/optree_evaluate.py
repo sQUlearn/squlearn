@@ -77,10 +77,14 @@ def _evaluate_index_tree(
 
 
 def _build_circuit_list(
-    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit,OpTreeLeafValue],
+    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafValue],
     dictionary: dict,
     detect_circuit_duplicates: bool = True,
-) -> Tuple[List[QuantumCircuit], List[np.ndarray], Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue]]:
+) -> Tuple[
+    List[QuantumCircuit],
+    List[np.ndarray],
+    Union[OpTreeNodeBase, OpTreeLeafContainer, OpTreeLeafValue],
+]:
     """
     Helper function for creating a list of circuits from an OpTree structure.
 
@@ -111,7 +115,7 @@ def _build_circuit_list(
     circuit_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit,OpTreeLeafValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeLeafValue]
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -161,7 +165,7 @@ def _build_circuit_list(
                 if detect_circuit_duplicates:
                     circuit_hash = optree_element.hashvalue
             elif isinstance(optree_element, OpTreeLeafValue):
-                return optree_element # Add nothing to the lists
+                return optree_element  # Add nothing to the lists
             else:
                 raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
 
@@ -196,7 +200,7 @@ def _build_operator_list(
     ],
     dictionary: dict,
     detect_operator_duplicates: bool = True,
-) -> Tuple[List[SparsePauliOp], Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue]]:
+) -> Tuple[List[SparsePauliOp], Union[OpTreeNodeBase, OpTreeLeafContainer, OpTreeLeafValue]]:
     """
     Helper function for creating a list of operators from an OpTree structure.
 
@@ -227,7 +231,7 @@ def _build_operator_list(
     operator_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafValue]
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -263,7 +267,7 @@ def _build_operator_list(
             else:
                 raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
         elif isinstance(optree_element, OpTreeLeafValue):
-            return optree_element # Add nothing to the lists
+            return optree_element  # Add nothing to the lists
         else:
             # Reached a Operator
 
@@ -309,7 +313,11 @@ def _build_operator_list(
 
 def _build_measurement_list(
     optree_element: Union[
-        OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue
+        OpTreeNodeBase,
+        OpTreeLeafMeasuredOperator,
+        OpTreeLeafOperator,
+        SparsePauliOp,
+        OpTreeLeafValue,
     ],
     detect_measurement_duplicates: bool = True,
     detect_operator_duplicates: bool = True,
@@ -345,7 +353,9 @@ def _build_measurement_list(
     operator_counter = 0
     operator_measurement_list = []
 
-    def build_list(optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue]):
+    def build_list(
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafValue]
+    ):
         """
         Helper function for building the circuit list and the parameter list, and
         creates a indexed copy of the OpTree structure that references the circuits in the list.
@@ -435,7 +445,7 @@ def _build_measurement_list(
 
 
 def _build_expectation_list(
-    optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue,OpTreeLeafValue],
+    optree_element: Union[OpTreeNodeBase, OpTreeLeafExpectationValue, OpTreeLeafValue],
     dictionary: dict,
     detect_expectation_duplicates: bool = True,
     group_circuits: bool = True,
@@ -444,7 +454,7 @@ def _build_expectation_list(
     List[SparsePauliOp],
     List[np.ndarray],
     List[List[int]],
-    Union[OpTreeNodeBase, OpTreeLeafContainer,OpTreeLeafValue],
+    Union[OpTreeNodeBase, OpTreeLeafContainer, OpTreeLeafValue],
 ]:
     """
     Helper function for creating a lists of circuits and operator from an expectation OpTree.
@@ -530,7 +540,7 @@ def _build_expectation_list(
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
         elif isinstance(optree_element, OpTreeLeafValue):
-            return optree_element # Add nothing to the lists
+            return optree_element  # Add nothing to the lists
 
         else:
             # Reached a Expecation Value Leaf
@@ -1376,7 +1386,9 @@ def optree_assign_parameters(
 
         else:
             # Index circuits and bind parameters in the OpTreeNode structure
-            child_list_assigned = [optree_assign_parameters(c, dictionary) for c in element.children]
+            child_list_assigned = [
+                optree_assign_parameters(c, dictionary) for c in element.children
+            ]
             factor_list_bound = []
             for fac in element.factor:
                 if isinstance(fac, ParameterExpression):

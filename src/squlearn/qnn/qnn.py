@@ -967,7 +967,7 @@ class QNN:
             # evaluate the list of opflows
             val = self.executor.opflow_exec(opflow_with_param)
 
-            #print("val",val)
+            # print("val",val)
 
             # In case of multiple circuits, swapp measurment operator to index 2 for a clearer nesting
             if array_circ:
@@ -975,7 +975,7 @@ class QNN:
                 swapp_list = [swapp_list[0]] + [swapp_list[1]] + swapp_list[-1:] + swapp_list[2:-1]
                 val = np.transpose(val, axes=swapp_list)
 
-            #print("val2",val)
+            # print("val2",val)
 
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting

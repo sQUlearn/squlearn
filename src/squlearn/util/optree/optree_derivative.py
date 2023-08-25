@@ -18,9 +18,11 @@ from .optree import (
 
 # TODO: instruction set for the differentiation!!!
 
+
 def circuit_parameter_shift(
-    element: Union[OpTreeLeafCircuit, QuantumCircuit,OpTreeLeafValue], parameter: ParameterExpression
-) -> Union[None, OpTreeNodeSum,OpTreeLeafValue]:
+    element: Union[OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafValue],
+    parameter: ParameterExpression,
+) -> Union[None, OpTreeNodeSum, OpTreeLeafValue]:
     """
     Build the parameter shift derivative of a circuit wrt a single parameter.
 
@@ -90,8 +92,9 @@ def circuit_parameter_shift(
 
 
 def operator_derivative(
-    element: Union[OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue], parameter: ParameterExpression
-) -> Union[OpTreeLeafOperator, SparsePauliOp,OpTreeLeafValue]:
+    element: Union[OpTreeLeafOperator, SparsePauliOp, OpTreeLeafValue],
+    parameter: ParameterExpression,
+) -> Union[OpTreeLeafOperator, SparsePauliOp, OpTreeLeafValue]:
     """
     Obtain the derivative of an operator wrt a single parameter.
 
@@ -189,7 +192,6 @@ def derivative_inplace(
                     [child, grad], [grad_fac, tree_node.factor[i]]
                 )
                 tree_node.factor[i] = 1.0
-
 
         if len(remove_list) > 0:
             tree_node.remove(remove_list)

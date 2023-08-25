@@ -3,12 +3,13 @@ from typing import Union
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp,Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli
 
-from ..util.optree.optree import OpTreeNodeBase,OpTreeNodeList,OpTreeNodeSum,OpTreeLeafOperator
+from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator
+from ..util.optree.optree_derivative import simplify_copy
 
-#from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
-#from qiskit.opflow import SummedOp, Zero, One
+# from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
+# from qiskit.opflow import SummedOp, Zero, One
 from qiskit.opflow import OperatorBase, StateFn
 
 
@@ -152,19 +153,6 @@ class ExpectationOperatorBase(ABC):
         else:
             return self.get_pauli(parameters)
 
-    def get_operator_old(self, parameters: Union[ParameterVector, np.ndarray]):
-        """Returns Operator in as a opflow measurement operator.
-
-        Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
-                                                             the operator
-        Return:
-            StateFn expression of the expectation operator.
-        """
-
-        return StateFn(self.get_pauli(parameters), is_measurement=True)
-
-
     @abstractmethod
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
@@ -193,9 +181,7 @@ class ExpectationOperatorBase(ABC):
         """
 
         def map_operator(operator):
-
             if isinstance(operator, OpTreeNodeBase):
-
                 children_list = [map_operator(op) for op in operator.children]
 
                 # Rebuild the tree with the new children and factors (copy part)
@@ -205,8 +191,7 @@ class ExpectationOperatorBase(ABC):
                     return OpTreeNodeList(children_list, operator.factor, operator.operation)
                 else:
                     raise ValueError("Wrong Type in operator: ", type(operator))
-            elif isinstance(operator, (SparsePauliOp,OpTreeLeafOperator)):
-
+            elif isinstance(operator, (SparsePauliOp, OpTreeLeafOperator)):
                 op = operator
                 if isinstance(op, OpTreeLeafOperator):
                     op = op.operator
@@ -222,7 +207,7 @@ class ExpectationOperatorBase(ABC):
             else:
                 raise ValueError("Wrong Type in operator: ", type(operator))
 
-        return map_operator(self.get_pauli_new(parameters)) # TODO: change
+        return map_operator(self.get_pauli(parameters))
 
     def __str__(self):
         """Return a string representation of the ExpectationOperatorBase."""
@@ -377,11 +362,11 @@ class ExpectationOperatorBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return (paulis_op + paulis_op).reduce()
+                    return simplify_copy(paulis_op + paulis_op)
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return (paulis_op1 + paulis_op2).reduce()
+                    return simplify_copy(paulis_op1 + paulis_op2)
 
         return AddedExpectationOperator(self, x)
 
@@ -496,10 +481,10 @@ class ExpectationOperatorBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return (paulis_op @ paulis_op).reduce().reduce()
+                    return simplify_copy(paulis_op.compose(paulis_op))
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return (paulis_op1 @ paulis_op2).reduce().reduce()
+                    return simplify_copy(paulis_op1.compose(paulis_op2))
 
         return MultipliedExpectationOperator(self, x)

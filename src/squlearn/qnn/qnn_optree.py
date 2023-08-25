@@ -1,6 +1,7 @@
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
+
 # from qiskit.opflow import OperatorBase, CircuitStateFn, OperatorStateFn
 # from qiskit.opflow import ListOp, SummedOp, ComposedOp, TensoredOp
 # from qiskit.opflow import Zero, One
@@ -12,12 +13,14 @@ from typing import Union
 import numpy as np
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..expectation_operator.expectation_operator_derivatives_optree import ExpectationOperatorDerivatives
+from ..expectation_operator.expectation_operator_derivatives_optree import (
+    ExpectationOperatorDerivatives,
+)
 
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..feature_map.feature_map_derivatives_optree import (
     FeatureMapDerivatives,
-    #measure_feature_map_derivative,
+    # measure_feature_map_derivative,
 )
 from ..feature_map.transpiled_feature_map import TranspiledFeatureMap
 
@@ -25,8 +28,18 @@ from ..util.data_preprocessing import adjust_input
 
 from ..util import Executor
 
-from ..util.optree.optree import gen_expectation_tree, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafCircuit,get_num_nested_lists
-from ..util.optree.optree_evaluate import evaluate_estimator,evaluate_sampler,optree_assign_parameters
+from ..util.optree.optree import (
+    gen_expectation_tree,
+    OpTreeNodeList,
+    OpTreeNodeSum,
+    OpTreeLeafCircuit,
+    get_num_nested_lists,
+)
+from ..util.optree.optree_evaluate import (
+    evaluate_estimator,
+    evaluate_sampler,
+    optree_assign_parameters,
+)
 
 
 class Expec:
@@ -747,14 +760,14 @@ class QNN:
         dictionary.update(zip(self.features, x))
         optree_assign_parameters(optree, dictionary, inplace=True)
 
-        if isinstance(optree,QuantumCircuit):
+        if isinstance(optree, QuantumCircuit):
             circuit = optree
-        elif isinstance(optree,OpTreeLeafCircuit):
+        elif isinstance(optree, OpTreeLeafCircuit):
             circuit = optree.circuit
         else:
-            raise TypeError("Unsported optree type:",type(optree))
+            raise TypeError("Unsported optree type:", type(optree))
 
-        if circuit.num_clbits==0:
+        if circuit.num_clbits == 0:
             circuit.measure_all()
 
         sampler = self.executor.get_sampler()
@@ -883,14 +896,16 @@ class QNN:
         param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
 
         # build dictionary for later use
-        dict_feature_map  = []
+        dict_feature_map = []
         for x_inp_ in x_inp:
-            dd = dict(zip(self.pqc_derivatives.feature_vector,x_inp_))
+            dd = dict(zip(self.pqc_derivatives.feature_vector, x_inp_))
             for param_inp_ in param_inp:
                 ddd = dd.copy()
-                ddd.update(zip(self.pqc_derivatives.parameter_vector,param_inp_))
+                ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
                 dict_feature_map.append(ddd)
-        dict_operator = [dict(zip(self.operator_derivatives.parameter_vector,p)) for p in param_op_inp]
+        dict_operator = [
+            dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
+        ]
 
         # If values is not a tuple, convert it
         if not isinstance(values, tuple):
@@ -912,13 +927,17 @@ class QNN:
         for key, op_list in real_todo_dic.items():
             # Obtained the derivative from the operator module
 
-            operators = OpTreeNodeList([self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list])
+            operators = OpTreeNodeList(
+                [self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list]
+            )
 
             # get the circuits of the PQC derivatives from the feature map module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
             num_nested = get_num_nested_lists(pqc_optree)
 
-            val = evaluate_sampler(pqc_optree,operators,dict_feature_map,dict_operator,self.executor.get_sampler())
+            val = evaluate_sampler(
+                pqc_optree, operators, dict_feature_map, dict_operator, self.executor.get_sampler()
+            )
 
             # Swapp results into the following order:
             # 1. different expectation operators (op_list)
@@ -931,9 +950,9 @@ class QNN:
             ilist = list(range(len(val.shape)))
 
             #             # Op_list index       # fm dict   # op dict
-            swapp_list = [ilist[2+num_nested]]+[ilist[0]]+[ilist[1]]
+            swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
 
-            length = 3+num_nested
+            length = 3 + num_nested
             # Add multiple output data next
             if self.multiple_output:
                 length += 1
@@ -942,14 +961,14 @@ class QNN:
             # If there are lists in the operators, add them next (e.g. dfdop)
             if len(ilist) > length:
                 if self.multiple_output:
-                    swapp_list = swapp_list + ilist[3+num_nested:-1]
+                    swapp_list = swapp_list + ilist[3 + num_nested : -1]
                 else:
-                    swapp_list = swapp_list + ilist[3+num_nested:]
+                    swapp_list = swapp_list + ilist[3 + num_nested :]
 
             # If there are lists in the circuits, add them here (e.g. dfdp)
             if num_nested > 0:
                 print("c")
-                swapp_list = swapp_list + ilist[2:2+num_nested]
+                swapp_list = swapp_list + ilist[2 : 2 + num_nested]
 
             val = np.transpose(val, axes=swapp_list)
 

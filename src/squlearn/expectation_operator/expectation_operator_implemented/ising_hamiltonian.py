@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import SparsePauliOp,Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -130,68 +129,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
         params["ZZ"] = self.ZZ
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-        """
-        Function for generating the PauliOp expression of the Ising Hamiltonian.
-
-        Args:
-            parameters (Union[ParameterVector, np.ndarray]): parameters of the Ising Hamiltonian.
-
-        Returns:
-            PauliOp expression of the specified Ising Hamiltonian.
-        """
-
-        def gen_double_ising_string(i, j):
-            H = "I" * self.num_qubits
-            H = H[i + 1 :] + "Z" + H[:i]
-            if i != j:
-                H = H[: self.num_qubits - j - 1] + "Z" + H[self.num_qubits - j :]
-            return H
-
-        def gen_single_ising_string(i, str):
-            H = "I" * self.num_qubits
-            H = H[i + 1 :] + str + H[:i]
-            return H
-
-        nparam = len(parameters)
-
-        H = PauliOp(Pauli("I" * self.num_qubits))  # is removed later
-        ioff = 0
-
-        if self.I == "S":
-            H += PauliOp(Pauli("I" * self.num_qubits)) * parameters[ioff % nparam]
-            ioff += 1
-
-        if self.Z == "S" or self.Z == "F":
-            for i in range(self.num_qubits):
-                H += PauliOp(Pauli(gen_single_ising_string(i, "Z"))) * parameters[ioff % nparam]
-                if self.Z == "F":
-                    ioff += 1
-            if self.Z == "S":
-                ioff += 1
-
-        if self.X == "S" or self.X == "F":
-            for i in range(self.num_qubits):
-                H += PauliOp(Pauli(gen_single_ising_string(i, "X"))) * parameters[ioff % nparam]
-                if self.X == "F":
-                    ioff += 1
-            if self.X == "S":
-                ioff += 1
-
-        if self.ZZ == "S" or self.ZZ == "F":
-            for i in range(self.num_qubits):
-                for j in range(i):
-                    H += PauliOp(Pauli(gen_double_ising_string(i, j))) * parameters[ioff % nparam]
-                    if self.ZZ == "F":
-                        ioff += 1
-            if self.ZZ == "S":
-                ioff += 1
-
-        H = H - PauliOp(Pauli("I" * self.num_qubits))
-
-        return H.reduce()
-
-    def get_pauli_new(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
         Function for generating the SparsePauliOp expression of the Ising Hamiltonian.
 
@@ -216,7 +154,6 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
         nparam = len(parameters)
 
-        H = PauliOp(Pauli("I" * self.num_qubits))  # is removed later
         ioff = 0
         op_list = []
         coeff_list = []

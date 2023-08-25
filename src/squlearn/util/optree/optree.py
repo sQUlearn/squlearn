@@ -182,8 +182,13 @@ class OpTreeNodeBase(OpTreeElementBase):
             return False
 
     def copy(self):
-        """ Function for copying a OpTreeNodeBase object. """
-        return type(self)(copy.deepcopy(self._children_list), copy.deepcopy(self._factor_list), copy.deepcopy(self._operation_list))
+        """Function for copying a OpTreeNodeBase object."""
+        return type(self)(
+            copy.deepcopy(self._children_list),
+            copy.deepcopy(self._factor_list),
+            copy.deepcopy(self._operation_list),
+        )
+
 
 class OpTreeNodeList(OpTreeNodeBase):
     """A OpTree node that represents its children as a list/array/vector.
@@ -269,7 +274,7 @@ class OpTreeLeafCircuit(OpTreeLeafBase):
         return False
 
     def copy(self):
-        """ Function for copying a OpTreeLeafCircuit object. """
+        """Function for copying a OpTreeLeafCircuit object."""
         return OpTreeLeafCircuit(self._circuit.copy())
 
 
@@ -305,7 +310,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
         return False
 
     def copy(self):
-        """ Function for copying a OpTreeLeafOperator object. """
+        """Function for copying a OpTreeLeafOperator object."""
         return OpTreeLeafOperator(self._operator.copy())
 
 
@@ -357,8 +362,9 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
         return False
 
     def copy(self):
-        """ Function for copying a OpTreeLeafExpectationValue object. """
+        """Function for copying a OpTreeLeafExpectationValue object."""
         return OpTreeLeafExpectationValue(self._circuit.copy(), self._operator.copy())
+
 
 class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
     """
@@ -385,8 +391,9 @@ class OpTreeLeafMeasuredOperator(OpTreeLeafExpectationValue):
         return OpTreeLeafExpectationValue(circuit_.compose(self.circuit), self.operator)
 
     def copy(self):
-        """ Function for copying a OpTreeLeafMeasuredOperator object."""
+        """Function for copying a OpTreeLeafMeasuredOperator object."""
         return OpTreeLeafMeasuredOperator(self._circuit.copy(), self._operator.copy())
+
 
 class OpTreeLeafContainer(OpTreeLeafBase):
     """
@@ -409,8 +416,9 @@ class OpTreeLeafContainer(OpTreeLeafBase):
             return self.item == other.item
 
     def copy(self):
-        """ Function for copying a OpTreeLeafContainer object. """
+        """Function for copying a OpTreeLeafContainer object."""
         return OpTreeLeafContainer(copy.deepcopy(self.item))
+
 
 class OpTreeLeafValue(OpTreeLeafBase):
     """
@@ -433,8 +441,9 @@ class OpTreeLeafValue(OpTreeLeafBase):
             return self.value == other.value
 
     def copy(self):
-        """ Function for copying a OpTreeLeafValue object. """
+        """Function for copying a OpTreeLeafValue object."""
         return OpTreeLeafValue(self.value)
+
 
 def get_number_of_leafs(tree: OpTreeElementBase) -> int:
     """Returns the number of leafs of the OpTree.
@@ -471,6 +480,7 @@ def get_tree_depth(tree: OpTreeElementBase) -> int:
             depth = max(depth, get_tree_depth(child))
         return depth + 1
 
+
 def get_num_nested_lists(tree: OpTreeElementBase) -> int:
     """Returns the depth of the OpTree.
 
@@ -489,6 +499,7 @@ def get_num_nested_lists(tree: OpTreeElementBase) -> int:
         if isinstance(tree, OpTreeNodeList):
             return depth + 1
         return depth
+
 
 def get_first_leaf(
     element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
