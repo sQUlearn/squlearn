@@ -199,7 +199,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
             parameters (Union[ParameterVector, np.ndarray]): parameters of the Ising Hamiltonian.
 
         Returns:
-            PauliOp expression of the specified Ising Hamiltonian.
+            SparsePauliOp expression of the specified Ising Hamiltonian.
         """
 
         def gen_double_ising_string(i, j):
@@ -218,7 +218,6 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
         H = PauliOp(Pauli("I" * self.num_qubits))  # is removed later
         ioff = 0
-     
         op_list = []
         coeff_list = []
 

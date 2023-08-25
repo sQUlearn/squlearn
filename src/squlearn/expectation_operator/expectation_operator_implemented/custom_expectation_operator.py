@@ -4,6 +4,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.opflow import PauliOp
 from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -109,3 +110,35 @@ class CustomExpectationOperator(ExpectationOperatorBase):
             for j in range(1, len(self.operator_string)):
                 H = H + PauliOp(Pauli(self.operator_string[j]))
             return H.reduce()
+
+    def get_pauli_new(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
+        """
+        Function for generating the SparsePauliOp expression of the custom operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Parameters of the custom operator.
+
+        Returns:
+            SparsePauliOp expression of the specified custom operator.
+        """
+
+        op_list = []
+        param_list = []
+
+        if self.parameterized:
+            nparam = len(parameters)
+            op_list.append(self.operator_string[0])
+            param_list.append(parameters[0 % nparam])
+
+            ioff = 1
+            for j in range(1, len(self.operator_string)):
+                op_list.append(self.operator_string[j])
+                param_list.append(parameters[ioff % nparam])
+                ioff = ioff + 1
+            return SparsePauliOp(op_list, param_list)
+
+        else:
+            op_list.append(self.operator_string[0])
+            for j in range(1, len(self.operator_string)):
+                op_list.append(self.operator_string[j])
+            return SparsePauliOp(op_list)

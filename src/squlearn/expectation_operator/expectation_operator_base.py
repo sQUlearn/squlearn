@@ -3,9 +3,12 @@ from typing import Union
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import Pauli
-from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
-from qiskit.opflow import SummedOp, Zero, One
+from qiskit.quantum_info import SparsePauliOp,Pauli
+
+from ..util.optree.optree import OpTreeNodeBase,OpTreeNodeList,OpTreeNodeSum,OpTreeLeafOperator
+
+#from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
+#from qiskit.opflow import SummedOp, Zero, One
 from qiskit.opflow import OperatorBase, StateFn
 
 
@@ -28,6 +31,7 @@ class ExpectationOperatorBase(ABC):
         self._num_qubits = num_qubits
         self._num_all_qubits = num_qubits
         self._qubit_map = np.linspace(0, num_qubits - 1, num_qubits, dtype=int)
+        self._is_mapped = False
 
     def set_map(self, qubit_map: Union[list, dict], num_all_qubits: int):
         """
@@ -45,11 +49,17 @@ class ExpectationOperatorBase(ABC):
         """
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
+        self._is_mapped = True
         if self._num_all_qubits < self._num_qubits:
             raise ValueError(
                 """Number of qubits in the system is smaller than the number
                                 of qubits in the expectation operator."""
             )
+
+    @property
+    def is_mapped(self):
+        """Returns True if the operator is mapped to physical qubits."""
+        return self._is_mapped
 
     @property
     def num_parameters(self):
@@ -137,7 +147,23 @@ class ExpectationOperatorBase(ABC):
             StateFn expression of the expectation operator.
         """
 
-        return StateFn(self.get_pauli_mapped(parameters), is_measurement=True)
+        if self._is_mapped:
+            return self.get_pauli_mapped(parameters)
+        else:
+            return self.get_pauli(parameters)
+
+    def get_operator_old(self, parameters: Union[ParameterVector, np.ndarray]):
+        """Returns Operator in as a opflow measurement operator.
+
+        Args:
+            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+                                                             the operator
+        Return:
+            StateFn expression of the expectation operator.
+        """
+
+        return StateFn(self.get_pauli(parameters), is_measurement=True)
+
 
     @abstractmethod
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
@@ -153,75 +179,60 @@ class ExpectationOperatorBase(ABC):
         """
         raise NotImplementedError
 
-    def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]):
+    def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
-        Returns the mapped PauliOp expression of the expectation operator.
-        The previously the qubit map has to be set via :meth:`set_map`!
+        Changes the operator to the physical qubits, set by :meth:`set_map`.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
                                                              the operator
 
         Return:
-            Expectation operator in Qiskit's PauliOp class with qubits mapped to
+            Expectation operator in Qiskit's SprasePauliOp class with qubits mapped to
             physical ones
         """
 
-        def map_expectation_op(operator: OperatorBase) -> OperatorBase:
-            """Recrusive method that replaces that resets the qubits to the mapped ones."""
+        def map_operator(operator):
 
-            # We reached the Composed object or the wave function
-            if isinstance(operator, PauliOp):
-                blank = Pauli("I" * self._num_all_qubits)
-                for i, p in enumerate(operator.primitive):
-                    blank[self._qubit_map[i]] = p
-                return PauliOp(blank, operator.coeff)
-            elif isinstance(operator, PauliSumOp):
-                PauliList = []
-                for i, p in enumerate(operator.primitive.paulis):
-                    blank = Pauli("I" * self._num_all_qubits)
-                    for j, op in enumerate(p):
-                        blank[self._qubit_map[j]] = op
-                    PauliList.append(PauliOp(blank, coeff=operator.coeffs[i]))
-                return_op = sum(PauliList)
-                return_op._coeff = operator.coeff
-                return return_op
-            elif isinstance(operator, ListOp):
-                # List object reached, recursive call of the function
-                op_list = [map_expectation_op(op) for op in operator.oplist]
+            if isinstance(operator, OpTreeNodeBase):
 
-                # Sort out the Zero @ One terms
-                if operator.combo_fn == ListOp.default_combo_fn:  # If using default
-                    return ListOp(
-                        oplist=[op for op in op_list if op != ~Zero @ One],
-                        coeff=operator.coeff,
-                    )
-                elif isinstance(operator, SummedOp):
-                    return SummedOp(
-                        oplist=[op for op in op_list if op != ~Zero @ One],
-                        coeff=operator.coeff,
-                    )
-                elif isinstance(operator, TensoredOp):
-                    return TensoredOp(
-                        oplist=[op for op in op_list if op != ~Zero @ One],
-                        coeff=operator.coeff,
-                    )
+                children_list = [map_operator(op) for op in operator.children]
+
+                # Rebuild the tree with the new children and factors (copy part)
+                if isinstance(operator, OpTreeNodeSum):
+                    return OpTreeNodeSum(children_list, operator.factor, operator.operation)
+                elif isinstance(operator, OpTreeNodeList):
+                    return OpTreeNodeList(children_list, operator.factor, operator.operation)
                 else:
-                    raise ValueError("Unknown Type in ListOp")
+                    raise ValueError("Wrong Type in operator: ", type(operator))
+            elif isinstance(operator, (SparsePauliOp,OpTreeLeafOperator)):
+
+                op = operator
+                if isinstance(op, OpTreeLeafOperator):
+                    op = op.operator
+
+                op_list = []
+                for op_ in op.paulis:
+                    blank = Pauli("I" * self._num_all_qubits)
+                    for i, p in enumerate(op_):
+                        blank[self._qubit_map[i]] = p
+                    op_list.append(blank)
+                return SparsePauliOp(op_list, op.coeffs)
+
             else:
                 raise ValueError("Wrong Type in operator: ", type(operator))
 
-        return map_expectation_op(self.get_pauli(parameters))
+        return map_operator(self.get_pauli_new(parameters)) # TODO: change
 
     def __str__(self):
         """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
-        return str(self.get_pauli_mapped(p))
+        return str(self.get_operator(p))
 
     def __repr__(self):
         """Return a string representation of the ExpectationOperatorBase."""
         p = ParameterVector("p", self.num_parameters)
-        return repr(self.get_pauli_mapped(p))
+        return repr(self.get_operator(p))
 
     def __add__(self, x):
         """Addition of two expectation operators."""

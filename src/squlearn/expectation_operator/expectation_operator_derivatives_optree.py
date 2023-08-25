@@ -101,8 +101,7 @@ class ExpectationOperatorDerivatives:
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = ParameterVector("p_op", expectation_operator.num_parameters)
-
-            optree = OpTreeLeafOperator(self._expectation_operator.get_pauli_new(self._parameter_vector))
+            optree = OpTreeLeafOperator(self._expectation_operator.get_operator(self._parameter_vector))
         else:
             # multi dimensional output by multiple Expectation-operators
             expectation_op_list = []
@@ -116,7 +115,7 @@ class ExpectationOperatorDerivatives:
                 self._parameter_vector = ParameterVector("p_op", n_oper)
                 ioff = 0
                 for op in self._expectation_operator:
-                    expectation_op_list.append(OpTreeLeafOperator(op.get_pauli_new(self._parameter_vector[ioff:])))
+                    expectation_op_list.append(OpTreeLeafOperator(op.get_operator(self._parameter_vector[ioff:])))
                     ioff = ioff + op.num_parameters
                 optree = OpTreeNodeList(expectation_op_list)
             except:
