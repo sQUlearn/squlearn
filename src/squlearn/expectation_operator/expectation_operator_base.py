@@ -8,10 +8,6 @@ from qiskit.quantum_info import SparsePauliOp, Pauli
 from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator
 from ..util.optree.optree_derivative import simplify_copy
 
-# from qiskit.opflow import ListOp, PauliOp, PauliSumOp, TensoredOp
-# from qiskit.opflow import SummedOp, Zero, One
-from qiskit.opflow import OperatorBase, StateFn
-
 
 class ExpectationOperatorBase(ABC):
     """Base class for expectation operators.
@@ -138,8 +134,8 @@ class ExpectationOperatorBase(ABC):
                 self._num_all_qubits = self._num_qubits
                 self._qubit_map = np.linspace(0, self._num_qubits - 1, self._num_qubits, dtype=int)
 
-    def get_operator(self, parameters: Union[ParameterVector, np.ndarray]):
-        """Returns Operator in as a opflow measurement operator.
+    def get_operator(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+        """Returns Operator as a SparsePauliOp expression.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
@@ -154,7 +150,7 @@ class ExpectationOperatorBase(ABC):
             return self.get_pauli(parameters)
 
     @abstractmethod
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
         Returns the PauliOp expression of the expectation operator.
 
