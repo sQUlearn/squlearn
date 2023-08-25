@@ -226,8 +226,8 @@ by supplying a string (a list of available strings can be found in the
 :class:`FeatureMapDerivatives` class). Alternatively, you can provide a tuple containing
 the parameter (or feature) vector. Additional parameters can be included in the tuple to
 obtain arbitrary derivatives.
-Currently, the derivatives are returned as a Qiskit Opflow object, but will be converted to
-a custom format in the future.
+The derivatives are stored in sQulearn's proprietary OpTree structure, which
+is utilized for the arithmetic operations of the derivatives.
 
 **Example: Obtain the derivative of a QEK feature map**
 
