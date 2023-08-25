@@ -4,8 +4,6 @@ from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
-#from qiskit.utils import QuantumInstance
-
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
 from ..expectation_operator.expectation_operator_derivatives import (
