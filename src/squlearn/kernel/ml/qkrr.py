@@ -96,7 +96,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         Depending on whether ``regularization`` is set, the training kernel matrix is pre-processed
         accordingly prior to the actual fitting step is performed. The respective solution of the
         QKRR problem is obtained by solving the linear system using scipy's Cholesky decomposition
-        for providing numercial stability.
+        for providing numerical stability.
 
         Args:
             x_train (np.ndarray) : Training data of shape (n_samples, n_features)
@@ -150,9 +150,10 @@ class QKRR(BaseEstimator, RegressorMixin):
         Return:
             Dictionary with hyperparameters and values.
         """
-        params = dict()
-        params["quantum_kernel"] = self._quantum_kernel
-        params["alpha"] = self.alpha
+        params = {
+            "quantum_kernel": self._quantum_kernel,
+            "alpha": self.alpha,
+        }
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
         return params
@@ -188,3 +189,4 @@ class QKRR(BaseEstimator, RegressorMixin):
                 param_dict[key] = value
         if len(param_dict) > 0:
             self._quantum_kernel.set_params(**param_dict)
+        return self

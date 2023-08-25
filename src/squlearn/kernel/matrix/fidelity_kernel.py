@@ -84,7 +84,7 @@ class FidelityKernel(KernelMatrixBase):
         super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
 
         self._quantum_kernel = None
-        self._evaluate_duplicates = evaluate_duplicates.lower()
+        self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
 
         self._feature_vector = ParameterVector("x", self.num_features)
@@ -134,12 +134,11 @@ class FidelityKernel(KernelMatrixBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = {}
+        params = super().get_params(deep=False)
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
         params["regularization"] = self._regularization
         if deep:
-            # params = self._feature_map.get_params()
             params.update(self._feature_map.get_params())
         return params
 
@@ -214,7 +213,9 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._mit_depol_noise == "mmean":
                     kernel_matrix = self._get_mmean_kernel(kernel_matrix)
 
-        if self._regularization is not None:
+        if (self._regularization is not None) and (
+            kernel_matrix.shape[0] == kernel_matrix.shape[1]
+        ):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 

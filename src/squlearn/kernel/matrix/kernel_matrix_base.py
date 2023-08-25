@@ -217,7 +217,12 @@ class KernelMatrixBase:
         Return:
             Dictionary with hyper-parameters and values.
         """
-        raise NotImplementedError()
+        # Create a dictionary of all public parameters
+        params = {"feature_map": self._feature_map, "executor": self._executor}
+
+        if deep:
+            params.update(self._feature_map.get_params(deep=True))
+        return params
 
     def set_params(self, **params):
         """

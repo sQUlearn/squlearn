@@ -37,7 +37,18 @@ requires-python = ">=3.9"
 dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-dev = ["pylint", "black", "pytest", "sphinx", "sphinxcontrib-spelling", "sphinx-rtd-theme", "flit"]
+dev = [
+    "black",
+    "flit",
+    "myst-parser",
+    "nbsphinx",
+    "nbsphinx_link",
+    "pylint",
+    "pytest",
+    "sphinx",
+    "sphinxcontrib-spelling",
+    "sphinx-rtd-theme",
+]
 examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
 
 [project.urls]
