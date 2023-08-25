@@ -1,28 +1,38 @@
+import numpy as np
+from typing import Union
+
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.opflow import OperatorBase, CircuitStateFn, OperatorStateFn
-from qiskit.opflow import ListOp, SummedOp, ComposedOp, TensoredOp
-from qiskit.opflow import Zero, One
-from qiskit.opflow.list_ops.list_op import ListOp as real_ListOp
-from qiskit.opflow.expectations import PauliExpectation
-from qiskit.utils import QuantumInstance
+#from qiskit.utils import QuantumInstance
 
-from typing import Union
-import numpy as np
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..expectation_operator.expectation_operator_derivatives import ExpectationOperatorDerivatives
+from ..expectation_operator.expectation_operator_derivatives import (
+    ExpectationOperatorDerivatives,
+)
 
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..feature_map.feature_map_derivatives import (
     FeatureMapDerivatives,
-    measure_feature_map_derivative,
 )
 from ..feature_map.transpiled_feature_map import TranspiledFeatureMap
 
 from ..util.data_preprocessing import adjust_input
-
 from ..util import Executor
+
+from ..util.optree.optree import (
+    gen_expectation_tree,
+    OpTreeNodeList,
+    OpTreeLeafCircuit,
+    get_num_nested_lists,
+)
+
+from ..util.optree.optree_evaluate import (
+    evaluate_estimator,
+    evaluate_sampler,
+    optree_assign_parameters,
+)
 
 
 class Expec:
@@ -137,6 +147,8 @@ class Expec:
                 return cls("dpdp", "O", "dfdpdp")
             elif val == "dfdopdp":
                 return cls("dp", "dop", "dfdop")
+            elif val == "dfdpdop":
+                raise ValueError("Not implemented, please use dfdopdp instead and transpose!")
             elif val == "dfdop":
                 return cls("I", "dop", "dfdop")
             elif val == "dfdopdop":
@@ -235,7 +247,7 @@ class QNN:
         operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
-        opflow_caching : Caching of the opflow expressions (default = True recommended)
+        optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
     """
@@ -245,7 +257,7 @@ class QNN:
         pqc: FeatureMapBase,
         operator: Union[ExpectationOperatorBase, list],
         executor: Executor,
-        opflow_caching=True,
+        optree_caching=True,
         result_caching=True,
     ) -> None:
         # Potential TODO: move executor into extra util class
@@ -256,11 +268,19 @@ class QNN:
         # Set-up shots from backend
         self._inital_shots = self.executor.get_shots()
 
-        self._opflow_caching = opflow_caching
+        self._optree_caching = optree_caching
         self._result_caching = result_caching
 
         self.pqc = TranspiledFeatureMap(pqc, self.backend)
         self.operator = operator
+
+        # Set-Up Executor
+        if self.executor.optree_executor() == "estimator":
+            self._estimator = self.executor.get_estimator()
+            self._sampler = None
+        else:
+            self._sampler = self.executor.get_sampler()
+            self._estimator = None
 
         self._initilize_derivative()
 
@@ -348,29 +368,29 @@ class QNN:
             num_qubits_operator = self.operator.num_qubits
 
         self.operator_derivatives = ExpectationOperatorDerivatives(
-            self.operator, self._opflow_caching
+            self.operator, self._optree_caching
         )
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._opflow_caching)
+        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
         else:
             self._num_qubits = self.pqc.num_virtual_qubits
 
-        if self.executor.opflow_executor() in ("sampler", "quantum_instance"):
-            # For Quantum Instance or the Sampler primitive, X and Y Pauli matrices have to be treated extra
-            # This is very inefficient!
+        if self.executor.optree_executor() == "sampler":
+            # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
+            # This can be very inefficient!
             operator_string = str(self.operator)
             if "X" in operator_string or "Y" in operator_string:
-                self.split_paulis = True
+                self._split_paulis = True
                 print(
                     "The expectation operator includes X and Y gates, consider switching"
                     + " to the Estimator primitive for a faster performance!"
                 )
             else:
-                self.split_paulis = False
+                self._split_paulis = False
         else:
-            self.split_paulis = False
+            self._split_paulis = False
 
         # Initialize result cache
         self.result_container = {}
@@ -428,39 +448,39 @@ class QNN:
     @property
     def parameters(self):
         """Return the parameter vector of the PQC."""
-        return self.pqc_derivatives._p
+        return self.pqc_derivatives.parameter_vector
 
     @property
     def features(self):
         """Return the feature vector of the PQC."""
-        return self.pqc_derivatives._x
+        return self.pqc_derivatives.feature_vector
 
     @property
     def parameters_operator(self):
         """Return the parameter vector of the cost operator."""
-        return self.operator_derivatives._parameter_vector
+        return self.operator_derivatives.parameter_vector
 
-    def get_opflow_from_string(self, input_string: str):
-        """Return the opflow expression of the given PQC
-
-        Args:
-            input_string (str): String from which the opflow is obtained.
-
-        Returns:
-            Opflow structure created from the string.
-        """
-        return self.get_opflow_from_expec(Expec.from_string(input_string))
-
-    def get_opflow_from_expec(self, input_expec: Expec):
-        """Returns the opflow expression for the given :class:`Expec` object.
+    def get_optree_from_string(self, input_string: str):
+        """Return the OpTree expression of the given PQC
 
         Args:
-            input_expec (Expec): :class:`Expec` object from which the opflow is obtained
+            input_string (str): String from which the OpTree is obtained.
 
         Returns:
-            Opflow structure created from the :class:`Expec` object.
+            OpTree structure created from the string.
         """
-        return measure_feature_map_derivative(
+        return self.get_optree_from_expec(Expec.from_string(input_string))
+
+    def get_optree_from_expec(self, input_expec: Expec):
+        """Returns the OpTree expression for the given :class:`Expec` object.
+
+        Args:
+            input_expec (Expec): :class:`Expec` object from which the OpTree is obtained
+
+        Returns:
+            OpTree structure created from the :class:`Expec` object.
+        """
+        return gen_expectation_tree(
             self.pqc_derivatives.get_derivative(input_expec.wave_function),
             self.operator_derivatives.get_derivative(input_expec.operator),
         )
@@ -735,13 +755,25 @@ class QNN:
             List of probabilities stored in the SparseVectorStateFn format.
             (dictionary can be obtained by `.to_dict_fn()` or `to_dict_fn().primitive`)
         """
-        # TODO: Implementation with Sampler
-        opflow = self.get_opflow_from_string("f")
-        opflow_with_param = self.pqc_derivatives.assign_parameters(opflow, x, param)
-        if self.quantum_instance is not None:
-            return evaluate_opflow_qi(self.quantum_instance, opflow_with_param)
+
+        optree = self.pqc_derivatives.get_derivative("I")
+        dictionary = dict(zip(self.parameters, param))
+        dictionary.update(zip(self.features, x))
+        optree_assign_parameters(optree, dictionary, inplace=True)
+
+        if isinstance(optree, QuantumCircuit):
+            circuit = optree
+        elif isinstance(optree, OpTreeLeafCircuit):
+            circuit = optree.circuit
         else:
-            raise RuntimeError("Probabilities are only implemented for Quantum Instances!")
+            raise TypeError("Unsported optree type:", type(optree))
+
+        if circuit.num_clbits == 0:
+            circuit.measure_all()
+
+        sampler = self.executor.get_sampler()
+        result = sampler.run(circuit).result()
+        return result.quasi_dists[0].binary_probabilities()
 
     def evaluate(
         self,
@@ -857,55 +889,24 @@ class QNN:
             else:
                 return tuple(flatten(x))
 
-        def measure_to_list(measure_op, offset=0):
-            """
-            Creates a list the numbers multpile measuremnt operators for later resorting
-            """
-
-            measure_list = []
-            global countervar
-            countervar = offset - 1
-
-            def build_circuit_list(operator: OperatorBase):
-                if isinstance(operator, CircuitStateFn):
-                    raise RuntimeError("No circuits are allows at this point!")
-                elif isinstance(operator, OperatorStateFn):
-                    global countervar
-                    countervar = countervar + 1
-                    measure_list.append(operator)
-                    return countervar
-                elif isinstance(operator, ListOp):
-                    list = []
-                    for op in operator.oplist:
-                        list.append(build_circuit_list(op))
-                    return list
-
-            index_list = build_circuit_list(measure_op)
-
-            return index_list, measure_list
-
-        def sort_back_to_nparray(index_list, val):
-            """
-            Uses the list generated by measure_to_list to sort back the values into the nested
-            output list structure
-            """
-
-            def sort_back_val(index_list):
-                if isinstance(index_list, list):
-                    return [sort_back_val(op) for op in index_list]
-                elif isinstance(index_list, int):
-                    return val[index_list]
-                else:
-                    raise RuntimeError("Wrong format of inputed index list")
-
-            return sort_back_val(index_list)
-
         # Done with the helper functions, start of the evaluate function
 
         # input adjustments for x, param, param_op to get correct stacking of values
         x_inp, multi_x = adjust_input(x, self.num_features)
         param_inp, multi_param = adjust_input(param, self.num_parameters)
         param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
+
+        # build dictionary for later use
+        dict_feature_map = []
+        for x_inp_ in x_inp:
+            dd = dict(zip(self.pqc_derivatives.feature_vector, x_inp_))
+            for param_inp_ in param_inp:
+                ddd = dd.copy()
+                ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
+                dict_feature_map.append(ddd)
+        dict_operator = [
+            dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
+        ]
 
         # If values is not a tuple, convert it
         if not isinstance(values, tuple):
@@ -925,84 +926,82 @@ class QNN:
         real_todo_dic = generate_real_todo_dic(values, value_dict)
 
         for key, op_list in real_todo_dic.items():
-            # creates list of operators that can be evaluated for the same circuit
-            measure_list = []  #  listoff all considered measure operators
-            index_list = []  # list for index counting
-            offset = 0
-            for expec_ in op_list:
-                # Obtained the derivative from the operator module
-                operator = self.operator_derivatives.get_derivative(expec_.operator)
-                # Assign parameters and convert to sparse Pauli representation
-                op_with_param = self.operator_derivatives.assign_parameters(operator, param_op_inp)
+            # Obtained the derivative from the operator module
 
-                # flatten the measurement operator list,
-                # but keep the nested list structure in index_list for later reconstruction
-                index_list_op, measure_list_op = measure_to_list(op_with_param, offset)
-                offset = offset + len(measure_list_op)
-                measure_list = measure_list + measure_list_op
-                index_list.append(index_list_op)
-
-            # get the circuits of the PQC derivatives from the feature map module
-            pqc_opflow = self.pqc_derivatives.get_derivative(key)
-
-            # check for multiple circuits (e.g. gradient)
-            if isinstance(pqc_opflow, ListOp):
-                array_circ = True
-            else:
-                array_circ = False
-
-            # add operator measurments to the circuits
-            opflow_measured = measure_feature_map_derivative(pqc_opflow, ListOp(measure_list))
-
-            if self.split_paulis:
-                # If necessary, split the measurements containing X and Y operators
-                # into extra measurements
-                opflow_measured = _split_paulis(opflow_measured, len(measure_list) == 1)
-
-            # assign parameters of the circuit
-            opflow_with_param = self.pqc_derivatives.assign_parameters(
-                opflow_measured, x_inp, param_inp
+            operators = OpTreeNodeList(
+                [self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list]
             )
 
-            # evaluate the list of opflows
-            val = self.executor.opflow_exec(opflow_with_param)
+            # get the circuits of the PQC derivatives from the feature map module
+            pqc_optree = self.pqc_derivatives.get_derivative(key)
+            num_nested = get_num_nested_lists(pqc_optree)
 
-            # print("val",val)
+            if self._sampler is not None:
+                val = evaluate_sampler(
+                    pqc_optree, operators, dict_feature_map, dict_operator, self._sampler
+                )
+            elif self._estimator is not None:
+                val = evaluate_estimator(
+                    pqc_optree, operators, dict_feature_map, dict_operator, self._estimator
+                )
+            else:
+                raise ValueError("No execution is set!")
 
-            # In case of multiple circuits, swapp measurment operator to index 2 for a clearer nesting
-            if array_circ:
-                swapp_list = list(np.arange(len(val.shape), dtype=int))
-                swapp_list = [swapp_list[0]] + [swapp_list[1]] + swapp_list[-1:] + swapp_list[2:-1]
-                val = np.transpose(val, axes=swapp_list)
+            # Swapp results into the following order:
+            # 1. different expectation operators (op_list)
+            # 2. different input data/ feature map parameters (x_inp,params) -> separated later
+            # 3. different operator parameters (param_op_inp)
+            # 4. different output values (multi_output)
+            # 5. If there, lists of the operators (e.g. operator derivatives)
+            # 6. if there, lists of the circuits (e.g. array for gradient)
 
-            # print("val2",val)
+            ilist = list(range(len(val.shape)))
+
+            #             # Op_list index       # fm dict   # op dict
+            swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
+
+            length = 3 + num_nested
+            # Add multiple output data next
+            if self.multiple_output:
+                length += 1
+                swapp_list = swapp_list + [ilist[-1]]
+
+            # If there are lists in the operators, add them next (e.g. dfdop)
+            if len(ilist) > length:
+                if self.multiple_output:
+                    swapp_list = swapp_list + ilist[3 + num_nested : -1]
+                else:
+                    swapp_list = swapp_list + ilist[3 + num_nested :]
+
+            # If there are lists in the circuits, add them here (e.g. dfdp)
+            if num_nested > 0:
+                print("c")
+                swapp_list = swapp_list + ilist[2 : 2 + num_nested]
+
+            val = np.transpose(val, axes=swapp_list)
 
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                val_x = []
-                for i in range(len(val)):
-                    val_param = []
-                    for j in range(len(val[i])):
-                        val_param.append(
-                            np.array(sort_back_to_nparray(index_list[iexpec], val[i][j]))
-                        )
-                    val_x.append(np.array(val_param))
-                val_final = np.array(val_x)
-
+                val_final = val[iexpec]
                 reshape_list = []
                 shape = val_final.shape
                 if multi_x:
-                    reshape_list.append(shape[0])
+                    reshape_list.append(len(x))
                 if multi_param:
-                    reshape_list.append(shape[1])
+                    reshape_list.append(len(param))
                 if multi_param_op:
+                    reshape_list.append(shape[1])
+                if self.multiple_output:
                     reshape_list.append(shape[2])
-                if len(shape) == 4:
-                    reshape_list.append(shape[3])
-                if len(shape) > 4:
-                    reshape_list += list(shape[3:])
+                if self.multiple_output:
+                    if len(shape) > 3:
+                        reshape_list += list(shape[3:])
+                else:
+                    if len(shape) > 2:
+                        reshape_list += list(shape[2:])
+
                 if len(reshape_list) == 0:
                     value_dict[expec_] = val_final.reshape(-1)[0]
                 else:
@@ -1086,57 +1085,3 @@ class QNN:
             self.result_container[caching_tuple] = value_dict
 
         return value_dict
-
-
-def _split_paulis(operator: OperatorBase, single_measure: bool) -> OperatorBase:
-    """
-    Split the opflow such that it can be measured in Z basis.
-
-    Splits up the opflow expression such that the meaurement operators can be evaluated
-    in the Z-basis. The routine is needed, if Y and X operators are present in the measurement
-
-    Args:
-        operator (OperatorBase) : Opflow expression that is checked
-        single_measure (bool): Is true if there is only a single
-            measurement in the opflow structure, otherwise a ListOp is considered
-    Returns:
-        New opflow expression where measurements are correctly split
-        into seprate circuits
-    """
-    # We reached a ComposedOp term -> seprate the different measurment operators
-    # using Qiskit's PauliExpectation
-    if isinstance(operator, ComposedOp):
-        coeff = operator.coeff
-        operator_splitted = PauliExpectation().convert(operator)
-        operator_splitted._coeff = coeff
-        if single_measure == True:
-            return ListOp([operator_splitted])
-        else:
-            return operator_splitted
-
-    # We reached a CircuitStateFn term that should not be present in this routine
-    elif isinstance(operator, CircuitStateFn):
-        raise ValueError("CircuitStateFn type is not allowed!")
-
-    # We reached a list of opflow terms, recursive call of
-    # the function to all children in the list
-    elif isinstance(operator, ListOp):
-        op_list = [_split_paulis(op, single_measure) for op in operator.oplist]
-        if isinstance(operator, SummedOp):
-            return SummedOp(
-                oplist=[op for op in op_list if op != ~Zero @ One], coeff=operator.coeff
-            )
-        elif isinstance(operator, TensoredOp):
-            return TensoredOp(
-                oplist=[op for op in op_list if op != ~Zero @ One], coeff=operator.coeff
-            )
-        elif isinstance(operator, real_ListOp):
-            return ListOp(
-                oplist=[op for op in op_list if op != ~Zero @ One],
-                coeff=operator.coeff,
-                combo_fn=operator.combo_fn,
-            )
-        else:
-            raise ValueError("Unknown ListOp type in _split_paulis:", type(operator))
-    else:
-        raise ValueError("Unknown type in _split_paulis:", type(operator))

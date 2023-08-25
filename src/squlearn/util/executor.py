@@ -17,10 +17,8 @@ from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives.base import SamplerResult, EstimatorResult
-from qiskit.utils import QuantumInstance
 from qiskit import Aer
 from qiskit_ibm_runtime import QiskitRuntimeService, Session
-from qiskit.opflow import OperatorBase
 from qiskit.providers import Options
 from qiskit.providers import JobV1 as Job
 from qiskit.providers.backend import Backend
@@ -29,8 +27,6 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
-
-from .evaluate_opflow import evaluate_opflow_qi, evaluate_opflow_estimator, evaluate_opflow_sampler
 
 
 class Executor:
@@ -50,13 +46,12 @@ class Executor:
     :doc:`User Guide: The Executor Class </user_guide/executor>`
 
     Args:
-        execution (Union[str, Backend, QuantumInstance, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
+        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
 
                                                                                                                      * A string, that specifics the simulator
                                                                                                                        backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
                                                                                                                      * A Qiskit backend, to run the jobs on IBM Quantum
                                                                                                                        systems or simulators
-                                                                                                                     * A QuantumInstance, that includes the backend and some options
                                                                                                                      * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
                                                                                                                        In this case the backend has to be provided separately via ``backend=``
                                                                                                                      * A Session, to run the jobs on the Qiskit Runtime service
@@ -96,7 +91,6 @@ class Executor:
                                which creates a new sampler object with overwritten methods
                                that runs everything through the Executor with
                                :meth:`estimator_run`.
-        quantum_instance (QuantumInstance): The quantum instance that is used in the Executor.
         shots (int): The number of shots that is used in the Executor.
 
     See Also:
@@ -160,7 +154,6 @@ class Executor:
         execution: Union[
             str,
             Backend,
-            QuantumInstance,
             QiskitRuntimeService,
             Session,
             BaseEstimator,
@@ -182,7 +175,6 @@ class Executor:
         self._service = None
         self._estimator = None
         self._sampler = None
-        self._quantum_instance = None
         self._remote = False
         self._session_active = False
         self._execution_origin = ""
@@ -241,11 +233,6 @@ class Executor:
                 self._service = execution.service
             self._backend = execution
             self._execution_origin = "Backend"
-        elif isinstance(execution, QuantumInstance):
-            # Execution is a QuantumInstance
-            self._quantum_instance = execution
-            self._backend = execution.backend
-            self._execution_origin = "QuantumInstance"
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
             if isinstance(backend, str):
@@ -337,9 +324,6 @@ class Executor:
             self._logger.info(f"Executor initialized with session: {{}}".format(self._session))
         self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
         self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
-        self._logger.info(
-            f"Executor initialized with quantum instance: {{}}".format(self._quantum_instance)
-        )
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
     @property
@@ -487,22 +471,6 @@ class Executor:
                 self._sampler._parameters = []
                 self._sampler._circuit_ids = {}
                 self._sampler._qargs_list = []
-
-    @property
-    def quantum_instance(self) -> QuantumInstance:
-        """Returns the quantum instance that is used for the execution.
-
-        Creates a new one if none is set.
-        """
-
-        if self._quantum_instance is not None:
-            return self._quantum_instance
-        else:
-            self._quantum_instance = QuantumInstance(self._backend, shots=self.get_shots)
-            self._logger.info(
-                f"Executor created new QuantumInstance: {{}}".format(self._quantum_instance)
-            )
-            return self._quantum_instance
 
     def _primitive_run(
         self, run: callable, label: str, hash_value: Union[str, None] = None
@@ -731,36 +699,12 @@ class Executor:
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
-    def opflow_exec(self, opflow: OperatorBase) -> np.ndarray:
-        """
-        Function for executing an opflow structure.
-
-        This function automatically detects if an estimator, sampler or quantum instance
-        is initialized and uses the corresponding function for the execution.
-
-        Args:
-            opflow: Operator to evaluate.
-
-        Returns:
-            The evaluated opflow structure as a numpy array.
-        """
-        if self._estimator is not None:
-            return evaluate_opflow_estimator(self.get_estimator(), opflow)
-        elif self._sampler is not None:
-            return evaluate_opflow_sampler(self.get_sampler(), opflow)
-        elif self._quantum_instance is not None:
-            return evaluate_opflow_qi(self.quantum_instance, opflow)
-        else:  #  default if nothing is set -> use estimator
-            return evaluate_opflow_estimator(self.get_estimator(), opflow)
-
-    def opflow_executor(self) -> str:
-        """A string that indicates which executor is used for opflow execution."""
+    def optree_executor(self) -> str:
+        """A string that indicates which executor is used for optree execution."""
         if self._estimator is not None:
             return "estimator"
         elif self._sampler is not None:
             return "sampler"
-        elif self._quantum_instance is not None:
-            return "quantum_instance"
         else:  #  default if nothing is set -> use estimator
             return "estimator"
 
@@ -833,10 +777,6 @@ class Executor:
                 except:
                     pass
 
-        # Upate shots in quantum instance
-        if self._quantum_instance is not None:
-            self._quantum_instance.set_config(shots=num_shots)
-
         # Update shots in backend
         if self._backend is not None:
             self._backend.options.shots = num_shots
@@ -879,8 +819,6 @@ class Executor:
 
             shots = max(shots_estimator, shots_sampler)
 
-        elif self._quantum_instance is not None:
-            shots = self._quantum_instance.run_config.shots
         elif self._backend is not None:
             shots = self._backend.options.shots
         else:
