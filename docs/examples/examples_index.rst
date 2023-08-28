@@ -8,3 +8,4 @@ Examples
     :glob:
 
     example_kernel_mnist
+    example_kernel_grid_search
