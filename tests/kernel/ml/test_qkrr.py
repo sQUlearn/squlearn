@@ -117,12 +117,12 @@ class TestQKRR:
 
         qkrr_params = qkrr_pqk.get_params()
         assert qkrr_params["gamma"] == 1.0
-        # assert qkrr_params["measurement"] == "XYZ" #only working after merging PR#125
+        assert qkrr_params["measurement"] == "XYZ"
         qkrr_pqk.set_params(gamma=0.5, measurement="Z")
 
         qkrr_params_updated = qkrr_pqk.get_params()
         assert qkrr_params_updated["gamma"] == 0.5
-        #assert qkrr_params_updated["measurement"] == "Z"
+        assert qkrr_params_updated["measurement"] == "Z"
 
         # Check if fit is still possible
         X, y = data
