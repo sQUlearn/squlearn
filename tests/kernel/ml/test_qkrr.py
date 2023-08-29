@@ -12,10 +12,11 @@ from squlearn.feature_map import HZCRxCRyCRz
 from squlearn.kernel import QKRR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
+
 class TestQKRR:
     """Test class for QKRR"""
 
-    @pytest.fixture(scope="module") 
+    @pytest.fixture(scope="module")
     def data(self) -> tuple[np.ndarray, np.ndarray]:
         """Test data module."""
         # pylint: disable=unbalanced-tuple-unpacking
@@ -23,46 +24,41 @@ class TestQKRR:
         scl = MinMaxScaler((0.1, 0.9))
         X = scl.fit_transform(X, y)
         return X, y
-    
+
     @pytest.fixture(scope="module")
     def qkrr_fidelity(self) -> QKRR:
         """QKRR module with FidelityKernel."""
-        np.random.seed(42) # why?
+        np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
         feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             feature_map=feature_map,
             executor=executor,
             regularization="thresholding",
-            mit_depol_noise="msplit"
+            mit_depol_noise="msplit",
         )
-        return QKRR(quantum_kernel=kernel, alpha=1.e-6)
-    
+        return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
+
     @pytest.fixture(scope="module")
     def qkrr_pqk(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
-        np.random.seed(42) #why?
+        np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
         feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map=feature_map,
-            executor=executor,
-            regularization="thresholding"
+            feature_map=feature_map, executor=executor, regularization="thresholding"
         )
-        return QKRR(quantum_kernel=kernel, alpha=1.e-6)
-    
+        return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
+
     def test_that_qkrr_params_are_present(self):
         """Asserts that all classical parameters are present in the QKRR."""
         qkrr_instance = QKRR(quantum_kernel=MagicMock())
-        assert list(qkrr_instance.get_params(deep=False).keys()) == [
-            "quantum_kernel",
-            "alpha"
-        ]
+        assert list(qkrr_instance.get_params(deep=False).keys()) == ["quantum_kernel", "alpha"]
 
     @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
     def test_predict(self, qkrr, request, data):
         """Tests concerning the predict function of the QKRR.
-        
+
         Tests include
             - whether the output is of the same shape as the reference
             - whether the type of the output is np.ndarray
@@ -148,7 +144,7 @@ class TestQKRR:
         """Asserts that regularization is called."""
         qkrr_instance = request.getfixturevalue(qkrr)
         X, y = data
-        
+
         qkrr_instance.set_params(regularization="tikhonov")
 
         qkrr_instance._quantum_kernel._regularize_matrix = MagicMock()
@@ -158,4 +154,3 @@ class TestQKRR:
         qkrr_instance.predict(X)
 
         assert qkrr_instance._quantum_kernel._regularize_matrix.call_count == 2
-    
