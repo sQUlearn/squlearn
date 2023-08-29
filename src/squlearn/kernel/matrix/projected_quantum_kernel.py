@@ -473,6 +473,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """
         params = super().get_params(deep=False)
         params.update(self._outer_kernel.get_params())
+        params["measurement"] = self._measurement_input
         params["num_qubits"] = self.num_qubits
         params["regularization"] = self._regularization
         if deep:
