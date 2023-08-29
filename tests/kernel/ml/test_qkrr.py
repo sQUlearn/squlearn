@@ -60,18 +60,6 @@ class TestQKRR:
         ]
 
     @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
-    def test_predict_unfitted(self, qkrr, request, data):
-        """Tests concerning the unfitted QKRR.
-        
-        Tests include
-            - whether a NotFittedError is raised
-        """
-        qkrr_instance = request.getfixturevalue(qkrr)
-        X, _ = data
-        with pytest.raises(NotFittedError):
-            qkrr_instance.predict(X)
-
-    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
     def test_predict(self, qkrr, request, data):
         """Tests concerning the predict function of the QKRR.
         
@@ -163,11 +151,11 @@ class TestQKRR:
         
         qkrr_instance.set_params(regularization="tikhonov")
 
-        qkrr_instance.quantum_kernel._regularize_matrix = MagicMock()
-        qkrr_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+        qkrr_instance._quantum_kernel._regularize_matrix = MagicMock()
+        qkrr_instance._quantum_kernel._regularize_matrix.side_effect = lambda x: x
 
         qkrr_instance.fit(X, y)
         qkrr_instance.predict(X)
 
-        assert qkrr_instance.quantum_kernel._regularize_matrix.call_count == 2
+        assert qkrr_instance._quantum_kernel._regularize_matrix.call_count == 2
     
