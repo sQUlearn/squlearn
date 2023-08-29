@@ -70,3 +70,104 @@ class TestQKRR:
         X, _ = data
         with pytest.raises(NotFittedError):
             qkrr_instance.predict(X)
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_predict(self, qkrr, request, data):
+        """Tests concerning the predict function of the QKRR.
+        
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qkrr_instance = request.getfixturevalue(qkrr)
+
+        X, y = data
+        qkrr_instance.fit(X, y)
+
+        y_pred = qkrr_instance.predict(X)
+        assert y_pred.shape == y.shape
+        assert isinstance(y_pred, np.ndarray)
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_kernel_params_can_be_changed_after_initialization(self, qkrr, request, data):
+        """Tests concerning the kernel parameter changes."""
+        qkrr_instance = request.getfixturevalue(qkrr)
+
+        qkrr_params = qkrr_instance.get_params()
+        assert qkrr_params["num_qubits"] == 3
+        assert qkrr_params["regularization"] == "thresholding"
+        qkrr_instance.set_params(num_qubits=4, regularization="tikhonov")
+
+        qkrr_params_updated = qkrr_instance.get_params()
+        assert qkrr_params_updated["num_qubits"] == 4
+        assert qkrr_params_updated["regularization"] == "tikhonov"
+
+        # check if fit is still possible
+        X, y = data
+        try:
+            qkrr_instance.fit(X, y)
+        except:
+            assert False, f"fitting not possible after changes to quantum kernel parameters"
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_feature_map_params_can_be_changed_after_initialization(self, qkrr, request, data):
+        """Tests concerning the feature map parameter changes."""
+        qkrr_instance = request.getfixturevalue(qkrr)
+        assert qkrr_instance.get_params()["num_layers"] == 2
+        qkrr_instance.set_params(num_layers=4)
+        assert qkrr_instance.get_params()["num_layers"] == 4
+
+        # Check if fit is still possible
+        X, y = data
+        try:
+            qkrr_instance.fit(X, y)
+        except:
+            assert False, f"fitting not possible after changes to feature map paramaeters"
+
+    def test_pqk_params_can_be_changes_after_initialization(self, qkrr_pqk, data):
+        """Tests concerning changes if PQK parameters."""
+
+        qkrr_params = qkrr_pqk.get_params()
+        assert qkrr_params["gamma"] == 1.0
+        # assert qkrr_params["measurement"] == "XYZ" #only working after merging PR#125
+        qkrr_pqk.set_params(gamma=0.5, measurement="Z")
+
+        qkrr_params_updated = qkrr_pqk.get_params()
+        assert qkrr_params_updated["gamma"] == 0.5
+        #assert qkrr_params_updated["measurement"] == "Z"
+
+        # Check if fit is still possible
+        X, y = data
+        try:
+            qkrr_pqk.fit(X, y)
+        except:
+            assert False, f"fitting not possible after changes of PQK paramaeters"
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_classical_params_can_be_changed_after_initialization(self, qkrr, request):
+        """Test concerning change of classical KRR parameter"""
+        qkrr_instance = request.getfixturevalue(qkrr)
+
+        qkrr_params = qkrr_instance.get_params()
+        assert qkrr_params["alpha"] == 1.0e-6
+        qkrr_instance.set_params(alpha=0.01)
+
+        qkrr_params_updated = qkrr_instance.get_params()
+        assert qkrr_params_updated["alpha"] == 0.01
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_that_regularization_is_called_when_not_none(self, qkrr, request, data):
+        """Asserts that regularization is called."""
+        qkrr_instance = request.getfixturevalue(qkrr)
+        X, y = data
+        
+        qkrr_instance.set_params(regularization="tikhonov")
+
+        qkrr_instance.quantum_kernel._regularize_matrix = MagicMock()
+        qkrr_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+
+        qkrr_instance.fit(X, y)
+        qkrr_instance.predict(X)
+
+        assert qkrr_instance.quantum_kernel._regularize_matrix.call_count == 2
+    
