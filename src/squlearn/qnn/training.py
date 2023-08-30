@@ -361,7 +361,7 @@ def solve_all(
         return tuple(return_list)
 
 
-def solve_minibatch(
+def solve_mini_batch(
     qnn: QNN,
     input_values,
     ground_truth,
@@ -375,7 +375,7 @@ def solve_minibatch(
     batch_size: int = None,
     shuffle=False,
 ):
-    """Minimize a loss function using minibatch gradient descent.
+    """Minimize a loss function using mini-batch gradient descent.
 
     Args:
         qnn : QNN instance
@@ -389,8 +389,8 @@ def solve_minibatch(
                   ground_truth (default : None)
         opt_param_op : If True, cost operator parameters are optimized as well (default: True)
         epochs : Number of epochs of SGD to perform
-        batch_size : Number of datapoints in each batch
-        shuffle : If True, datapoints get shuffled before each epoch (default: False)
+        batch_size : Number of data points in each batch
+        shuffle : If True, data points get shuffled before each epoch (default: False)
 
     Returns:
         optimized parameters of the PQC, and, if opt_param_op=True,
@@ -398,7 +398,8 @@ def solve_minibatch(
     """
     if not isinstance(optimizer, SGDMixin):
         raise TypeError(
-            f"Optimizer {optimizer.__name__} is not supported for minibatch gradient descent."
+            f"Optimizer {optimizer.__class__.__name__} is not supported for mini-batch gradient "
+            "descent."
         )
 
     if isinstance(weights, np.ndarray):
@@ -409,7 +410,7 @@ def solve_minibatch(
         raise TypeError(f"Unknown weight format: {type(weights)}")
 
     # Tell the loss function if the cost operator parameters are optimized
-    loss.set_optimize_param_op(opt_param_op)
+    loss.set_opt_param_op(opt_param_op)
 
     if weights_values.shape != ground_truth.shape:
         raise ValueError(
@@ -523,7 +524,7 @@ def regression(
         raise TypeError("Unknown weight format")
 
     # Tell the loss function if the cost operator parameters are optimized
-    loss.set_optimize_param_op(opt_param_op)
+    loss.set_opt_param_op(opt_param_op)
 
     if weights_values.shape != ref_values.shape:
         raise ValueError(

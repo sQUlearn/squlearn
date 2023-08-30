@@ -1,6 +1,5 @@
 """QNNClassifier Implemenation"""
 from typing import Callable, Union
-from warnings import warn
 
 import numpy as np
 from sklearn.base import ClassifierMixin
@@ -8,7 +7,7 @@ from sklearn.preprocessing import LabelBinarizer
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_minibatch, regression
+from .training import solve_mini_batch, regression
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
 from ..feature_map.feature_map_base import FeatureMapBase
@@ -19,27 +18,78 @@ from ..util import Executor
 class QNNClassifier(BaseQNN, ClassifierMixin):
     """Quantum Neural Network for Classification.
 
-    This class implements a QNN for classification with a sklearn interface.
+    This class implements a quantum neural network (QNN) for classification with a scikit-learn
+    interface. A parameterized quantum circuit and a possibly parameterized operator are used
+    as a ML model. They are trained according to a specified loss using the specified optimizer.
+    Mini-batch training is possible.
 
     Args:
-        pqc : Parameterized quantum circuit in feature map format
-        operator : Operator that are used in the expectation value of the QNN. Can be a list for
-            multiple outputs.
-        executor : Executor instance
-        optimizer : Optimizer instance
-        param_ini : Initialization values of the parameters of the PQC
-        param_op_ini : Initialization values of the cost operator
-        batch_size : Number of datapoints in each batch, for SGDMixin optimizers
-        epochs : Number of epochs of SGD to perform, for SGDMixin optimizers
-        shuffle : If True, datapoints get shuffled before each epoch (default: False),
-            for SGDMixin optimizers
-        opt_param_op : If True, operators parameters get optimized
-        variance : Variance factor
+        feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
+            For a list of feature maps, check this list of implemented :ref:`feature_maps`.
+        operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
+            is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
+            list of operators, check this list of implemented :ref:`operators`.
+        executor (Executor): Executor instance.
+        loss (LossBase): The loss function to be optimized. Can also be combination of multiple
+            loss functions.
+        optimizer (OptimizerBase): The optimizer instance that is used to minimize the loss
+            function.
+        param_ini (np.ndarray, default=None): Initial values of the parameters of the PQC.
+        param_op_ini (np.ndarray, default=None): Initial values of the parameters of the operator.
+        batch_size (int, default=None): Number of data points in each batch in mini-batch training.
+            Will only be used if optimizer is of type SGDMixin.
+        epochs (int, default=None): Number of epochs of SGD to perform. Will only be used if
+            optimizer is of type SGDMixin.
+        shuffle (bool, default=None): If True, data points get shuffled before each epoch. Will
+            only be used if optimizer is of type SGDMixin.
+        opt_param_op (bool, default=True): If True, the operators parameters get optimized.
+        variance (Union[float, Callable], default=None): The variance factor to be used. If it is
+            None, the variance regularization will not be used. Else this determines the strength
+            of the variance regularization.
+        parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
+            parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
+
+    See Also
+    --------
+        squlearn.qnn.QNNRegressor : Quantum Neural Network for Regression.
+
+    **Example**
+
+    .. code-block::
+
+        from squlearn import Executor
+        from squlearn.feature_map import ChebRx
+        from squlearn.expectation_operator import SummedPaulis
+        from squlearn.qnn import QNNClassifier, SquaredLoss
+        from squlearn.optimizers import SLSQP
+        from sklearn.datasets import make_blobs
+        from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import MinMaxScaler
+
+        X, y = make_blobs(60, centers=2, random_state=0)
+        X = MinMaxScaler((-0.9, 0.9)).fit_transform(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.33, random_state=42
+        )
+        clf = QNNClassifier(
+            ChebRx(4, 2, 2),
+            SummedPaulis(4),
+            Executor("statevector_simulator"),
+            SquaredLoss(),
+            SLSQP(),
+            np.random.rand(16),
+            np.random.rand(5)
+        )
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+
+    Methods:
+    --------
     """
 
     def __init__(
         self,
-        pqc: FeatureMapBase,
+        feature_map: FeatureMapBase,
         operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
         executor: Executor,
         loss: LossBase,
@@ -51,9 +101,11 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
+        parameter_seed: Union[int, None] = 0,
+        **kwargs,
     ) -> None:
         super().__init__(
-            pqc,
+            feature_map,
             operator,
             executor,
             loss,
@@ -65,6 +117,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             shuffle,
             opt_param_op,
             variance,
+            parameter_seed=parameter_seed,
+            **kwargs,
         )
         self._label_binarizer = None
 
@@ -78,8 +132,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             np.ndarray : The predicted values.
         """
         if not self._is_fitted:
-            warn("The model is not fitted.")
-        pred = self._qnn.evaluate_f(X, self.param, self.param_op)
+            raise RuntimeError("The model is not fitted.")
+        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -91,7 +145,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The probabilities
         """
-        pred = self._qnn.evaluate_f(X, self.param, self.param_op)
+        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
@@ -106,7 +160,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Args:
             X: Input data
             y: Labels
-            weights: Weights for each datapoint
+            weights: Weights for each data point
         """
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
@@ -123,12 +177,12 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self.param, self.param_op = solve_minibatch(
+                self._param, self._param_op = solve_mini_batch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
@@ -138,12 +192,12 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     opt_param_op=True,
                 )
             else:
-                self.param = solve_minibatch(
+                self._param = solve_mini_batch(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
                     batch_size=self.batch_size,
@@ -155,24 +209,24 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         else:
             if self.opt_param_op:
-                self.param, self.param_op = regression(
+                self._param, self._param_op = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
                     self.optimizer.minimize,
                     weights,
                     True,
                 )
             else:
-                self.param = regression(
+                self._param = regression(
                     self._qnn,
                     X,
                     y,
-                    self.param,
-                    self.param_op,
+                    self._param,
+                    self._param_op,
                     loss,
                     self.optimizer.minimize,
                     weights,

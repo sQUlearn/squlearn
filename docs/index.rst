@@ -6,22 +6,14 @@
 Welcome to sQUlearn's documentation!
 ====================================
 
-Here comes some description of the sQUlearn package and the documentation.
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   tutorials/install
+   install/install
+   user_guide/user_guide_index
    modules/classes
-   tutorials/use_executor
-   tutorials/pqk
-   tutorials/operators
-
-
-Indices and tables
-==================
-* :ref:`api_reference`
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   examples/examples_index

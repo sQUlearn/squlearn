@@ -25,25 +25,26 @@ from ..util.data_preprocessing import adjust_input
 from ..util import Executor
 
 
-class expec:
+class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
 
     Args:
-        wavefunction (Union[str, tuple, ParameterVectorElement]): Describes the wavefuction or its
-            derivative. If tuple or ParameterVectorElement the differentiation with respect to the
-            parameters in the tuple or with respect to the ParameterVectorElement is considered
-        operator (str): String for the expectation value operator (O, OO, dop, dopdop, var).
+        wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
+            its derivative. If tuple or ParameterVectorElement the differentiation with respect to
+            the parameters in the tuple or with respect to the ParameterVectorElement is considered
+        operator (str): String for the expectation value operator (``"O"``, ``"OO"``, ``"dop"``,
+            ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
 
     """
 
     def __init__(
         self,
-        wavefunction: Union[str, tuple, ParameterVectorElement],
+        wave_function: Union[str, tuple, ParameterVectorElement],
         operator: str,
         label: str = "",
     ):
-        self.wavefunction = wavefunction
+        self.wave_function = wave_function
         self.operator = operator
         self.label = label
 
@@ -74,14 +75,14 @@ class expec:
         return out_str
 
     def __repr__(self) -> str:
-        """Build-in string conversion for expec class."""
+        """Build-in string conversion for Expec class."""
         return self.__str__()
 
     def __str__(self) -> str:
-        """Build-in string conversion for expec class."""
+        """Build-in string conversion for Expec class."""
         return (
-            "expec("
-            + self.__var_to_str(self.wavefunction)
+            "Expec("
+            + self.__var_to_str(self.wave_function)
             + ","
             + self.__var_to_str(self.operator)
             + ","
@@ -90,30 +91,30 @@ class expec:
         )
 
     def __len__(self) -> int:
-        """Build-in length of expec class (return 1)."""
+        """Build-in length of Expec class (return 1)."""
         return 1
 
     def __eq__(self, other) -> bool:
-        """Build-in comparison of two expec class objects."""
+        """Build-in comparison of two Expec class objects."""
         return (
             isinstance(other, self.__class__)
-            and self.wavefunction == other.wavefunction
+            and self.wave_function == other.wave_function
             and self.operator == other.operator
         )
 
     def __hash__(self) -> int:
-        """Build-in hash function for expec class."""
-        return hash((self.wavefunction, self.operator))
+        """Build-in hash function for Expec class."""
+        return hash((self.wave_function, self.operator))
 
     @classmethod
     def from_string(cls, val: str):
-        """Converts an input string to the expec data structure.
+        """Converts an input string to the Expec data structure.
 
         Args:
             String that defines the expectation value derivative
 
         Returns:
-            Associated expec object
+            Associated Expec object
 
         """
 
@@ -179,42 +180,42 @@ class expec:
 
     @classmethod
     def from_tuple(cls, val: tuple, operator: str = "O"):
-        """Creates an expec object from an input tuple
+        """Creates an Expec object from an input tuple
 
         Args:
-            val (tuple): Tuple for the differentiation of the wavefunction.
+            val (tuple): Tuple for the differentiation of the wave function.
             operator (str): String for the operator, default='O'.
 
         Returns
-            Associated expec object
+            Associated Expec object
         """
         return cls(val, operator, val)
 
     @classmethod
     def from_parameter(cls, val: ParameterVectorElement, operator: str = "O"):
-        """Creates an expec object from an inputted parameter
+        """Creates an Expec object from an inputted parameter
 
         Args:
             val (ParameterVectorElement): Parameter that is used in the differentiation.
             operator (str): String for the operator, default='O'.
 
         Returns
-            Associated expec object
+            Associated Expec object
         """
         return cls((val,), operator, (val,))
 
     @classmethod
     def from_variable(cls, val):
-        """Creates an expec object from an inputted value
+        """Creates an Expec object from an inputted value
 
         Args:
-            val (Union[expec,str,tuple,ParameterVectorElement]): value that defines the derivative
+            val (Union[Expec,str,tuple,ParameterVectorElement]): value that defines the derivative
 
         Returns
-            Associated expec object
+            Associated Expec object
         """
 
-        if isinstance(val, expec):
+        if isinstance(val, Expec):
             return val
         elif isinstance(val, str):
             return cls.from_string(val)
@@ -231,11 +232,11 @@ class QNN:
 
     Args:
         pqc (FeatureMapBase) : parameterized quantum circuit in feature map format
-        operator (Union[ExpectationOperatorBase,list]): Operator that are used in the expectation value
-            of the QNN. Can be a list for multiple outputs.
+        operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
+            value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
         opflow_caching : Caching of the opflow expressions (default = True recommended)
-        result_caching : Caching of the result for each x,param,param_op combination
+        result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
     """
 
@@ -252,27 +253,111 @@ class QNN:
         self.executor = executor
         self.backend = self.executor.backend
 
-        # Storing the input data # TODO: custom transpilation function
+        # Set-up shots from backend
+        self._inital_shots = self.executor.get_shots()
+
+        self._opflow_caching = opflow_caching
+        self._result_caching = result_caching
+
         self.pqc = TranspiledFeatureMap(pqc, self.backend)
         self.operator = operator
+
+        self._initilize_derivative()
+
+    def get_params(self, deep: bool = True) -> dict:
+        """Returns the dictionary of the hyper-parameters of the QNN.
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0__``, ``op1__``, etc.
+
+        """
+        params = dict(num_qubits=self.num_qubits)
+
+        if deep:
+            params.update(self.pqc.get_params())
+            if isinstance(self.operator, list):
+                for i, oper in enumerate(self.operator):
+                    oper_dict = oper.get_params()
+                    for key, value in oper_dict.items():
+                        if key != "num_qubits":
+                            params["op" + str(i) + "__" + key] = value
+            else:
+                params.update(self.operator.get_params())
+        return params
+
+    def set_params(self, **params) -> None:
+        """Sets the hyper-parameters of the QNN
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0__``, ``op1__``, etc.
+
+        Args:
+            params: Hyper-parameters that are adjusted, e.g. ``num_qubits=4``
+
+        """
+
+        # Check if all parameters are valid
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        # Set parameters of the PQC
+        dict_pqc = {}
+        for key, value in params.items():
+            if key in self.pqc.get_params():
+                dict_pqc[key] = value
+        if len(dict_pqc) > 0:
+            self.pqc.set_params(**dict_pqc)
+
+        # Set parameters of the operator
+        if isinstance(self.operator, list):
+            for i, oper in enumerate(self.operator):
+                dict_operator = {}
+                for key, value in params.items():
+                    if key == "num_qubits":
+                        dict_operator[key] = value
+                    else:
+                        if key.startswith("op" + str(i) + "__"):
+                            dict_operator[key.split("__", 1)[1]] = value
+                if len(dict_operator) > 0:
+                    oper.set_params(**dict_operator)
+        else:
+            dict_operator = {}
+            for key, value in params.items():
+                if key in self.operator.get_params():
+                    dict_operator[key] = value
+            if len(dict_operator) > 0:
+                self.operator.set_params(**dict_operator)
+
+        self._initilize_derivative()
+
+    def _initilize_derivative(self):
+        """Initializes the derivative classes"""
+
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_all_qubits)
+            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(self.operator, opflow_caching)
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, opflow_caching)
+        self.operator_derivatives = ExpectationOperatorDerivatives(
+            self.operator, self._opflow_caching
+        )
+        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._opflow_caching)
 
-        if self.pqc.num_qubits != num_qubits_operator:
+        if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
         else:
-            self._num_qubits = self.pqc.num_qubits
+            self._num_qubits = self.pqc.num_virtual_qubits
 
-        if self.executor.get_opflow_executor() in ("sampler", "quantum_instance"):
+        if self.executor.opflow_executor() in ("sampler", "quantum_instance"):
             # For Quantum Instance or the Sampler primitive, X and Y Pauli matrices have to be treated extra
             # This is very inefficient!
             operator_string = str(self.operator)
@@ -287,11 +372,7 @@ class QNN:
         else:
             self.split_paulis = False
 
-        # Set-up shots from backend
-        self._inital_shots = self.executor.get_shots()
-
         # Initialize result cache
-        self._result_caching = result_caching
         self.result_container = {}
 
     def set_shots(self, num_shots: int) -> None:
@@ -311,7 +392,7 @@ class QNN:
         return self.executor.get_shots()
 
     def reset_shots(self) -> None:
-        """Function for resetting the number of shots to the inital ones"""
+        """Function for resetting the number of shots to the initial ones"""
         self.executor.reset_shots()
 
     @property
@@ -347,17 +428,17 @@ class QNN:
     @property
     def parameters(self):
         """Return the parameter vector of the PQC."""
-        return self.pqc_derivatives.p
+        return self.pqc_derivatives._p
 
     @property
     def features(self):
         """Return the feature vector of the PQC."""
-        return self.pqc_derivatives.x
+        return self.pqc_derivatives._x
 
     @property
     def parameters_operator(self):
         """Return the parameter vector of the cost operator."""
-        return self.operator_derivatives.parameters
+        return self.operator_derivatives._parameter_vector
 
     def get_opflow_from_string(self, input_string: str):
         """Return the opflow expression of the given PQC
@@ -368,20 +449,20 @@ class QNN:
         Returns:
             Opflow structure created from the string.
         """
-        return self.get_opflow_from_expec(expec.from_string(input_string))
+        return self.get_opflow_from_expec(Expec.from_string(input_string))
 
-    def get_opflow_from_expec(self, input_expec: expec):
-        """Returns the opflow expression for the given expec object.
+    def get_opflow_from_expec(self, input_expec: Expec):
+        """Returns the opflow expression for the given :class:`Expec` object.
 
         Args:
-            input_expec (expec): Expec pbject from which the opflow is obtained
+            input_expec (Expec): :class:`Expec` object from which the opflow is obtained
 
         Returns:
-            Opflow structure created from the expec object.
+            Opflow structure created from the :class:`Expec` object.
         """
         return measure_feature_map_derivative(
-            self.pqc_derivatives.get_derivate(input_expec.wavefunction),
-            self.operator_derivatives.get_derivate(input_expec.operator),
+            self.pqc_derivatives.get_derivative(input_expec.wave_function),
+            self.operator_derivatives.get_derivative(input_expec.operator),
         )
 
     def evaluate_diff_tuple(
@@ -448,7 +529,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d/dx of the QNN
+        """Evaluates derivatives of the QNN with respect to `x`.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -456,7 +537,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d/dx of the the QNN
+            Evaluated derivatives of the the QNN with respect to `x`
         """
         return self.evaluate_from_string("dfdx", x, param, param_op)
 
@@ -466,7 +547,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d^2/dxdx of the QNN
+        """Evaluates second order derivatives of the QNN with respect to `x`.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -474,7 +555,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d^2/dxdx of the the QNN
+            Evaluated second order derivatives of the the QNN with respect to `x`
         """
         return self.evaluate_from_string("dfdxdx", x, param, param_op)
 
@@ -484,7 +565,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates laplace(x) of the QNN
+        """Evaluates Laplacian of the QNN for `x`.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -492,7 +573,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated laplace(x) of the the QNN
+            Evaluated Laplacian of the the QNN for `x`
         """
         return self.evaluate_from_string("laplace", x, param, param_op)
 
@@ -502,7 +583,8 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d laplace(x)/dp of the QNN
+        """
+        Evaluates the derivative of the Laplacian with respect to the PQC's parameters.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -510,7 +592,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d laplace(x)/dp of the the QNN
+            Evaluated derivative of the Laplacian with respect to the PQC's parameters
         """
         return self.evaluate_from_string("laplace_dp", x, param, param_op)
 
@@ -520,7 +602,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d laplace(x)/dop of the QNN
+        """Evaluates the derivative of the Laplacian with respect to the operator's parameters.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -528,7 +610,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d laplace(x)/dop of the the QNN
+            Evaluated derivative of the Laplacian with respect to the operator's parameters
         """
         return self.evaluate_from_string("laplace_dop", x, param, param_op)
 
@@ -538,7 +620,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d/dp of the QNN
+        """Evaluates the derivative of the QNN with respect to the PQC's parameters.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -546,7 +628,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d/dp of the the QNN
+            Evaluated derivative of the the QNN with respect to the PQC's parameters.
         """
         return self.evaluate_from_string("dfdp", x, param, param_op)
 
@@ -556,7 +638,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d/dop of the QNN
+        """Evaluates the derivative of the QNN with respect to the operator's parameters.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -564,7 +646,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d/dop of the the QNN
+            Evaluated derivative of the the QNN with respect to the operator's parameters.
         """
         return self.evaluate_from_string("dfdop", x, param, param_op)
 
@@ -574,7 +656,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d^2/dpdx of the QNN
+        """Evaluates the derivative of the QNN with respect to the PQC's parameters and `x`.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -582,7 +664,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d^2/dpdx of the the QNN
+            Evaluated derivative of the QNN with respect to the PQC's parameters and `x`
         """
         return self.evaluate_from_string("dfdpdx", x, param, param_op)
 
@@ -592,7 +674,7 @@ class QNN:
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
     ) -> Union[float, np.ndarray]:
-        """Evaluates d^2/dopdx of the QNN
+        """Evaluates the derivative of the QNN with respect to the operator's parameters and `x`.
 
         Args:
             x (Union[float,np.ndarray]): Input data values
@@ -600,7 +682,7 @@ class QNN:
             param_op (Union[float,np.ndarray]): Parameter values of the operator
 
         Returns:
-            Evaluated d^2/dopdx of the the QNN
+            Evaluated derivative of the QNN with respect to the operator's parameters and `x`
         """
         return self.evaluate_from_string("dfdopdx", x, param, param_op)
 
@@ -651,7 +733,7 @@ class QNN:
 
         Returns:
             List of probabilities stored in the SparseVectorStateFn format.
-            (dictionary can be obtained by .to_dict_fn() or to_dict_fn().primitive)
+            (dictionary can be obtained by `.to_dict_fn()` or `to_dict_fn().primitive`)
         """
         # TODO: Implementation with Sampler
         opflow = self.get_opflow_from_string("f")
@@ -663,7 +745,7 @@ class QNN:
 
     def evaluate(
         self,
-        values,  # TODO: data type definition missing Union[str,expec,tuple,...]
+        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
@@ -671,15 +753,15 @@ class QNN:
         """General function for evaluating the output of derivatives of the QNN.
 
         Evaluation works for given combination of
-        input features x and parameters param and param_op.
+        input features `x` and parameters `param` and `param_op`.
         The function includes caching of results
 
-        If x, param, and/or param_op are given as a nested list
+        If `x`, `param`, and/or `param_op` are given as a nested list
         (for example multiple sets of parameters),
         the values are returned in a nested list.
 
         Args:
-            values : list of what values and derivatives of the qnn are eveluated.
+            values : list of what values and derivatives of the QNN are evaluated.
                 Multiple inputs have to be a tuple.
             x (np.ndarray): Values of the input feature data.
             param (np.ndarray): Parameter values of the PQC parameters
@@ -694,64 +776,64 @@ class QNN:
 
         def generate_real_todo_dic(values, value_dict):
             """Converts the input values into a sorted dictionary
-            of of expec items"""
+            of of Expec items"""
 
             # helper function for adding elemets to the real todo dict
-            def add_to_real_todo_dic(item: expec, real_todo_dic, value_dict):
+            def add_to_real_todo_dic(item: Expec, real_todo_dic, value_dict):
                 if item not in value_dict:
-                    if item.wavefunction in real_todo_dic:
+                    if item.wave_function in real_todo_dic:
                         #  check if i is already in the real todo list
-                        if item not in real_todo_dic[item.wavefunction]:
-                            real_todo_dic[item.wavefunction].append(item)
+                        if item not in real_todo_dic[item.wave_function]:
+                            real_todo_dic[item.wave_function].append(item)
                     else:
-                        real_todo_dic[item.wavefunction] = [item]
+                        real_todo_dic[item.wave_function] = [item]
                 return real_todo_dic
 
             # labels can be overwritten
             try:
-                expec_list = [expec.from_variable(i) for i in values]
+                expec_list = [Expec.from_variable(i) for i in values]
             except TypeError:
-                expec_list = [expec.from_variable(values)]
+                expec_list = [Expec.from_variable(values)]
             # build dictionary for later use
             real_todo_dic = {}
             for i in expec_list:
                 # special cases of variance computation for post-processing:
-                if i.operator == "var" and i.wavefunction == "I":
+                if i.operator == "var" and i.wave_function == "I":
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "OO"), real_todo_dic, value_dict
+                        Expec("I", "OO"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "O"), real_todo_dic, value_dict
+                        Expec("I", "O"), real_todo_dic, value_dict
                     )
-                elif i.operator == "var" and i.wavefunction == "dx":
+                elif i.operator == "var" and i.wave_function == "dx":
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("dx", "OO"), real_todo_dic, value_dict
-                    )
-                    real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "O"), real_todo_dic, value_dict
+                        Expec("dx", "OO"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("dx", "O"), real_todo_dic, value_dict
-                    )
-                elif i.operator == "var" and i.wavefunction == "dp":
-                    real_todo_dic = add_to_real_todo_dic(
-                        expec("dp", "OO"), real_todo_dic, value_dict
+                        Expec("I", "O"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "O"), real_todo_dic, value_dict
+                        Expec("dx", "O"), real_todo_dic, value_dict
+                    )
+                elif i.operator == "var" and i.wave_function == "dp":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("dp", "OO"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("dp", "O"), real_todo_dic, value_dict
-                    )
-                elif i.operator == "dvardop" and i.wavefunction == "I":
-                    real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "OOdop"), real_todo_dic, value_dict
+                        Expec("I", "O"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "O"), real_todo_dic, value_dict
+                        Expec("dp", "O"), real_todo_dic, value_dict
+                    )
+                elif i.operator == "dvardop" and i.wave_function == "I":
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "OOdop"), real_todo_dic, value_dict
                     )
                     real_todo_dic = add_to_real_todo_dic(
-                        expec("I", "dop"), real_todo_dic, value_dict
+                        Expec("I", "O"), real_todo_dic, value_dict
+                    )
+                    real_todo_dic = add_to_real_todo_dic(
+                        Expec("I", "dop"), real_todo_dic, value_dict
                     )
                 else:
                     real_todo_dic = add_to_real_todo_dic(i, real_todo_dic, value_dict)
@@ -849,7 +931,7 @@ class QNN:
             offset = 0
             for expec_ in op_list:
                 # Obtained the derivative from the operator module
-                operator = self.operator_derivatives.get_derivate(expec_.operator)
+                operator = self.operator_derivatives.get_derivative(expec_.operator)
                 # Assign parameters and convert to sparse Pauli representation
                 op_with_param = self.operator_derivatives.assign_parameters(operator, param_op_inp)
 
@@ -861,7 +943,7 @@ class QNN:
                 index_list.append(index_list_op)
 
             # get the circuits of the PQC derivatives from the feature map module
-            pqc_opflow = self.pqc_derivatives.get_derivate(key)
+            pqc_opflow = self.pqc_derivatives.get_derivative(key)
 
             # check for multiple circuits (e.g. gradient)
             if isinstance(pqc_opflow, ListOp):
@@ -925,69 +1007,69 @@ class QNN:
 
         # Set-up lables from the input list
         for todo in values:
-            todo_expec = expec.from_variable(todo)
+            todo_expec = Expec.from_variable(todo)
 
             # post-processing of the variance
             # variance
-            if todo_expec.operator == "var" and todo_expec.wavefunction == "I":
-                value_dict[todo_expec] = value_dict[expec("I", "OO")] - np.square(
-                    value_dict[expec("I", "O")]
+            if todo_expec.operator == "var" and todo_expec.wave_function == "I":
+                value_dict[todo_expec] = value_dict[Expec("I", "OO")] - np.square(
+                    value_dict[Expec("I", "O")]
                 )
             # d/dx variance
-            elif todo_expec.operator == "var" and todo_expec.wavefunction == "dx":
+            elif todo_expec.operator == "var" and todo_expec.wave_function == "dx":
                 if self.num_features == 1:
-                    value_dict[todo_expec] = value_dict[expec("dx", "OO")] - 2.0 * (
-                        np.multiply(value_dict[expec("dx", "O")], value_dict[expec("I", "O")])
+                    value_dict[todo_expec] = value_dict[Expec("dx", "OO")] - 2.0 * (
+                        np.multiply(value_dict[Expec("dx", "O")], value_dict[Expec("I", "O")])
                     )
                 else:
-                    value_dict[todo_expec] = np.zeros(value_dict[expec("dx", "OO")].shape)
-                    for i in range(value_dict[expec("dx", "OO")].shape[-1]):
-                        value_dict[todo_expec][..., i] = value_dict[expec("dx", "OO")][
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("dx", "OO")].shape)
+                    for i in range(value_dict[Expec("dx", "OO")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("dx", "OO")][
                             ..., i
                         ] - 2.0 * (
                             np.multiply(
-                                value_dict[expec("dx", "O")][..., i],
-                                value_dict[expec("I", "O")],
+                                value_dict[Expec("dx", "O")][..., i],
+                                value_dict[Expec("I", "O")],
                             )
                         )
             # d/dp variance
-            elif todo_expec.operator == "var" and todo_expec.wavefunction == "dp":
+            elif todo_expec.operator == "var" and todo_expec.wave_function == "dp":
                 if self.num_parameters == 1:
-                    value_dict[todo_expec] = value_dict[expec("dp", "OO")] - 2.0 * (
-                        np.multiply(value_dict[expec("dp", "O")], value_dict[expec("I", "O")])
+                    value_dict[todo_expec] = value_dict[Expec("dp", "OO")] - 2.0 * (
+                        np.multiply(value_dict[Expec("dp", "O")], value_dict[Expec("I", "O")])
                     )
                 else:
-                    value_dict[todo_expec] = np.zeros(value_dict[expec("dp", "OO")].shape)
-                    for i in range(value_dict[expec("dp", "OO")].shape[-1]):
-                        value_dict[todo_expec][..., i] = value_dict[expec("dp", "OO")][
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("dp", "OO")].shape)
+                    for i in range(value_dict[Expec("dp", "OO")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("dp", "OO")][
                             ..., i
                         ] - 2.0 * (
                             np.multiply(
-                                value_dict[expec("dp", "O")][..., i],
-                                value_dict[expec("I", "O")],
+                                value_dict[Expec("dp", "O")][..., i],
+                                value_dict[Expec("I", "O")],
                             )
                         )
             # d/dop variance
-            elif todo_expec.operator == "dvardop" and todo_expec.wavefunction == "I":
+            elif todo_expec.operator == "dvardop" and todo_expec.wave_function == "I":
                 if self.num_parameters_operator == 1:
-                    value_dict[todo_expec] = value_dict[expec("I", "OOdop")] - 2.0 * (
-                        np.multiply(value_dict[expec("I", "dop")], value_dict[expec("I", "O")])
+                    value_dict[todo_expec] = value_dict[Expec("I", "OOdop")] - 2.0 * (
+                        np.multiply(value_dict[Expec("I", "dop")], value_dict[Expec("I", "O")])
                     )
                 else:
-                    value_dict[todo_expec] = np.zeros(value_dict[expec("I", "OOdop")].shape)
-                    for i in range(value_dict[expec("I", "OOdop")].shape[-1]):
-                        value_dict[todo_expec][..., i] = value_dict[expec("I", "OOdop")][
+                    value_dict[todo_expec] = np.zeros(value_dict[Expec("I", "OOdop")].shape)
+                    for i in range(value_dict[Expec("I", "OOdop")].shape[-1]):
+                        value_dict[todo_expec][..., i] = value_dict[Expec("I", "OOdop")][
                             ..., i
                         ] - 2.0 * (
                             np.multiply(
-                                value_dict[expec("I", "dop")][..., i],
-                                value_dict[expec("I", "O")],
+                                value_dict[Expec("I", "dop")][..., i],
+                                value_dict[Expec("I", "O")],
                             )
                         )
 
             # assign values to the label of the expectation value
             value_dict[todo] = value_dict[todo_expec]
-            if isinstance(todo, expec) and todo.label != "":
+            if isinstance(todo, Expec) and todo.label != "":
                 value_dict[todo.label] = value_dict[todo_expec]
 
         # Add x, param, and param_op to the dictionary as default
@@ -1018,7 +1100,7 @@ def _split_paulis(operator: OperatorBase, single_measure: bool) -> OperatorBase:
         into seprate circuits
     """
     # We reached a ComposedOp term -> seprate the different measurment operators
-    # using qiskit's PauliExpectation
+    # using Qiskit's PauliExpectation
     if isinstance(operator, ComposedOp):
         coeff = operator.coeff
         operator_splitted = PauliExpectation().convert(operator)

@@ -16,3 +16,8 @@ Or execute in the windows shell:
 ```bash
 make.bat html
 ```
+
+Spell checking with
+```bash
+make.bat spelling
+```

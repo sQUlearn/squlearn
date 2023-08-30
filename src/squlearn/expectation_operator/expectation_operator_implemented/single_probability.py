@@ -10,14 +10,31 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class SingleProbability(ExpectationOperatorBase):
     r"""
-    Expectation operator for measuring the probability of being in state 0 or 1 of
-    a specified qubit.
+    Operator for measuring the probability of being in state 0 or 1 of a specified qubit.
 
-    Implemented by :math:`\ket{0}\bra{0} = 0.5(\hat{I}+\hat{Z})` and :math:`\ket{1}\bra{1} = 0.5(\hat{I}-\hat{Z})`
+    **Equation as the operator is implemented:**
+
+    .. math::
+
+       \hat{H} = 0.5(\hat{I}_i+\hat{Z}_i) (= \ket{0}\bra{0}_i) \qquad \text{or} \qquad
+       \hat{H} = 0.5(\hat{I}_i-\hat{Z}_i) (= \ket{1}\bra{1}_i)
+
+    Operator can be optionally parameterized.
 
     Args:
         num_qubits (int): Number of qubits.
-        qubit (int): Qubit to measure.
+        qubit (int): Qubit to measure the probability of.
+        one_state (bool): If True, measure the probability of being in state 1, otherwise state 0
+                          (default: False).
+        parameterized (bool): If True, the operator is parameterized (default: false).
+
+    Attributes:
+    -----------
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single Pauli operator.
+        qubit (int): Qubit to measure the probability of.
         one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
         parameterized (bool): If True, the operator is parameterized.
     """
@@ -37,12 +54,29 @@ class SingleProbability(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the single probability operator"""
+        """Number of trainable parameters in the single probability operator."""
 
         if self.parameterized:
             return 1
         else:
             return 0
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the single probability operator.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["qubit"] = self.qubit
+        params["one_state"] = self.one_state
+        params["parameterized"] = self.parameterized
+        return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
         """
@@ -50,9 +84,9 @@ class SingleProbability(ExpectationOperatorBase):
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                probability operator.
+                                                             probability operator.
 
-        Returns:
+        Return:
             PauliOp expression of the specified single probability operator.
         """
 

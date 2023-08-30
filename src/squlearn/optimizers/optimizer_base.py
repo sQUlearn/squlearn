@@ -66,6 +66,17 @@ class SGDMixin(IterativeOptimizerMixin, abc.ABC):
         self._update_lr()
         return x_return
 
+    def reset(self):
+        """
+        Resets the object to its initial state.
+
+        This function does not take any parameters.
+
+        Returns:
+            None: This function does not return anything.
+        """
+        pass
+
     @abc.abstractmethod
     def _get_update(self, grad: np.ndarray) -> np.ndarray:
         raise NotImplementedError()

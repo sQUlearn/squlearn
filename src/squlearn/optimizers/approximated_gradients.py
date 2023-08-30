@@ -18,6 +18,9 @@ class ApproxGradientBase:
         """
         raise NotImplementedError()
 
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        return self.gradient(x)
+
 
 class FiniteDiffGradient(ApproxGradientBase):
     """

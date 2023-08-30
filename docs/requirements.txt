@@ -1,0 +1,9 @@
+ipython
+matplotlib
+myst-parser
+nbsphinx
+nbsphinx_link
+pylatexenc
+sphinx
+sphinxcontrib-spelling
+sphinx-rtd-theme

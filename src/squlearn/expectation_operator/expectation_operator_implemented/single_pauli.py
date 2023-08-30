@@ -10,15 +10,33 @@ from ..expectation_operator_base import ExpectationOperatorBase
 
 class SinglePauli(ExpectationOperatorBase):
     r"""
-    Expectation operator for evaluating the expectation value of a single Pauli operator.
+    Single Pauli operator of a single Qubit.
 
+    **Equation for Z Pauli operator:**
 
-    Example :math:`\hat{Z_i}`.
+    .. math::
+
+       \hat{H} = \hat{Z_i} \qquad \text{or} \qquad \hat{H} = \theta\hat{Z_i}~~~~
+       \text{  (parameterized)}
+
+    Can be parameterized or not, the four Pauli operators :math:`\hat{X},\hat{Y},\hat{Z}`
+    and :math:`\hat{I}` are supported.
 
     Args:
         num_qubits (int): Number of qubits.
-        qubit (int): Qubit for which the Pauli expectation value is obtained.
-        op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``.
+        qubit (int): Qubit on which the Pauli operator acts.
+        op_str (str): Pauli operator to measure. Must be one of ``'I'``, ``'X'``, ``'Y'``, ``'Z'``
+                      (default: ``'Z'``).
+        parameterized (bool): If True, the operator is parameterized (default: False).
+
+    Attributes:
+    -----------
+
+    Attributes:
+        num_qubits (int): Number of qubits.
+        num_parameters (int): Number of trainable parameters in the single Pauli operator.
+        qubit (int): Qubit on which the Pauli operator acts.
+        op_str (str): Pauli operator to measure.
         parameterized (bool): If True, the operator is parameterized.
 
     """
@@ -37,23 +55,40 @@ class SinglePauli(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the single pauli operator"""
+        """The number of trainable parameters in the single Pauli operator"""
 
         if self.parameterized:
             return 1
         else:
             return 0
 
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns hyper-parameters and their values of the Single Pauli operator.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = super().get_params()
+        params["qubit"] = self.qubit
+        params["op_str"] = self.op_str
+        params["parameterized"] = self.parameterized
+        return params
+
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
         """
-        Function for generating the PauliOp expression of the single pauli operator.
+        Function for generating the PauliOp expression of the single Pauli operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
-                pauli operator.
+                                                             Pauli operator.
 
-        Returns:
-            PauliOp expression of the specified single pauli operator.
+        Return:
+            PauliOp expression of the specified single Pauli operator.
         """
 
         i = self.qubit

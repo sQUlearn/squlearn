@@ -6,13 +6,14 @@ Installation
 Prerequisites
 -------------
 
-sQUlearn requires a recent python3 (>=3.8) installation.
+sQUlearn requires a recent python3 (>=3.9) installation.
 Additionally the following python packages are necessary: ::
 
     numpy>=1.17
     scipy>=1.5
     scikit-learn>=1.0
     qiskit>=0.42.1
+    qiskit-aer>=0.12.0
     qiskit-machine-learning>=0.6.0
     qiskit-ibm-runtime>=0.9
     dill>=0.3
@@ -42,9 +43,8 @@ To install the latest master version:
 Development version
 -------------------
 
-To contribute to sQUlearn with full access to code and running tests install the package from the source code:
+To install the latest development version:
 
 .. code-block:: bash
 
-    git clone https://github.com/sQUlearn/squlearn.git && cd squlearn
-    pip install -e .
+    pip install git+https://github.com/sQUlearn/squlearn.git@develop

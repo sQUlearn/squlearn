@@ -6,7 +6,7 @@ API Reference
 
 
 
-Implemented High-Level QML Regressors
+QML Regressors
 =====================================
 
 .. currentmodule:: squlearn
@@ -22,7 +22,7 @@ Implemented High-Level QML Regressors
    qnn.QNNRegressor
 
 
-Implemented High-Level QML Classifiers
+QML Classifiers
 ======================================
 
 .. currentmodule:: squlearn
@@ -37,8 +37,13 @@ Implemented High-Level QML Classifiers
    qnn.QNNClassifier
 
 
-Implemented feature maps in squlearn
+Circuit Design
 ====================================
+
+.. _feature_maps:
+
+Feature Maps
+------------------------------------
 
 .. automodule:: squlearn.feature_map
     :no-members:
@@ -58,15 +63,12 @@ Implemented feature maps in squlearn
    feature_map.ChebPQC
    feature_map.HZCRxCRyCRz
    feature_map.ChebRx
-   feature_map.ZFeatureMap_CX
+   feature_map.ParamZFeatureMap
    feature_map.QiskitZFeatureMap
+   feature_map.QiskitFeatureMap
 
-Implemented tools for feature maps
-==================================
-
-.. automodule:: squlearn.feature_map
-    :no-members:
-    :no-inherited-members:
+Feature Map Tools
+------------------------------------
 
 .. currentmodule:: squlearn
 
@@ -75,14 +77,25 @@ Implemented tools for feature maps
    :toctree: generated/
    :template: class.rst
 
+   feature_map.feature_map_base.FeatureMapBase
    feature_map.PrunedFeatureMap
    feature_map.LayeredFeatureMap
-   feature_map.feature_map_derivatives.FeatureMapDerivatives
-   feature_map.transpiled_feature_map.TranspiledFeatureMap
+   feature_map.FeatureMapDerivatives
+   feature_map.TranspiledFeatureMap
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: function.rst
+
+   feature_map.automated_pruning
+   feature_map.pruning_from_QFI
 
 
-Implemented operators for expectation values
-============================================
+.. _operators:
+
+Operators
+------------------------------------
 
 .. automodule:: squlearn.expectation_operator
     :no-members:
@@ -102,9 +115,70 @@ Implemented operators for expectation values
    expectation_operator.IsingHamiltonian
    expectation_operator.CustomExpectationOperator
 
+Operator Tools
+------------------------------------
 
-Low-level QNN implementation
-============================
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   expectation_operator.expectation_operator_base.ExpectationOperatorBase
+   expectation_operator.expectation_operator_derivatives.ExpectationOperatorDerivatives
+
+
+Execution Tools
+===========================
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   Executor
+
+
+Core
+==============================
+
+Quantum Kernel Core
+------------------------------------
+
+.. automodule:: squlearn.kernel.matrix
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.matrix.FidelityKernel
+   kernel.matrix.ProjectedQuantumKernel
+
+.. automodule:: squlearn.kernel.optimization
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.optimization.kernel_optimizer.KernelOptimizer
+   kernel.optimization.negative_log_likelihood.NLL 
+   kernel.optimization.target_alignment.TargetAlignment
+
+QNN Core
+------------------------------------
 
 .. automodule:: squlearn.qnn
     :no-members:
@@ -118,13 +192,14 @@ Low-level QNN implementation
    :template: class.rst
 
    qnn.qnn.QNN
-   qnn.qnn.expec
+   qnn.qnn.Expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
+   qnn.loss.ParameterRegularizationLoss
 
 
-Base classes of sQUlearn
-========================
+Base Classes
+------------------------------------
 
 .. currentmodule:: squlearn
 

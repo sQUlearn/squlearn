@@ -1,6 +1,18 @@
-# sQUlearn 0.2.0
+# sQUlearn 0.3.0
 
-**_Note:_** This is an early access version! Not everything that is described is already working 100%.
+sQUlearn is a novel Python package introducing Quantum Machine Learning (QML) capabilities to 
+traditional machine learning pipelines via a *high-level / low-level* design approach. The package
+features an array of algorithms including Quantum Support Vector Machines, Quantum Gaussian Processes,
+Quantum Kernel Ridge Regression and Quantum Neural Networks (QNN), all designed to
+seamlessly integrate with scikit-learn. The QNN engine facilitates efficient gradient computation and
+automated training with non-linear parametrized circuits. Users can further customize their QNN
+models, enhancing flexibility and potential outcomes. sQUlearn's kernel engines are designed to
+meet various needs, with fidelity kernels and projected quantum kernels, the latter leveraging
+the QNN engine for optimization. A feature map tool allows for efficient layer-wise design
+based on strings, encouraging innovation beyond standard implementations. Lastly, backend integration 
+with IBM quantum computers is handled with a custom execution engine that optimizes session management
+on quantum backends and simulators, ensuring optimal use
+of quantum resources and creating an accessible environment for QML experimentation.
 
 ## Prerequisites
 
@@ -29,7 +41,7 @@ pip install .[examples]
 ```
 
 ## Contribution
-Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](./.github/CONTRIBUTING.md) before you submit a pull request.
+Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](https://github.com/sQUlearn/squlearn/blob/main/.github/CONTRIBUTING.md) before you submit a pull request.
 
 ---
 
@@ -40,6 +52,6 @@ Thanks for considering to contribute to sQUlearn! Please read our [contribution 
 ## Imprint
 This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA. It started as a collection of implementations of quantum machine learning methods.
 
-http://www.ipa.fraunhofer.de/quantum
+[http://www.ipa.fraunhofer.de/quantum](http://www.ipa.fraunhofer.de/quantum)
 
 ---

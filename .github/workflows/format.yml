@@ -23,4 +23,5 @@ jobs:
       - name: Run Black
         run: |
           black -l 99 src --check
+          black -l 99 tests --check
           black -l 99 --ipynb examples --check

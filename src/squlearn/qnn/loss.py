@@ -11,8 +11,8 @@ class LossBase(abc.ABC):
     def __init__(self):
         self._opt_param_op = True
 
-    def set_optimize_param_op(self, opt_param_op: bool = True):
-        """Sets the optimize_param_op flag.
+    def set_opt_param_op(self, opt_param_op: bool = True):
+        """Sets the `opt_param_op` flag.
 
         Args:
             opt_param_op (bool): True, if operator has trainable parameters
@@ -134,18 +134,18 @@ class _ComposedLoss(LossBase):
         self._l2 = l2
         self._composition = composition
         self._opt_param_op = self._l1._opt_param_op or self._l2._opt_param_op
-        self._l1.set_optimize_param_op(self._opt_param_op)
-        self._l2.set_optimize_param_op(self._opt_param_op)
+        self._l1.set_opt_param_op(self._opt_param_op)
+        self._l2.set_opt_param_op(self._opt_param_op)
 
-    def set_optimize_param_op(self, opt_param_op: bool = True):
-        """Sets the optimize_param_op flag.
+    def set_opt_param_op(self, opt_param_op: bool = True):
+        """Sets the `opt_param_op` flag.
 
         Args:
             opt_param_op (bool): True, if operator has trainable parameters
         """
         self._opt_param_op = opt_param_op
-        self._l1.set_optimize_param_op(opt_param_op)
-        self._l2.set_optimize_param_op(opt_param_op)
+        self._l1.set_opt_param_op(opt_param_op)
+        self._l2.set_opt_param_op(opt_param_op)
 
     @property
     def loss_args_tuple(self) -> tuple:
@@ -316,13 +316,14 @@ class SquaredLoss(LossBase):
 
         This function calculates the squared loss between the values in value_dict and ground_truth
         as
+
         .. math::
             \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|^2
 
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each datapoint, if None all datapoints count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
 
         Returns:
             Loss value
@@ -343,14 +344,15 @@ class SquaredLoss(LossBase):
 
         This function calculates the gradient of the squared loss between the values in value_dict
         and ground_truth as
+
         .. math::
             2 * \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|
 
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each datapoint, if None all datapoints count the same
-            multiple_output (bool): True if the qnn has multiple outputs
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
             Gradient values
@@ -410,8 +412,9 @@ class VarianceLoss(LossBase):
         r"""Returns the variance.
 
         This function returns the weighted variance as
+
         .. math::
-            L_\text{var} = \alpha \sum_i \var_i
+            L_\operatorname{Var} = \alpha \sum_i \operatorname{Var}_i
 
         Args:
             value_dict (dict): Contains calculated values of the model
@@ -440,7 +443,7 @@ class VarianceLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             iteration (int): iteration number, if variance_factor is a function
-            multiple_output (bool): True if the qnn has multiple outputs
+            multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
             Gradient values
@@ -467,5 +470,172 @@ class VarianceLoss(LossBase):
             d_op = alpha * np.sum(value_dict["dvardop"], axis=(0, 1))
         else:
             d_op = alpha * np.sum(value_dict["dvardop"], axis=0)
+
+        return d_p, d_op
+
+
+class ParameterRegularizationLoss(LossBase):
+    r"""Loss for parameter regularization.
+
+    Possible implementations:
+
+    * ``"L1"``: :math:`L=\alpha \sum_i \left|p_i\right|`
+    * ``"L2"``: :math:`L=\alpha \sum_i p_i^2`
+
+    Args:
+        alpha (float, Callable[[int], float]): Weight value :math:`\alpha`
+        mode (str): Type of regularization, either 'L1' or 'L2' (default: 'L2').
+        parameter_list (list): List of parameters to regularize, None: all (default: None).
+        parameter_operator_list (list): List of operator parameters to regularize, None: all
+            (default: []).
+    """
+
+    def __init__(
+        self,
+        alpha: Union[float, Callable[[int], float]] = 0.005,
+        mode: str = "L2",
+        parameter_list: Union[list, None] = None,
+        parameter_operator_list: Union[list, None] = [],
+    ):
+        super().__init__()
+        self._alpha = alpha
+        self._mode = mode
+        if self._mode not in ["L1", "L2"]:
+            raise ValueError("Type must be 'L1' or 'L2'!")
+
+        self._parameter_list = parameter_list
+        self._parameter_operator_list = parameter_operator_list
+
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation."""
+        return tuple()
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss gradient calculation."""
+        return tuple()
+
+    def value(self, value_dict: dict, **kwargs) -> float:
+        r"""Returns the variance.
+
+        This function returns the weighted variance as
+
+        .. math::
+            L_\text{var} = \alpha \sum_i \var_i
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            iteration (int): iteration number, if alpha is a callable function
+
+        Returns:
+            Loss value
+        """
+
+        if callable(self._alpha):
+            if "iteration" not in kwargs:
+                raise AttributeError("If alpha is callable, iteration is required.")
+            alpha = self._alpha(kwargs["iteration"])
+        else:
+            alpha = self._alpha
+
+        loss = 0.0
+        if self._parameter_list is None:
+            if self._mode == "L1":
+                loss += np.sum(np.abs(value_dict["param"]))
+            elif self._mode == "L2":
+                loss += np.sum(np.square(value_dict["param"]))
+            else:
+                raise ValueError("Type must be L1 or L2!")
+        else:
+            if self._mode == "L1":
+                loss += np.sum(np.abs(value_dict["param"][self._parameter_list]))
+            elif self._mode == "L2":
+                loss += np.sum(np.square(value_dict["param"][self._parameter_list]))
+            else:
+                raise ValueError("Type must be L1 or L2!")
+
+        if self._opt_param_op:
+            if self._parameter_list is None:
+                if self._mode == "L1":
+                    loss += np.sum(np.abs(value_dict["param_op"]))
+                elif self._mode == "L2":
+                    loss += np.sum(np.square(value_dict["param_op"]))
+                else:
+                    raise ValueError("Type must be L1 or L2!")
+            else:
+                if self._mode == "L1":
+                    loss += np.sum(np.abs(value_dict["param_op"][self._parameter_operator_list]))
+                elif self._mode == "L2":
+                    loss += np.sum(
+                        np.square(value_dict["param_op"][self._parameter_operator_list])
+                    )
+                else:
+                    raise ValueError("Type must be L1 or L2!")
+
+        return alpha * loss
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+        """Returns the gradient of the variance.
+
+        This function calculates the gradient of the variance values in value_dict.
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            iteration (int): iteration number, if variance_factor is a function
+
+        Returns:
+            Gradient values
+        """
+        if callable(self._alpha):
+            if "iteration" not in kwargs:
+                raise AttributeError("If alpha is callable, iteration is required.")
+            alpha = self._alpha(kwargs["iteration"])
+        else:
+            alpha = self._alpha
+
+        d_p = np.zeros_like(value_dict["param"])
+        if self._parameter_list is None:
+            if self._mode == "L1":
+                d_p = alpha * np.sign(value_dict["param"])
+            elif self._mode == "L2":
+                d_p = alpha * 2.0 * value_dict["param"]
+            else:
+                raise ValueError("Type must be L1 or L2!")
+        else:
+            if self._mode == "L1":
+                d_p[self._parameter_list] = alpha * np.sign(
+                    value_dict["param"][self._parameter_list]
+                )
+            elif self._mode == "L2":
+                d_p[self._parameter_list] = alpha * 2.0 * value_dict["param"][self._parameter_list]
+            else:
+                raise ValueError("Type must be L1 or L2!")
+
+        # Extra code for the cost operator derivatives
+        if not self._opt_param_op:
+            return d_p
+
+        d_op = np.zeros_like(value_dict["param_op"])
+        if self._parameter_operator_list is None:
+            if self._mode == "L1":
+                d_op = alpha * np.sign(value_dict["param_op"])
+            elif self._mode == "L2":
+                d_op = alpha * 2.0 * value_dict["param_op"]
+            else:
+                raise ValueError("Type must be L1 or L2!")
+        else:
+            if self._mode == "L1":
+                d_op[self._parameter_operator_list] = alpha * np.sign(
+                    value_dict["param_op"][self._parameter_operator_list]
+                )
+            elif self._mode == "L2":
+                d_op[self._parameter_operator_list] = (
+                    alpha * 2.0 * value_dict["param_op"][self._parameter_operator_list]
+                )
+            else:
+                raise ValueError("Type must be L1 or L2!")
 
         return d_p, d_op

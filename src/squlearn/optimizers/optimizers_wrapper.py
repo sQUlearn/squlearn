@@ -60,7 +60,7 @@ class LBFGSB(OptimizerBase):
 
 
 class SPSA(OptimizerBase):
-    """Wrapper class for qiskit's SPSA implementation."""
+    """Wrapper class for Qiskit's SPSA implementation."""
 
     def __init__(self, options: dict = None):
         if options is None:
@@ -72,7 +72,7 @@ class SPSA(OptimizerBase):
         self.trust_region = options.get("trust_region", False)
         self.learning_rate = options.get("learning_rate", None)
         self.perturbation = options.get("perturbation", None)
-        self.last_avg = options.get("last_avg", None)
+        self.last_avg = options.get("last_avg", 1)
         self.resamplings = options.get("resamplings", 1)
         self.perturbation_dims = options.get("perturbation_dims", None)
         self.second_order = options.get("second_order", False)
