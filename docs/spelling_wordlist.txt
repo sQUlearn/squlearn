@@ -7,14 +7,12 @@ Chebyshev
 Cholesky
 CNOT
 cov
-Datenschutzinformation
 Hadamard
 Hamiltonian
 Hamiltonians
 Hubregtsen
 hyperparameter
 hyperparameters
-Impressum
 Ising
 Laplacian
 Matern

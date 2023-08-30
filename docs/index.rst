@@ -17,4 +17,3 @@ Welcome to sQUlearn's documentation!
    user_guide/user_guide_index
    modules/classes
    examples/examples_index
-   legal/legal_index
