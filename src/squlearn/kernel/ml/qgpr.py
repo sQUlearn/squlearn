@@ -223,7 +223,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         Sets value of the feature map hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2.
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
         valid_params_qgpr = self.get_params(deep=False)
