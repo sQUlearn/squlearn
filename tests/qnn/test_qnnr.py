@@ -123,7 +123,7 @@ class TestQNNRegressor:
         assert y_pred.shape == y.shape
         assert np.allclose(
             y_pred,
-            np.array([0.41530058, 0.39676959, 0.4192302 , 0.39366377, 0.43818487, 0.39366323]),
+            np.array([0.41530058, 0.39676959, 0.4192302, 0.39366377, 0.43818487, 0.39366323]),
         )
 
     def test_set_params_and_fit(self, qnn_regressor, data):
