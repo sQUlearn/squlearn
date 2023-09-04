@@ -45,15 +45,69 @@ We refer to the documentations and examples of the respective classes for in-dep
 Optimization
 ============
 
-
+To train a QNN's parameters, sQUlearn offers a lot of possibilities for modification. In this section we will show, how to SLSQP, as an example for a scipy optimizer, and ADAM with mini-batch gradient descent to optimize the loss function.
 
 SLSQP
 -----
 
+Using SLSQP as the optimizer is probably the easiest way to optimize a QNNs parameters. The optimizer is simply imported, created and used like in the following code block.
+
+.. code-block:: python
+
+    from squlearn.optimizers import SLSQP
+    
+    ...
+
+    optimizer = SLSQP()
+    
+    ...
+
+    reg = QNNRegressor(
+        feature_map,
+        operator,
+        executor,
+        loss,
+        optimizer,
+        param_ini,
+        param_op_ini
+    )
+
 Mini-Batch gradient descent with ADAM
 -------------------------------------
 
-sQUlearn's QNN classes also offer the possibility to use mini-batch gradient descent to optimize the model. This allows for training on bigger data sets.
+sQUlearn's QNN classes, :class:`QNNRegressor` and :class:`QNNClassifier`, also offer the possibility to use mini-batch gradient descent to optimize the model. This allows for training on bigger data sets.
 
-Variance optimization
-=====================
+Variance reduction
+==================
+
+When evaluating a pretrained QNN on Qiskit's QasmSimulator or on real hardware, the model will be subject to randomness due to the inherent nature of quantum mechanics. The overall performance of the model thus depends on its variance, which can be calculated as
+
+.. math::
+
+    \sigma_f^2 = \langle\Psi\lvert\hat{C}^2\rvert\Psi\rangle - \langle\Psi\lvert\hat{C}\rvert\Psi\rangle^2 \text{.}
+
+.. _fig_qnn_output_high_var:
+.. figure:: ../_static/qnn/qnn_output_high_var.svg
+    :alt: QNN Output with high variance
+    :width: 600
+    :align: center
+
+    Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's QasmSimulator. The QNN output has a high variance.
+
+We can add the models variance to the loss function by setting the `variance` keyword in the initialization of the :class:`QNNRegressor` (or :class:`QNNClassifier`).
+
+.. code-block:: python
+
+    reg = QNNRegressor(
+        ...
+        variance = alpha,
+        ...
+    )
+
+.. _fig_qnn_output_low_var:
+.. figure:: ../_static/qnn/qnn_output_low_var.svg
+    :alt: QNN Output with low variance
+    :width: 600
+    :align: center
+
+    Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's QasmSimulator. The QNN output has a low variance.
