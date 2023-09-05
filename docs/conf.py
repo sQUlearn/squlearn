@@ -32,6 +32,7 @@ release = "0.3.0"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinxcontrib.spelling",
     "matplotlib.sphinxext.plot_directive",
@@ -45,20 +46,18 @@ source_suffix = {
     ".md": "markdown",
 }
 
-autodoc_default_options = {
-    "members": True,
-    "inherited-members": True,
-    "member-order": "groupwise",
-}
-autodoc_mock_imports = ["sklearn"]
+autodoc_default_options = {"members": True, "inherited-members": True}
+
 
 # Skip property members --> They should be defined in Attributes
 def skip_property_member(app, what, name, obj, skip, options):
     if isinstance(obj, property):
         return True
 
+
 def setup(app):
     app.connect("autodoc-skip-member", skip_property_member)
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -92,3 +91,8 @@ latex_elements = {
 
 # Allow numbering for figures
 numfig = True
+
+# intersphinx
+intersphinx_mapping = {
+    "sklearn": ("http://scikit-learn.org/stable", (None, "./_intersphinx/sklearn-objects.inv"))
+}
