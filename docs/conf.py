@@ -94,5 +94,8 @@ numfig = True
 
 # intersphinx
 intersphinx_mapping = {
-    "sklearn": ("http://scikit-learn.org/stable", (None, "./_intersphinx/sklearn-objects.inv"))
+    "qiskit": ("https://qiskit.org/documentation/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "scipy": ('https://docs.scipy.org/doc/scipy/reference/', None),
+    "sklearn": ("http://scikit-learn.org/stable", None),
 }
