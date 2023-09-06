@@ -67,7 +67,7 @@ class ChebPQC(FeatureMapBase):
     def num_parameters(self) -> int:
         """The number of trainable parameters of the ChebPQC feature map."""
         num_param = 2 * self.num_qubits + self.num_qubits * self.num_layers
-        if self.closed:
+        if self.num_qubits > 2 and self.closed:
             num_param += self.num_qubits * self.num_layers
         else:
             num_param += (self.num_qubits - 1) * self.num_layers
@@ -193,22 +193,18 @@ class ChebPQC(FeatureMapBase):
             QC.ry(parameters[ioff % nparam], i)
             ioff = ioff + 1
 
-        for ilayer in range(self.num_layers):
+        for _ in range(self.num_layers):
             # Chebyshev feature map
             for i in range(self.num_qubits):
                 QC.rx(phi_map(parameters[ioff % nparam], features[i % nfeature]), i)
                 ioff = ioff + 1
 
-            for i in range(0, self.num_qubits, 2):
+            for i in range(0, self.num_qubits + self.closed - 1, 2):
                 egate(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                 ioff = ioff + 1
 
             if self.num_qubits > 2:
-                if self.closed:
-                    istop = self.num_qubits
-                else:
-                    istop = self.num_qubits - 1
-                for i in range(1, istop, 2):
+                for i in range(1, self.num_qubits + self.closed - 1, 2):
                     egate(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
                     ioff = ioff + 1
 

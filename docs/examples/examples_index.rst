@@ -7,5 +7,5 @@ Examples
     :maxdepth: 1
     :glob:
 
-    example_kernel_mnist
+    example_kernel_digit_classification
     example_kernel_grid_search
