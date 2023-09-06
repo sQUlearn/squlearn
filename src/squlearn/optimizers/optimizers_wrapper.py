@@ -8,7 +8,7 @@ from .optimizer_base import OptimizerBase, OptimizerResult
 
 
 class SLSQP(OptimizerBase):
-    """Wrapper class for scpiy's SLSQP implementation."""
+    """Wrapper class for scipy's SLSQP implementation."""
 
     def __init__(self, options: dict = None):
         if options is None:
@@ -31,7 +31,7 @@ class SLSQP(OptimizerBase):
 
 
 class LBFGSB(OptimizerBase):
-    """Wrapper class for scpiy's L-BFGS-B implementation."""
+    """Wrapper class for scipy's L-BFGS-B implementation."""
 
     def __init__(self, options: dict = None):
         if options is None:

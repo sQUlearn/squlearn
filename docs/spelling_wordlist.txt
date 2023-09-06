@@ -27,13 +27,14 @@ Paulis
 pre
 prefactor
 preprocessing
+pretrained
 QFI
 Qiskit
 qubit
 qubits
 Rapp
 RBF
-Regressors
+regressors
 runtime
 Rx
 Rxx
