@@ -27,7 +27,7 @@ class QKRR(BaseEstimator, RegressorMixin):
             regularization improves the conditioning of the problem and assure the solvability
             of the resulting linear system. Larger values specify stronger regularization, cf.,
             e.g., Ref. [2]
-        kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
+        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
             by calling ``get_params()``. Can be used to set for example the number of qubits
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
             of the underlying feature map.
