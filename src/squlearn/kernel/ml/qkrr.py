@@ -34,7 +34,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     Attributes:
     -----------
-        dual_coeff_ (np.ndarray) :
+        dual_coeff\_ : (np.ndarray) :
             Array containing the weight vector in kernel space
         k_train (np.ndarray) :
             Training kernel matrix of shape (n_train, n_train) which is available after calling the fit procedure
