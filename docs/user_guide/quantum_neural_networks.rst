@@ -16,9 +16,14 @@ Quantum Neural Networks (QNNs) are a type of machine learning model that combine
 
     Layered design of a QNN with alternating embedding (orange) and entangling (blue) layers. The QNN is trained in a hybrid quantum-classical scheme by optimizing the QNN's parameters :math:`\vec{\theta}` for a given cost function :math:`L`.
 
-Embedding layers are responsible for mapping the input data to the quantum state of the qubits. They encode the input features into the amplitudes or other properties of the quantum state. The choice of embedding depends on the specific problem and the nature of the input data. Parameterized layers are designed to alter the mapped state and introduce entanglement among the qubits, enabling the QNN to process information in a more complex and interconnected manner. They typically consist of quantum gates that, as the name states, create entanglement between different qubits. Examples of commonly used entangling gates include the Controlled-Z gate, Controlled-X gate, or other two-qubit gates. Finally we measure the resulting state :math:`\rho\left(\vec{x}, \vec{\theta}\right)` repeatedly to be able to calculate the expectation value :math:`\hat{C}=\operatorname{tr}\left\{\rho\left(\vec{x}, \vec{\theta}\right)O\right\}` of some observable :math:`O`.
+Embedding layers are responsible for mapping the input data to the quantum state of the qubits. They encode the input features into the amplitudes or other properties of the quantum state. The choice of embedding depends on the specific problem and the nature of the input data. Parameterized layers are designed to alter the mapped state and introduce entanglement among the qubits, enabling the QNN to process information in a more complex and interconnected manner. They typically consist of quantum gates that, as the name states, create entanglement between different qubits. Examples of commonly used entangling gates include the Controlled-Z gate, Controlled-X gate, or other two-qubit gates. Finally we measure the resulting state :math:`\Psi(\vec{x}, \vec{\theta})` repeatedly to gain the output of the QNN as the expectation value
 
-Both, the embedding layers :math:`U_i\left(\vec{\theta}, \vec{x}\right), i=1,\dots,L` and the entangling layers :math:`U_i\left(\vec{\theta_i}\right), i=1,\dots,L`, as well as the measurement operators :math:`O`, can contain trainable parameters :math:`\vec{\theta}`. 
+.. math::
+    f\left(\vec{x}, \vec{\theta}\right) = \left\langle\Psi\left(\vec{x}, \vec{\theta}\right)\left\lvert\hat{C}\left(\vec{\theta}\right)\right\rvert\Psi\left(\vec{x}, \vec{\theta}\right)\right\rangle
+
+for some cost operator :math:`\hat{C}(\vec{\theta})`. Per desired output of the QNN, we need to specify one cost operator.
+
+Both, the embedding layers :math:`U_i(\vec{\theta}, \vec{x}), i=1,\dots,L` and the entangling layers :math:`U_i(\vec{\theta_i}), i=1,\dots,L`, as well as the cost operators :math:`\hat{C}`, can contain trainable parameters :math:`\vec{\theta}`. 
 
 To train QNNs, a hybrid quantum-classical scheme is used. The training process involves two steps: quantum circuit evaluation and classical optimization (compare :numref:`fig_qnn`). In the quantum circuit evaluation step, the QNN is evaluated on a quantum computer or simulator to generate the output. The classical optimization step involves using a fitting classical optimization algorithm to update the parameters of the QNN based on the difference between the expected output and the actual output obtained from the quantum circuit execution. This process is repeated iteratively until the desired level of accuracy is achieved. 
 
@@ -50,7 +55,7 @@ To train a QNN's parameters, sQUlearn offers a lot of possibilities for modifica
 SLSQP
 -----
 
-sQUlearn offers wrapper functions, :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>` and :class:`LBFGSB <squlearn.optimizers.optimizers_wrapper.LBFGSB>`, for scipy's SLSQP and L-BFGS-B implementations as well as the wrapper function :class:`SPSA <squlearn.optimizers.optimizers_wrapper.SPSA>` for Qiskit's SPSA implementation. They can be simply imported and used as demonstrated in the following code block.
+sQUlearn offers wrapper functions, :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>` and :class:`LBFGSB <squlearn.optimizers.optimizers_wrapper.LBFGSB>`, for scipy's SLSQP and L-BFGS-B implementations as well as the wrapper function :class:`SPSA <squlearn.optimizers.optimizers_wrapper.SPSA>` for Qiskit's SPSA implementation. We show how to import and use :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>` in the following code block.
 
 .. code-block:: python
 
@@ -68,12 +73,12 @@ sQUlearn offers wrapper functions, :class:`SLSQP <squlearn.optimizers.optimizers
         ...
     )
 
-With this configuration, :class:`QNNRegressor` will use scipy's :func:`minimize <scipy.optimize.minimize>` function with ``method="SLSQP"``. The wrapper Class :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>` allows to specify hyper parameters that get passed on to the function.
+With this configuration, :class:`QNNRegressor` will use scipy's :func:`minimize <scipy.optimize.minimize>` function with ``method="SLSQP"``. The wrapper Class :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>` allows to specify hyper parameters in a :class:`dict` that get passed on to the function.
 
 Mini-Batch gradient descent with Adam
 -------------------------------------
 
-sQUlearn's QNN classes, :class:`QNNRegressor` and :class:`QNNClassifier`, also offer the possibility to use mini-batch gradient descent with Adam to optimize the model. This allows for training on bigger data sets. Therefore we import and use the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer as shown in the following code block.
+sQUlearn's QNN classes, :class:`QNNRegressor` and :class:`QNNClassifier`, also offer the possibility to use mini-batch gradient descent with Adam to optimize the model. This allows for training on bigger data sets. Therefore we import and use the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer as demonstrated in the following code block.
 
 .. code-block:: python
 
@@ -104,7 +109,7 @@ When evaluating a pretrained QNN on Qiskit's :class:`QasmSimulator <qiskit_aer.Q
 
 .. math::
 
-    \sigma_f^2 = \langle\Psi\lvert\hat{C}^2\rvert\Psi\rangle - \langle\Psi\lvert\hat{C}\rvert\Psi\rangle^2 \text{.}
+    \sigma_f^2 = \left\langle\Psi\left\lvert\hat{C}^2\right\rvert\Psi\right\rangle - \left\langle\Psi\left\lvert\hat{C}\right\rvert\Psi\right\rangle^2 \text{.}
 
 :numref:`fig_qnn_output_high_var` shows the output of a :class:`QNNRegressor` fit to a logarithm with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The model is subject to high variance.
 
@@ -132,7 +137,7 @@ The new total loss function reads as
 
     L_\text{total} = L_\text{fit} + \alpha \cdot \sum_k \lVert \sigma_f^2 \left( x_i \right)\rVert \text{,}
 
-where :math:`\sigma_f^2\left( x_i \right)` is the variance of the QNN on the training data :math:`\left\{x_i\right\}`. This approach also allows us to reuse the circuits and function evaluations needed for calculating :math:`L_\text{fit}`.
+where :math:`\sigma_f^2( x_i )` is the variance of the QNN on the training data :math:`\{x_i\}`. This approach also allows us to reuse the circuits and function evaluations needed for calculating :math:`L_\text{fit}`.
 
 The regularization factor :math:`\alpha` controls the influence of the variance regularization on the total loss. It can be either set to a constant :class:`float` or a :class:`Callable` that takes the keyword argument ``iteration`` to dynamically adjust the factor. Values between :math:`10^{-2}` and :math:`10^{-4}` have shown to yield satisfying results. `[1]`_
 
