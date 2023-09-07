@@ -32,6 +32,14 @@ class QKRR(BaseEstimator, RegressorMixin):
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
             of the underlying feature map.
 
+    Attributes:
+        dual_coeff_ (np.ndarray) :
+            Array containing the weight vector in kernel space
+        k_train (np.ndarray) :
+            Training kernel matrix of shape (n_train, n_train) which is available after calling the fit procedure
+        k_testtrain (np.ndarray) :
+            Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step
+        
     See Also
     --------
         squlearn.kernel.ml.QGPR : Quantum Gaussian Process regression.
