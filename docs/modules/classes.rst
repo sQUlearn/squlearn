@@ -64,7 +64,6 @@ Feature Maps
    feature_map.HZCRxCRyCRz
    feature_map.ChebRx
    feature_map.ParamZFeatureMap
-   feature_map.QiskitZFeatureMap
    feature_map.QiskitFeatureMap
 
 Feature Map Tools
