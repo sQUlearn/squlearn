@@ -96,6 +96,6 @@ numfig = True
 intersphinx_mapping = {
     "qiskit": ("https://qiskit.org/documentation/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
-    "scipy": ('https://docs.scipy.org/doc/scipy/reference/', None),
-    "sklearn": ("http://scikit-learn.org/stable", None),
+    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
