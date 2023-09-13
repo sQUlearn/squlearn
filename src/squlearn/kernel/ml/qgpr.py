@@ -167,7 +167,6 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
         if self.full_regularization:
-            print("Regularizing full Gram matrix")
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
             )
@@ -177,7 +176,6 @@ class QGPR(BaseEstimator, RegressorMixin):
         try:
             self._L = cholesky(self.K_train, lower=True)
         except np.linalg.LinAlgError:
-            print("corrected the train matrix a bit")
             self.K_train += 1e-8 * np.identity(self.K_train.shape[0])
             self._L = cholesky(self.K_train, lower=True)
         self._alpha = cho_solve((self._L, True), self.y_train)
