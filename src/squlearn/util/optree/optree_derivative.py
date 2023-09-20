@@ -126,37 +126,47 @@ def circuit_parameter_shift_v2(
 
             for node in dag.op_nodes():
 
-                if node.op.name in ["crx","cry","crz","rxx","ryy","rzz"]:
+                if node.op.name in ["cp","crx","cry","crz","rxx","ryy","rzz"]:
                     replacement = QuantumCircuit(2)
 
-                    if node.op.name == "crx":
-                        replacement.rx(node.op.params[0]/2,1)
+                    if node.op.name == "cp":
+                        replacement.p(0.5*node.op.params[0],0)
                         replacement.cx(0, 1)
-                        replacement.rx(-node.op.params[0]/2,1)
+                        replacement.p(-0.5*node.op.params[0],1)
                         replacement.cx(0, 1)
+                    elif node.op.name == "crx":
+                        replacement.p(np.pi/2,1)
+                        replacement.cx(0, 1)
+                        replacement.ry(-0.5*node.op.params[0],1)
+                        replacement.cx(0, 1)
+                        replacement.ry(0.5*node.op.params[0],1)
+                        replacement.p(-np.pi/2,1)
                     elif node.op.name == "cry":
-                        replacement.ry(node.op.params[0]/2,1)
+                        replacement.ry(0.5*node.op.params[0],1)
                         replacement.cx(0, 1)
-                        replacement.ry(-node.op.params[0]/2,1)
+                        replacement.ry(-0.5*node.op.params[0],1)
                         replacement.cx(0, 1)
                     elif node.op.name == "crz":
-                        replacement.rz(node.op.params[0]/2,1)
+                        replacement.rz(0.5*node.op.params[0],1)
                         replacement.cx(0, 1)
-                        replacement.rz(-node.op.params[0]/2,1)
+                        replacement.rz(-0.5*node.op.params[0],1)
                         replacement.cx(0, 1)
                     elif node.op.name == "rxx":
+                        replacement.h([0,1])
                         replacement.cx(0, 1)
-                        replacement.rx(node.op.params[0],1)
+                        replacement.rz(node.op.params[0],1)
                         replacement.cx(0, 1)
+                        replacement.h([0,1])
                     elif node.op.name == "ryy":
+                        replacement.rx(np.pi/2,[0,1])
                         replacement.cx(0, 1)
-                        replacement.ry(node.op.params[0],1)
+                        replacement.rz(node.op.params[0],1)
                         replacement.cx(0, 1)
+                        replacement.rx(-np.pi/2,[0,1])
                     elif node.op.name == "rzz":
                         replacement.cx(0, 1)
                         replacement.rz(node.op.params[0],1)
                         replacement.cx(0, 1)
-
                     dag.substitute_node_with_dag(node, circuit_to_dag(replacement))
 
             return dag

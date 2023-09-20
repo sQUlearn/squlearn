@@ -19,7 +19,7 @@ from ..util.optree.optree_derivative import simplify_copy, derivative
 from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
 
-SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"}
+SUPPORTED_GATES = {"s","sdg","t","tdg","ecr","sx","x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"}
 
 
 class FeatureMapDerivatives:
@@ -109,7 +109,7 @@ class FeatureMapDerivatives:
 
         # TODO: remove -> move to parameter-shift implementation!
         self._instruction_set = list(set(self._circuit.count_ops()))
-        #self._circuit = _transpile_to_supported_instructions(self._circuit, SUPPORTED_GATES)
+        self._circuit = _transpile_to_supported_instructions(self._circuit, SUPPORTED_GATES)
 
         self._optree_start = OpTreeLeafCircuit(self._circuit)
 
