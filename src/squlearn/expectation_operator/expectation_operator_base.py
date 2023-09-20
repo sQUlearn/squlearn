@@ -6,7 +6,7 @@ from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator
-from ..util.optree.optree_derivative import simplify_copy
+from ..util.optree.optree_derivative import optree_simplify
 
 
 class ExpectationOperatorBase(ABC):
@@ -358,11 +358,11 @@ class ExpectationOperatorBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return simplify_copy(paulis_op + paulis_op)
+                    return optree_simplify(paulis_op + paulis_op)
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return simplify_copy(paulis_op1 + paulis_op2)
+                    return optree_simplify(paulis_op1 + paulis_op2)
 
         return AddedExpectationOperator(self, x)
 
@@ -477,10 +477,10 @@ class ExpectationOperatorBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return simplify_copy(paulis_op.compose(paulis_op))
+                    return optree_simplify(paulis_op.compose(paulis_op))
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return simplify_copy(paulis_op1.compose(paulis_op2))
+                    return optree_simplify(paulis_op1.compose(paulis_op2))
 
         return MultipliedExpectationOperator(self, x)

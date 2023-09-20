@@ -258,7 +258,6 @@ class QNN:
         optree_caching=True,
         result_caching=True,
     ) -> None:
-
         # Executer set-up
         self._executor = executor
 

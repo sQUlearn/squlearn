@@ -13,9 +13,9 @@ from .optree import (
 )
 
 from .optree_derivative import (
-    simplify_copy,
-    derivative_v2,
-    derivative,
+    optree_simplify,
+    optree_derivative_v2,
+    optree_derivative,
 )
 
 from .optree_evaluate import (
@@ -39,9 +39,9 @@ __all__ = [
     "get_number_of_leafs",
     "get_tree_depth",
     "get_first_leaf",
-    "simplify_copy",
-    "derivative_v2",
-    "derivative",
+    "optree_simplify",
+    "optree_derivative_v2",
+    "optree_derivative",
     "evaluate_sampler",
     "evaluate_estimator",
     "evaluate_expectation_tree_from_estimator",

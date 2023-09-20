@@ -12,9 +12,14 @@ from ..util.optree.optree import (
     OpTreeNodeSum,
     OpTreeNodeList,
 )
-from ..util.optree.optree_derivative import simplify_copy, derivative, transpile_to_supported_instructions
+from ..util.optree.optree_derivative import (
+    optree_simplify,
+    optree_derivative,
+    transpile_to_supported_instructions,
+)
 from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
+
 
 class FeatureMapDerivatives:
     r"""
@@ -117,7 +122,7 @@ class FeatureMapDerivatives:
         # get the instruction gates from the initial circuit for transpiling the circuits
         # back to this basis
 
-    def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
+    def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
         """Determine the derivative of the feature map circuit.
 
         Args:
@@ -158,36 +163,12 @@ class FeatureMapDerivatives:
                 raise ValueError("Unknown string command:", derivative)
         elif isinstance(derivative, tuple):
             optree = self._differentiation_from_tuple(derivative)
+        elif isinstance(derivative, list):
+            optree = self._differentiation_from_tuple((derivative,))
         else:
             raise TypeError("Input is neither string nor tuple, but:", type(derivative))
 
         return optree
-
-    def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
-        """Returns the derivative of the feature map circuit for a tuple of parameters.
-
-        The tuple describes the differentiation with respect to the parameters in the tuple.
-
-        Args:
-            diff_tuple (tuple): Tuple of parameters for specifying the derivation.
-
-        Return:
-            Derivative circuit in OpTree format.
-        """
-        return self.get_derivative(diff_tuple)
-
-    def get_derivation_from_string(self, input_string: str) -> OpTreeElementBase:
-        """Returns the derivative of the feature map circuit for a string abbreviation.
-
-        The table for the abbreviations can be found in the documentation of the class.
-
-        Args:
-            input_string (str): String for specifying the derivation.
-
-        Return:
-            Derivative circuit in OpTree format.
-        """
-        return self.get_derivative(input_string)
 
     def _differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
         """Recursive routine for automatic differentiating the feature map
@@ -203,16 +184,24 @@ class FeatureMapDerivatives:
         Return:
             Derivative circuit in OpTree format.
         """
-        # TODO: support tuple of lists of parameter elements
+
+        def helper_hash(diff):
+            if isinstance(diff, list):
+                return ("list",) + tuple([helper_hash(d) for d in diff])
+            elif isinstance(diff, tuple):
+                return tuple([helper_hash(d) for d in diff])
+            else:
+                return diff
 
         if diff_tuple == ():
             # Cancel the recursion by returning the optree of the simply measured feature map
             return self._optree_start.copy()
         else:
             # Check if differentiating tuple is already stored in optree_cache
-            if self._optree_caching == True and (diff_tuple,) in self._optree_cache:
+            print("helper_hash((diff_tuple,))", helper_hash((diff_tuple,)))
+            if self._optree_caching == True and helper_hash((diff_tuple,)) in self._optree_cache:
                 # If stored -> return
-                return self._optree_cache[(diff_tuple,)].copy()
+                return self._optree_cache[helper_hash((diff_tuple,))].copy()
             else:
                 # Recursive differentiation with the most left object
                 circ = self._optree_differentiation(
@@ -220,7 +209,7 @@ class FeatureMapDerivatives:
                 )
                 # Store result in the optree_cache
                 if self._optree_caching == True:
-                    self._optree_cache[(diff_tuple,)] = circ
+                    self._optree_cache[helper_hash((diff_tuple,))] = circ
                 return circ
 
     @property
@@ -324,7 +313,7 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return simplify_copy(derivative(optree, parameters).children[0])
+            return optree_simplify(optree_derivative(optree, parameters).children[0])
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -334,15 +323,15 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return simplify_copy(derivative(optree, parameters))
+            return optree_simplify(optree_derivative(optree, parameters))
 
 
 # def _optree_transpile_back(
 #     optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
 # ) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
-    
+
 #     print("optree_element",optree_element)
-    
+
 #     if isinstance(optree_element, OpTreeNodeBase):
 #         # Recursive call for all children
 #         children_list = [

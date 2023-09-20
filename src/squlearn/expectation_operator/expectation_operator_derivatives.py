@@ -9,14 +9,12 @@ from ..util.data_preprocessing import adjust_input
 
 from ..util.optree.optree import (
     OpTreeElementBase,
-    OpTreeLeafCircuit,
     OpTreeNodeSum,
     OpTreeNodeList,
     OpTreeLeafOperator,
 )
-from ..util.optree.optree_derivative import simplify_copy, derivative
+from ..util.optree.optree_derivative import optree_simplify, optree_derivative
 from ..util.optree.optree_evaluate import optree_assign_parameters
-from ..util.data_preprocessing import adjust_input
 
 
 class ExpectationOperatorDerivatives:
@@ -130,7 +128,7 @@ class ExpectationOperatorDerivatives:
         if self._optree_caching:
             self._optree_cache["O"] = optree
 
-    def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
+    def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
         """Determine the derivative of the expectation operator.
 
         Args:
@@ -176,36 +174,13 @@ class ExpectationOperatorDerivatives:
 
         elif isinstance(derivative, tuple):
             measure_op = self._differentiation_from_tuple(self._optree_start, derivative, "O")
+        elif isinstance(derivative, list):
+            measure_op = self._differentiation_from_tuple(self._optree_start, (derivative,), "O")
         else:
-            raise TypeError("Input is neither string nor tuple, but:", type(derivative))
+            raise TypeError("Input is neither string, list nor tuple, but:", type(derivative))
 
         measure_op.replace = False
         return measure_op
-
-    def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
-        """Computes the derivative of the expectation operator from a tuple of parameters
-
-        Args:
-            diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
-
-        Return:
-            Differentiated expectation operator
-        """
-
-        return self.get_derivative(diff_tuple)
-
-    def get_derivation_from_string(self, input_string: str) -> OpTreeElementBase:
-        """Returns the derivative of the expectation operator for a string abbreviation.
-
-        The table for the abbreviations can be found at :class:`ExpectationOperatorDerivatives`.
-
-        Args:
-            input_string (str): String for specifying the derivation.
-
-        Return:
-            Differentiated expectation operator
-        """
-        return self.get_derivative(input_string)
 
     def _differentiation_from_tuple(
         self, expectation_op: OpTreeElementBase, diff_tuple: tuple, expectation_op_label: str
@@ -221,6 +196,14 @@ class ExpectationOperatorDerivatives:
             The differentiated OpTree expression
         """
 
+        def helper_hash(diff):
+            if isinstance(diff, list):
+                return ("list",) + tuple([helper_hash(d) for d in diff])
+            elif isinstance(diff, tuple):
+                return tuple([helper_hash(d) for d in diff])
+            else:
+                return diff
+
         if diff_tuple == ():
             # Cancel the recursion by returning the optree operator
             return expectation_op
@@ -228,7 +211,7 @@ class ExpectationOperatorDerivatives:
             # Check if differentiating tuple is already stored in optree_cache
             if (
                 self._optree_caching == True
-                and (diff_tuple, expectation_op_label) in self._optree_cache
+                and (helper_hash(diff_tuple), expectation_op_label) in self._optree_cache
             ):
                 # If stored -> return
                 return self._optree_cache[(diff_tuple, expectation_op_label)].copy()
@@ -242,7 +225,7 @@ class ExpectationOperatorDerivatives:
                 )
                 # Store result in the optree_cache
                 if self._optree_caching == True:
-                    self._optree_cache[(diff_tuple, expectation_op_label)] = measure
+                    self._optree_cache[(helper_hash(diff_tuple), expectation_op_label)] = measure
                 return measure
 
     def get_operator_squared(self):
@@ -271,7 +254,7 @@ class ExpectationOperatorDerivatives:
                 else:
                     raise ValueError("Unknown type in recursive_squaring:", type(op))
 
-            O2 = simplify_copy(recursive_squaring(self._optree_start))
+            O2 = optree_simplify(recursive_squaring(self._optree_start))
 
             # If caching is enabled, store in the dictionary
             if self._optree_caching == True:
@@ -340,7 +323,7 @@ def operator_differentiation(
 
     if len(parameters) == 1:
         # In case of a single parameter no array has to be returned
-        return simplify_copy(derivative(optree, parameters).children[0])
+        return optree_simplify(optree_derivative(optree, parameters).children[0])
     else:
         # Check if the same variables are the same type
         params_name = parameters[0].name.split("[", 1)[0]
@@ -348,4 +331,4 @@ def operator_differentiation(
             if p.name.split("[", 1)[0] != params_name:
                 raise TypeError("Differentiable variables are not the same type.")
 
-        return simplify_copy(derivative(optree, parameters))
+        return optree_simplify(optree_derivative(optree, parameters))
