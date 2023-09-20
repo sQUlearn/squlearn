@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple
 
+
 def adjust_input(x, x_length: int) -> Tuple[np.ndarray, bool]:
     """Adjust the input to the form [[]] if necessary.
 

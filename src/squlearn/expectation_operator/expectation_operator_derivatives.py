@@ -182,7 +182,7 @@ class ExpectationOperatorDerivatives:
         measure_op.replace = False
         return measure_op
 
-    def get_differentiation_from_tuple(self, diff_tuple: tuple)-> OpTreeElementBase:
+    def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
         """Computes the derivative of the expectation operator from a tuple of parameters
 
         Args:
@@ -194,7 +194,7 @@ class ExpectationOperatorDerivatives:
 
         return self.get_derivative(diff_tuple)
 
-    def get_derivation_from_string(self, input_string: str)-> OpTreeElementBase:
+    def get_derivation_from_string(self, input_string: str) -> OpTreeElementBase:
         """Returns the derivative of the expectation operator for a string abbreviation.
 
         The table for the abbreviations can be found at :class:`ExpectationOperatorDerivatives`.
@@ -316,6 +316,7 @@ class ExpectationOperatorDerivatives:
             return OpTreeNodeList(return_list)
         else:
             return return_list[0]
+
 
 def operator_differentiation(
     optree: OpTreeElementBase, parameters: Union[ParameterVector, list, ParameterExpression]

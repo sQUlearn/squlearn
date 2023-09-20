@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union,Set
+from typing import Union, Set
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
@@ -20,6 +20,7 @@ from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
 
 SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"}
+
 
 class FeatureMapDerivatives:
     r"""
@@ -123,8 +124,6 @@ class FeatureMapDerivatives:
         # get the instruction gates from the initial circuit for transpiling the circuits
         # back to this basis
 
-
-
     def get_derivative(self, derivative: Union[str, tuple]) -> OpTreeElementBase:
         """Determine the derivative of the feature map circuit.
 
@@ -171,7 +170,6 @@ class FeatureMapDerivatives:
 
         return optree
 
-
     def get_differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
         """Returns the derivative of the feature map circuit for a tuple of parameters.
 
@@ -185,7 +183,6 @@ class FeatureMapDerivatives:
         """
         return self.get_derivative(diff_tuple)
 
-
     def get_derivation_from_string(self, input_string: str) -> OpTreeElementBase:
         """Returns the derivative of the feature map circuit for a string abbreviation.
 
@@ -198,7 +195,6 @@ class FeatureMapDerivatives:
             Derivative circuit in OpTree format.
         """
         return self.get_derivative(input_string)
-
 
     def _differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
         """Recursive routine for automatic differentiating the feature map
@@ -239,24 +235,20 @@ class FeatureMapDerivatives:
         """Parameter ParameterVector ``p`` utilized in the feature map circuit."""
         return self._p
 
-
     @property
     def feature_vector(self) -> ParameterVector:
         """Feature ParameterVector ``x`` utilized in the feature map circuit."""
         return self._x
-
 
     @property
     def num_parameters(self) -> int:
         """Number of parameters in the feature map circuit."""
         return len(self._p)
 
-
     @property
     def num_features(self) -> int:
         """Number of features in the feature map circuit."""
         return len(self._x)
-
 
     def assign_parameters(
         self, optree: OpTreeElementBase, features: np.ndarray, parameters: np.ndarray
@@ -314,7 +306,6 @@ class FeatureMapDerivatives:
 
         return rec_assign({}, todo_list, param_list, multi_list)
 
-
     def _optree_differentiation(
         self,
         optree: OpTreeElementBase,
@@ -340,9 +331,9 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return _optree_transpile_back(simplify_copy(
-                derivative(optree, parameters).children[0]
-            ),self._instruction_set)  # TODO:backtranspile maybe in derivative
+            return _optree_transpile_back(
+                simplify_copy(derivative(optree, parameters).children[0]), self._instruction_set
+            )  # TODO:backtranspile maybe in derivative
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -352,9 +343,9 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return _optree_transpile_back(simplify_copy(
-                derivative(optree, parameters)
-            ),self._instruction_set)  # TODO:backtranspile maybe in derivative
+            return _optree_transpile_back(
+                simplify_copy(derivative(optree, parameters)), self._instruction_set
+            )  # TODO:backtranspile maybe in derivative
 
 
 def _optree_transpile_back(
@@ -392,10 +383,11 @@ def _optree_transpile_back(
     else:
         raise ValueError("Unsupported type in _optree_transpile_back:", type(optree_element))
 
+
 def _transpile_to_supported_instructions(
     circuit: QuantumCircuit, supported_gates: Set[str]
 ) -> QuantumCircuit:
-    """ Helper function for transpiling a circuit to a supported instruction set.
+    """Helper function for transpiling a circuit to a supported instruction set.
 
     Args:
         circuit (QuantumCircuit): Circuit to transpile.
@@ -408,6 +400,9 @@ def _transpile_to_supported_instructions(
     unique_ops = set(circuit.count_ops())
     if not unique_ops.issubset(supported_gates):
         circuit = transpile(
-            circuit, basis_gates=list(supported_gates), optimization_level=0, layout_method="trivial"
+            circuit,
+            basis_gates=list(supported_gates),
+            optimization_level=0,
+            layout_method="trivial",
         )
     return circuit
