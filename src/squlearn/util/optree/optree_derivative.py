@@ -6,6 +6,9 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
+from qiskit.transpiler import TransformationPass
+from qiskit.converters import circuit_to_dag
+
 from .optree import (
     OpTreeNodeBase,
     OpTreeLeafBase,
@@ -33,6 +36,8 @@ def circuit_parameter_shift(
     Returns:
         The parameter shift derivative of the circuit (always a OpTreeNodeSum)
     """
+
+    ignore = circuit_parameter_shift_v2(element, parameter)
 
     if isinstance(element, OpTreeLeafValue):
         return OpTreeLeafValue(0.0)
@@ -90,6 +95,178 @@ def circuit_parameter_shift(
 
     return shift_sum
 
+
+def circuit_parameter_shift_v2(
+    element: Union[OpTreeLeafCircuit, QuantumCircuit, OpTreeLeafValue],
+    parameter: ParameterExpression,
+) -> Union[None, OpTreeNodeSum, OpTreeLeafValue]:
+    """
+    Build the parameter shift derivative of a circuit wrt a single parameter.
+
+    Args:
+        element (Union[OpTreeLeafCircuit, QuantumCircuit]): The circuit to be differentiated.
+        parameter (ParameterExpression): The parameter wrt which the circuit is differentiated.
+
+    Returns:
+        The parameter shift derivative of the circuit (always a OpTreeNodeSum)
+    """
+
+    class gradient_pass(TransformationPass):
+        """ A transpiler that replaces crz,cry,crz,czz etc gates with their corresponding basis gate sets """
+
+        def run(self, dag):
+            """Run the GradientPass on `dag`.
+
+            Args:
+                dag (DAGCircuit): the dag on which the pass is run.
+
+            Returns:
+                DAGCircuit: the transformed dag.
+            """
+
+            for node in dag.op_nodes():
+
+                if node.op.name in ["crx","cry","crz","rxx","ryy","rzz"]:
+                    replacement = QuantumCircuit(2)
+
+                    if node.op.name == "crx":
+                        replacement.rx(node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                        replacement.rx(-node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                    elif node.op.name == "cry":
+                        replacement.ry(node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                        replacement.ry(-node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                    elif node.op.name == "crz":
+                        replacement.rz(node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                        replacement.rz(-node.op.params[0]/2,1)
+                        replacement.cx(0, 1)
+                    elif node.op.name == "rxx":
+                        replacement.cx(0, 1)
+                        replacement.rx(node.op.params[0],1)
+                        replacement.cx(0, 1)
+                    elif node.op.name == "ryy":
+                        replacement.cx(0, 1)
+                        replacement.ry(node.op.params[0],1)
+                        replacement.cx(0, 1)
+                    elif node.op.name == "rzz":
+                        replacement.cx(0, 1)
+                        replacement.rz(node.op.params[0],1)
+                        replacement.cx(0, 1)
+
+                    dag.substitute_node_with_dag(node, circuit_to_dag(replacement))
+
+            return dag
+
+
+
+
+    if isinstance(element, OpTreeLeafValue):
+        return OpTreeLeafValue(0.0)
+
+    if isinstance(element, OpTreeLeafCircuit):
+        circuit = element.circuit
+        input_type = "leaf"
+    elif isinstance(element, QuantumCircuit):
+        circuit = element
+        input_type = "circuit"
+    else:
+        raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
+
+
+    print("circuit before",circuit)
+    circuit = gradient_pass()(circuit)
+    print("circuit after",circuit)
+
+
+    # Return None when the parameter is not in the circuit
+    if parameter not in circuit._parameter_table:
+        return OpTreeLeafValue(0.0)
+
+    iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
+    shift_sum = OpTreeNodeSum()
+    # Loop through all parameter occurences in the circuit
+    for param_reference in circuit._parameter_table[parameter]:  # pylint: disable=protected-access
+        # Get the gate in which the parameter is located
+        original_gate, param_index = param_reference
+        m = iref_to_data_index[id(original_gate)]
+
+        # Get derivative of the factor of the gate
+        fac = original_gate.params[0].gradient(parameter)
+
+        if circuit.data[m].operation.name in ("rx,ry,rz,p"):
+            # parameter shift for rotation gates
+            print("parameter shift for rotation gates")
+
+
+
+
+
+        elif circuit.data[m].operation.name in ("crx,cry,crz"):
+            # parameter shift for controlled rotation gates
+            print("parameter shift for controlled rotation gates")
+            print("circuit.data[m].operation.definition",circuit.data[m].operation.definition)
+            q0 = circuit.data[m].qubits[0]
+            q1 = circuit.data[m].qubits[1]
+
+            print("type(circuit.data)",type(circuit.data))
+            print("type(circuit.data[m])",type(circuit.data[m]))
+
+            test = circuit.data[m].operation
+
+        elif circuit.data[m].operation.name in ("rxx,rzz,ryy"):
+            print("parameter shift for two qubit rotation gates")
+            print("circuit.data[m].operation.definition",circuit.data[m].operation.definition)
+
+            q0 = circuit.data[m].qubits[0]
+            q1 = circuit.data[m].qubits[1]
+
+            # from qiskit.circuit.library import CXGate
+
+            # from qiskit.circuit import CircuitInstruction
+
+            
+            # CircuitInstruction(CXGate(), (q0, q1))
+
+
+
+
+        else:
+            print("circuit.data[m].operation.definition",circuit.data[m].operation.definition)
+
+        # Copy the circuit for the shifted ones
+        pshift_circ = copy.deepcopy(circuit)
+        mshift_circ = copy.deepcopy(circuit)
+
+        print("gate operation", circuit.data[m].operation)
+
+        # Get the gates instance in which the parameter is located
+        pshift_gate = pshift_circ.data[m].operation
+        mshift_gate = mshift_circ.data[m].operation
+
+        # Get the parameter instances in the shited circuits
+        p_param = pshift_gate.params[param_index]
+        m_param = mshift_gate.params[param_index]
+
+        # Shift the parameter in the gates
+        # For analytic gradients the circuit parameters are shifted once by +pi/2 and
+        # once by -pi/2.
+        shift_constant = 0.5
+        pshift_gate.params[param_index] = p_param + (np.pi / (4 * shift_constant))
+        mshift_gate.params[param_index] = m_param - (np.pi / (4 * shift_constant))
+
+        # Append the shifted circuits to the sum
+        if input_type == "leaf":
+            shift_sum.append(OpTreeLeafCircuit(pshift_circ), shift_constant * fac)
+            shift_sum.append(OpTreeLeafCircuit(mshift_circ), -shift_constant * fac)
+        else:
+            shift_sum.append(pshift_circ, shift_constant * fac)
+            shift_sum.append(mshift_circ, -shift_constant * fac)
+
+    return shift_sum
 
 def operator_derivative(
     element: Union[OpTreeLeafOperator, SparsePauliOp, OpTreeLeafValue],

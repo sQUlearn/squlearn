@@ -109,7 +109,7 @@ class FeatureMapDerivatives:
 
         # TODO: remove -> move to parameter-shift implementation!
         self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = _transpile_to_supported_instructions(self._circuit, SUPPORTED_GATES)
+        #self._circuit = _transpile_to_supported_instructions(self._circuit, SUPPORTED_GATES)
 
         self._optree_start = OpTreeLeafCircuit(self._circuit)
 
@@ -351,6 +351,9 @@ class FeatureMapDerivatives:
 def _optree_transpile_back(
     optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
 ) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
+    
+    print("optree_element",optree_element)
+    
     if isinstance(optree_element, OpTreeNodeBase):
         # Recursive call for all children
         children_list = [
