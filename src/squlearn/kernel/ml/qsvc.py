@@ -9,10 +9,10 @@ class QSVC(SVC):
 
     This class is a wrapper of :class:`sklearn.svm.SVC`. It uses a quantum kernel matrix
     to replace the kernel matrix in the :class:`sklearn.svm.SVC` class.
-    See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
-    for additional information about the standard SVC parameters.
-    The scikit-learn SVC has kernel specific arguments that are omitted here because they do not apply
-    to the quantum kernels. These are
+    The parameters of the parent class can be adjusted via ``**kwargs``. See the documentation
+    there for additional information about the standard SVC parameters.
+    The scikit-learn SVC has kernel specific arguments that are omitted here because they do not
+    apply to the quantum kernels. These are
 
         - `kernel`
         - `gamma`
@@ -22,10 +22,12 @@ class QSVC(SVC):
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
             a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
-        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be
-            obtained by calling ``get_params()``. Can be used to set for example the number of
-            qubits (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
-            of the underlying feature map.
+        **kwargs: Possible arguments can be
+            obtained by calling ``get_params()``. Notable examples are parameters of the
+            :class:`sklearn.svm.SVC` class such as the regularization parameters ``C``
+            (float, default=1.0). Additionally, properties of the underlying feature map can be
+            adjusted via kwargs such as the number of qubits (``num_qubits``), or (if supported)
+            the number of layers (``num_layers``).
 
     See Also
     --------
@@ -93,7 +95,6 @@ class QSVC(SVC):
     @classmethod
     def _get_param_names(cls):
         names = SVC._get_param_names()
-        names.remove("kernel")
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")

@@ -17,6 +17,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     but is not a wrapper.
     Read more about the theoretical background of KRR in, e.g., the
     `scikit-learn user guide <https://scikit-learn.org/stable/modules/kernel_ridge.html#kernel-ridge>`_.
+    Additional arguments can be set via ``**kwargs``.
 
     Args:
         quantum_kernel (KernelMatrixBase) :

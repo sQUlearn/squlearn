@@ -8,11 +8,11 @@ class QSVR(SVR):
     Quantum Support Vector Regression
 
     This class is a wrapper of :class:`sklearn.svm.SVR`. It uses a quantum kernel matrix
-    to replace the kernel matrix in the :class:`sklearn.svm.SVR` class.
-    See https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
-    for additional information about the standard SVR parameters.
-    The scikit-learn SVR has kernel specific arguments that are omitted here because they do not apply
-    to the quantum kernels. These are
+    to replace the kernel matrix in the :class:`sklearn.svm.SVR` class. The parameters of the
+    parent class can be adjusted via ``**kwargs``.
+    See the documentation there for additional information about the standard SVR parameters.
+    The scikit-learn SVR has kernel specific arguments that are omitted here because they do not
+    apply to the quantum kernels. These are
 
         - `kernel`
         - `gamma`
@@ -22,10 +22,12 @@ class QSVR(SVR):
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
             a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
-        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be
-            obtained by calling ``get_params()``. Can be used to set for example the number of
-            qubits (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
-            of the underlying feature map.
+        **kwargs: Possible arguments can be
+            obtained by calling ``get_params()``. Notable examples are parameters of the
+            :class:`sklearn.svm.SVR` class such as the regularization parameters ``C``
+            (float, default=1.0) or epsilon (float, default=0.1). Additionally, properties of the
+            underlying feature map can be adjusted via kwargs such as the number of qubits
+            (``num_qubits``), or (if supported) the number of layers (``num_layers``).
 
     See Also
     --------
@@ -92,7 +94,6 @@ class QSVR(SVR):
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
-        names.remove("kernel")
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")
