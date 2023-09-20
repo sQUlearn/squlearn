@@ -75,7 +75,7 @@ class TestQSVR:
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_predict(self, qsvr, request, data):
-        """Tests concerning the predict function of the QNNClassifier.
+        """Tests concerning the predict function of the QSVR.
 
         Tests include
             - whether the output is of the same shape as the reference
@@ -127,7 +127,7 @@ class TestQSVR:
             assert False, f"fitting not possible after changes to feature map parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qsvr_pqk, data):
-        """Tests concerning the feature map parameter changes."""
+        """Tests concerning the PQK parameter changes."""
 
         qsvr_params = qsvr_pqk.get_params()
         assert qsvr_params["gamma"] == 1.0
@@ -147,7 +147,7 @@ class TestQSVR:
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvr, request):
-        """Tests concerning the parameters of the classical SVC changes."""
+        """Tests concerning the parameters of the classical SVR changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
 
         qsvr_params = qsvr_instance.get_params()

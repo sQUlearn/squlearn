@@ -82,7 +82,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.y_train = None
         self.sigma = sigma
         self.normalize_y = normalize_y
-        self._full_regularization = full_regularization
+        self.full_regularization = full_regularization
 
         self.K_train = None
         self.K_test = None
@@ -109,7 +109,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             QuantumGaussianProcessRegressor class instance.
         """
         self.X_train = X_train
-        if self._full_regularization:
+        if self.full_regularization:
             if self._quantum_kernel._regularization is not None:
                 warnings.warn(
                     f"The regularization of the quantum kernel is set to"
@@ -159,10 +159,14 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
+        if return_std and return_cov:
+            raise ValueError(
+                "Only one of return_std or return_cov can be True. " "Currently both are True."
+            )
 
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
-        if self._full_regularization:
+        if self.full_regularization:
             print("Regularizing full Gram matrix")
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
@@ -212,7 +216,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             "quantum_kernel": self._quantum_kernel,
             "sigma": self.sigma,
             "normalize_y": self.normalize_y,
-            "full_regularization": self._full_regularization,
+            "full_regularization": self.full_regularization,
         }
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
@@ -223,7 +227,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         Sets value of the feature map hyper-parameters.
 
         Args:
-            params: Hyper-parameters and their values, e.g. num_qubits=2.
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
         valid_params_qgpr = self.get_params(deep=False)

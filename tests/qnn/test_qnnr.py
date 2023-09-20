@@ -6,8 +6,8 @@ from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.expectation_operator import IsingHamiltonian
-from squlearn.feature_map import ChebPQC
+from squlearn.expectation_operator import SummedPaulis
+from squlearn.feature_map import ChebRx
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNRegressor, SquaredLoss
 
@@ -29,8 +29,8 @@ class TestQNNRegressor:
         """QNNRegressor module."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        pqc = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
-        operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
+        pqc = ChebRx(num_qubits=2, num_features=1, num_layers=1)
+        operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = np.random.rand(pqc.num_parameters)
@@ -114,8 +114,8 @@ class TestQNNRegressor:
             - whether the prediction output is correct
         """
         X, y = data
-        qnn_regressor._param = np.arange(0.1, 2.45, 0.1)
-        qnn_regressor._param_op = np.arange(0.1, 0.35, 0.1)
+        qnn_regressor._param = np.linspace(0.1, 0.4, 4)
+        qnn_regressor._param_op = np.linspace(0.1, 0.3, 3)
         qnn_regressor._is_fitted = True
         y_pred = qnn_regressor.predict(X)
 
@@ -123,7 +123,7 @@ class TestQNNRegressor:
         assert y_pred.shape == y.shape
         assert np.allclose(
             y_pred,
-            np.array([0.57240016, 1.20027015, 0.39182531, 1.24520867, -0.1851392, 1.24521491]),
+            np.array([0.50619332, 0.4905991, 0.51004432, 0.48826691, 0.5372742, 0.48826651]),
         )
 
     def test_set_params_and_fit(self, qnn_regressor, data):

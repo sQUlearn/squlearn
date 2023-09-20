@@ -37,7 +37,7 @@ There are several Quantum Feature Maps implemented in sQUlearn:
    HZCRxCRyCRz
    ChebRx
    ParamZFeatureMap
-   QiskitZFeatureMap
+   QiskitFeatureMap
 
 Feel free to contribute to sQUlearn by adding your own feature maps in a Pull Request.
 
