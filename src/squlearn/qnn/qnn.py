@@ -258,26 +258,25 @@ class QNN:
         optree_caching=True,
         result_caching=True,
     ) -> None:
-        # Potential TODO: move executor into extra util class
+
         # Executer set-up
-        self.executor = executor
-        self.backend = self.executor.backend
+        self._executor = executor
 
         # Set-up shots from backend
-        self._inital_shots = self.executor.get_shots()
+        self._inital_shots = self._executor.get_shots()
 
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        self.pqc = TranspiledFeatureMap(pqc, self.backend)
+        self.pqc = TranspiledFeatureMap(pqc, self._executor.backend)
         self.operator = operator
 
         # Set-Up Executor
-        if self.executor.optree_executor() == "estimator":
-            self._estimator = self.executor.get_estimator()
+        if self._executor.optree_executor() == "estimator":
+            self._estimator = self._executor.get_estimator()
             self._sampler = None
         else:
-            self._sampler = self.executor.get_sampler()
+            self._sampler = self._executor.get_sampler()
             self._estimator = None
 
         self._initilize_derivative()
@@ -375,7 +374,7 @@ class QNN:
         else:
             self._num_qubits = self.pqc.num_virtual_qubits
 
-        if self.executor.optree_executor() == "sampler":
+        if self._executor.optree_executor() == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
             operator_string = str(self.operator)
@@ -400,18 +399,18 @@ class QNN:
             num_shots (int): Number of shots that are set
         """
 
-        self.executor.set_shots(num_shots)
+        self._executor.set_shots(num_shots)
 
     def get_shots(self) -> int:
         """Getter for the number of shots.
 
         Returns:
             Returns the number of shots that are used for the current evaluation."""
-        return self.executor.get_shots()
+        return self._executor.get_shots()
 
     def reset_shots(self) -> None:
         """Function for resetting the number of shots to the initial ones"""
-        self.executor.reset_shots()
+        self._executor.reset_shots()
 
     @property
     def num_qubits(self) -> int:
@@ -769,7 +768,7 @@ class QNN:
         if circuit.num_clbits == 0:
             circuit.measure_all()
 
-        sampler = self.executor.get_sampler()
+        sampler = self._executor.get_sampler()
         result = sampler.run(circuit).result()
         return result.quasi_dists[0].binary_probabilities()
 

@@ -1,10 +1,8 @@
 import numpy as np
 from typing import Union, Set
 
-from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.compiler import transpile  # TODO
 
 from .feature_map_base import FeatureMapBase
 
@@ -13,14 +11,10 @@ from ..util.optree.optree import (
     OpTreeLeafCircuit,
     OpTreeNodeSum,
     OpTreeNodeList,
-    OpTreeNodeBase,
 )
-from ..util.optree.optree_derivative import simplify_copy, derivative
+from ..util.optree.optree_derivative import simplify_copy, derivative, transpile_to_supported_instructions
 from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
-
-SUPPORTED_GATES = {"s","sdg","t","tdg","ecr","sx","x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"}
-
 
 class FeatureMapDerivatives:
     r"""
@@ -107,9 +101,8 @@ class FeatureMapDerivatives:
 
         self._circuit = feature_map.get_circuit(self._x, self._p)
 
-        # TODO: remove -> move to parameter-shift implementation!
         self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = _transpile_to_supported_instructions(self._circuit, SUPPORTED_GATES)
+        self._circuit = transpile_to_supported_instructions(self._circuit)
 
         self._optree_start = OpTreeLeafCircuit(self._circuit)
 
@@ -331,9 +324,7 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return _optree_transpile_back(
-                simplify_copy(derivative(optree, parameters).children[0]), self._instruction_set
-            )  # TODO:backtranspile maybe in derivative
+            return simplify_copy(derivative(optree, parameters).children[0])
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -343,69 +334,43 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return _optree_transpile_back(
-                simplify_copy(derivative(optree, parameters)), self._instruction_set
-            )  # TODO:backtranspile maybe in derivative
+            return simplify_copy(derivative(optree, parameters))
 
 
-def _optree_transpile_back(
-    optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
-) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
+# def _optree_transpile_back(
+#     optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
+# ) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
     
-    print("optree_element",optree_element)
+#     print("optree_element",optree_element)
     
-    if isinstance(optree_element, OpTreeNodeBase):
-        # Recursive call for all children
-        children_list = [
-            _optree_transpile_back(child, instruction_set) for child in optree_element.children
-        ]
-        if isinstance(optree_element, OpTreeNodeSum):
-            return OpTreeNodeSum(children_list, optree_element.factor, optree_element.operation)
-        elif isinstance(optree_element, OpTreeNodeList):
-            return OpTreeNodeList(children_list, optree_element.factor, optree_element.operation)
-        else:
-            raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-    elif isinstance(optree_element, (OpTreeLeafCircuit, QuantumCircuit)):
-        circuit = optree_element
-        if isinstance(optree_element, OpTreeLeafCircuit):
-            circuit = optree_element.circuit
+#     if isinstance(optree_element, OpTreeNodeBase):
+#         # Recursive call for all children
+#         children_list = [
+#             _optree_transpile_back(child, instruction_set) for child in optree_element.children
+#         ]
+#         if isinstance(optree_element, OpTreeNodeSum):
+#             return OpTreeNodeSum(children_list, optree_element.factor, optree_element.operation)
+#         elif isinstance(optree_element, OpTreeNodeList):
+#             return OpTreeNodeList(children_list, optree_element.factor, optree_element.operation)
+#         else:
+#             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+#     elif isinstance(optree_element, (OpTreeLeafCircuit, QuantumCircuit)):
+#         circuit = optree_element
+#         if isinstance(optree_element, OpTreeLeafCircuit):
+#             circuit = optree_element.circuit
 
-        # Transpile back to the given instruction set
-        transpiled_circ = transpile(
-            circuit,
-            basis_gates=instruction_set,
-            optimization_level=1,  # 1 for reducing number of gates
-            layout_method="trivial",
-        )
+#         # Transpile back to the given instruction set
+#         transpiled_circ = transpile(
+#             circuit,
+#             basis_gates=instruction_set,
+#             optimization_level=1,  # 1 for reducing number of gates
+#             layout_method="trivial",
+#         )
 
-        if isinstance(optree_element, OpTreeLeafCircuit):
-            return OpTreeLeafCircuit(transpiled_circ)
+#         if isinstance(optree_element, OpTreeLeafCircuit):
+#             return OpTreeLeafCircuit(transpiled_circ)
 
-        return transpiled_circ
+#         return transpiled_circ
 
-    else:
-        raise ValueError("Unsupported type in _optree_transpile_back:", type(optree_element))
-
-
-def _transpile_to_supported_instructions(
-    circuit: QuantumCircuit, supported_gates: Set[str]
-) -> QuantumCircuit:
-    """Helper function for transpiling a circuit to a supported instruction set.
-
-    Args:
-        circuit (QuantumCircuit): Circuit to transpile.
-        supported_gates (Set[str]): Set of supported gates.
-
-    Returns:
-        Circuit which is transpiled to the supported instruction set.
-    """
-
-    unique_ops = set(circuit.count_ops())
-    if not unique_ops.issubset(supported_gates):
-        circuit = transpile(
-            circuit,
-            basis_gates=list(supported_gates),
-            optimization_level=0,
-            layout_method="trivial",
-        )
-    return circuit
+#     else:
+#         raise ValueError("Unsupported type in _optree_transpile_back:", type(optree_element))
