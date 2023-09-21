@@ -11,12 +11,13 @@ from ..util.optree.optree import (
     OpTreeLeafCircuit,
     OpTreeNodeSum,
     OpTreeNodeList,
+    OpTree
 )
-from ..util.optree.optree_derivative import (
-    optree_simplify,
-    optree_derivative,
-    transpile_to_supported_instructions,
-)
+# from ..util.optree.optree_derivative import (
+#     optree_simplify,
+#     optree_derivative,
+#     transpile_to_supported_instructions,
+# )
 from ..util.optree.optree_evaluate import optree_assign_parameters
 from ..util.data_preprocessing import adjust_input
 
@@ -107,7 +108,7 @@ class FeatureMapDerivatives:
         self._circuit = feature_map.get_circuit(self._x, self._p)
 
         self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = transpile_to_supported_instructions(self._circuit)
+        self._circuit = OpTree.derivatives.transpile_to_supported_instructions(self._circuit)
 
         self._optree_start = OpTreeLeafCircuit(self._circuit)
 
@@ -313,7 +314,7 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return optree_simplify(optree_derivative(optree, parameters).children[0])
+            return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -323,7 +324,7 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return optree_simplify(optree_derivative(optree, parameters))
+            return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters))
 
 
 # def _optree_transpile_back(

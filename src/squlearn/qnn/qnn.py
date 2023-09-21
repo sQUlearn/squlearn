@@ -20,10 +20,9 @@ from ..util.data_preprocessing import adjust_input
 from ..util import Executor
 
 from ..util.optree.optree import (
-    gen_expectation_tree,
     OpTreeNodeList,
     OpTreeLeafCircuit,
-    get_num_nested_lists,
+    OpTree,
 )
 
 from ..util.optree.optree_evaluate import (
@@ -476,7 +475,7 @@ class QNN:
         Returns:
             OpTree structure created from the :class:`Expec` object.
         """
-        return gen_expectation_tree(
+        return OpTree.gen_expectation_tree(
             self.pqc_derivatives.get_derivative(input_expec.wave_function),
             self.operator_derivatives.get_derivative(input_expec.operator),
         )
@@ -930,7 +929,7 @@ class QNN:
 
             # get the circuits of the PQC derivatives from the feature map module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
-            num_nested = get_num_nested_lists(pqc_optree)
+            num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
                 val = evaluate_sampler(

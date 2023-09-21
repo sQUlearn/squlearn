@@ -12,8 +12,6 @@ from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
 
 from .optree import (
-    hash_circuit,
-    hash_operator,
     OpTreeNodeBase,
     OpTreeLeafBase,
     OpTreeNodeList,
@@ -24,7 +22,7 @@ from .optree import (
     OpTreeLeafValue,
     OpTreeLeafExpectationValue,
     OpTreeLeafMeasuredOperator,
-    gen_expectation_tree,
+    OpTree,
 )
 
 
@@ -158,7 +156,7 @@ def _build_circuit_list(
             if isinstance(optree_element, QuantumCircuit):
                 circuit = optree_element
                 if detect_circuit_duplicates:
-                    circuit_hash = hash_circuit(circuit)
+                    circuit_hash = OpTree.hash_circuit(circuit)
             elif isinstance(optree_element, OpTreeLeafCircuit):
                 circuit = optree_element.circuit
                 if detect_circuit_duplicates:
@@ -273,7 +271,7 @@ def _build_operator_list(
             if isinstance(optree_element, SparsePauliOp):
                 operator = optree_element
                 if detect_operator_duplicates:
-                    operator_hash = hash_operator(operator)
+                    operator_hash = OpTree.hash_operator(operator)
             elif isinstance(
                 optree_element,
                 (OpTreeLeafOperator, OpTreeLeafExpectationValue, OpTreeLeafMeasuredOperator),
@@ -386,7 +384,7 @@ def _build_measurement_list(
 
             # check for duplicates of the measurement circuit if necessary
             if detect_measurement_duplicates:
-                measurement_hash = hash_circuit(circuit)
+                measurement_hash = OpTree.hash_circuit(circuit)
                 if measurement_hash in measurement_hash_dict:
                     operator_measurement_list[measurement_hash_dict[measurement_hash]].append(
                         operator_counter
@@ -410,7 +408,7 @@ def _build_measurement_list(
             # (Conversion of X and Y Paulis is done elsewhere!)
             if detect_operator_duplicates:
                 if isinstance(optree_element, SparsePauliOp):
-                    hashvalue = hash_operator(optree_element)
+                    hashvalue = OpTree.hash_operator(optree_element)
                 else:
                     hashvalue = optree_element.hashvalue
                 if hashvalue in operator_hash_dict:
@@ -1358,7 +1356,7 @@ def transform_to_zbasis(
         return _transform_operator_to_zbasis(optree_element, abelian_grouping)
     elif isinstance(optree_element, OpTreeLeafExpectationValue):
         operator_in_zbasis = _transform_operator_to_zbasis(optree_element.operator)
-        return gen_expectation_tree(optree_element.circuit, operator_in_zbasis)
+        return OpTree.gen_expectation_tree(optree_element.circuit, operator_in_zbasis)
     else:
         raise ValueError("Wrong type of Optree Element:", type(optree_element))
 

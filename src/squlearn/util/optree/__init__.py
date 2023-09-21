@@ -6,16 +6,7 @@ from .optree import (
     OpTreeLeafContainer,
     OpTreeLeafExpectationValue,
     OpTreeLeafMeasuredOperator,
-    get_number_of_leafs,
-    get_tree_depth,
-    get_first_leaf,
-    gen_expectation_tree,
-)
-
-from .optree_derivative import (
-    optree_simplify,
-    optree_derivative_v2,
-    optree_derivative,
+    OpTree,
 )
 
 from .optree_evaluate import (
@@ -36,17 +27,11 @@ __all__ = [
     "OpTreeLeafContainer",
     "OpTreeLeafExpectationValue",
     "OpTreeLeafMeasuredOperator",
-    "get_number_of_leafs",
-    "get_tree_depth",
-    "get_first_leaf",
-    "optree_simplify",
-    "optree_derivative_v2",
-    "optree_derivative",
+    "OpTree",
     "evaluate_sampler",
     "evaluate_estimator",
     "evaluate_expectation_tree_from_estimator",
     "evaluate_expectation_tree_from_sampler",
     "transform_to_zbasis",
     "optree_assign_parameters",
-    "gen_expectation_tree",
 ]

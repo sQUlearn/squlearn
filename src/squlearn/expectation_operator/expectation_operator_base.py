@@ -5,9 +5,7 @@ from abc import ABC, abstractmethod
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
-from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator
-from ..util.optree.optree_derivative import optree_simplify
-
+from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator, OpTree
 
 class ExpectationOperatorBase(ABC):
     """Base class for expectation operators.
@@ -358,11 +356,11 @@ class ExpectationOperatorBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return optree_simplify(paulis_op + paulis_op)
+                    return OpTree.derivatives.simplify(paulis_op + paulis_op)
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return optree_simplify(paulis_op1 + paulis_op2)
+                    return OpTree.derivatives.simplify(paulis_op1 + paulis_op2)
 
         return AddedExpectationOperator(self, x)
 

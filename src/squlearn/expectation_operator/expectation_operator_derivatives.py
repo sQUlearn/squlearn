@@ -12,8 +12,9 @@ from ..util.optree.optree import (
     OpTreeNodeSum,
     OpTreeNodeList,
     OpTreeLeafOperator,
+    OpTree,
 )
-from ..util.optree.optree_derivative import optree_simplify, optree_derivative
+#from ..util.optree.optree_derivative import optree_simplify, optree_derivative
 from ..util.optree.optree_evaluate import optree_assign_parameters
 
 
@@ -254,7 +255,7 @@ class ExpectationOperatorDerivatives:
                 else:
                     raise ValueError("Unknown type in recursive_squaring:", type(op))
 
-            O2 = optree_simplify(recursive_squaring(self._optree_start))
+            O2 = OpTree.derivatives.simplify(recursive_squaring(self._optree_start))
 
             # If caching is enabled, store in the dictionary
             if self._optree_caching == True:
@@ -323,7 +324,7 @@ def operator_differentiation(
 
     if len(parameters) == 1:
         # In case of a single parameter no array has to be returned
-        return optree_simplify(optree_derivative(optree, parameters).children[0])
+        return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
     else:
         # Check if the same variables are the same type
         params_name = parameters[0].name.split("[", 1)[0]
@@ -331,4 +332,4 @@ def operator_differentiation(
             if p.name.split("[", 1)[0] != params_name:
                 raise TypeError("Differentiable variables are not the same type.")
 
-        return optree_simplify(optree_derivative(optree, parameters))
+        return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters))

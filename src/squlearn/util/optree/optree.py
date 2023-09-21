@@ -4,41 +4,8 @@ from typing import List, Union, Callable, Any
 import copy
 
 
-def hash_circuit(circuit: QuantumCircuit) -> tuple:
-    """Hashes a circuit using the qiskit _circuit_key function.
-
-    Args:
-        circuit (QuantumCircuit): The circuit to be hashed.
-
-    Returns:
-        a tuple containing the circuit information that can be used for comparison.
-
-    """
-    # TODO: can be replaced by whatever hash function is used in qiskit in the future.
-    from qiskit.primitives.utils import _circuit_key
-
-    return _circuit_key(circuit)
-    # return blake2b(str(_circuit_key(circuit)).encode("utf-8"), digest_size=20).hexdigest() # faster for comparison slower for generation
-
-
-def hash_operator(operator: SparsePauliOp) -> tuple:
-    """Hashes an operator using the qiskit _observable_key function.
-
-    Args:
-        operator (SparsePauliOp): The operator to be hashed.
-
-    Returns:
-        A tuple containing the operator information that can be used for comparison.
-    """
-    # TODO: can be replaced by whatever hash function is used in qiskit in the future.
-    from qiskit.primitives.utils import _observable_key
-
-    return _observable_key(operator)
-
-
 class OpTreeElementBase:
     """Base class for elements of the OpTree."""
-
     pass
 
 
@@ -251,7 +218,7 @@ class OpTreeLeafCircuit(OpTreeLeafBase):
 
     def __init__(self, circuit: QuantumCircuit) -> None:
         self._circuit = circuit
-        self._hashvalue = hash_circuit(circuit)  # Hash tuple for fast comparison
+        self._hashvalue = OpTree.hash_circuit(circuit)  # Hash tuple for fast comparison
 
     @property
     def circuit(self) -> QuantumCircuit:
@@ -287,7 +254,7 @@ class OpTreeLeafOperator(OpTreeLeafBase):
 
     def __init__(self, operator: SparsePauliOp) -> None:
         self._operator = operator
-        self._hashvalue = hash_operator(operator)  # Hash tuple for fast comparison
+        self._hashvalue = OpTree.hash_operator(operator)  # Hash tuple for fast comparison
 
     @property
     def operator(self) -> SparsePauliOp:
@@ -450,135 +417,174 @@ class OpTreeLeafValue(OpTreeLeafBase):
         return OpTreeLeafValue(self.value)
 
 
-def get_number_of_leafs(tree: OpTreeElementBase) -> int:
-    """Returns the number of leafs of the OpTree.
+class OpTree:
 
-    Args:
-        tree (OpTreeElementBase): The OpTree.
+    from .optree_derivative import OpTreeDerivatives
+    derivatives = OpTreeDerivatives
 
-    Returns:
-        int: The number of leafs of the OpTree.
-    """
-    if isinstance(tree, OpTreeLeafBase):
-        return 1
-    else:
-        num = 0
-        for child in tree.children:
-            num += get_number_of_leafs(child)
-        return num
+    @staticmethod
+    def hash_circuit(circuit: QuantumCircuit) -> tuple:
+        """Hashes a circuit using the qiskit _circuit_key function.
 
+        Args:
+            circuit (QuantumCircuit): The circuit to be hashed.
 
-def get_tree_depth(tree: OpTreeElementBase) -> int:
-    """Returns the depth of the OpTree.
+        Returns:
+            a tuple containing the circuit information that can be used for comparison.
 
-    Args:
-        tree (OpTreeElementBase): The OpTree.
+        """
+        # TODO: can be replaced by whatever hash function is used in qiskit in the future.
+        from qiskit.primitives.utils import _circuit_key
 
-    Returns:
-        int: The depth of the OpTree.
-    """
-    if isinstance(tree, OpTreeLeafBase):
-        return 0
-    else:
-        depth = 0
-        for child in tree.children:
-            depth = max(depth, get_tree_depth(child))
-        return depth + 1
+        return _circuit_key(circuit)
+        # return blake2b(str(_circuit_key(circuit)).encode("utf-8"), digest_size=20).hexdigest() # faster for comparison slower for generation
 
 
-def get_num_nested_lists(tree: OpTreeElementBase) -> int:
-    """Returns the depth of the OpTree.
+    @staticmethod
+    def hash_operator(operator: SparsePauliOp) -> tuple:
+        """Hashes an operator using the qiskit _observable_key function.
 
-    Args:
-        tree (OpTreeElementBase): The OpTree.
+        Args:
+            operator (SparsePauliOp): The operator to be hashed.
 
-    Returns:
-        int: The depth of the OpTree.
-    """
-    if isinstance(tree, OpTreeLeafBase):
-        return 0
-    else:
-        depth = 0
-        for child in tree.children:
-            depth = min(depth, get_tree_depth(child))
-        if isinstance(tree, OpTreeNodeList):
-            return depth + 1
-        return depth
+        Returns:
+            A tuple containing the operator information that can be used for comparison.
+        """
+        # TODO: can be replaced by whatever hash function is used in qiskit in the future.
+        from qiskit.primitives.utils import _observable_key
 
+        return _observable_key(operator)
 
-def get_first_leaf(
-    element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
-) -> Union[OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
-    """Returns the first leaf of the supplied OpTree.
+    @staticmethod
+    def get_number_of_leafs(tree: OpTreeElementBase) -> int:
+        """Returns the number of leafs of the OpTree.
 
-    Args:
-        element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree.
+        Args:
+            tree (OpTreeElementBase): The OpTree.
 
-    Returns:
-        The first found leaf of the OpTree.
-    """
-    if isinstance(element, OpTreeNodeBase):
-        return get_first_leaf(element.children[0])
-    else:
-        return element
-
-
-def gen_expectation_tree(
-    circuit_tree: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
-    operator_tree: Union[
-        OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp
-    ],
-):
-    """
-    Function that generates an expectation tree from a circuit tree and an operator tree.
-
-    The operator tree is applied to each leaf of the circuit tree and the
-    resulting expectation values are returned as ``OpTreeExpectationValueLeafs``.
-
-    Args:
-        circuit_tree (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit tree.
-        operator_tree (Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp]): The operator tree.
-
-    Returns:
-        The combined tree with ``OpTreeExpectationValueLeafs`` at the leafs.
-    """
-    if isinstance(circuit_tree, OpTreeNodeBase):
-        children_list = [
-            gen_expectation_tree(child, operator_tree) for child in circuit_tree.children
-        ]
-        factor_list = circuit_tree.factor
-        operation_list = circuit_tree.operation
-
-        if isinstance(circuit_tree, OpTreeNodeSum):
-            return OpTreeNodeSum(children_list, factor_list, operation_list)
-        elif isinstance(circuit_tree, OpTreeNodeList):
-            return OpTreeNodeList(children_list, factor_list, operation_list)
+        Returns:
+            int: The number of leafs of the OpTree.
+        """
+        if isinstance(tree, OpTreeLeafBase):
+            return 1
         else:
-            raise ValueError("wrong type of circuit_tree")
+            num = 0
+            for child in tree.children:
+                num += OpTree.get_number_of_leafs(child)
+            return num
 
-    elif isinstance(circuit_tree, (OpTreeLeafCircuit, QuantumCircuit)):
-        # Reached a circuit node -> append operation tree
+    @staticmethod
+    def get_tree_depth(tree: OpTreeElementBase) -> int:
+        """Returns the depth of the OpTree.
 
-        if isinstance(operator_tree, OpTreeNodeBase):
+        Args:
+            tree (OpTreeElementBase): The OpTree.
+
+        Returns:
+            int: The depth of the OpTree.
+        """
+        if isinstance(tree, OpTreeLeafBase):
+            return 0
+        else:
+            depth = 0
+            for child in tree.children:
+                depth = max(depth, OpTree.get_tree_depth(child))
+            return depth + 1
+
+    @staticmethod
+    def get_num_nested_lists(tree: OpTreeElementBase) -> int:
+        """Returns the depth of the OpTree.
+
+        Args:
+            tree (OpTreeElementBase): The OpTree.
+
+        Returns:
+            int: The depth of the OpTree.
+        """
+        if isinstance(tree, OpTreeLeafBase):
+            return 0
+        else:
+            depth = 0
+            for child in tree.children:
+                depth = min(depth, OpTree.get_tree_depth(child))
+            if isinstance(tree, OpTreeNodeList):
+                return depth + 1
+            return depth
+
+    @staticmethod
+    def get_first_leaf(
+        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
+    ) -> Union[OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
+        """Returns the first leaf of the supplied OpTree.
+
+        Args:
+            element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree.
+
+        Returns:
+            The first found leaf of the OpTree.
+        """
+        if isinstance(element, OpTreeNodeBase):
+            return OpTree.get_first_leaf(element.children[0])
+        else:
+            return element
+
+    @staticmethod
+    def gen_expectation_tree(
+        circuit_tree: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+        operator_tree: Union[
+            OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp
+        ],
+    ):
+        """
+        Function that generates an expectation tree from a circuit tree and an operator tree.
+
+        The operator tree is applied to each leaf of the circuit tree and the
+        resulting expectation values are returned as ``OpTreeExpectationValueLeafs``.
+
+        Args:
+            circuit_tree (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit tree.
+            operator_tree (Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp]): The operator tree.
+
+        Returns:
+            The combined tree with ``OpTreeExpectationValueLeafs`` at the leafs.
+        """
+        if isinstance(circuit_tree, OpTreeNodeBase):
             children_list = [
-                gen_expectation_tree(circuit_tree, child) for child in operator_tree.children
+                OpTree.gen_expectation_tree(child, operator_tree) for child in circuit_tree.children
             ]
-            factor_list = operator_tree.factor
-            operation_list = operator_tree.operation
+            factor_list = circuit_tree.factor
+            operation_list = circuit_tree.operation
 
-            if isinstance(operator_tree, OpTreeNodeSum):
+            if isinstance(circuit_tree, OpTreeNodeSum):
                 return OpTreeNodeSum(children_list, factor_list, operation_list)
-            elif isinstance(operator_tree, OpTreeNodeList):
+            elif isinstance(circuit_tree, OpTreeNodeList):
                 return OpTreeNodeList(children_list, factor_list, operation_list)
             else:
-                raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-        elif isinstance(operator_tree, (OpTreeLeafOperator, SparsePauliOp)):
-            return OpTreeLeafExpectationValue(circuit_tree, operator_tree)
-        elif isinstance(operator_tree, OpTreeLeafMeasuredOperator):
-            return operator_tree.measure_circuit(circuit_tree)
+                raise ValueError("wrong type of circuit_tree")
+
+        elif isinstance(circuit_tree, (OpTreeLeafCircuit, QuantumCircuit)):
+            # Reached a circuit node -> append operation tree
+
+            if isinstance(operator_tree, OpTreeNodeBase):
+                children_list = [
+                    OpTree.gen_expectation_tree(circuit_tree, child) for child in operator_tree.children
+                ]
+                factor_list = operator_tree.factor
+                operation_list = operator_tree.operation
+
+                if isinstance(operator_tree, OpTreeNodeSum):
+                    return OpTreeNodeSum(children_list, factor_list, operation_list)
+                elif isinstance(operator_tree, OpTreeNodeList):
+                    return OpTreeNodeList(children_list, factor_list, operation_list)
+                else:
+                    raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+            elif isinstance(operator_tree, (OpTreeLeafOperator, SparsePauliOp)):
+                return OpTreeLeafExpectationValue(circuit_tree, operator_tree)
+            elif isinstance(operator_tree, OpTreeLeafMeasuredOperator):
+                return operator_tree.measure_circuit(circuit_tree)
+            else:
+                raise ValueError("wrong type of operator_tree")
         else:
-            raise ValueError("wrong type of operator_tree")
-    else:
-        raise ValueError(
-            "circuit_tree must be a CircuitTreeSum or a CircuitTreeList", type(circuit_tree)
-        )
+            raise ValueError(
+                "circuit_tree must be a CircuitTreeSum or a CircuitTreeList", type(circuit_tree)
+            )
