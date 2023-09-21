@@ -17,11 +17,16 @@ class QGPC(GaussianProcessClassifier):
     Read more in the
     `scikit-learn user guide
     <https://scikit-learn.org/stable/modules/gaussian_process.html#gaussian-process>`_.
+    Additional arguments can be set via ``**kwargs``.
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used for the GP
                 (either a fidelity quantum kernel (FQK)
                 or projected quantum kernel (PQK) must be provided)
+        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
+            by calling ``get_params()``. Can be used to set for example the number of qubits
+            (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
+            of the underlying feature map.
 
     See Also
     --------
