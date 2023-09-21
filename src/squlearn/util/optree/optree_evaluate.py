@@ -105,6 +105,7 @@ def _build_circuit_list(
 
     """
     from .optree import OpTree
+
     circuit_list = []
     if detect_circuit_duplicates:
         circuit_hash_dict = {}
@@ -140,13 +141,9 @@ def _build_circuit_list(
 
             # Recursive rebuild of the OpTree structure
             if isinstance(optree_element, OpTreeSum):
-                return OpTreeSum(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeSum(child_list_indexed, factor_list_bound, optree_element.operation)
             elif isinstance(optree_element, OpTreeList):
-                return OpTreeList(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeList(child_list_indexed, factor_list_bound, optree_element.operation)
             else:
                 raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
 
@@ -222,8 +219,8 @@ def _build_operator_list(
         A tuple containing the operator list and the indexed copy of the OpTree structure.
     """
 
-
     from .optree import OpTree
+
     operator_list = []
     if detect_operator_duplicates:
         operator_dict = {}
@@ -256,13 +253,9 @@ def _build_operator_list(
                     factor_list_bound.append(fac)
             # Recursive rebuild of the OpTree structure
             if isinstance(optree_element, OpTreeSum):
-                return OpTreeSum(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeSum(child_list_indexed, factor_list_bound, optree_element.operation)
             elif isinstance(optree_element, OpTreeList):
-                return OpTreeList(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeList(child_list_indexed, factor_list_bound, optree_element.operation)
             else:
                 raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
         elif isinstance(optree_element, OpTreeValue):
@@ -530,13 +523,9 @@ def _build_expectation_list(
 
             # Recursive rebuild of the OpTree structure
             if isinstance(optree_element, OpTreeSum):
-                return OpTreeSum(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeSum(child_list_indexed, factor_list_bound, optree_element.operation)
             elif isinstance(optree_element, OpTreeList):
-                return OpTreeList(
-                    child_list_indexed, factor_list_bound, optree_element.operation
-                )
+                return OpTreeList(child_list_indexed, factor_list_bound, optree_element.operation)
             else:
                 raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
 
@@ -668,8 +657,10 @@ def _evaluate_expectation_from_sampler(
     # Too late for a basis change
     for p in op_pauli_list:
         if p.x.any():
-            raise ValueError("Observable only with Z and I Paulis are supported, " +
-                             "run transform_to_zbasis first")
+            raise ValueError(
+                "Observable only with Z and I Paulis are supported, "
+                + "run transform_to_zbasis first"
+            )
 
     # If no measurement is present, create one where every circuit is connected to all
     # operators
@@ -807,7 +798,6 @@ def _transform_operator_to_zbasis(
 
 
 class OpTreeEvaluate:
-
     @staticmethod
     def evaluate_with_sampler(
         circuit: Union[OpTreeNodeBase, OpTreeCircuit, QuantumCircuit],
@@ -874,7 +864,9 @@ class OpTreeEvaluate:
 
         if dictionaries_combined:
             if len(dictionary_circuit) != len(dictionary_operator):
-                raise ValueError("The length of the circuit and operator dictionary must be the same")
+                raise ValueError(
+                    "The length of the circuit and operator dictionary must be the same"
+                )
 
         # Build list of measurement circuits that are used for the evaluation
         # Also creates a list of indices that connect a operator with a measurement
@@ -991,7 +983,7 @@ class OpTreeEvaluate:
         dictionary_operator: Union[dict, List[dict]],
         estimator: BaseEstimator,
         dictionaries_combined: bool = False,
-        detect_duplicates: bool = True
+        detect_duplicates: bool = True,
     ) -> Union[float, np.ndarray]:
         """
         Function for evaluating the expectation value with the estimator primitive.
@@ -1074,7 +1066,9 @@ class OpTreeEvaluate:
 
         if dictionaries_combined:
             if len(dictionary_circuit) != len(dictionary_operator):
-                raise ValueError("The length of the circuit and operator dictionary must be the same")
+                raise ValueError(
+                    "The length of the circuit and operator dictionary must be the same"
+                )
 
         tree_circuit = []
         total_circuit_list = []
@@ -1317,7 +1311,9 @@ class OpTreeEvaluate:
         # Computation of the expectation values from the sampler results
         start = time.time()
         expec = _evaluate_expectation_from_sampler(
-            total_operator_list, sampler_result, operator_measurement_list=total_circuit_operator_list
+            total_operator_list,
+            sampler_result,
+            operator_measurement_list=total_circuit_operator_list,
         )
 
         # Final assembly of the results
@@ -1349,7 +1345,8 @@ class OpTreeEvaluate:
         if isinstance(optree_element, OpTreeNodeBase):
             # Recursive call for all children
             children_list = [
-                OpTreeEvaluate.transform_to_zbasis(child, abelian_grouping) for child in optree_element.children
+                OpTreeEvaluate.transform_to_zbasis(child, abelian_grouping)
+                for child in optree_element.children
             ]
             if isinstance(optree_element, OpTreeSum):
                 return OpTreeSum(children_list, optree_element.factor, optree_element.operation)
@@ -1364,6 +1361,7 @@ class OpTreeEvaluate:
         elif isinstance(optree_element, OpTreeExpectationValue):
             operator_in_zbasis = _transform_operator_to_zbasis(optree_element.operator)
             from .optree import OpTree
+
             return OpTree.gen_expectation_tree(optree_element.circuit, operator_in_zbasis)
         else:
             raise ValueError("Wrong type of Optree Element:", type(optree_element))

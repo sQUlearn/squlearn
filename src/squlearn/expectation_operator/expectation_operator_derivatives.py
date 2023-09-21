@@ -15,6 +15,7 @@ from ..util.optree.optree import (
     OpTree,
 )
 
+
 class ExpectationOperatorDerivatives:
     r"""Class for calculating derivatives of expectation operators.
 

@@ -6,15 +6,10 @@ from qiskit.circuit.parametervector import ParameterVectorElement
 
 from .feature_map_base import FeatureMapBase
 
-from ..util.optree.optree import (
-    OpTreeElementBase,
-    OpTreeCircuit,
-    OpTreeSum,
-    OpTreeList,
-    OpTree
-)
+from ..util.optree.optree import OpTreeElementBase, OpTreeCircuit, OpTreeSum, OpTreeList, OpTree
 
 from ..util.data_preprocessing import adjust_input
+
 
 class FeatureMapDerivatives:
     r"""

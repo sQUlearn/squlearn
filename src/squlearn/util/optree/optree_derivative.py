@@ -16,6 +16,7 @@ from .optree import (
     OpTreeValue,
 )
 
+
 def _circuit_parameter_shift(
     element: Union[OpTreeCircuit, QuantumCircuit, OpTreeValue],
     parameter: ParameterExpression,
@@ -188,9 +189,7 @@ def _differentiate_inplace(
                     tree_node.factor[i] = 1.0
             else:
                 # if grad_fac is still a parameter
-                tree_node.children[i] = OpTreeSum(
-                    [child, grad], [grad_fac, tree_node.factor[i]]
-                )
+                tree_node.children[i] = OpTreeSum([child, grad], [grad_fac, tree_node.factor[i]])
                 tree_node.factor[i] = 1.0
 
         if len(remove_list) > 0:
@@ -200,9 +199,7 @@ def _differentiate_inplace(
 
 
 def _differentiate_copy(
-    element: Union[
-        OpTreeNodeBase, OpTreeCircuit, QuantumCircuit, OpTreeOperator, SparsePauliOp
-    ],
+    element: Union[OpTreeNodeBase, OpTreeCircuit, QuantumCircuit, OpTreeOperator, SparsePauliOp],
     parameter: ParameterExpression,
 ) -> OpTreeNodeBase:
     """
@@ -262,7 +259,6 @@ def _differentiate_copy(
 
 
 class OpTreeDerivatives:
-
     SUPPORTED_GATES = {
         "s",
         "sdg",
@@ -337,7 +333,9 @@ class OpTreeDerivatives:
 
         if isinstance(element, (QuantumCircuit, OpTreeCircuit)):
             if isinstance(element, OpTreeCircuit):
-                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element.circuit))
+                element = OpTreeCircuit(
+                    OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
+                )
             else:
                 element = OpTreeDerivatives.transpile_to_supported_instructions(element)
 
@@ -403,7 +401,9 @@ class OpTreeDerivatives:
 
         if isinstance(element, (QuantumCircuit, OpTreeCircuit)):
             if isinstance(element, OpTreeCircuit):
-                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element.circuit))
+                element = OpTreeCircuit(
+                    OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
+                )
             else:
                 element = OpTreeDerivatives.transpile_to_supported_instructions(element)
 
@@ -419,4 +419,3 @@ class OpTreeDerivatives:
             return OpTreeList(derivative_list, fac_list)
         else:
             return derivative_list[0]
-

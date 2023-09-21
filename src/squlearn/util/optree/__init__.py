@@ -18,5 +18,5 @@ __all__ = [
     "OpTreeContainer",
     "OpTreeExpectationValue",
     "OpTreeMeasuredOperator",
-    "OpTree"
+    "OpTree",
 ]

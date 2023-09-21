@@ -8,6 +8,7 @@ from qiskit.circuit import ParameterExpression
 
 class OpTreeElementBase:
     """Base class for elements of the OpTree."""
+
     pass
 
 
@@ -297,7 +298,6 @@ class OpTreeExpectationValue(OpTreeLeafBase):
         circuit: Union[OpTreeCircuit, QuantumCircuit],
         operator: Union[OpTreeOperator, SparsePauliOp],
     ) -> None:
-
         if isinstance(circuit, QuantumCircuit):
             circuit = OpTreeCircuit(circuit)
         if not isinstance(circuit, OpTreeCircuit):
@@ -450,13 +450,16 @@ def _simplify_operator(
     else:
         return None
 
+
 class OpTree:
-    """ Static class containing functions for working with OpTrees objects."""
+    """Static class containing functions for working with OpTrees objects."""
 
     from .optree_derivative import OpTreeDerivatives
+
     derivative = OpTreeDerivatives
 
     from .optree_evaluate import OpTreeEvaluate
+
     evaluate = OpTreeEvaluate
 
     @staticmethod
@@ -475,7 +478,6 @@ class OpTree:
 
         return _circuit_key(circuit)
         # return blake2b(str(_circuit_key(circuit)).encode("utf-8"), digest_size=20).hexdigest() # faster for comparison slower for generation
-
 
     @staticmethod
     def hash_operator(operator: SparsePauliOp) -> tuple:
@@ -587,7 +589,8 @@ class OpTree:
         """
         if isinstance(circuit_tree, OpTreeNodeBase):
             children_list = [
-                OpTree.gen_expectation_tree(child, operator_tree) for child in circuit_tree.children
+                OpTree.gen_expectation_tree(child, operator_tree)
+                for child in circuit_tree.children
             ]
             factor_list = circuit_tree.factor
             operation_list = circuit_tree.operation
@@ -604,7 +607,8 @@ class OpTree:
 
             if isinstance(operator_tree, OpTreeNodeBase):
                 children_list = [
-                    OpTree.gen_expectation_tree(circuit_tree, child) for child in operator_tree.children
+                    OpTree.gen_expectation_tree(circuit_tree, child)
+                    for child in operator_tree.children
                 ]
                 factor_list = operator_tree.factor
                 operation_list = operator_tree.operation
@@ -750,7 +754,9 @@ class OpTree:
                     OpTree.assign_parameters(c, dictionary, inplace=True)
                 for i, fac in enumerate(element.factor):
                     if isinstance(fac, ParameterExpression):
-                        element.factor[i] = float(fac.bind(dictionary, allow_unknown_parameters=True))
+                        element.factor[i] = float(
+                            fac.bind(dictionary, allow_unknown_parameters=True)
+                        )
 
             else:
                 # Index circuits and bind parameters in the OpTreeNode structure
@@ -788,7 +794,9 @@ class OpTree:
         elif isinstance(element, QuantumCircuit):
             # Assign the parameters to the circuit
             if inplace:
-                element.assign_parameters([dictionary[p] for p in element.parameters], inplace=True)
+                element.assign_parameters(
+                    [dictionary[p] for p in element.parameters], inplace=True
+                )
             else:
                 return element.assign_parameters(
                     [dictionary[p] for p in element.parameters], inplace=False
@@ -826,10 +834,14 @@ class OpTree:
         elif isinstance(element, SparsePauliOp):
             # Assign the parameters to the operator
             if inplace:
-                element.assign_parameters([dictionary[p] for p in element.parameters], inplace=True)
+                element.assign_parameters(
+                    [dictionary[p] for p in element.parameters], inplace=True
+                )
             else:
                 return element.assign_parameters(
                     [dictionary[p] for p in element.parameters], inplace=False
                 )
         else:
-            raise ValueError("element must be a OpTreeNodeBase, OpTreeLeafCircuit or a QuantumCircuit")
+            raise ValueError(
+                "element must be a OpTreeNodeBase, OpTreeLeafCircuit or a QuantumCircuit"
+            )

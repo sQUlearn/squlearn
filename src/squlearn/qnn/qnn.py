@@ -25,6 +25,7 @@ from ..util.optree.optree import (
     OpTree,
 )
 
+
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
 

@@ -7,6 +7,7 @@ from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from ..util.optree.optree import OpTreeNodeBase, OpTreeList, OpTreeSum, OpTreeOperator, OpTree
 
+
 class ExpectationOperatorBase(ABC):
     """Base class for expectation operators.
 
