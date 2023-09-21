@@ -108,6 +108,16 @@ class BaseQNN(BaseEstimator, ABC):
 
         self._is_fitted = False
 
+    @property
+    def param(self) -> np.ndarray:
+        """Parameters of the PQC."""
+        return self._param
+
+    @property
+    def param_op(self) -> np.ndarray:
+        """Parameters of the cost operator."""
+        return self._param_op
+
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 
