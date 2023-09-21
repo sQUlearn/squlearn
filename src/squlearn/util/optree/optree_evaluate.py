@@ -72,7 +72,6 @@ def _evaluate_index_tree(
         # Return the value
         return element.value
     else:
-        print(type(element))
         raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
 
@@ -542,7 +541,7 @@ def _build_expectation_list(
         elif isinstance(optree_element, OpTreeLeafValue):
             return optree_element  # Add nothing to the lists
 
-        else:
+        elif isinstance(optree_element, OpTreeLeafExpectationValue):
             # Reached a Expecation Value Leaf
 
             operator = optree_element.operator
@@ -581,6 +580,9 @@ def _build_expectation_list(
             operator_list.append(operator)
             expectation_counter += 1
             return OpTreeLeafContainer(expectation_counter - 1)
+
+        else:
+            raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
     index_tree = build_lists_and_index_tree(optree_element)
 
@@ -664,7 +666,8 @@ def _evaluate_expectation_from_sampler(
     # Too late for a basis change
     for p in op_pauli_list:
         if p.x.any():
-            raise ValueError("Observable only with Z and I Paulis are supported")
+            raise ValueError("Observable only with Z and I Paulis are supported, " +
+                             "run transform_to_zbasis first")
 
     # If no measurement is present, create one where every circuit is connected to all
     # operators
@@ -828,13 +831,13 @@ def evaluate_sampler(
         evaluation_tree = OpTreeNodeList(tree_circuit)
     else:
         evaluation_tree = tree_circuit[0]
-    print("pre-processing", time.time() - start)
+    # print("Pre-processing: ", time.time() - start)
 
     # Run the sampler primtive
     start = time.time()
-    print("Total number of circuits:", len(total_circuit_list))
+    # print("Number of circuits for sampler: ", len(total_circuit_list))
     sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
-    print("sampler run time", time.time() - start)
+    # print("Sampler run time: ", time.time() - start)
 
     # Compute the expectation value from the sampler results
     start = time.time()
@@ -873,7 +876,7 @@ def evaluate_sampler(
 
         # Evaluate the circuit tree for assembling the final results
         final_result.append(_evaluate_index_tree(circ_tree, expec2))
-    print("post processing", time.time() - start)
+    # print("Post processing: ", time.time() - start)
 
     if multiple_operator_dict and multiple_circuit_dict and not dictionaries_combined:
         # Swap axes to match the order of the dictionaries
@@ -884,7 +887,10 @@ def evaluate_sampler(
     elif multiple_operator_dict and not multiple_circuit_dict:
         return np.array(final_result)
     else:
-        return np.array(final_result[0])
+        return_val = np.array(final_result[0])
+        if len(return_val.shape) == 0:
+            return float(return_val)
+        return return_val
 
 
 def evaluate_estimator(
@@ -894,7 +900,7 @@ def evaluate_estimator(
     dictionary_operator: Union[dict, List[dict]],
     estimator: BaseEstimator,
     dictionaries_combined: bool = False,
-    detect_duplicates: bool = True,
+    detect_duplicates: bool = True
 ) -> Union[float, np.ndarray]:
     """
     Function for evaluating the expectation value with the estimator primitive.
@@ -1028,22 +1034,22 @@ def evaluate_estimator(
         evaluation_tree = OpTreeNodeList(tree_circuit)
     else:
         evaluation_tree = tree_circuit[0]
-    print("pre-processing", time.time() - start)
+    # print("Pre-processing: ", time.time() - start)
 
     # Evaluation via the estimator
     start = time.time()
-    print("Number of circuits in the estimator:", len(total_circuit_list))
+    # print("Number of circuits for estimator: ", len(total_circuit_list))
     estimator_result = (
         estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
         .result()
         .values
     )
-    print("Estimator run time", time.time() - start)
+    # print("Estimator run time: ", time.time() - start)
 
     # Assembly the final values from the evaluation tree
     start = time.time()
     final_results = _evaluate_index_tree(evaluation_tree, estimator_result)
-    print("post processing", time.time() - start)
+    # print("Post-processing: ", time.time() - start)
 
     return final_results
 
@@ -1115,22 +1121,22 @@ def evaluate_expectation_tree_from_estimator(
         evaluation_tree = OpTreeNodeList(total_tree_list)
     else:
         evaluation_tree = total_tree_list[0]
-    print("Pre-processing: ", time.time() - start)
+    # print("Pre-processing: ", time.time() - start)
 
     # Evaluation via the estimator
     start = time.time()
-    print("Number of circuits in the estimator:", len(total_circuit_list))
+    # print("Number of circuits for estimator: ", len(total_circuit_list))
     estimator_result = (
         estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
         .result()
         .values
     )
-    print("Run time of estimator:", time.time() - start)
+    # print("Run time of estimator: ", time.time() - start)
 
     # Final assembly of the results
     start = time.time()
     final_result = _evaluate_index_tree(evaluation_tree, estimator_result)
-    print("Post-processing: ", time.time() - start)
+    # print("Post-processing: ", time.time() - start)
     return final_result
 
 
@@ -1213,9 +1219,9 @@ def evaluate_expectation_tree_from_sampler(
 
     # Evaluation via the sampler
     start = time.time()
-    print("Number of circuits in sampler call:", len(total_circuit_list))
+    # print("Number of circuits for sampler: ", len(total_circuit_list))
     sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
-    print("run time", time.time() - start)
+    # print("Sampler run time: ", time.time() - start)
 
     # Computation of the expectation values from the sampler results
     start = time.time()
@@ -1225,7 +1231,7 @@ def evaluate_expectation_tree_from_sampler(
 
     # Final assembly of the results
     result = _evaluate_index_tree(evaluation_tree, expec)
-    print("Post-processing", time.time() - start)
+    # print("Post-processing: ", time.time() - start)
 
     return result
 

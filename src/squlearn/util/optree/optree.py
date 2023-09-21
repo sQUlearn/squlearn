@@ -328,12 +328,17 @@ class OpTreeLeafExpectationValue(OpTreeLeafBase):
         circuit: Union[OpTreeLeafCircuit, QuantumCircuit],
         operator: Union[OpTreeLeafOperator, SparsePauliOp],
     ) -> None:
+
         if isinstance(circuit, QuantumCircuit):
             circuit = OpTreeLeafCircuit(circuit)
+        if not isinstance(circuit, OpTreeLeafCircuit):
+            raise ValueError("Wrong format of the given circuit!")
         self._circuit = circuit
 
         if isinstance(operator, SparsePauliOp):
             operator = OpTreeLeafOperator(operator)
+        if not isinstance(operator, OpTreeLeafOperator):
+            raise ValueError("Wrong format of the given operator!")
         self._operator = operator
 
     @property
