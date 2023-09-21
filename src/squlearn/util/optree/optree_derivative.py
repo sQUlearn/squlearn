@@ -337,7 +337,7 @@ class OpTreeDerivatives:
                     OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
                 )
             else:
-                element = OpTreeDerivatives.transpile_to_supported_instructions(element)
+                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element))
 
         # For inplace operation, the input must be a OpTreeNodeList
         is_node = True
@@ -405,7 +405,7 @@ class OpTreeDerivatives:
                     OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
                 )
             else:
-                element = OpTreeDerivatives.transpile_to_supported_instructions(element)
+                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element))
 
         # Loop through all parameters and calculate the derivative
         derivative_list = []
