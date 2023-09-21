@@ -13,14 +13,8 @@ from ..util.optree.optree import (
     OpTreeNodeList,
     OpTree
 )
-# from ..util.optree.optree_derivative import (
-#     optree_simplify,
-#     optree_derivative,
-#     transpile_to_supported_instructions,
-# )
-from ..util.optree.optree_evaluate import optree_assign_parameters
-from ..util.data_preprocessing import adjust_input
 
+from ..util.data_preprocessing import adjust_input
 
 class FeatureMapDerivatives:
     r"""
@@ -199,7 +193,6 @@ class FeatureMapDerivatives:
             return self._optree_start.copy()
         else:
             # Check if differentiating tuple is already stored in optree_cache
-            print("helper_hash((diff_tuple,))", helper_hash((diff_tuple,)))
             if self._optree_caching == True and helper_hash((diff_tuple,)) in self._optree_cache:
                 # If stored -> return
                 return self._optree_cache[helper_hash((diff_tuple,))].copy()
@@ -280,7 +273,7 @@ class FeatureMapDerivatives:
                         rec_assign(dic.copy(), todo_list[1:], param_list[1:], multi_list[1:])
                     )
                 else:
-                    return_list.append(optree_assign_parameters(optree, dic))
+                    return_list.append(OpTree.assign_parameters(optree, dic))
 
             if multi_list[0]:
                 return OpTreeNodeList(return_list)
@@ -314,7 +307,7 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
+            return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -324,7 +317,7 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return OpTree.derivatives.simplify(OpTree.derivatives.derivative(optree, parameters))
+            return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters))
 
 
 # def _optree_transpile_back(

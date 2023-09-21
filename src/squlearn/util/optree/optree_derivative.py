@@ -12,7 +12,6 @@ from qiskit.compiler import transpile
 
 from .optree import (
     OpTreeNodeBase,
-    OpTreeLeafBase,
     OpTreeNodeList,
     OpTreeNodeSum,
     OpTreeLeafCircuit,
@@ -266,38 +265,6 @@ def _derivative_copy(
         raise ValueError("Unsupported element type: " + str(type(element)))
 
 
-def _simplify_operator(
-    element: Union[SparsePauliOp, OpTreeLeafOperator]
-) -> Union[SparsePauliOp, OpTreeLeafOperator]:
-    if isinstance(element, OpTreeLeafOperator):
-        operator = element.operator
-        input_type = "leaf"
-    else:
-        operator = element
-        input_type = "operator"
-
-    pauli_list = []
-    coeff_list = []
-
-    # check for identical paulis and merge them
-    for i, pauli in enumerate(operator.paulis):
-        # Check if pauli already exists in the list
-        if pauli in pauli_list:
-            index = pauli_list.index(pauli)
-            coeff_list[index] += operator.coeffs[i]
-        else:
-            pauli_list.append(pauli)
-            coeff_list.append(operator.coeffs[i])
-
-    if len(pauli_list) > 0:
-        operator_simp = SparsePauliOp(pauli_list, coeff_list)
-        if input_type == "leaf":
-            return OpTreeLeafOperator(operator_simp)
-        return operator_simp
-    else:
-        return None
-
-
 class OpTreeDerivatives:
 
     SUPPORTED_GATES = {
@@ -319,7 +286,6 @@ class OpTreeDerivatives:
         "cy",
         "cz",
     }
-
 
     @staticmethod
     def transpile_to_supported_instructions(
@@ -457,118 +423,4 @@ class OpTreeDerivatives:
             return OpTreeNodeList(derivative_list, fac_list)
         else:
             return derivative_list[0]
-
-    @staticmethod
-    def simplify(
-        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
-    ) -> Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
-        """
-        Function for simplifying an OpTree structure, the input is kept untouched.
-
-        Merges double sums and identifies identical branches or leafs in sums.
-
-        Args:
-            element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree to be simplified.
-
-        Returns:
-            A simplified copy of the OpTree.
-        """
-
-        def combine_two_ops(op1, op2):
-            """Helper function for combining two operations into one.
-
-            TODO: not used/tested yet
-            """
-            if op1 is None and op2 is None:
-                return None
-            elif op1 is None and op2 is not None:
-                return op2
-            elif op1 is not None and op2 is None:
-                return op1
-            else:
-                return lambda x: op1(op2(x))
-
-        if isinstance(element, OpTreeNodeBase):
-            if len(element.children) > 0:
-                # Recursive call for all children
-                children_list = [OpTreeDerivatives.simplify(child) for child in element.children]
-                factor_list = element.factor
-                operation_list = element.operation
-
-                if isinstance(element, OpTreeNodeSum):
-                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
-                elif isinstance(element, OpTreeNodeList):
-                    new_element = OpTreeNodeList(children_list, factor_list, operation_list)
-                else:
-                    raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-
-                # Check for double sum if the element is a sum and one of the children is a sums
-                if isinstance(new_element, OpTreeNodeSum) and any(
-                    [isinstance(child, OpTreeNodeSum) for child in new_element.children]
-                ):
-                    # Merge the sum of a sum into the parent sum
-                    children_list = []
-                    factor_list = []
-                    operation_list = []
-                    for i, child in enumerate(new_element.children):
-                        if isinstance(child, OpTreeNodeSum):
-                            for j, childs_child in enumerate(child.children):
-                                children_list.append(childs_child)
-                                factor_list.append(new_element.factor[i] * child.factor[j])
-                                operation_list.append(
-                                    combine_two_ops(new_element.operation[i], child.operation[j])
-                                )
-                        else:
-                            children_list.append(child)
-                            factor_list.append(new_element.factor[i])
-                            operation_list.append(new_element.operation[i])
-                    # Create OpTreeSum with the new (potentially merged) children
-                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
-
-                # Check for similar branches in the Sum and merge them into a single branch
-                if isinstance(new_element, OpTreeNodeSum):
-                    children_list = []
-                    factor_list = []
-                    operation_list = []
-
-                    for i, child in enumerate(new_element.children):
-                        # Chick if child already exists in the list
-                        # (branch is already present -> merging)
-                        if child in children_list:
-                            index = children_list.index(child)
-                            factor_list[index] += new_element.factor[i]
-                        else:
-                            children_list.append(child)
-                            factor_list.append(new_element.factor[i])
-                            operation_list.append(new_element.operation[i])
-
-                    # Create new OpTreeSum with the merged branches
-                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
-
-                return new_element
-
-            else:
-                # Reached an empty Node -> cancel the recursion
-                return copy.deepcopy(element)
-        elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
-            return _simplify_operator(element)
-        else:
-            # Reached a leaf -> cancel the recursion
-            return copy.deepcopy(element)
-
-
-# def simplify_inplace(
-#     element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
-# ) -> None:
-#     """
-#     Function for simplifying an OpTree structure, the input is modified inplace.
-
-#     Merges double sums and identifies identical branches or leafs in sums.
-#     The function returns nothing, since the OpTree is modified inplace.
-
-#     Args:
-#         element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree to be simplified.
-
-#     """
-#     raise NotImplementedError("Not implemented yet")
 

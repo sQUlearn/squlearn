@@ -25,13 +25,6 @@ from ..util.optree.optree import (
     OpTree,
 )
 
-from ..util.optree.optree_evaluate import (
-    evaluate_estimator,
-    evaluate_sampler,
-    optree_assign_parameters,
-)
-
-
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
 
@@ -754,7 +747,7 @@ class QNN:
         optree = self.pqc_derivatives.get_derivative("I")
         dictionary = dict(zip(self.parameters, param))
         dictionary.update(zip(self.features, x))
-        optree_assign_parameters(optree, dictionary, inplace=True)
+        OpTree.assign_parameters(optree, dictionary, inplace=True)
 
         if isinstance(optree, QuantumCircuit):
             circuit = optree
@@ -932,11 +925,11 @@ class QNN:
             num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
-                val = evaluate_sampler(
+                val = OpTree.evaluate.evaluate_sampler(
                     pqc_optree, operators, dict_feature_map, dict_operator, self._sampler
                 )
             elif self._estimator is not None:
-                val = evaluate_estimator(
+                val = OpTree.evaluate.evaluate_estimator(
                     pqc_optree, operators, dict_feature_map, dict_operator, self._estimator
                 )
             else:
@@ -970,7 +963,6 @@ class QNN:
 
             # If there are lists in the circuits, add them here (e.g. dfdp)
             if num_nested > 0:
-                print("c")
                 swapp_list = swapp_list + ilist[2 : 2 + num_nested]
 
             val = np.transpose(val, axes=swapp_list)

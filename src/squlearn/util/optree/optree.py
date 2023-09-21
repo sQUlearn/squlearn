@@ -1,7 +1,9 @@
-from qiskit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp
 from typing import List, Union, Callable, Any
 import copy
+
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.circuit import ParameterExpression
 
 
 class OpTreeElementBase:
@@ -417,10 +419,45 @@ class OpTreeLeafValue(OpTreeLeafBase):
         return OpTreeLeafValue(self.value)
 
 
+def _simplify_operator(
+    element: Union[SparsePauliOp, OpTreeLeafOperator]
+) -> Union[SparsePauliOp, OpTreeLeafOperator]:
+    if isinstance(element, OpTreeLeafOperator):
+        operator = element.operator
+        input_type = "leaf"
+    else:
+        operator = element
+        input_type = "operator"
+
+    pauli_list = []
+    coeff_list = []
+
+    # check for identical paulis and merge them
+    for i, pauli in enumerate(operator.paulis):
+        # Check if pauli already exists in the list
+        if pauli in pauli_list:
+            index = pauli_list.index(pauli)
+            coeff_list[index] += operator.coeffs[i]
+        else:
+            pauli_list.append(pauli)
+            coeff_list.append(operator.coeffs[i])
+
+    if len(pauli_list) > 0:
+        operator_simp = SparsePauliOp(pauli_list, coeff_list)
+        if input_type == "leaf":
+            return OpTreeLeafOperator(operator_simp)
+        return operator_simp
+    else:
+        return None
+
 class OpTree:
+    """ Static class containing functions for working with OpTrees objects."""
 
     from .optree_derivative import OpTreeDerivatives
     derivatives = OpTreeDerivatives
+
+    from .optree_evaluate import OpTreeEvaluate
+    evaluate = OpTreeEvaluate
 
     @staticmethod
     def hash_circuit(circuit: QuantumCircuit) -> tuple:
@@ -588,3 +625,211 @@ class OpTree:
             raise ValueError(
                 "circuit_tree must be a CircuitTreeSum or a CircuitTreeList", type(circuit_tree)
             )
+
+    @staticmethod
+    def simplify(
+        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
+    ) -> Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
+        """
+        Function for simplifying an OpTree structure, the input is kept untouched.
+
+        Merges double sums and identifies identical branches or leafs in sums.
+
+        Args:
+            element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]): The OpTree to be simplified.
+
+        Returns:
+            A simplified copy of the OpTree.
+        """
+
+        def combine_two_ops(op1, op2):
+            """Helper function for combining two operations into one.
+
+            TODO: not used/tested yet
+            """
+            if op1 is None and op2 is None:
+                return None
+            elif op1 is None and op2 is not None:
+                return op2
+            elif op1 is not None and op2 is None:
+                return op1
+            else:
+                return lambda x: op1(op2(x))
+
+        if isinstance(element, OpTreeNodeBase):
+            if len(element.children) > 0:
+                # Recursive call for all children
+                children_list = [OpTree.simplify(child) for child in element.children]
+                factor_list = element.factor
+                operation_list = element.operation
+
+                if isinstance(element, OpTreeNodeSum):
+                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
+                elif isinstance(element, OpTreeNodeList):
+                    new_element = OpTreeNodeList(children_list, factor_list, operation_list)
+                else:
+                    raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+
+                # Check for double sum if the element is a sum and one of the children is a sums
+                if isinstance(new_element, OpTreeNodeSum) and any(
+                    [isinstance(child, OpTreeNodeSum) for child in new_element.children]
+                ):
+                    # Merge the sum of a sum into the parent sum
+                    children_list = []
+                    factor_list = []
+                    operation_list = []
+                    for i, child in enumerate(new_element.children):
+                        if isinstance(child, OpTreeNodeSum):
+                            for j, childs_child in enumerate(child.children):
+                                children_list.append(childs_child)
+                                factor_list.append(new_element.factor[i] * child.factor[j])
+                                operation_list.append(
+                                    combine_two_ops(new_element.operation[i], child.operation[j])
+                                )
+                        else:
+                            children_list.append(child)
+                            factor_list.append(new_element.factor[i])
+                            operation_list.append(new_element.operation[i])
+                    # Create OpTreeSum with the new (potentially merged) children
+                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
+
+                # Check for similar branches in the Sum and merge them into a single branch
+                if isinstance(new_element, OpTreeNodeSum):
+                    children_list = []
+                    factor_list = []
+                    operation_list = []
+
+                    for i, child in enumerate(new_element.children):
+                        # Chick if child already exists in the list
+                        # (branch is already present -> merging)
+                        if child in children_list:
+                            index = children_list.index(child)
+                            factor_list[index] += new_element.factor[i]
+                        else:
+                            children_list.append(child)
+                            factor_list.append(new_element.factor[i])
+                            operation_list.append(new_element.operation[i])
+
+                    # Create new OpTreeSum with the merged branches
+                    new_element = OpTreeNodeSum(children_list, factor_list, operation_list)
+
+                return new_element
+
+            else:
+                # Reached an empty Node -> cancel the recursion
+                return copy.deepcopy(element)
+        elif isinstance(element, (SparsePauliOp, OpTreeLeafOperator)):
+            return _simplify_operator(element)
+        else:
+            # Reached a leaf -> cancel the recursion
+            return copy.deepcopy(element)
+
+    @staticmethod
+    def assign_parameters(
+        element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit],
+        dictionary,
+        inplace: bool = False,
+    ):
+        """
+        Assigns the parameters of the OpTree structure to the values in the dictionary.
+
+        Args:
+            element (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The OpTree for which
+                                                                                all parameters are
+                                                                                assigned.
+            dictionary (dict): The dictionary that contains the parameter names as keys
+                            and the parameter values as values.
+
+        Returns:
+            The OpTree structure with all parameters assigned, (copied if inplace=False)
+        """
+
+        if isinstance(element, OpTreeNodeBase):
+            if inplace:
+                for c in element.children:
+                    OpTree.assign_parameters(c, dictionary, inplace=True)
+                for i, fac in enumerate(element.factor):
+                    if isinstance(fac, ParameterExpression):
+                        element.factor[i] = float(fac.bind(dictionary, allow_unknown_parameters=True))
+
+            else:
+                # Index circuits and bind parameters in the OpTreeNode structure
+                child_list_assigned = [
+                    OpTree.assign_parameters(c, dictionary) for c in element.children
+                ]
+                factor_list_bound = []
+                for fac in element.factor:
+                    if isinstance(fac, ParameterExpression):
+                        factor_list_bound.append(
+                            float(fac.bind(dictionary, allow_unknown_parameters=True))
+                        )
+                    else:
+                        factor_list_bound.append(fac)
+
+                # Recursive rebuild of the OpTree structure
+                if isinstance(element, OpTreeNodeSum):
+                    return OpTreeNodeSum(child_list_assigned, factor_list_bound, element.operation)
+                elif isinstance(element, OpTreeNodeList):
+                    return OpTreeNodeList(child_list_assigned, factor_list_bound, element.operation)
+                else:
+                    raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
+        elif isinstance(element, OpTreeLeafCircuit):
+            # Assign the parameters to the circuit
+            if inplace:
+                element.circuit.assign_parameters(
+                    [dictionary[p] for p in element.circuit.parameters], inplace=True
+                )
+            else:
+                return OpTreeLeafCircuit(
+                    element.circuit.assign_parameters(
+                        [dictionary[p] for p in element.circuit.parameters], inplace=False
+                    )
+                )
+        elif isinstance(element, QuantumCircuit):
+            # Assign the parameters to the circuit
+            if inplace:
+                element.assign_parameters([dictionary[p] for p in element.parameters], inplace=True)
+            else:
+                return element.assign_parameters(
+                    [dictionary[p] for p in element.parameters], inplace=False
+                )
+        elif isinstance(element, (OpTreeLeafExpectationValue, OpTreeLeafMeasuredOperator)):
+            # Assign the parameters to the circuit and operator
+            if inplace:
+                element.circuit.assign_parameters(
+                    [dictionary[p] for p in element.circuit.parameters], inplace=True
+                )
+                element.operator.assign_parameters(
+                    [dictionary[p] for p in element.operator.parameters], inplace=True
+                )
+            else:
+                return OpTreeLeafExpectationValue(
+                    element.circuit.assign_parameters(
+                        [dictionary[p] for p in element.circuit.parameters], inplace=False
+                    ),
+                    element.operator.assign_parameters(
+                        [dictionary[p] for p in element.operator.parameters], inplace=False
+                    ),
+                )
+        elif isinstance(element, OpTreeLeafOperator):
+            # Assign the parameters to the operator
+            if inplace:
+                element.operator.assign_parameters(
+                    [dictionary[p] for p in element.operator.parameters], inplace=True
+                )
+            else:
+                return OpTreeLeafOperator(
+                    element.operator.assign_parameters(
+                        [dictionary[p] for p in element.operator.parameters], inplace=False
+                    )
+                )
+        elif isinstance(element, SparsePauliOp):
+            # Assign the parameters to the operator
+            if inplace:
+                element.assign_parameters([dictionary[p] for p in element.parameters], inplace=True)
+            else:
+                return element.assign_parameters(
+                    [dictionary[p] for p in element.parameters], inplace=False
+                )
+        else:
+            raise ValueError("element must be a OpTreeNodeBase, OpTreeLeafCircuit or a QuantumCircuit")
