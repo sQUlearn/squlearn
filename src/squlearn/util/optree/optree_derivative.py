@@ -14,6 +14,8 @@ from .optree import (
     OpTreeCircuit,
     OpTreeOperator,
     OpTreeValue,
+    OpTreeExpectationValue,
+    OpTreeMeasuredOperator
 )
 
 
@@ -115,6 +117,7 @@ def _operator_differentiation(
         input_type = "leaf"
     elif isinstance(element, SparsePauliOp):
         operator = element
+        input_type = "sparse_pauli_op"
 
     # Return None when the parameter is part of the operator
     if parameter not in operator.parameters:
@@ -172,6 +175,14 @@ def _differentiate_inplace(
                 grad = _circuit_parameter_shift(child, parameter)
             elif isinstance(child, (SparsePauliOp, OpTreeOperator)):
                 grad = _operator_differentiation(child, parameter)
+            elif isinstance(child, OpTreeMeasuredOperator):
+                grad_op = _operator_differentiation(child.operator, parameter)
+                if isinstance(grad_op, OpTreeValue):
+                    grad = grad_op
+                else:
+                    grad = OpTreeMeasuredOperator(child.circuit,grad_op)
+            elif isinstance(child, OpTreeExpectationValue):
+                raise NotImplementedError("Expectation value differentiation not implemented yet")
             else:
                 # Node -> recursive call
                 _differentiate_inplace(child, parameter)
@@ -254,6 +265,13 @@ def _differentiate_copy(
     elif isinstance(element, (SparsePauliOp, OpTreeOperator)):
         # Reached a operator leaf -> grad by parameter shift function
         return _operator_differentiation(element, parameter)
+    elif isinstance(element, OpTreeMeasuredOperator):
+        grad_op = _operator_differentiation(element.operator, parameter)
+        if isinstance(grad_op, OpTreeValue):
+            return grad_op
+        return OpTreeMeasuredOperator(element.circuit, grad_op)
+    elif isinstance(element, OpTreeExpectationValue):
+        raise NotImplementedError("Expectation value differentiation not implemented yet")
     else:
         raise ValueError("Unsupported element type: " + str(type(element)))
 
