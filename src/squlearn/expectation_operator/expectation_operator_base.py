@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
-from ..util.optree.optree import OpTreeNodeBase, OpTreeNodeList, OpTreeNodeSum, OpTreeLeafOperator, OpTree
+from ..util.optree.optree import OpTreeNodeBase, OpTreeList, OpTreeSum, OpTreeOperator, OpTree
 
 class ExpectationOperatorBase(ABC):
     """Base class for expectation operators.
@@ -179,15 +179,15 @@ class ExpectationOperatorBase(ABC):
                 children_list = [map_operator(op) for op in operator.children]
 
                 # Rebuild the tree with the new children and factors (copy part)
-                if isinstance(operator, OpTreeNodeSum):
-                    return OpTreeNodeSum(children_list, operator.factor, operator.operation)
-                elif isinstance(operator, OpTreeNodeList):
-                    return OpTreeNodeList(children_list, operator.factor, operator.operation)
+                if isinstance(operator, OpTreeSum):
+                    return OpTreeSum(children_list, operator.factor, operator.operation)
+                elif isinstance(operator, OpTreeList):
+                    return OpTreeList(children_list, operator.factor, operator.operation)
                 else:
                     raise ValueError("Wrong Type in operator: ", type(operator))
-            elif isinstance(operator, (SparsePauliOp, OpTreeLeafOperator)):
+            elif isinstance(operator, (SparsePauliOp, OpTreeOperator)):
                 op = operator
-                if isinstance(op, OpTreeLeafOperator):
+                if isinstance(op, OpTreeOperator):
                     op = op.operator
 
                 op_list = []

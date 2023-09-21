@@ -20,8 +20,8 @@ from ..util.data_preprocessing import adjust_input
 from ..util import Executor
 
 from ..util.optree.optree import (
-    OpTreeNodeList,
-    OpTreeLeafCircuit,
+    OpTreeList,
+    OpTreeCircuit,
     OpTree,
 )
 
@@ -751,7 +751,7 @@ class QNN:
 
         if isinstance(optree, QuantumCircuit):
             circuit = optree
-        elif isinstance(optree, OpTreeLeafCircuit):
+        elif isinstance(optree, OpTreeCircuit):
             circuit = optree.circuit
         else:
             raise TypeError("Unsported optree type:", type(optree))
@@ -916,7 +916,7 @@ class QNN:
         for key, op_list in real_todo_dic.items():
             # Obtained the derivative from the operator module
 
-            operators = OpTreeNodeList(
+            operators = OpTreeList(
                 [self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list]
             )
 
@@ -925,11 +925,11 @@ class QNN:
             num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
-                val = OpTree.evaluate.evaluate_sampler(
+                val = OpTree.evaluate.evaluate_with_sampler(
                     pqc_optree, operators, dict_feature_map, dict_operator, self._sampler
                 )
             elif self._estimator is not None:
-                val = OpTree.evaluate.evaluate_estimator(
+                val = OpTree.evaluate.evaluate_with_estimator(
                     pqc_optree, operators, dict_feature_map, dict_operator, self._estimator
                 )
             else:

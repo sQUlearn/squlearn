@@ -9,9 +9,9 @@ from ..util.data_preprocessing import adjust_input
 
 from ..util.optree.optree import (
     OpTreeElementBase,
-    OpTreeNodeSum,
-    OpTreeNodeList,
-    OpTreeLeafOperator,
+    OpTreeSum,
+    OpTreeList,
+    OpTreeOperator,
     OpTree,
 )
 
@@ -95,7 +95,7 @@ class ExpectationOperatorDerivatives:
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = ParameterVector("p_op", expectation_operator.num_parameters)
-            optree = OpTreeLeafOperator(
+            optree = OpTreeOperator(
                 self._expectation_operator.get_operator(self._parameter_vector)
             )
         else:
@@ -112,10 +112,10 @@ class ExpectationOperatorDerivatives:
                 ioff = 0
                 for op in self._expectation_operator:
                     expectation_op_list.append(
-                        OpTreeLeafOperator(op.get_operator(self._parameter_vector[ioff:]))
+                        OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]))
                     )
                     ioff = ioff + op.num_parameters
-                optree = OpTreeNodeList(expectation_op_list)
+                optree = OpTreeList(expectation_op_list)
             except:
                 raise ValueError("Unknown structure of the Expectation operator!")
 
@@ -140,7 +140,7 @@ class ExpectationOperatorDerivatives:
         if isinstance(derivative, str):
             # todo change with replaced operator
             if derivative == "I":
-                measure_op = OpTreeLeafOperator(
+                measure_op = OpTreeOperator(
                     SparsePauliOp("I" * self._expectation_operator.num_qubits)
                 )
             elif derivative == "O":
@@ -233,18 +233,18 @@ class ExpectationOperatorDerivatives:
         else:
 
             def recursive_squaring(op):
-                if isinstance(op, OpTreeLeafOperator):
-                    return OpTreeLeafOperator(op.operator.power(2))
+                if isinstance(op, OpTreeOperator):
+                    return OpTreeOperator(op.operator.power(2))
                 elif isinstance(op, SparsePauliOp):
                     return op.operator.power(2)
-                elif isinstance(op, OpTreeNodeSum):
-                    return OpTreeNodeSum(
+                elif isinstance(op, OpTreeSum):
+                    return OpTreeSum(
                         [recursive_squaring(child) for child in op.children],
                         op.factor,
                         op.operation,
                     )
-                elif isinstance(op, OpTreeNodeList):
-                    return OpTreeNodeList(
+                elif isinstance(op, OpTreeList):
+                    return OpTreeList(
                         [recursive_squaring(child) for child in op.children],
                         op.factor,
                         op.operation,
@@ -294,7 +294,7 @@ class ExpectationOperatorDerivatives:
             return_list.append(OpTree.assign_parameters(operator, dic))
 
         if multi_param_op:
-            return OpTreeNodeList(return_list)
+            return OpTreeList(return_list)
         else:
             return return_list[0]
 
@@ -321,7 +321,7 @@ def operator_differentiation(
 
     if len(parameters) == 1:
         # In case of a single parameter no array has to be returned
-        return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
+        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters).children[0])
     else:
         # Check if the same variables are the same type
         params_name = parameters[0].name.split("[", 1)[0]
@@ -329,4 +329,4 @@ def operator_differentiation(
             if p.name.split("[", 1)[0] != params_name:
                 raise TypeError("Differentiable variables are not the same type.")
 
-        return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters))
+        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))

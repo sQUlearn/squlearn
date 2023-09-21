@@ -1,22 +1,22 @@
 from .optree import (
-    OpTreeNodeList,
-    OpTreeNodeSum,
-    OpTreeLeafCircuit,
-    OpTreeLeafOperator,
-    OpTreeLeafContainer,
-    OpTreeLeafExpectationValue,
-    OpTreeLeafMeasuredOperator,
+    OpTreeList,
+    OpTreeSum,
+    OpTreeCircuit,
+    OpTreeOperator,
+    OpTreeContainer,
+    OpTreeExpectationValue,
+    OpTreeMeasuredOperator,
     OpTree,
 )
 
 
 __all__ = [
-    "OpTreeNodeList",
-    "OpTreeNodeSum",
-    "OpTreeLeafCircuit",
-    "OpTreeLeafOperator",
-    "OpTreeLeafContainer",
-    "OpTreeLeafExpectationValue",
-    "OpTreeLeafMeasuredOperator",
+    "OpTreeList",
+    "OpTreeSum",
+    "OpTreeCircuit",
+    "OpTreeOperator",
+    "OpTreeContainer",
+    "OpTreeExpectationValue",
+    "OpTreeMeasuredOperator",
     "OpTree"
 ]

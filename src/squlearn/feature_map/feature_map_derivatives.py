@@ -8,9 +8,9 @@ from .feature_map_base import FeatureMapBase
 
 from ..util.optree.optree import (
     OpTreeElementBase,
-    OpTreeLeafCircuit,
-    OpTreeNodeSum,
-    OpTreeNodeList,
+    OpTreeCircuit,
+    OpTreeSum,
+    OpTreeList,
     OpTree
 )
 
@@ -102,9 +102,9 @@ class FeatureMapDerivatives:
         self._circuit = feature_map.get_circuit(self._x, self._p)
 
         self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = OpTree.derivatives.transpile_to_supported_instructions(self._circuit)
+        self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit)
 
-        self._optree_start = OpTreeLeafCircuit(self._circuit)
+        self._optree_start = OpTreeCircuit(self._circuit)
 
         # self.circuit_optree = CircuitStateFn(primitive=circuit, coeff=1.0)
         self.num_qubits = self._circuit.num_qubits
@@ -112,7 +112,7 @@ class FeatureMapDerivatives:
         self._optree_cache = {}
         self._optree_caching = optree_caching
         if self._optree_caching:
-            self._optree_cache["I"] = OpTreeLeafCircuit(self._circuit)
+            self._optree_cache["I"] = OpTreeCircuit(self._circuit)
 
         # get the instruction gates from the initial circuit for transpiling the circuits
         # back to this basis
@@ -140,12 +140,12 @@ class FeatureMapDerivatives:
                 list_sum = []
                 for xi in self._x:
                     list_sum.append(self._differentiation_from_tuple((xi, xi)).copy())
-                optree = OpTreeNodeSum(list_sum)
+                optree = OpTreeSum(list_sum)
             elif derivative == "laplace_dp":
                 list_sum = []
                 for xi in self._x:
                     list_sum.append(self._differentiation_from_tuple((self._p, xi, xi)).copy())
-                optree = OpTreeNodeSum(list_sum)
+                optree = OpTreeSum(list_sum)
             elif derivative == "dp":
                 optree = self._differentiation_from_tuple((self._p,)).copy()
             elif derivative == "dpdp":
@@ -276,7 +276,7 @@ class FeatureMapDerivatives:
                     return_list.append(OpTree.assign_parameters(optree, dic))
 
             if multi_list[0]:
-                return OpTreeNodeList(return_list)
+                return OpTreeList(return_list)
             else:
                 return return_list[0]
 
@@ -307,7 +307,7 @@ class FeatureMapDerivatives:
         # Call the automatic differentiation routine
         # Separate routine for for one dim. or multi dim. variables
         if len(parameters) == 1:
-            return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters).children[0])
+            return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters).children[0])
         else:
             # If multiple variables are differentiated -> results are returned in array
 
@@ -317,7 +317,7 @@ class FeatureMapDerivatives:
                 if p.name.split("[", 1)[0] != params_name:
                     raise TypeError("Differentiable variables are not the same type.")
 
-            return OpTree.simplify(OpTree.derivatives.derivative(optree, parameters))
+            return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))
 
 
 # def _optree_transpile_back(
