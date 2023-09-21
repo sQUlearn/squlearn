@@ -61,7 +61,6 @@ def regularize_full_kernel(K_train, K_testtrain, K_test):
     """
     gram_matrix_total = np.block([[K_train, K_testtrain.T], [K_testtrain, K_test]])
     reconstruction = thresholding_regularization(gram_matrix_total)
-    print(f"Reconstruction error {np.sum(reconstruction - gram_matrix_total)}")
 
     K_train = reconstruction[: K_train.shape[0], : K_train.shape[1]]
     K_testtrain = reconstruction[K_train.shape[0] :, : K_testtrain.shape[1]]
