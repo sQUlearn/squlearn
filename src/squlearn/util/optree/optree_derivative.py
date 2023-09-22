@@ -277,7 +277,8 @@ def _differentiate_copy(
 
 
 class OpTreeDerivative:
-    """ Static class for differentiation of a OpTrees, circuits, or operators."""
+    """Static class for differentiation of a OpTrees, circuits, or operators."""
+
     SUPPORTED_GATES = {
         "s",
         "sdg",
