@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -84,28 +83,34 @@ class CustomExpectationOperator(ExpectationOperatorBase):
         params["parameterized"] = self.parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
         """
-        Function for generating the PauliOp expression of the custom operator.
+        Function for generating the SparsePauliOp expression of the custom operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the custom operator.
 
         Returns:
-            PauliOp expression of the specified custom operator.
+            SparsePauliOp expression of the specified custom operator.
         """
+
+        op_list = []
+        param_list = []
 
         if self.parameterized:
             nparam = len(parameters)
-            H = PauliOp(Pauli(self.operator_string[0])) * parameters[0 % nparam]
+            op_list.append(self.operator_string[0])
+            param_list.append(parameters[0 % nparam])
+
             ioff = 1
             for j in range(1, len(self.operator_string)):
-                H = H + PauliOp(Pauli(self.operator_string[j])) * parameters[ioff % nparam]
+                op_list.append(self.operator_string[j])
+                param_list.append(parameters[ioff % nparam])
                 ioff = ioff + 1
-            return H.reduce()
+            return SparsePauliOp(op_list, param_list)
 
         else:
-            H = PauliOp(Pauli(self.operator_string[0]))
+            op_list.append(self.operator_string[0])
             for j in range(1, len(self.operator_string)):
-                H = H + PauliOp(Pauli(self.operator_string[j]))
-            return H.reduce()
+                op_list.append(self.operator_string[j])
+            return SparsePauliOp(op_list)
