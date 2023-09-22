@@ -12,6 +12,7 @@ from qiskit.primitives import Estimator, Sampler
 from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
 
+
 class TestOpTreeEvaluation:
     """Test class for OpTree evaluation"""
 

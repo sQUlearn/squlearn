@@ -94,7 +94,7 @@ class TestOpTreeDerivative:
         dictionary_p = {p[0]: 1.5, p[1]: 2.5, p[2]: 0.5, p[3]: 0.25}
 
         operator = SparsePauliOp(["IZ", "ZI", "IX", "XI"], [p[0], p[1], p[2], p[3]])
-        operator = operator.power(2) # square operator for a more complicated operator
+        operator = operator.power(2)  # square operator for a more complicated operator
         # trivial circuit
         qc = QuantumCircuit(2)
         qc.h([0, 1])
