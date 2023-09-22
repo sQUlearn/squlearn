@@ -207,8 +207,6 @@ OpTree Data Structure
    :template: class.rst
 
     util.OpTree
-    util.optree.OpTreeDerivative
-    util.optree.OpTreeEvaluate
     util.optree.OpTreeList
     util.optree.OpTreeSum
     util.optree.OpTreeCircuit
