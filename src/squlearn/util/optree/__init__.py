@@ -1,4 +1,5 @@
 from .optree import (
+    OpTree,
     OpTreeList,
     OpTreeSum,
     OpTreeCircuit,
@@ -6,17 +7,22 @@ from .optree import (
     OpTreeContainer,
     OpTreeExpectationValue,
     OpTreeMeasuredOperator,
-    OpTree,
+    OpTreeValue,
 )
 
+from .optree_evaluate import OpTreeEvaluate
+from .optree_derivative import OpTreeDerivative
 
 __all__ = [
+    "OpTree",
+    "OpTreeEvaluate",
+    "OpTreeDerivative",
     "OpTreeList",
     "OpTreeSum",
     "OpTreeCircuit",
     "OpTreeOperator",
-    "OpTreeContainer",
     "OpTreeExpectationValue",
     "OpTreeMeasuredOperator",
-    "OpTree",
+    "OpTreeContainer",
+    "OpTreeValue",
 ]

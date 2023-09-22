@@ -798,6 +798,8 @@ def _transform_operator_to_zbasis(
 
 
 class OpTreeEvaluate:
+    """ Static class for evaluating OpTree structures with Qiskit's primitives. """
+
     @staticmethod
     def evaluate_with_sampler(
         circuit: Union[OpTreeNodeBase, OpTreeCircuit, QuantumCircuit],

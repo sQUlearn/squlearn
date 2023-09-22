@@ -47,7 +47,7 @@ def _circuit_parameter_shift(
         raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
 
     # Transpile to gates that are supported in the parameter shift rule
-    circuit = OpTreeDerivatives.transpile_to_supported_instructions(circuit)
+    circuit = OpTreeDerivative.transpile_to_supported_instructions(circuit)
 
     # Return None when the parameter is not in the circuit
     if parameter not in circuit._parameter_table:
@@ -276,7 +276,8 @@ def _differentiate_copy(
         raise ValueError("Unsupported element type: " + str(type(element)))
 
 
-class OpTreeDerivatives:
+class OpTreeDerivative:
+    """ Static class for differentiation of a OpTrees, circuits, or operators."""
     SUPPORTED_GATES = {
         "s",
         "sdg",
@@ -352,11 +353,11 @@ class OpTreeDerivatives:
         if isinstance(element, (QuantumCircuit, OpTreeCircuit)):
             if isinstance(element, OpTreeCircuit):
                 element = OpTreeCircuit(
-                    OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
+                    OpTreeDerivative.transpile_to_supported_instructions(element.circuit)
                 )
             else:
                 element = OpTreeCircuit(
-                    OpTreeDerivatives.transpile_to_supported_instructions(element)
+                    OpTreeDerivative.transpile_to_supported_instructions(element)
                 )
 
         # For inplace operation, the input must be a OpTreeNodeList
@@ -422,11 +423,11 @@ class OpTreeDerivatives:
         if isinstance(element, (QuantumCircuit, OpTreeCircuit)):
             if isinstance(element, OpTreeCircuit):
                 element = OpTreeCircuit(
-                    OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
+                    OpTreeDerivative.transpile_to_supported_instructions(element.circuit)
                 )
             else:
                 element = OpTreeCircuit(
-                    OpTreeDerivatives.transpile_to_supported_instructions(element)
+                    OpTreeDerivative.transpile_to_supported_instructions(element)
                 )
 
         # Loop through all parameters and calculate the derivative

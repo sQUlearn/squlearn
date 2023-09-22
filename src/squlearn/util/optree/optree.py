@@ -454,9 +454,9 @@ def _simplify_operator(
 class OpTree:
     """Static class containing functions for working with OpTrees objects."""
 
-    from .optree_derivative import OpTreeDerivatives
+    from .optree_derivative import OpTreeDerivative
 
-    derivative = OpTreeDerivatives
+    derivative = OpTreeDerivative
 
     from .optree_evaluate import OpTreeEvaluate
 
@@ -577,15 +577,17 @@ class OpTree:
         """
         Function that generates an expectation tree from a circuit tree and an operator tree.
 
+        .. currentmodule:: squlearn.util.optree
+
         The operator tree is applied to each leaf of the circuit tree and the
-        resulting expectation values are returned as ``OpTreeExpectationValueLeafs``.
+        resulting expectation values are returned as :class:`OpTreeExpectationValue`.
 
         Args:
             circuit_tree (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit tree.
             operator_tree (Union[OpTreeNodeBase, OpTreeLeafMeasuredOperator, OpTreeLeafOperator, SparsePauliOp]): The operator tree.
 
         Returns:
-            The combined tree with ``OpTreeExpectationValueLeafs`` at the leafs.
+            The combined tree with :class:`OpTreeExpectationValue` at the leafs.
         """
         if isinstance(circuit_tree, OpTreeNodeBase):
             children_list = [

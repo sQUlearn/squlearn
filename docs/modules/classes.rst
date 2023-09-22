@@ -196,6 +196,28 @@ QNN Core
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
 
+OpTree Data Structure
+------------------------------------
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+    util.OpTree
+    util.optree.OpTreeDerivative
+    util.optree.OpTreeEvaluate
+    util.optree.OpTreeList
+    util.optree.OpTreeSum
+    util.optree.OpTreeCircuit
+    util.optree.OpTreeOperator
+    util.optree.OpTreeExpectationValue
+    util.optree.OpTreeMeasuredOperator
+    util.optree.OpTreeContainer
+    util.optree.OpTreeValue
+
 
 Base Classes
 ------------------------------------
