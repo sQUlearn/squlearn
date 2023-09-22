@@ -15,7 +15,7 @@ from .optree import (
     OpTreeOperator,
     OpTreeValue,
     OpTreeExpectationValue,
-    OpTreeMeasuredOperator
+    OpTreeMeasuredOperator,
 )
 
 
@@ -180,7 +180,7 @@ def _differentiate_inplace(
                 if isinstance(grad_op, OpTreeValue):
                     grad = grad_op
                 else:
-                    grad = OpTreeMeasuredOperator(child.circuit,grad_op)
+                    grad = OpTreeMeasuredOperator(child.circuit, grad_op)
             elif isinstance(child, OpTreeExpectationValue):
                 raise NotImplementedError("Expectation value differentiation not implemented yet")
             else:
@@ -355,7 +355,9 @@ class OpTreeDerivatives:
                     OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
                 )
             else:
-                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element))
+                element = OpTreeCircuit(
+                    OpTreeDerivatives.transpile_to_supported_instructions(element)
+                )
 
         # For inplace operation, the input must be a OpTreeNodeList
         is_node = True
@@ -423,7 +425,9 @@ class OpTreeDerivatives:
                     OpTreeDerivatives.transpile_to_supported_instructions(element.circuit)
                 )
             else:
-                element = OpTreeCircuit(OpTreeDerivatives.transpile_to_supported_instructions(element))
+                element = OpTreeCircuit(
+                    OpTreeDerivatives.transpile_to_supported_instructions(element)
+                )
 
         # Loop through all parameters and calculate the derivative
         derivative_list = []
