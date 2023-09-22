@@ -80,7 +80,7 @@ class FeatureMapDerivatives:
 
     Args:
         feature_map (FeatureMapBase): Feature map to differentiate
-        optree_caching (bool): If True, the optree expressions are cached for faster
+        optree_caching (bool): If True, the OpTree expressions are cached for faster
                                evaluation. (default: True)
     """
 

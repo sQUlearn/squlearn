@@ -220,13 +220,18 @@ these derivatives using the :class:`FeatureMapDerivatives` class.
 This class accepts an existing quantum feature map as input and generates derivatives of the
 feature map with respect to its parameters or features. The derivative circuits are generated
 by leveraging the parameter-shift rule and are cached for future use.
-To obtain the derivative, you have two options. Firstly, you can use the function
-:meth:`get_derivative() <squlearn.feature_map.FeatureMapDerivatives.get_derivative>`
-by supplying a string (a list of available strings can be found in the
-:class:`FeatureMapDerivatives` class). Alternatively, you can provide a tuple containing
-the parameter (or feature) vector. Additional parameters can be included in the tuple to
-obtain arbitrary derivatives.
-The derivatives are stored in sQulearn's proprietary OpTree structure, which
+Use the function :meth:`get_derivative() <squlearn.feature_map.FeatureMapDerivatives.get_derivative>`
+to obtain the derivative. There are several options to specify the derivative you want to obtain:
+
+1. Provide a string that specifies the derivative you want to obtain. A list of the available
+   strings can be found in the documentation of the :class:`FeatureMapDerivatives` class.
+2. Provide a tuple containing the ParameterVector or an element of the ParameterVector to
+   obtain higher order derivatives. The derivatives are applied successively following the order in
+   the tuple.
+3. Provide a list of ParameterVector elements to obtain the derivatives of the specified elements.
+   This can also be placed in the tuple.
+
+The derivatives are stored in sQUlearn's proprietary OpTree structure, which
 is utilized for the arithmetic operations of the derivatives.
 
 **Example: Obtain the derivative of a QEK feature map**
@@ -236,9 +241,14 @@ is utilized for the arithmetic operations of the derivatives.
    from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
    fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
    fm_deriv = FeatureMapDerivatives(fm)
+   # From String (gradient of the parameter vector)
    grad_from_string = fm_deriv.get_derivative("dp")
-   grad_from_tuple = fm_deriv.get_derivative((fm_deriv.parameter_vector,))
-
+   # From Tuple (second order derivative of the parameter vector; equal to the Hessian)
+   grad_from_tuple = fm_deriv.get_derivative((fm_deriv.parameter_vector,fm_deriv.parameter_vector))
+   # From List (only partial derivatives of the first two parameters)
+   grad_from_List = fm_deriv.get_derivative(([fm_deriv.parameter_vector[0],
+                                               fm_deriv.parameter_vector[1]],
+                                             ))
 
 Transpile Quantum Feature Maps via :class:`TranspiledFeatureMap`
 ----------------------------------------------------------------

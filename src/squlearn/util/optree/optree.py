@@ -396,7 +396,7 @@ class OpTreeContainer(OpTreeLeafBase):
 
 class OpTreeValue(OpTreeLeafBase):
     """
-    A leaf that containes an evaluated value.
+    A leaf that contains an evaluated value.
 
     Args:
         value (float): A float value that is represented by the leaf.

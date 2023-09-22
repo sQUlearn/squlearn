@@ -700,7 +700,7 @@ class Executor:
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
     def optree_executor(self) -> str:
-        """A string that indicates which executor is used for optree execution."""
+        """A string that indicates which executor is used for OpTree execution."""
         if self._estimator is not None:
             return "estimator"
         elif self._sampler is not None:
