@@ -909,7 +909,10 @@ class LayeredPQC:
                 variablegroup_tuple,
             )
 
-    def U(self, *variablegroup_tuple, map=None):
+    def U(self, *variablegroup_tuple):
+        map = None
+        if isinstance(variablegroup_tuple[0],tuple):
+            variablegroup_tuple = variablegroup_tuple[0]
         if map == None:
             if len(variablegroup_tuple) != 3:
                 raise ValueError("There must be three variable groups for a U gate.")
@@ -2145,7 +2148,7 @@ class LayeredFeatureMap(FeatureMapBase):
         """
         self._layered_pqc.add_layer(layer.layered_pqc, num_layers)
 
-    def _str_to_variable_group(self, input_string: str) -> VariableGroup:
+    def _str_to_variable_group(self, input_string: Union[tuple,str]) -> VariableGroup:
         """
         Internal function to convert a string to the
         feature or parameter variable group
@@ -2156,10 +2159,13 @@ class LayeredFeatureMap(FeatureMapBase):
         Returns:
             Associated variable group
         """
+
         if input_string == self._feature_str:
             return self._x
         elif input_string == self._parameter_str:
             return self._p
+        elif isinstance(input_string, tuple):
+            return tuple([self._str_to_variable_group(str) for str in input_string])
         else:
             raise ValueError("Unknown variable type!")
 
@@ -2170,6 +2176,14 @@ class LayeredFeatureMap(FeatureMapBase):
         """
         vg_list = [self._str_to_variable_group(str) for str in variable]
         return function(*vg_list, map=encoding)
+
+    def _param_gate_U(self, *variable, function):
+        """
+        Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
+        variable group data
+        """
+        vg_list = [self._str_to_variable_group(str) for str in variable]
+        return function(*vg_list)
 
     def _two_param_gate(
         self, *variable, function, ent_strategy="NN", encoding: Union[Callable, None] = None
@@ -2257,7 +2271,7 @@ class LayeredFeatureMap(FeatureMapBase):
         """
         self._param_gate(*variable_str, function=self._layered_pqc.P, encoding=encoding)
 
-    def U(self, *variable_str, encoding: Union[Callable, None] = None):
+    def U(self, *variable_str):
         """Adds a layer of U gates to the Layered Feature Map
 
         Args:
@@ -2265,7 +2279,7 @@ class LayeredFeatureMap(FeatureMapBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate(*variable_str, function=self._layered_pqc.U, encoding=encoding)
+        self._param_gate_U(*variable_str, function=self._layered_pqc.U)
 
     def ch_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled H gates to the Layered Feature Map
