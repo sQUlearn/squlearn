@@ -8,10 +8,10 @@ from squlearn.feature_map import LayeredFeatureMap, ChebPQC
 
 
 class TestLayeredFeatureMap:
-    """ Test class for LayeredFeatureMap."""
+    """Test class for LayeredFeatureMap."""
 
     def test_layered_feature_map_gates(self):
-        """ Test the non-parameterized gates of the LayeredFeatureMap."""
+        """Test the non-parameterized gates of the LayeredFeatureMap."""
 
         lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
 
@@ -62,7 +62,7 @@ class TestLayeredFeatureMap:
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
     def test_layered_feature_map_param_gates(self):
-        """ Test the parameterized gates of the LayeredFeatureMap."""
+        """Test the parameterized gates of the LayeredFeatureMap."""
 
         lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
         expected_circuit = QuantumCircuit(4)
@@ -103,7 +103,7 @@ class TestLayeredFeatureMap:
         assert str(lfm.get_circuit([], p)) == str(expected_circuit)
 
     def test_layered_feature_map_entangling_gates(self):
-        """ Test the entangling gates of the LayeredFeatureMap. """
+        """Test the entangling gates of the LayeredFeatureMap."""
 
         def add_NN(gate_function):
             gate_function(0, 1)
@@ -147,7 +147,7 @@ class TestLayeredFeatureMap:
             assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
     def test_layered_feature_map_param_entangling_gates(self):
-        """ Test the parameterized entangling gates of the LayeredFeatureMap. """
+        """Test the parameterized entangling gates of the LayeredFeatureMap."""
 
         def add_NN(gate_function, p, offset=0):
             gate_function(np.arccos(p[offset]), 0, 1)
@@ -201,7 +201,7 @@ class TestLayeredFeatureMap:
             assert str(lfm.get_circuit([], p)) == str(expected_circuit)
 
     def test_from_string(self):
-        """ Test the from_string method of the LayeredFeatureMap. """
+        """Test the from_string method of the LayeredFeatureMap."""
 
         lfm = LayeredFeatureMap.from_string(
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
