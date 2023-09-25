@@ -911,7 +911,7 @@ class LayeredPQC:
 
     def U(self, *variablegroup_tuple):
         map = None
-        if isinstance(variablegroup_tuple[0],tuple):
+        if isinstance(variablegroup_tuple[0], tuple):
             variablegroup_tuple = variablegroup_tuple[0]
         if map == None:
             if len(variablegroup_tuple) != 3:
@@ -2148,7 +2148,7 @@ class LayeredFeatureMap(FeatureMapBase):
         """
         self._layered_pqc.add_layer(layer.layered_pqc, num_layers)
 
-    def _str_to_variable_group(self, input_string: Union[tuple,str]) -> VariableGroup:
+    def _str_to_variable_group(self, input_string: Union[tuple, str]) -> VariableGroup:
         """
         Internal function to convert a string to the
         feature or parameter variable group
