@@ -5,6 +5,8 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 from squlearn.feature_map import LayeredFeatureMap, ChebPQC
+from squlearn.kernel import FidelityKernel
+from squlearn import Executor
 
 
 class TestLayeredFeatureMap:
@@ -61,46 +63,57 @@ class TestLayeredFeatureMap:
         expected_circuit.tdg(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
+        kernel = FidelityKernel(lfm, Executor("statevector_simulator")).evaluate(
+            np.array([[]]), np.array([[]])
+        )
+        assert np.allclose(kernel, np.array([1.0]))
+
     def test_layered_feature_map_param_gates(self):
         """Test the parameterized gates of the LayeredFeatureMap."""
 
-        lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
+        lfm = LayeredFeatureMap(num_qubits=4, num_features=2)
         expected_circuit = QuantumCircuit(4)
-        p = ParameterVector("p", 28)
+        p = ParameterVector("p", 16)
+        x = ParameterVector("x", 2)
 
         # Test the RX gate
         lfm.Rx("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.rx(np.arccos(p[i]), i)
 
-        assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+        assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the RY gate
         lfm.Ry("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.ry(np.arccos(p[i + 4]), i)
-        assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+        assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the RZ gate
         lfm.Rz("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.rz(np.arccos(p[i + 8]), i)
-        assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+        assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the Phase gate
         lfm.P("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.p(np.arccos(p[i + 12]), i)
-        assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+        assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the U gate
-        lfm.U(("p", "p", "p"))
-        ioff = 16
+        lfm.U(("x", "x", "x"))
+        ioff = 0
         for i in range(4):
-            expected_circuit.u(p[ioff], p[ioff + 1], p[ioff + 2], i)
+            expected_circuit.u(x[ioff % 2], x[(ioff + 1) % 2], x[(ioff + 2) % 2], i)
             ioff += 3
 
-        assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+        assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+
+        kernel = FidelityKernel(
+            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(16)
+        ).evaluate(np.ones((1, 2)), np.ones((1, 2)))
+        assert np.allclose(kernel, np.array([1.0]))
 
     def test_layered_feature_map_entangling_gates(self):
         """Test the entangling gates of the LayeredFeatureMap."""
@@ -146,6 +159,11 @@ class TestLayeredFeatureMap:
             add_AA(qiskit_gate)
             assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
+        kernel = FidelityKernel(lfm, Executor("statevector_simulator")).evaluate(
+            np.array([[]]), np.array([[]])
+        )
+        assert np.allclose(kernel, np.array([1.0]))
+
     def test_layered_feature_map_param_entangling_gates(self):
         """Test the parameterized entangling gates of the LayeredFeatureMap."""
 
@@ -168,6 +186,7 @@ class TestLayeredFeatureMap:
         lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
         expected_circuit = QuantumCircuit(4)
         p = ParameterVector("p", 72)
+        x = ParameterVector("x", 2)
         offset = 0
 
         lfm_list = [
@@ -194,11 +213,37 @@ class TestLayeredFeatureMap:
         for lfm_gate, qiskit_gate in zip(lfm_list, qiskit_list):
             lfm_gate("p", ent_strategy="NN", encoding=np.arccos)
             offset = add_NN(qiskit_gate, p, offset)
-            assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+            assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
             lfm_gate("p", ent_strategy="AA", encoding=np.arccos)
             offset = add_AA(qiskit_gate, p, offset)
-            assert str(lfm.get_circuit([], p)) == str(expected_circuit)
+            assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+
+        kernel = FidelityKernel(
+            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(72)
+        ).evaluate(np.array([[]]), np.array([[]]))
+        assert np.allclose(kernel, np.array([1.0]))
+
+        # Won't run because of a bug in qiskit
+        # See https://github.com/Qiskit/qiskit/issues/8723
+
+        # ioff = 0
+        # lfm.cu_entangling(("x", "x", "x", "x"), ent_strategy="NN")
+        # expected_circuit.cu(
+        #     x[ioff % 2], x[(ioff + 1) % 2], x[(ioff + 2) % 2], x[(ioff + 3) % 2], 0, 1
+        # )
+        # expected_circuit.cu(
+        #     x[(ioff + 4) % 2], x[(ioff + 5) % 2], x[(ioff + 6) % 2], x[(ioff + 7) % 2], 2, 3
+        # )
+        # expected_circuit.cu(
+        #     x[(ioff + 8) % 2], x[(ioff + 9) % 2], x[(ioff + 10) % 2], x[(ioff + 11) % 2], 1, 2
+        # )
+        # assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+
+        # kernel = FidelityKernel(
+        #     lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(72)
+        # ).evaluate(np.ones((1, 2)), np.ones((1, 2)))
+        # assert np.allclose(kernel, np.array([1.0]))
 
     def test_from_string(self):
         """Test the from_string method of the LayeredFeatureMap."""
@@ -210,3 +255,8 @@ class TestLayeredFeatureMap:
         cpqc = ChebPQC(num_qubits=4, num_features=1, num_layers=3, closed=False)
 
         assert str(lfm.draw(output="text")) == str(cpqc.draw(output="text"))
+
+        kernel = FidelityKernel(
+            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(29)
+        ).evaluate(np.array([0.5]), np.array([0.5]))
+        assert np.allclose(kernel, np.array([1.0]))

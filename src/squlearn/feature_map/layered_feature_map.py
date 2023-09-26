@@ -1180,6 +1180,8 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: is not provided for a controlled unitary gate (raises Error if user gives a map)
         """
+        if isinstance(variablegroup_tuple[0], tuple):
+            variablegroup_tuple = variablegroup_tuple[0]
         if map != None:
             raise AttributeError("There must be no map for a cu entangling layer.")
         if ent_strategy == "NN":
