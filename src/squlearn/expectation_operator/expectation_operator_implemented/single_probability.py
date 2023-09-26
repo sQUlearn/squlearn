@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -78,16 +77,16 @@ class SingleProbability(ExpectationOperatorBase):
         params["parameterized"] = self.parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
         """
-        Function for generating the PauliOp expression of the single probability operator.
+        Function for generating the SparsePauliOp expression of the single probability operator.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
                                                              probability operator.
 
         Return:
-            PauliOp expression of the specified single probability operator.
+            SparsePauliOp expression of the specified single probability operator.
         """
 
         i = self.qubit
@@ -96,12 +95,13 @@ class SingleProbability(ExpectationOperatorBase):
         I = "I" * self.num_qubits
         Z = I[(i + 1) :] + "Z" + I[:i]
 
-        if self.one_state:
-            H = 0.5 * PauliOp(Pauli(I)) - 0.5 * PauliOp(Pauli(Z))
-        else:
-            H = 0.5 * PauliOp(Pauli(I)) + 0.5 * PauliOp(Pauli(Z))
-
         if self.parameterized:
-            H = H * parameters[0]
+            coeff = 0.5 * parameters[0]
+        else:
+            coeff = 0.5
 
-        return H.reduce()
+        if self.one_state:
+            return SparsePauliOp([I, Z], [coeff, -coeff])
+
+        else:
+            return SparsePauliOp([I, Z], [coeff, coeff])

@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -87,7 +86,7 @@ class SummedProbabilities(ExpectationOperatorBase):
         params["include_identity"] = self.include_identity
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
         """
         Function for generating the PauliOp expression of the summed probabilities operator.
 
@@ -100,10 +99,13 @@ class SummedProbabilities(ExpectationOperatorBase):
         """
 
         nparam = len(parameters)
+
+        op_list = []
+        coeff_list = []
+
         if self.include_identity:
-            H = PauliOp(Pauli("I" * self.num_qubits)) * parameters[0 % nparam]
-        else:
-            H = PauliOp(Pauli("I" * self.num_qubits)) * 0.0
+            op_list.append("I" * self.num_qubits)
+            coeff_list.append(parameters[0 % nparam])
 
         ioff = 1
         for i in range(self.num_qubits):
@@ -111,18 +113,16 @@ class SummedProbabilities(ExpectationOperatorBase):
             Z = I[(i + 1) :] + "Z" + I[:i]
 
             if self.one_state:
-                H = (
-                    H
-                    + parameters[ioff % nparam] * 0.5 * PauliOp(Pauli(I))
-                    - parameters[ioff % nparam] * 0.5 * PauliOp(Pauli(Z))
-                )
+                op_list.append(I)
+                coeff_list.append(parameters[ioff % nparam] * 0.5)
+                op_list.append(Z)
+                coeff_list.append(-parameters[ioff % nparam] * 0.5)
             else:
-                H = (
-                    H
-                    + parameters[ioff % nparam] * 0.5 * PauliOp(Pauli(I))
-                    + parameters[ioff % nparam] * 0.5 * PauliOp(Pauli(Z))
-                )
+                op_list.append(I)
+                coeff_list.append(parameters[ioff % nparam] * 0.5)
+                op_list.append(Z)
+                coeff_list.append(parameters[ioff % nparam] * 0.5)
             if self.full_sum:
                 ioff += 1
 
-        return H.reduce()
+        return SparsePauliOp(op_list, coeff_list)

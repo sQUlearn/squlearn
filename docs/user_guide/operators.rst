@@ -79,6 +79,8 @@ The map can be for example obtained in the transpiled feature map.
 Obtained derivatives of the expectation values
 ----------------------------------------------
 
+.. currentmodule:: squlearn.expectation_operator.expectation_operator_derivatives
+
 In sQUlearn it is also possible to evaluate the derivatives of expectation operators
 as for example needed during the training of the QNN.
 This is possible with the class :class:`ExpectationOperatorDerivatives`.

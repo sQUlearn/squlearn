@@ -17,6 +17,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     This class implements the Gaussian process regression analogous to scikit-learn
     but is not a wrapper.
     The implementation is based on Algorithm 2.1 of Ref. [1].
+    Additional arguments can be set via ``**kwargs``.
 
     Args:
         quantum_kernel (KernelMatrixBase):
@@ -34,6 +35,10 @@ class QGPR(BaseEstimator, RegressorMixin):
                 unit-variance priors are used. Note that, in this implementation,
                 the normalization is reversed before the GP predictions are reported.
         full_regularization: (bool), default=True: enable full gram matrix regularization.
+        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
+            by calling ``get_params()``. Can be used to set for example the number of qubits
+            (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
+            of the underlying feature map.
 
     See Also
     --------
@@ -167,7 +172,6 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
         if self.full_regularization:
-            print("Regularizing full Gram matrix")
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
             )
@@ -177,7 +181,6 @@ class QGPR(BaseEstimator, RegressorMixin):
         try:
             self._L = cholesky(self.K_train, lower=True)
         except np.linalg.LinAlgError:
-            print("corrected the train matrix a bit")
             self.K_train += 1e-8 * np.identity(self.K_train.shape[0])
             self._L = cholesky(self.K_train, lower=True)
         self._alpha = cho_solve((self._L, True), self.y_train)
