@@ -124,7 +124,7 @@ regardless of the number of qubits involved.
 Two-qubit gates are applied either in a nearest neighbor fashion or by entangling all qubits.
 You can construct the layered encoding circuit using either a Qiskit Quantum circuit-inspired approach
 or by providing a string using the
-:meth:`LayeredEncodingCircuit.from_string() <squlearn.encoding_circuit.LayeredEncodingCircuit.from_string>`
+:meth:`LayeredEncodingCircuit.from_string() <squlearn.encoding_circuits.LayeredEncodingCircuit.from_string>`
 method. For detailed instructions on the string format, please refer to the documentation of
 the :class:`LayeredEncodingCircuit` class.
 
@@ -133,7 +133,7 @@ the :class:`LayeredEncodingCircuit` class.
 .. code-block:: python
 
    from squlearn.encoding_circuits import LayeredEncodingCircuit
-   from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+   from squlearn.encoding_circuits.layered_encoding_circuit import Layer
    encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
    encoding_circuit.H()
    layer = Layer(encoding_circuit)
@@ -146,7 +146,7 @@ the :class:`LayeredEncodingCircuit` class.
 .. plot::
 
    from squlearn.encoding_circuits import LayeredEncodingCircuit
-   from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+   from squlearn.encoding_circuits.layered_encoding_circuit import Layer
    encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
    encoding_circuit.H()
    layer = Layer(encoding_circuit)
@@ -220,7 +220,7 @@ these derivatives using the :class:`EncodingCircuitDerivatives` class.
 This class accepts an existing quantum encoding circuit as input and generates derivatives of the
 encoding circuit with respect to its parameters or features. The derivative circuits are generated
 by leveraging the parameter-shift rule and are cached for future use.
-Use the function :meth:`get_derivative() <squlearn.encoding_circuit.EncodingCircuitDerivatives.get_derivative>`
+Use the function :meth:`get_derivative() <squlearn.encoding_circuits.EncodingCircuitDerivatives.get_derivative>`
 to obtain the derivative. There are several options to specify the derivative you want to obtain:
 
 1. Provide a string that specifies the derivative you want to obtain. A list of the available
