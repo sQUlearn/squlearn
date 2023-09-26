@@ -32,7 +32,10 @@ class TestQSVC:
         executor = Executor("statevector_simulator")
         encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
-            encoding_circuit, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
         )
         return QSVC(quantum_kernel=kernel)
 
@@ -119,7 +122,9 @@ class TestQSVC:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
-    def test_encoding_circuit_params_can_be_changed_after_initialization(self, qsvc, request, data):
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qsvc, request, data
+    ):
         """Tests concerning the encoding circuit parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
         assert qsvc_instance.get_params()["num_layers"] == 2

@@ -131,7 +131,9 @@ class TestQGPR:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
-    def test_encoding_circuit_params_can_be_changed_after_initialization(self, qgpr, request, data):
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qgpr, request, data
+    ):
         """Tests concerning the encoding circuit parameter changes."""
         qgpr_instance = request.getfixturevalue(qgpr)
         assert qgpr_instance.get_params()["num_layers"] == 2

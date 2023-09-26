@@ -30,7 +30,9 @@ class TestQKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        encoding_circuit = ParamZEncodingCircuit(num_qubits=3, num_features=2, num_layers=2, entangling=True)
+        encoding_circuit = ParamZEncodingCircuit(
+            num_qubits=3, num_features=2, num_layers=2, entangling=True
+        )
         kernel = FidelityKernel(
             encoding_circuit=encoding_circuit,
             executor=executor,
@@ -44,7 +46,9 @@ class TestQKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        encoding_circuit = ParamZEncodingCircuit(num_qubits=3, num_features=2, num_layers=2, entangling=True)
+        encoding_circuit = ParamZEncodingCircuit(
+            num_qubits=3, num_features=2, num_layers=2, entangling=True
+        )
         kernel = ProjectedQuantumKernel(
             encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )
@@ -94,7 +98,9 @@ class TestQKRR:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
-    def test_encoding_circuit_params_can_be_changed_after_initialization(self, qkrr, request, data):
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qkrr, request, data
+    ):
         """Tests concerning the encoding circuit parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
         assert qkrr_instance.get_params()["num_layers"] == 2
