@@ -15,7 +15,7 @@ class KernelOptimizerBase:
             Optimizer from squlearn.optimizers used for finding the minimum of the respective
             loss function.
         initial_parameters (Optional[Sequence[float]]) :
-            Initial guess for the feature map's trainable parameters which are to be optimized
+            Initial guess for the encoding circuit's trainable parameters which are to be optimized
     """
 
     def __init__(

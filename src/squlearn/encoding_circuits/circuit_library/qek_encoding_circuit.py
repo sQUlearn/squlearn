@@ -3,20 +3,20 @@ from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class QEKFeatureMap(FeatureMapBase):
+class QEKEncodingCircuit(EncodingCircuitBase):
 
     """
-    Creates the QEK feature map as presented in Reference http://arxiv.org/pdf/2105.02276v1
+    Creates the QEK encoding circuit as presented in Reference http://arxiv.org/pdf/2105.02276v1
 
     **Example for 4 qubits, a 2 dimensional feature vector, 2 layers:**
 
     .. plot::
 
-        from squlearn.feature_map import QEKFeatureMap
-        pqc = QEKFeatureMap(4, 2, 2)
+        from squlearn.encoding_circuits import QEKEncodingCircuit
+        pqc = QEKEncodingCircuit(4, 2, 2)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -25,7 +25,7 @@ class QEKFeatureMap(FeatureMapBase):
     The circuit is closed by default, i.e. the last qubit is entangled with the first one.
 
     Args:
-        num_qubits (int): Number of qubits of the feature map
+        num_qubits (int): Number of qubits of the encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default:1)
         closed (bool): If true, the last and the first qubit are entangled;
@@ -49,7 +49,7 @@ class QEKFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the QEK feature map."""
+        """The number of trainable parameters of the QEK encoding circuit."""
         num_param = self.num_qubits * self.num_layers
         if self.num_qubits > 2:
             if self.closed:
@@ -60,7 +60,7 @@ class QEKFeatureMap(FeatureMapBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the QEK feature map."""
+        """The bounds of the trainable parameters of the QEK encoding circuit."""
 
         bound_array = np.zeros((self.num_parameters, 2))
         # Single theta Ry gates
@@ -84,12 +84,12 @@ class QEKFeatureMap(FeatureMapBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the QEK feature map."""
+        """The bounds of the features of the QEK encoding circuit."""
         return np.array([[-np.pi, np.pi]] * self.num_features)
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the QEK feature map
+        Returns hyper-parameters and their values of the QEK encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -110,7 +110,7 @@ class QEKFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Generates and returns the circuit of the QEK feature map
+        Generates and returns the circuit of the QEK encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features

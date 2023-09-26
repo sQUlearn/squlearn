@@ -4,18 +4,18 @@ from typing import Union, Set
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from .feature_map_base import FeatureMapBase
+from .encoding_circuit_base import EncodingCircuitBase
 
 from ..util.optree.optree import OpTreeElementBase, OpTreeCircuit, OpTreeSum, OpTreeList, OpTree
 
 from ..util.data_preprocessing import adjust_input
 
 
-class FeatureMapDerivatives:
+class EncodingCircuitDerivatives:
     r"""
-    Class for automatic differentiation of feature maps.
+    Class for automatic differentiation of encoding circuits.
 
-    This class allows to compute derivatives of a feature map with respect to its parameters
+    This class allows to compute derivatives of a encoding circuit with respect to its parameters
     by utilizing the parameter-shift rule.
     The derivatives can be obtained by the method :meth:`get_derivative`.
     The type of derivative can be specified by either a string (see table below)
@@ -29,7 +29,7 @@ class FeatureMapDerivatives:
        * - String
          - Derivative
        * - ``"I"``
-         - Identity Operation (returns the feature map circuit)
+         - Identity Operation (returns the encoding circuit circuit)
        * - ``"dx"``
          - Gradient with respect to feature :math:`x`:
            :math:`\nabla_x = \big( \frac{\partial}{\partial x_1},\ldots,
@@ -59,42 +59,42 @@ class FeatureMapDerivatives:
          - Mixed Hessian with respect to feature :math:`x` and parameter :math:`p`:
            :math:`H^{xp}_{ij} = \frac{\partial^2}{\partial x_i \partial p_j}`
 
-    **Example: Feature Map gradient with respect to the trainable parameters**
+    **Example: Encoding Circuit gradient with respect to the trainable parameters**
 
     .. code-block:: python
 
-       from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
-       fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
-       fm_deriv = FeatureMapDerivatives(fm)
+       from squlearn.encoding_circuits import QEKEncodingCircuit, EncodingCircuitDerivatives
+       fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+       fm_deriv = EncodingCircuitDerivatives(fm)
        grad = fm_deriv.get_derivative("dp")
 
     **Example: Derivative with respect to only the first trainable parameter**
 
     .. code-block:: python
 
-       from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
-       fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
-       fm_deriv = FeatureMapDerivatives(fm)
+       from squlearn.encoding_circuits import QEKEncodingCircuit, EncodingCircuitDerivatives
+       fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+       fm_deriv = EncodingCircuitDerivatives(fm)
        dp0 = fm_deriv.get_derivative((fm_deriv.parameter_vector[0],))
 
 
     Args:
-        feature_map (FeatureMapBase): Feature map to differentiate
+        encoding_circuit (EncodingCircuitBase): Encoding circuit to differentiate
         optree_caching (bool): If True, the OpTree expressions are cached for faster
                                evaluation. (default: True)
     """
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
+        encoding_circuit: EncodingCircuitBase,
         optree_caching: bool = True,
     ):
-        self.feature_map = feature_map
+        self.encoding_circuit = encoding_circuit
 
-        self._x = ParameterVector("x", self.feature_map.num_features)
-        self._p = ParameterVector("p", self.feature_map.num_parameters)
+        self._x = ParameterVector("x", self.encoding_circuit.num_features)
+        self._p = ParameterVector("p", self.encoding_circuit.num_parameters)
 
-        self._circuit = feature_map.get_circuit(self._x, self._p)
+        self._circuit = encoding_circuit.get_circuit(self._x, self._p)
 
         self._instruction_set = list(set(self._circuit.count_ops()))
         self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit)
@@ -113,7 +113,7 @@ class FeatureMapDerivatives:
         # back to this basis
 
     def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
-        """Determine the derivative of the feature map circuit.
+        """Determine the derivative of the encoding circuit circuit.
 
         Args:
             derivative (str or tuple): String or tuple of parameters for specifying the derivation.
@@ -161,7 +161,7 @@ class FeatureMapDerivatives:
         return optree
 
     def _differentiation_from_tuple(self, diff_tuple: tuple) -> OpTreeElementBase:
-        """Recursive routine for automatic differentiating the feature map
+        """Recursive routine for automatic differentiating the encoding circuit
 
         Variables for the differentiation are supplied by a tuple
         (x,param,param_op) from left to right -> dx dparam dparam_op PQC(x,param,param_op)
@@ -184,7 +184,7 @@ class FeatureMapDerivatives:
                 return diff
 
         if diff_tuple == ():
-            # Cancel the recursion by returning the optree of the simply measured feature map
+            # Cancel the recursion by returning the optree of the simply measured encoding circuit
             return self._optree_start.copy()
         else:
             # Check if differentiating tuple is already stored in optree_cache
@@ -203,29 +203,29 @@ class FeatureMapDerivatives:
 
     @property
     def parameter_vector(self) -> ParameterVector:
-        """Parameter ParameterVector ``p`` utilized in the feature map circuit."""
+        """Parameter ParameterVector ``p`` utilized in the encoding circuit circuit."""
         return self._p
 
     @property
     def feature_vector(self) -> ParameterVector:
-        """Feature ParameterVector ``x`` utilized in the feature map circuit."""
+        """Feature ParameterVector ``x`` utilized in the encoding circuit circuit."""
         return self._x
 
     @property
     def num_parameters(self) -> int:
-        """Number of parameters in the feature map circuit."""
+        """Number of parameters in the encoding circuit circuit."""
         return len(self._p)
 
     @property
     def num_features(self) -> int:
-        """Number of features in the feature map circuit."""
+        """Number of features in the encoding circuit circuit."""
         return len(self._x)
 
     def assign_parameters(
         self, optree: OpTreeElementBase, features: np.ndarray, parameters: np.ndarray
     ) -> OpTreeElementBase:
         """
-        Assigns numerical values to the ParameterVector elements of the feature map circuit.
+        Assigns numerical values to the ParameterVector elements of the encoding circuit circuit.
 
         Args:
             optree (OperatorBase): OpTree object to be assigned.

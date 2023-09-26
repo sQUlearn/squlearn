@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelBinarizer, MinMaxScaler
 
 from squlearn import Executor
 from squlearn.expectation_operator import SummedPaulis
-from squlearn.feature_map import ChebPQC
+from squlearn.encoding_circuits import ChebPQC
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNClassifier, SquaredLoss
 

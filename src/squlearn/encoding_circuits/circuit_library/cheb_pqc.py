@@ -4,14 +4,14 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ChebPQC(FeatureMapBase):
+class ChebPQC(EncodingCircuitBase):
     """
-    Chebyshev Feature Map from Reference https://arxiv.org/abs/2306.01639
+    Chebyshev Encoding Circuit from Reference https://arxiv.org/abs/2306.01639
 
-    The feature map consists of three elements:
+    The encoding circuit consists of three elements:
 
     #. Basis change in the form of a trainable rotation around the y-axis at start and end.
 
@@ -26,7 +26,7 @@ class ChebPQC(FeatureMapBase):
 
     .. plot::
 
-        from squlearn.feature_map import ChebPQC
+        from squlearn.encoding_circuits import ChebPQC
         pqc = ChebPQC(4, 2, 2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
@@ -37,7 +37,7 @@ class ChebPQC(FeatureMapBase):
     the ``closed`` parameter to avoid swap gates.
 
     Args:
-        num_qubits (int): Number of qubits of the ChebPQC feature map
+        num_qubits (int): Number of qubits of the ChebPQC encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers of the Chebyshev encoding and the two qubit
                           manipulation (default: 1)
@@ -65,7 +65,7 @@ class ChebPQC(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the ChebPQC feature map."""
+        """The number of trainable parameters of the ChebPQC encoding circuit."""
         num_param = 2 * self.num_qubits + self.num_qubits * self.num_layers
         if self.num_qubits > 2 and self.closed:
             num_param += self.num_qubits * self.num_layers
@@ -75,7 +75,7 @@ class ChebPQC(FeatureMapBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the ChebPQC feature map."""
+        """The bounds of the trainable parameters of the ChebPQC encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
 
         ioff = 0
@@ -85,7 +85,7 @@ class ChebPQC(FeatureMapBase):
             ioff = ioff + 1
 
         for ilayer in range(self.num_layers):
-            # Chebyshev feature map
+            # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 bounds[ioff] = [0.0, self.alpha]
                 ioff = ioff + 1
@@ -111,7 +111,7 @@ class ChebPQC(FeatureMapBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebPQC feature map
+        Generates random parameters for the ChebPQC encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -131,7 +131,7 @@ class ChebPQC(FeatureMapBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the ChebPQC feature map."""
+        """The bounds of the features of the ChebPQC encoding circuit."""
         bounds = np.zeros((self.num_features, 2))
         bounds[:, 0] = -1.0
         bounds[:, 1] = 1.0
@@ -139,7 +139,7 @@ class ChebPQC(FeatureMapBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the ChebPQC feature map
+        Returns hyper-parameters and their values of the ChebPQC encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -160,7 +160,7 @@ class ChebPQC(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the ChebPQC feature map
+        Returns the circuit of the ChebPQC encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -194,7 +194,7 @@ class ChebPQC(FeatureMapBase):
             ioff = ioff + 1
 
         for _ in range(self.num_layers):
-            # Chebyshev feature map
+            # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(phi_map(parameters[ioff % nparam], features[i % nfeature]), i)
                 ioff = ioff + 1

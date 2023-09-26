@@ -31,7 +31,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
             by calling ``get_params()``. Can be used to set for example the number of qubits
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
-            of the underlying feature map.
+            of the underlying encoding circuit.
 
     Attributes:
     -----------
@@ -60,13 +60,13 @@ class QKRR(BaseEstimator, RegressorMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.feature_map import ChebPQC
+        from squlearn.encoding_circuits import ChebPQC
         from squlearn.kernel.matrix import ProjectedQuantumKernel
         from squlearn.kernel.ml import QKRR
 
-        fmap = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circuit = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
-            feature_map=fmap,
+            encoding_circuits=enc_circuit,
             executor=Executor("statevector_simulator"),
             measurement="XYZ",
             outer_kernel="gaussian",
@@ -170,7 +170,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map hyperparameters.
+        Sets value of the encoding circuit hyperparameters.
 
         Args:
             params: Hyperparameters and their values, e.g. ``num_qubits=2``.

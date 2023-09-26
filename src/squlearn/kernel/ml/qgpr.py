@@ -38,7 +38,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
             by calling ``get_params()``. Can be used to set for example the number of qubits
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
-            of the underlying feature map.
+            of the underlying encoding circuit.
 
     See Also
     --------
@@ -60,12 +60,12 @@ class QGPR(BaseEstimator, RegressorMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.feature_map import QEKFeatureMap
+        from squlearn.encoding_circuits import QEKEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.kernel.ml import QGPR
-        fmap = QEKFeatureMap(num_qubits=num_qubits, num_features=num_features, num_layers=2)
-        q_kernel = FidelityKernel(feature_map=fmap, executor=Executor("statevector_simulator"))
-        q_kernel.assign_parameters(np.random.rand(fmap.num_parameters))
+        enc_circuit = QEKEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        q_kernel = FidelityKernel(encoding_circuits=enc_circuit, executor=Executor("statevector_simulator"))
+        q_kernel.assign_parameters(np.random.rand(enc_circuit.num_parameters))
         qgpr_ansatz = QGPR(quantum_kernel=q_kernel)
         qgpr_ansatz.fit(sample_train,label_train)
         qgpr_ansatz.predict(sample_test)
@@ -227,7 +227,7 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map hyper-parameters.
+        Sets value of the encoding circuit hyper-parameters.
 
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.

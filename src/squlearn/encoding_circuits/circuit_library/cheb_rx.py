@@ -4,24 +4,24 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ChebRx(FeatureMapBase):
+class ChebRx(EncodingCircuitBase):
     """
-    Simple Chebyshev feature map build from  Rx gates
+    Simple Chebyshev encoding circuit build from  Rx gates
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers:**
 
     .. plot::
 
-        from squlearn.feature_map import ChebRx
+        from squlearn.encoding_circuits import ChebRx
         pqc = ChebRx(4, 2, 2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     Args:
-        num_qubits (int): Number of qubits of the ChebRx feature map
+        num_qubits (int): Number of qubits of the ChebRx encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
@@ -42,16 +42,16 @@ class ChebRx(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the ChebRx feature map."""
+        """The number of trainable parameters of the ChebRx encoding circuit."""
         return 2 * self.num_qubits * self.num_layers
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the ChebRx feature map."""
+        """The bounds of the trainable parameters of the ChebRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
         ioff = 0
         for ilayer in range(self.num_layers):
-            # Chebyshev feature map
+            # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 bounds[ioff] = [0.0, self.alpha]
                 ioff = ioff + 1
@@ -63,7 +63,7 @@ class ChebRx(FeatureMapBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebRx feature map.
+        Generates random parameters for the ChebRx encoding circuit.
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -83,7 +83,7 @@ class ChebRx(FeatureMapBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the ChebRx feature map
+        Returns hyper-parameters and their values of the ChebRx encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -103,7 +103,7 @@ class ChebRx(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the ChebRx feature map
+        Returns the circuit of the ChebRx encoding circuit
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -136,7 +136,7 @@ class ChebRx(FeatureMapBase):
         QC = QuantumCircuit(self.num_qubits)
         ioff = 0
         for _ in range(self.num_layers):
-            # Chebyshev feature map
+            # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(mapping(parameters[ioff % nparam], features[i % nfeature]), i)
                 ioff = ioff + 1

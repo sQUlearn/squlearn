@@ -2,16 +2,16 @@ import numpy as np
 from qiskit.circuit import ParameterVector
 from qiskit.algorithms.gradients import LinCombQGT, QFI
 
-from ..feature_map.feature_map_base import FeatureMapBase
+from ..encoding_circuits.encoding_circuit_base import EncodingCircuitBase
 from .executor import Executor
 from .data_preprocessing import adjust_input
 
 
 def get_quantum_fisher(
-    feature_map: FeatureMapBase, x: np.ndarray, p: np.ndarray, executor: Executor, mode: str = "p"
+    encoding_circuit: EncodingCircuitBase, x: np.ndarray, p: np.ndarray, executor: Executor, mode: str = "p"
 ):
     """
-    Function for evaluating the Quantum Fisher Information Matrix of a feature map.
+    Function for evaluating the Quantum Fisher Information Matrix of a encoding circuit.
 
     The Quantum Fisher Information Matrix (QFIM) is evaluated the supplied numerical
     features and parameter value.
@@ -26,9 +26,9 @@ def get_quantum_fisher(
     returned as a numpy matrix.
 
     Args:
-        feature_map (FeatureMapBase): Feature map for which the QFIM is evaluated
-        x (np.ndarray): Input data values for replacing the features in the feature map
-        p (np.ndarray): Parameter values for replacing the parameters in the feature map
+        encoding_circuit (EncodingCircuitBase): Encoding circuit for which the QFIM is evaluated
+        x (np.ndarray): Input data values for replacing the features in the encoding circuit
+        p (np.ndarray): Parameter values for replacing the parameters in the encoding circuit
         executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
         mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
                     ``"px"``, ``"xp"`` (default: ``"p"``)
@@ -39,13 +39,13 @@ def get_quantum_fisher(
     # Get Qiskit QFI primitive
     qfi = QFI(LinCombQGT(executor.get_estimator()))
 
-    p_ = ParameterVector("p", feature_map.num_parameters)
-    x_ = ParameterVector("x", feature_map.num_features)
-    circuit = feature_map.get_circuit(x_, p_)
+    p_ = ParameterVector("p", encoding_circuit.num_parameters)
+    x_ = ParameterVector("x", encoding_circuit.num_features)
+    circuit = encoding_circuit.get_circuit(x_, p_)
 
     # Adjust input
-    x_list, multi_x = adjust_input(x, feature_map.num_features)
-    p_list, multi_p = adjust_input(p, feature_map.num_parameters)
+    x_list, multi_x = adjust_input(x, encoding_circuit.num_features)
+    p_list, multi_p = adjust_input(p, encoding_circuit.num_parameters)
 
     circ_list = []
     param_values_list = []

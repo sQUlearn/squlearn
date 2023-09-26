@@ -6,34 +6,34 @@ from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
 
-from .feature_map_base import FeatureMapBase
+from .encoding_circuit_base import EncodingCircuitBase
 
 
-class TranspiledFeatureMap(FeatureMapBase):
+class TranspiledEncodingCircuit(EncodingCircuitBase):
     """
-    Class for generated a Feature Map with a transpiled circuit.
+    Class for generated a Encoding Circuit with a transpiled circuit.
 
     **Example:**
 
     .. code-block:: python
 
-        from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+        from squlearn.encoding_circuits import TranspiledEncodingCircuit,ChebRx
         from qiskit.providers.fake_provider import FakeManilaV2
 
-        fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+        fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
         fm.draw()
 
     .. plot::
 
-        from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+        from squlearn.encoding_circuits import TranspiledEncodingCircuit,ChebRx
         from qiskit.providers.fake_provider import FakeManilaV2
-        fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+        fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
         plt = fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
 
     Args:
-        feature_map (FeatureMapBase): Feature map to be transpiled.
+        encoding_circuit (EncodingCircuitBase): Encoding circuit to be transpiled.
         backend (Backend): Backend used for the transpilation.
         transpile_func (Union[Callable,None]): Optional function for transpiling the circuit.
                                                First argument is the circuit, second the backend.
@@ -46,19 +46,19 @@ class TranspiledFeatureMap(FeatureMapBase):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
+        encoding_circuit: EncodingCircuitBase,
         backend: Backend,
         transpile_func: Union[Callable, None] = None,
         **kwargs,
     ) -> None:
-        self._feature_map = feature_map
+        self._encoding_circuit = encoding_circuit
         self._backend = backend
         self._transpile_func = transpile_func
 
-        self._x = ParameterVector("x", self._feature_map.num_features)
-        self._p = ParameterVector("p", self._feature_map.num_parameters)
+        self._x = ParameterVector("x", self._encoding_circuit.num_features)
+        self._p = ParameterVector("p", self._encoding_circuit.num_parameters)
 
-        self._circuit = self._feature_map.get_circuit(self._x, self._p)
+        self._circuit = self._encoding_circuit.get_circuit(self._x, self._p)
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
@@ -74,18 +74,18 @@ class TranspiledFeatureMap(FeatureMapBase):
 
     @property
     def num_qubits(self) -> int:
-        """Number of qubits (physical) of the feature map."""
+        """Number of qubits (physical) of the encoding circuit."""
         return self._transpiled_circuit.num_qubits
 
     @property
     def num_physical_qubits(self) -> int:
-        """Number of physical qubits of the feature map."""
+        """Number of physical qubits of the encoding circuit."""
         return self._transpiled_circuit.num_qubits
 
     @property
     def num_virtual_qubits(self) -> int:
-        """Number of virtual qubits in the feature map."""
-        return self._feature_map.num_qubits
+        """Number of virtual qubits in the encoding circuit."""
+        return self._encoding_circuit.num_qubits
 
     @property
     def qubit_map(self) -> dict:
@@ -99,27 +99,27 @@ class TranspiledFeatureMap(FeatureMapBase):
 
     @property
     def num_features(self) -> int:
-        """Feature dimension of the feature map."""
-        return self._feature_map.num_features
+        """Feature dimension of the encoding circuit."""
+        return self._encoding_circuit.num_features
 
     @property
     def num_parameters(self) -> int:
-        """Number of trainable parameters of the feature map."""
-        return self._feature_map.num_parameters
+        """Number of trainable parameters of the encoding circuit."""
+        return self._encoding_circuit.num_parameters
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """Bounds of the trainable parameters of the feature map."""
-        return self._feature_map.parameter_bounds
+        """Bounds of the trainable parameters of the encoding circuit."""
+        return self._encoding_circuit.parameter_bounds
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Bounds of the features of the feature map."""
-        return self._feature_map.feature_bounds
+        """Bounds of the features of the encoding circuit."""
+        return self._encoding_circuit.feature_bounds
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the feature map.
+        Returns hyper-parameters and their values of the encoding circuit.
 
         Args:
             deep (bool): If True, also the parameters for
@@ -128,18 +128,18 @@ class TranspiledFeatureMap(FeatureMapBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        return self._feature_map.get_params()
+        return self._encoding_circuit.get_params()
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map hyper-parameters.
+        Sets value of the encoding circuit hyper-parameters.
 
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
-        self._feature_map.set_params(**params)
+        self._encoding_circuit.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
-        self.__init__(self._feature_map, self._backend, self._transpile_func, **self._kwargs)
+        self.__init__(self._encoding_circuit, self._backend, self._transpile_func, **self._kwargs)
 
     def get_circuit(
         self,
@@ -147,7 +147,7 @@ class TranspiledFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit of the transpiled feature map
+        Return the circuit of the transpiled encoding circuit
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features

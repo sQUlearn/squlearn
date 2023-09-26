@@ -8,5 +8,5 @@ User Guide
 
    executor
    operators
-   feature_maps
+   encoding_circuits
    kernel_methods

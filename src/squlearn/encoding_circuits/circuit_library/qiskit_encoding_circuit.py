@@ -4,28 +4,28 @@ from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import BlueprintCircuit
 from typing import Union, Callable
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class QiskitFeatureMap(FeatureMapBase):
+class QiskitEncodingCircuit(EncodingCircuitBase):
     """
-    Wrapper to create sQUlearn feature maps from the `Qiskit circuit library
+    Wrapper to create sQUlearn encoding circuits from the `Qiskit circuit library
     <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
-    **Example: create a feature map from Qiskit TwoLocal map**
+    **Example: create a encoding circuit from Qiskit TwoLocal map**
 
     .. code-block:: python
 
         from qiskit.circuit.library import TwoLocal
         local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        QiskitFeatureMap(local).draw()
+        QiskitEncodingCircuit(local).draw()
 
     .. plot::
 
-        from squlearn.feature_map import QiskitFeatureMap
+        from squlearn.encoding_circuits import QiskitEncodingCircuit
         from qiskit.circuit.library import TwoLocal
         local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        pqc = QiskitFeatureMap(local)
+        pqc = QiskitEncodingCircuit(local)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -33,9 +33,9 @@ class QiskitFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-        from squlearn.feature_map import QiskitFeatureMap
-        from qiskit.circuit.library import ZZFeatureMap
-        QiskitFeatureMap(ZZFeatureMap,feature_dimension=4)
+        from squlearn.encoding_circuits import QiskitEncodingCircuit
+        from qiskit.circuit.library import ZZEncodingCircuit
+        QiskitEncodingCircuit(ZZEncodingCircuit,feature_dimension=4)
 
     Args:
         qiskit_circuit (Union[BlueprintCircuit, Callable,QuantumCircuit]): A Qiskit circuit or a
@@ -134,12 +134,12 @@ class QiskitFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the Qiskit feature map."""
+        """The number of trainable parameters of the Qiskit encoding circuit."""
         return self._num_parameters
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the Qiskit feature map.
+        """The bounds of the trainable parameters of the Qiskit encoding circuit.
 
         Here arbitrarily chosen to be [-pi,pi] for all parameters.
         """
@@ -147,9 +147,9 @@ class QiskitFeatureMap(FeatureMapBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the Qiskit feature map
+        Returns hyper-parameters and their values of the Qiskit encoding circuit
 
-        No hyper-parameters are available for the Qiskit feature map!
+        No hyper-parameters are available for the Qiskit encoding circuit!
 
         Args:
             deep (bool): If True, also the parameters for
@@ -167,7 +167,7 @@ class QiskitFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the Qiskit Feature Map
+        Returns the circuit of the Qiskit Encoding Circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -176,7 +176,7 @@ class QiskitFeatureMap(FeatureMapBase):
                                                            from which the gate inputs are obtained.
 
         Return:
-            The circuit of the Qiskit Feature Map with the assigned parameters.
+            The circuit of the Qiskit Encoding Circuit with the assigned parameters.
         """
 
         if self._mode.lower() == "both":

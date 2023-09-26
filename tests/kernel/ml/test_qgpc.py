@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.feature_map import QEKFeatureMap
+from squlearn.encoding_circuits import QEKEncodingCircuit
 from squlearn.kernel import QGPC
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,9 +30,9 @@ class TestQGPC:
         """QGPC module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
-            feature_map, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+            encoding_circuit, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
         )
         return QGPC(quantum_kernel=kernel)
 
@@ -41,9 +41,9 @@ class TestQGPC:
         """QGPC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map, executor=executor, regularization="thresholding"
+            encoding_circuit, executor=executor, regularization="thresholding"
         )
         return QGPC(quantum_kernel=kernel)
 
@@ -132,8 +132,8 @@ class TestQGPC:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
-    def test_feature_map_params_can_be_changed_after_initialization(self, qgpc, request, data):
-        """Tests concerning the feature map parameter changes."""
+    def test_encoding_circuit_params_can_be_changed_after_initialization(self, qgpc, request, data):
+        """Tests concerning the encoding circuit parameter changes."""
         qgpc_instance = request.getfixturevalue(qgpc)
         assert qgpc_instance.get_params()["num_layers"] == 2
         qgpc_instance.set_params(num_layers=4)
@@ -144,10 +144,10 @@ class TestQGPC:
         try:
             qgpc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qgpc_pqk, data):
-        """Tests concerning the feature map parameter changes."""
+        """Tests concerning the encoding circuit parameter changes."""
         qgpc_params = qgpc_pqk.get_params()
         assert qgpc_params["gamma"] == 1.0
         assert qgpc_params["measurement"] == "XYZ"
@@ -162,7 +162,7 @@ class TestQGPC:
         try:
             qgpc_pqk.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qgpc, request):

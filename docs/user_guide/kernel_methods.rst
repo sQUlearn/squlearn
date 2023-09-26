@@ -12,10 +12,10 @@ embedded into the rich mathematical framework of classical kernel theory. The ke
 theory is to solve the general task of machine learning, i.e. finding and studying patterns in data, 
 in a high dimensional feature space - the reproducing kernel Hilbert space (RKHS) - where the 
 original learning problem attains a trivial form. The mapping from the original space to the RKHS 
-(which in general can be infinite-dimensional) is done by so called feature maps. The RKHS is 
+(which in general can be infinite-dimensional) is done by so called encoding circuits. The RKHS is
 endowed with an inner product which provides access to the high dimensional space without the need 
 to ever explicitly calculate the high- (infinite-) dimensional feature vectors. This is known as 
-the *kernel trick*: the feature map and the inner product define a kernel function and vice versa, 
+the *kernel trick*: the encoding circuit and the inner product define a kernel function and vice versa,
 via
 
 :math:`K(x,y) = \Braket{\phi(x), \phi(y)}`
@@ -32,7 +32,7 @@ learning models that are able to deal with complex problems that are out of reac
 machine learning methods.
 
 Quantum Kernel methods work analogously to their classical counterparts, with data embedded into 
-the exponentially increasing quantum Hilbert space via a quantum feature map
+the exponentially increasing quantum Hilbert space via a quantum encoding circuit
 
 :math:`\ket{\psi(x,\boldsymbol{\theta})} = U_{\boldsymbol{\theta}}(x)\ket{0}`
 
@@ -106,9 +106,9 @@ Projected Quantum kernels (PQKs), which also represent the standard approaches t
 methods in the literature.
 
 Central to both approaches is the embedding of data into the quantum Hilbert space by using
-quantum feature maps, which are nothing but encoding quantum circuits. These can optionally be
+quantum encoding circuits, which are nothing but encoding quantum circuits. These can optionally be
 parametrized (as already implicitly introduced above) for optimally adjusting the resulting 
-quantum kernel to a given data set. If a feature map with trainable parameters is used, sQUlearn 
+quantum kernel to a given data set. If a encoding circuit with trainable parameters is used, sQUlearn
 initializes them to some predefined and reasonable values, which can be controlled, within FQK 
 *and* PQK definitions via the argument :code:`parameter_seed` (defaults to zero).
 
@@ -141,11 +141,11 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
 .. code-block:: python 
 
     from squlearn.util import Executor
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
     from squlearn.kernel import FidelityKernel
-    fmap = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+    enc_circuit = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
     fqk_instance = FidelityKernel(
-        feature_map=fmap,
+        encoding_circuit=enc_circuit,
         executor=Executor('statevector_simulator')
     )
 
@@ -194,11 +194,11 @@ the following example:
 .. code-block:: python
 
     from squlearn.util import Executor
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
     from squlearn.kernel import ProjectedQuantumKernel
-    fmap = ChebPQC(num_qubits=4, num_features= 1, num_layers=2)
+    enc_circuit = ChebPQC(num_qubits=4, num_features= 1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
-        feature_map=fmap,
+        encoding_circuit=enc_circuit,
         executor=Executor('statevector_simulator'),
         measurement='XYZ',
         outer_kernel='gaussian'
@@ -215,7 +215,7 @@ user guide.
 Training of quantum kernels
 ---------------------------
 
-As mentioned above, the definition of quantum kernels (both FQK and PQK) relies quantum feature maps 
+As mentioned above, the definition of quantum kernels (both FQK and PQK) relies quantum encoding circuits
 that are represented through parametrized quantum circuits (PQC). This results in quantum kernels 
 that contain trainable parameters to optimally adjust to a given learning problem. The trainable
 parameters are obtained from classical optimization loops which attempt to minimize a given loss 
@@ -235,13 +235,13 @@ training and test data and shows how to optimize kernels.
         import numpy as np
         from qiskit.primitives import Estimator()
         from squlearn.util import Executor
-        from squlearn.feature_map import ChebPQC
+        from squlearn.encoding_circuit import ChebPQC
         from squlearn.optimizers import Adam 
         from squlearn.kernel import ProjectedQuantumKernel
         from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-        fmap = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circuit = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
         pqk_instance = ProjectedQuantumKernel(
-            feature_map=fmap,
+            encoding_circuit=enc_circuit,
             executor=Executor(Estimator()),
             measurement='XYZ',
             outer_kernel='gaussian',
@@ -267,13 +267,13 @@ training and test data and shows how to optimize kernels.
     import numpy as np
     from qiskit.primitives import Estimator()
     from squlearn.util import Executor
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
     from squlearn.optimizers import Adam 
     from squlearn.kernel import ProjectedQuantumKernel
     from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-    fmap = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+    enc_circuit = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
-        feature_map=fmap,
+        encoding_circuit=enc_circuit,
         executor=Executor(Estimator()),
         measurement='XYZ',
         outer_kernel='gaussian',

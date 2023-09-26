@@ -7,7 +7,7 @@ from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.feature_map import YZ_CX_FeatureMap
+from squlearn.encoding_circuits import YZ_CX_EncodingCircuit
 from squlearn.kernel import QGPR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -29,8 +29,8 @@ class TestQGPR:
         """QGPR module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = YZ_CX_FeatureMap(num_qubits=3, num_features=2, num_layers=2)
-        kernel = FidelityKernel(feature_map=feature_map, executor=executor)
+        encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        kernel = FidelityKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(quantum_kernel=kernel, sigma=1.0e-6)
 
     @pytest.fixture(scope="module")
@@ -38,8 +38,8 @@ class TestQGPR:
         """QGPR module with ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = YZ_CX_FeatureMap(num_qubits=3, num_features=2, num_layers=2)
-        kernel = ProjectedQuantumKernel(feature_map=feature_map, executor=executor)
+        encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        kernel = ProjectedQuantumKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(
             quantum_kernel=kernel, sigma=1.0e-6, normalize_y=False, full_regularization=True
         )
@@ -131,8 +131,8 @@ class TestQGPR:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
-    def test_feature_map_params_can_be_changed_after_initialization(self, qgpr, request, data):
-        """Tests concerning the feature map parameter changes."""
+    def test_encoding_circuit_params_can_be_changed_after_initialization(self, qgpr, request, data):
+        """Tests concerning the encoding circuit parameter changes."""
         qgpr_instance = request.getfixturevalue(qgpr)
         assert qgpr_instance.get_params()["num_layers"] == 2
         qgpr_instance.set_params(num_layers=4)
@@ -143,7 +143,7 @@ class TestQGPR:
         try:
             qgpr_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map paramaeters"
+            assert False, f"fitting not possible after changes to encoding circuit paramaeters"
 
     def test_pqk_params_can_be_changes_after_initialization(self, qgpr_pqk, data):
         """Tests concerning changes if PQK parameters."""
