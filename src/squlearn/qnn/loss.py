@@ -314,16 +314,17 @@ class SquaredLoss(LossBase):
     def value(self, value_dict: dict, **kwargs) -> float:
         r"""Calculates the squared loss.
 
-        This function calculates the squared loss between the values in value_dict and ground_truth
-        as
+        This function calculates the squared loss between the values in `value_dict` and
+        `ground_truth` as
 
         .. math::
-            \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|^2
+            \sum_i w_i \cdot \left|f\left(x_i\right)-y\left(x_i\right)\right|^2
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
 
         Returns:
             Loss value
@@ -342,16 +343,18 @@ class SquaredLoss(LossBase):
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         r"""Returns the gradient of the squared loss.
 
-        This function calculates the gradient of the squared loss between the values in value_dict
-        and ground_truth as
+        This function calculates the gradient of the squared loss between the values in
+        `value_dict` and `ground_truth` as
 
         .. math::
-           \sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right) \frac{\partial f(x_i)}{\partial p_j}
+            2 \cdot \sum_i w_i \cdot \left|f\left(x_i\right)-y\left(x_i\right)\right|
+                \cdot \frac{\partial f\left(x_i\right)}{\partial \theta}
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
             multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
@@ -382,6 +385,121 @@ class SquaredLoss(LossBase):
             d_op = 2.0 * np.einsum("ij,ijk->k", weighted_diff, value_dict["dfdop"])
         else:
             d_op = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdop"])
+        return d_p, d_op
+
+
+class LogLoss(LossBase):
+    """Log loss for classification.
+
+    Args:
+        eps (float): Small value to avoid :math:`\log(0)`
+
+    """
+
+    def __init__(self, eps: float = 1e-8):
+        super().__init__()
+        self._eps = eps
+
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for the squared loss calculation."""
+        return ("f",)
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for the squared loss gradient calculation."""
+        if self._opt_param_op:
+            return ("f", "dfdp", "dfdop")
+        return ("f", "dfdp")
+
+    def value(self, value_dict: dict, **kwargs) -> float:
+        r"""Calculates the log loss.
+
+        This function calculates the log loss between the probability values in `value_dict` and
+        binary `ground_truth` as
+
+        .. math::
+            - \left(\sum_i w_i \cdot \sum_k y_{i,k} \cdot \log\left(f\left(x_i\right)_k\right)\right)
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+
+        Returns:
+            Loss value
+        """
+        if "ground_truth" not in kwargs:
+            raise AttributeError("SquaredLoss requires ground_truth.")
+
+        ground_truth = kwargs["ground_truth"]
+        weights = kwargs.get("weights", np.ones_like(ground_truth))
+
+        probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
+        if probability_values.ndim == 1:
+            probability_values = np.stack([probability_values, 1.0 - probability_values], axis=1)
+            ground_truth = np.stack([ground_truth, 1.0 - ground_truth], axis=1)
+
+        loss = -1.0 * np.sum(
+            np.multiply(
+                np.sum(ground_truth * np.log(probability_values), axis=1),
+                weights,
+            )
+        )
+        return loss
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+        r"""Returns the gradient of the log loss.
+
+        This function calculates the gradient of the log loss between the probability values in
+        `value_dict` and binary `ground_truth` as
+
+        .. math::
+            - \left(\sum_i w_i \cdot \left(\frac{y_i}{f\left(x_i\right)}
+                - \frac{(1-y_i)}{1-f\left(x_i\right)}\right)
+                \cdot \frac{\partial f\left(x_i\right)}{\partial \theta} \right)
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            multiple_output (bool): True if the QNN has multiple outputs
+
+        Returns:
+            Gradient values
+        """
+        if "ground_truth" not in kwargs:
+            raise AttributeError("SquaredLoss requires ground_truth.")
+
+        ground_truth = kwargs["ground_truth"]
+        weights = kwargs.get("weights", np.ones_like(ground_truth))
+        multiple_output = kwargs.get("multiple_output", False)
+
+        probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
+        if probability_values.ndim == 1:
+            probability_values = np.stack([probability_values, probability_values - 1.0], axis=1)
+            ground_truth = np.stack([ground_truth, 1.0 -  ground_truth], axis=1)
+
+        weighted_outer_gradient = np.multiply(
+            np.sum(ground_truth / probability_values, axis=1),
+            weights,
+        )
+
+        if multiple_output:
+            d_p = -1.0 * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdp"])
+        else:
+            d_p = -1.0 * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdp"])
+
+        # Extra code for the cost operator derivatives
+        if not self._opt_param_op:
+            return d_p
+
+        if multiple_output:
+            d_op = -1.0 * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdop"])
+        else:
+            d_op = -1.0 * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdop"])
         return d_p, d_op
 
 

@@ -192,6 +192,7 @@ QNN Core
 
    qnn.qnn.QNN
    qnn.qnn.Expec
+   qnn.loss.LogLoss
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
