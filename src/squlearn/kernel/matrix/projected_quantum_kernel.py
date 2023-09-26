@@ -346,7 +346,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         regularization: Union[str, None] = None,
         **kwargs,
     ) -> None:
-        super().__init__(encoding_circuit, executor, initial_parameters, parameter_seed, regularization)
+        super().__init__(
+            encoding_circuit, executor, initial_parameters, parameter_seed, regularization
+        )
 
         self._measurement_input = measurement
 

@@ -42,7 +42,9 @@ class KernelMatrixBase:
         self._regularization = regularization
 
         if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(self._parameter_seed)
+            self._parameters = self._encoding_circuit.generate_initial_parameters(
+                self._parameter_seed
+            )
 
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:

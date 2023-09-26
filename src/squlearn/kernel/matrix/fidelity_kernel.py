@@ -81,7 +81,9 @@ class FidelityKernel(KernelMatrixBase):
         parameter_seed: Union[int, None] = 0,
         regularization: Union[str, None] = None,
     ) -> None:
-        super().__init__(encoding_circuit, executor, initial_parameters, parameter_seed, regularization)
+        super().__init__(
+            encoding_circuit, executor, initial_parameters, parameter_seed, regularization
+        )
 
         self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates

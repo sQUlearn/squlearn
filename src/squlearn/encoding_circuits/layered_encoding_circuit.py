@@ -1714,7 +1714,9 @@ def math_function({var}):
         feature_variable_group: Union[VariableGroup, list],
         parameters_variable_group: Union[VariableGroup, list],
     ):
-        return ConvertedLayeredEncodingCircuit(self, feature_variable_group, parameters_variable_group)
+        return ConvertedLayeredEncodingCircuit(
+            self, feature_variable_group, parameters_variable_group
+        )
 
 
 class LayerPQC(LayeredPQC):

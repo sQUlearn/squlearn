@@ -8,7 +8,11 @@ from .data_preprocessing import adjust_input
 
 
 def get_quantum_fisher(
-    encoding_circuit: EncodingCircuitBase, x: np.ndarray, p: np.ndarray, executor: Executor, mode: str = "p"
+    encoding_circuit: EncodingCircuitBase,
+    x: np.ndarray,
+    p: np.ndarray,
+    executor: Executor,
+    mode: str = "p",
 ):
     """
     Function for evaluating the Quantum Fisher Information Matrix of a encoding circuit.
