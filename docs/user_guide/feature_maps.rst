@@ -46,13 +46,13 @@ Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pu
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit
+   from squlearn.encoding_circuits import QEKEncodingCircuit
    pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit
+   from squlearn.encoding_circuits import QEKEncodingCircuit
    pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
@@ -73,7 +73,7 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
+   from squlearn.encoding_circuits import QEKEncodingCircuit, ChebPQC
    fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both encoding circuits
@@ -82,7 +82,7 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 .. plot::
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
+   from squlearn.encoding_circuits import QEKEncodingCircuit, ChebPQC
    fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both encoding circuits
@@ -99,14 +99,14 @@ It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to bui
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import QiskitEncodingCircuit
+   from squlearn.encoding_circuits import QiskitEncodingCircuit
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    QiskitEncodingCircuit(local).draw(output="mpl")
 
 .. plot::
 
-   from squlearn.encoding_circuit import QiskitEncodingCircuit
+   from squlearn.encoding_circuits import QiskitEncodingCircuit
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    pqc = QiskitEncodingCircuit(local)
@@ -132,7 +132,7 @@ the :class:`LayeredEncodingCircuit` class.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuits import LayeredEncodingCircuit
    from squlearn.encoding_circuit.layered_encoding_circuit import Layer
    encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
    encoding_circuit.H()
@@ -145,7 +145,7 @@ the :class:`LayeredEncodingCircuit` class.
 
 .. plot::
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuits import LayeredEncodingCircuit
    from squlearn.encoding_circuit.layered_encoding_circuit import Layer
    encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
    encoding_circuit.H()
@@ -161,7 +161,7 @@ the :class:`LayeredEncodingCircuit` class.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuits import LayeredEncodingCircuit
    encoding_circuit = LayeredEncodingCircuit.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1, num_layers=2
    )
@@ -169,7 +169,7 @@ the :class:`LayeredEncodingCircuit` class.
 
 .. plot::
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuits import LayeredEncodingCircuit
    encoding_circuit = LayeredEncodingCircuit.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
    )
@@ -196,7 +196,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
+   from squlearn.encoding_circuits import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
    encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
    pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
@@ -204,7 +204,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
 
 .. plot::
 
-   from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
+   from squlearn.encoding_circuits import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
    encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
    pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
@@ -238,7 +238,7 @@ is utilized for the arithmetic operations of the derivatives.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
+   from squlearn.encoding_circuits import QEKEncodingCircuit, EncodingCircuitDerivatives
    fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
    fm_deriv = EncodingCircuitDerivatives(fm)
    # From String (gradient of the parameter vector)
@@ -264,7 +264,7 @@ where it is employed internally.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
+   from squlearn.encoding_circuits import TranspiledEncodingCircuit,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
 
    fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
@@ -272,7 +272,7 @@ where it is employed internally.
 
 .. plot::
 
-   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
+   from squlearn.encoding_circuits import TranspiledEncodingCircuit,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})

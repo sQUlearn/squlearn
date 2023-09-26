@@ -67,7 +67,7 @@ The map can be for example obtained in the transpiled encoding circuit.
 
 .. code-block:: python
 
-   from squlearn.encoding_circuit import ChebRx,TranspiledEncodingCircuit
+   from squlearn.encoding_circuits import ChebRx,TranspiledEncodingCircuit
    from squlearn.expectation_operator import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])

@@ -141,7 +141,7 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
 .. code-block:: python 
 
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuits import ChebPQC
     from squlearn.kernel import FidelityKernel
     enc_circuit = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
     fqk_instance = FidelityKernel(
@@ -194,7 +194,7 @@ the following example:
 .. code-block:: python
 
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuits import ChebPQC
     from squlearn.kernel import ProjectedQuantumKernel
     enc_circuit = ChebPQC(num_qubits=4, num_features= 1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
@@ -235,7 +235,7 @@ training and test data and shows how to optimize kernels.
         import numpy as np
         from qiskit.primitives import Estimator()
         from squlearn.util import Executor
-        from squlearn.encoding_circuit import ChebPQC
+        from squlearn.encoding_circuits import ChebPQC
         from squlearn.optimizers import Adam 
         from squlearn.kernel import ProjectedQuantumKernel
         from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
@@ -267,7 +267,7 @@ training and test data and shows how to optimize kernels.
     import numpy as np
     from qiskit.primitives import Estimator()
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuits import ChebPQC
     from squlearn.optimizers import Adam 
     from squlearn.kernel import ProjectedQuantumKernel
     from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
