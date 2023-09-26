@@ -1,6 +1,6 @@
 .. _quantum_encoding_circuits:
 
-.. currentmodule:: squlearn.encoding_circuit
+.. currentmodule:: squlearn.encoding_circuits
 
 ####################
 Quantum Encoding Circuits
@@ -19,7 +19,7 @@ each gate is applied to all qubits.
 The package facilitate a fully automated pruning algorithm to remove redundant parameters and
 enables the automatic differentiation of arbitrary derivative.
 
-The following functions and classes are are accessible via :class:`squlearn.encoding_circuit`.
+The following functions and classes are are accessible via :class:`squlearn.encoding_circuits`.
 
 Implemented Quantum Encoding Circuits
 -----------------------------------

@@ -45,7 +45,7 @@ Circuit Design
 Encoding Circuits
 ------------------------------------
 
-.. automodule:: squlearn.encoding_circuit
+.. automodule:: squlearn.encoding_circuits
     :no-members:
     :no-inherited-members:
 
