@@ -83,7 +83,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def __init__(
         self,
-        quantum_kernel: Optional[KernelMatrixBase] = None,
+        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
         **kwargs,
     ) -> None:
@@ -109,7 +109,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            x_train (np.ndarray) : Training data of shape (n_samples, n_features)
+            x_train (np.ndarray) : Training data of shape (n_samples, n_features). If 
+                quantum_kernel == "precomputed" this is instead a precomputed training kernel 
+                matrix of shape (n_samples, n_samples).
             y_train (np.ndarray) : Target values or labels of shape (n_samples,)
 
         Returns:
@@ -117,7 +119,16 @@ class QKRR(BaseEstimator, RegressorMixin):
                 Returns the instance itself.
         """
         self.x_train = x_train
-        self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
+
+        if isinstance(self._quantum_kernel, str):
+            if self._quantum_kernel == "precomputed":
+                self.k_train = x_train
+            else:
+                raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
+        elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
+        else:
+            raise ValueError("Unknown type of quantum kernel: {}".format(type(self._quantum_kernel)))
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -136,7 +147,9 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         Args:
             x_test (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
-                model makes predictions.
+                model makes predictions. If quantum_kernel == "precomputed" this is instead a 
+                precomputed (test-train) kernel matrix of shape (n_samples, n_samples_fitted), 
+                where n_samples_fitted is the number of samples used in the fitting.
 
         Returns:
             np.ndarray :
@@ -145,7 +158,11 @@ class QKRR(BaseEstimator, RegressorMixin):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+        if self._quantum_kernel == "precomputed":
+            self.k_testtrain = x_test
+        else:
+            self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+        
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
 
