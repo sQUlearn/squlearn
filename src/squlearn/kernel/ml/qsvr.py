@@ -1,7 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
-
+from typing import Optional, Union
 
 class QSVR(SVR):
     """
@@ -67,30 +67,38 @@ class QSVR(SVR):
     def __init__(
         self,
         *,
-        quantum_kernel: KernelMatrixBase,
+        quantum_kernel: Union[KernelMatrixBase, str],
         **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
 
         # Apply kwargs to set_params of quantum kernel
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
-        set_quantum_kernel_params_dict = {}
-        for key, value in kwargs.items():
-            if key in valid_params_quantum_kernel:
-                set_quantum_kernel_params_dict[key] = value
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
+            set_quantum_kernel_params_dict = {}
+            for key, value in kwargs.items():
+                if key in valid_params_quantum_kernel:
+                    set_quantum_kernel_params_dict[key] = value
 
-        if len(set_quantum_kernel_params_dict) > 0:
-            self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
+            if len(set_quantum_kernel_params_dict) > 0:
+                self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
 
-        # remove quantum_kernel_kwargs for SVR initialization
-        for key in set_quantum_kernel_params_dict:
-            kwargs.pop(key, None)
+            # remove quantum_kernel_kwargs for SVR initialization
+            for key in set_quantum_kernel_params_dict:
+                kwargs.pop(key, None)
 
-        super().__init__(
-            kernel=self.quantum_kernel.evaluate,
-            **kwargs,
-        )
-
+            super().__init__(
+                kernel=self.quantum_kernel.evaluate,
+                **kwargs,
+            )
+        elif isinstance(self.quantum_kernel, str):
+            if self.quantum_kernel == "precomputed":
+                super().__init__(kernel="precomputed", **kwargs)
+            else:
+                raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
+        else:
+            raise ValueError("Unknown type of quantum kernel: {}".format(type(self.quantum_kernel)))
+                
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
@@ -118,7 +126,7 @@ class QSVR(SVR):
 
         # add qsvr specific parameters
         params["quantum_kernel"] = self.quantum_kernel
-        if deep:
+        if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
             params.update(self.quantum_kernel.get_params(deep=deep))
         return params
 
@@ -131,7 +139,6 @@ class QSVR(SVR):
         """
         valid_params = self.get_params(deep=True)
         valid_params_qsvr = self.get_params(deep=False)
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
@@ -147,10 +154,12 @@ class QSVR(SVR):
                     setattr(self, "_" + key, value)
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        for key, value in params.items():
-            if key in valid_params_quantum_kernel:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self.quantum_kernel.set_params(**param_dict)
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
+            param_dict = {}
+            for key, value in params.items():
+                if key in valid_params_quantum_kernel:
+                    param_dict[key] = value
+            if len(param_dict) > 0:
+                self.quantum_kernel.set_params(**param_dict)
         return self

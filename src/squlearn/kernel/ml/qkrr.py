@@ -181,7 +181,8 @@ class QKRR(BaseEstimator, RegressorMixin):
             "quantum_kernel": self._quantum_kernel,
             "alpha": self.alpha,
         }
-        if deep:
+
+        if deep and isinstance(self._quantum_kernel, KernelMatrixBase):
             params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
@@ -209,11 +210,12 @@ class QKRR(BaseEstimator, RegressorMixin):
                     setattr(self, "_" + key, value)
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        valid_params = self._quantum_kernel.get_params().keys()
-        for key, value in params.items():
-            if key in valid_params:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self._quantum_kernel.set_params(**param_dict)
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            param_dict = {}
+            valid_params = self._quantum_kernel.get_params().keys()
+            for key, value in params.items():
+                if key in valid_params:
+                    param_dict[key] = value
+            if len(param_dict) > 0:
+                self._quantum_kernel.set_params(**param_dict)
         return self
