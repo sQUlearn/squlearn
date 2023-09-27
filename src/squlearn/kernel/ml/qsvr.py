@@ -21,7 +21,7 @@ class QSVR(SVR):
         - `coef0`
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
+        quantum_kernel (Union[KernelMatrixBase, str]): The quantum kernel matrix to be used in the SVC. Either
             a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided. By
             setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
             (train and test-train). This is particularly useful when storing quantum kernel

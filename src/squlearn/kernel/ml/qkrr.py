@@ -163,10 +163,15 @@ class QKRR(BaseEstimator, RegressorMixin):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        if self._quantum_kernel == "precomputed":
-            self.k_testtrain = x_test
-        else:
+        if isinstance(self._quantum_kernel, str):
+            if self._quantum_kernel == "precomputed":
+                self.k_testtrain = x_test
+        elif isinstance(self._quantum_kernel, KernelMatrixBase):
             self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+        else:
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
+            )
 
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
