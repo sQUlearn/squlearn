@@ -167,9 +167,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             X_test: The test data of shape (n_samples, n_features). If
                 quantum_kernel == "precomputed", this is the precomputed
                 Gram matrix instead, which has to be of shape
-                np.block[ [K_train, K_testtrain.T],
-                          [K_testtrain, K_test]
-                        ]
+                np.block[[K_train, K_testtrain.T], [K_testtrain, K_test]]
             return_std: (bool),
                 default=True: Whether to return the standard deviation of the prediction
             return_cov: (bool), default=False:

@@ -219,8 +219,8 @@ class QKRR(BaseEstimator, RegressorMixin):
                 except:
                     setattr(self, "_" + key, value)
 
-        # Set parameters of the Quantum Kernel and its underlying objects
         if isinstance(self._quantum_kernel, KernelMatrixBase):
+            # Set parameters of the Quantum Kernel and its underlying objects
             param_dict = {}
             valid_params = self._quantum_kernel.get_params().keys()
             for key, value in params.items():
