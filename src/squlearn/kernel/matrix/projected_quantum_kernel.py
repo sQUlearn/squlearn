@@ -612,9 +612,9 @@ class GaussianOuterKernel(OuterKernelBase):
         param = parameters[: qnn.num_parameters]
         param_op = parameters[qnn.num_parameters :]
 
-        if len(param.shape)==1 and len(param)==1:
+        if len(param.shape) == 1 and len(param) == 1:
             param = float(param)
-        if len(param_op.shape)==1 and len(param_op)==1:
+        if len(param_op.shape) == 1 and len(param_op) == 1:
             param_op = float(param_op)
 
         x_result = qnn.evaluate_f(x, param, param_op)
