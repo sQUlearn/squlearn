@@ -36,6 +36,7 @@ class BaseQNN(BaseEstimator, ABC):
         opt_param_op : If True, operators parameters get optimized
         variance : Variance factor
         parameter_seed : Seed for the random number generator for the parameter initialization
+        caching : If True, the results of the QNN are cached.
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class BaseQNN(BaseEstimator, ABC):
         variance: Union[float, Callable] = None,
         shot_adjusting: shot_adjusting_options = None,
         parameter_seed: Union[int, None] = 0,
+        caching: bool = True,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -98,9 +100,10 @@ class BaseQNN(BaseEstimator, ABC):
         self.opt_param_op = opt_param_op
 
         self.shot_adjusting = shot_adjusting
+        self.caching = caching
 
         self.executor = executor
-        self._qnn = QNN(self.feature_map, self.operator, executor)
+        self._qnn = QNN(self.feature_map, self.operator, executor,result_caching=self.caching)
 
         update_params = self.get_params().keys() & kwargs.keys()
         if update_params:
