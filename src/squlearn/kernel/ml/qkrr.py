@@ -20,9 +20,12 @@ class QKRR(BaseEstimator, RegressorMixin):
     Additional arguments can be set via ``**kwargs``.
 
     Args:
-        quantum_kernel (KernelMatrixBase) :
+        quantum_kernel (Optional[Union[KernelMatrixBase, str]]) :
             The quantum kernel matrix to be used in the KRR pipeline (either a fidelity
-            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided)
+            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided). By
+            setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
+            (train and test-train). This is particularly useful when storing quantum kernel
+            matrices from real backends to numpy arrays.
         alpha (Union[float, np.ndarray], default=1.0e-6) :
             Hyperparameter for the regularization strength; must be a positive float. This
             regularization improves the conditioning of the problem and assure the solvability

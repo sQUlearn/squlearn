@@ -1,6 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVC
+from typing import Union
 
 
 class QSVC(SVC):
@@ -21,7 +22,10 @@ class QSVC(SVC):
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
-            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided. By
+            setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
+            (train and test-train). This is particularly useful when storing quantum kernel
+            matrices from real backends to numpy arrays.
         **kwargs: Possible arguments can be
             obtained by calling ``get_params()``. Notable examples are parameters of the
             :class:`sklearn.svm.SVC` class such as the regularization parameters ``C``
@@ -68,29 +72,37 @@ class QSVC(SVC):
     def __init__(
         self,
         *,
-        quantum_kernel: KernelMatrixBase,
+        quantum_kernel: Union[KernelMatrixBase, str],
         **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
 
-        # Apply kwargs to set_params of quantum kernel
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
-        set_quantum_kernel_params_dict = {}
-        for key, value in kwargs.items():
-            if key in valid_params_quantum_kernel:
-                set_quantum_kernel_params_dict[key] = value
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            # Apply kwargs to set_params of quantum kernel
+            valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
+            set_quantum_kernel_params_dict = {}
+            for key, value in kwargs.items():
+                if key in valid_params_quantum_kernel:
+                    set_quantum_kernel_params_dict[key] = value
 
-        if len(set_quantum_kernel_params_dict) > 0:
-            self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
+            if len(set_quantum_kernel_params_dict) > 0:
+                self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
 
-        # remove quantum_kernel_kwargs for SVC initialization
-        for key in set_quantum_kernel_params_dict:
-            kwargs.pop(key, None)
+            # remove quantum_kernel_kwargs for SVC initialization
+            for key in set_quantum_kernel_params_dict:
+                kwargs.pop(key, None)
 
-        super().__init__(
-            kernel=self.quantum_kernel.evaluate,
-            **kwargs,
-        )
+            super().__init__(
+                kernel=self.quantum_kernel.evaluate,
+                **kwargs,
+            )
+        elif isinstance(self.quantum_kernel, str):
+            if self.quantum_kernel == "precomputed":
+                super().__init__(kernel="precomputed", **kwargs)
+            else:
+                raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
+        else:
+            raise ValueError("Unknown type of quantum kernel: {}".format(type(self.quantum_kernel)))
 
     @classmethod
     def _get_param_names(cls):
@@ -132,7 +144,6 @@ class QSVC(SVC):
         """
         valid_params = self.get_params(deep=True)
         valid_params_qsvc = self.get_params(deep=False)
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
@@ -148,10 +159,12 @@ class QSVC(SVC):
                     setattr(self, "_" + key, value)
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        for key, value in params.items():
-            if key in valid_params_quantum_kernel:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self.quantum_kernel.set_params(**param_dict)
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
+            param_dict = {}
+            for key, value in params.items():
+                if key in valid_params_quantum_kernel:
+                    param_dict[key] = value
+            if len(param_dict) > 0:
+                self.quantum_kernel.set_params(**param_dict)
         return self

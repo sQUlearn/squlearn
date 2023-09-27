@@ -1,7 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
-from typing import Optional, Union
+from typing import Union
 
 class QSVR(SVR):
     """
@@ -21,7 +21,10 @@ class QSVR(SVR):
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
-            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided. By
+            setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
+            (train and test-train). This is particularly useful when storing quantum kernel
+            matrices from real backends to numpy arrays.
         **kwargs: Possible arguments can be
             obtained by calling ``get_params()``. Notable examples are parameters of the
             :class:`sklearn.svm.SVR` class such as the regularization parameters ``C``
@@ -72,8 +75,8 @@ class QSVR(SVR):
     ) -> None:
         self.quantum_kernel = quantum_kernel
 
-        # Apply kwargs to set_params of quantum kernel
         if isinstance(self.quantum_kernel, KernelMatrixBase):
+            # Apply kwargs to set_params of quantum kernel
             valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
             set_quantum_kernel_params_dict = {}
             for key, value in kwargs.items():
