@@ -3,6 +3,7 @@ from ..matrix.kernel_matrix_base import KernelMatrixBase
 from sklearn.svm import SVR
 from typing import Union
 
+
 class QSVR(SVR):
     """
     Quantum Support Vector Regression
@@ -100,8 +101,10 @@ class QSVR(SVR):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
         else:
-            raise ValueError("Unknown type of quantum kernel: {}".format(type(self.quantum_kernel)))
-                
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self.quantum_kernel))
+            )
+
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()

@@ -112,8 +112,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            x_train (np.ndarray) : Training data of shape (n_samples, n_features). If 
-                quantum_kernel == "precomputed" this is instead a precomputed training kernel 
+            x_train (np.ndarray) : Training data of shape (n_samples, n_features). If
+                quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples).
             y_train (np.ndarray) : Target values or labels of shape (n_samples,)
 
@@ -131,7 +131,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
             self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
         else:
-            raise ValueError("Unknown type of quantum kernel: {}".format(type(self._quantum_kernel)))
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
+            )
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -150,8 +152,8 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         Args:
             x_test (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
-                model makes predictions. If quantum_kernel == "precomputed" this is instead a 
-                precomputed (test-train) kernel matrix of shape (n_samples, n_samples_fitted), 
+                model makes predictions. If quantum_kernel == "precomputed" this is instead a
+                precomputed (test-train) kernel matrix of shape (n_samples, n_samples_fitted),
                 where n_samples_fitted is the number of samples used in the fitting.
 
         Returns:
@@ -165,7 +167,7 @@ class QKRR(BaseEstimator, RegressorMixin):
             self.k_testtrain = x_test
         else:
             self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
-        
+
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
 

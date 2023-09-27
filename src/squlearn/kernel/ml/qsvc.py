@@ -102,7 +102,9 @@ class QSVC(SVC):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
         else:
-            raise ValueError("Unknown type of quantum kernel: {}".format(type(self.quantum_kernel)))
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self.quantum_kernel))
+            )
 
     @classmethod
     def _get_param_names(cls):
