@@ -481,29 +481,45 @@ class LogLoss(LossBase):
         binary = probability_values.ndim == 1
         if binary:
             probability_values = np.stack([probability_values, probability_values - 1.0], axis=1)
-            ground_truth = np.stack([ground_truth, 1.0 -  ground_truth], axis=1)
+            ground_truth = np.stack([ground_truth, 1.0 - ground_truth], axis=1)
 
         weighted_outer_gradient = np.multiply(
             ground_truth / probability_values,
-            np.tile(weights.reshape(-1,1), probability_values.shape[1]),
+            np.tile(weights.reshape(-1, 1), probability_values.shape[1]),
         )
 
         if binary:
             weighted_outer_gradient = np.sum(weighted_outer_gradient, axis=1)
 
         if multiple_output:
-            d_p = -1.0 * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdp"]) / ground_truth.shape[0]
+            d_p = (
+                -1.0
+                * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdp"])
+                / ground_truth.shape[0]
+            )
         else:
-            d_p = -1.0 * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdp"]) / ground_truth.shape[0]
+            d_p = (
+                -1.0
+                * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdp"])
+                / ground_truth.shape[0]
+            )
 
         # Extra code for the cost operator derivatives
         if not self._opt_param_op:
             return d_p
 
         if multiple_output:
-            d_op = -1.0 * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdop"]) / ground_truth.shape[0]
+            d_op = (
+                -1.0
+                * np.einsum("ij,ijk->k", weighted_outer_gradient, value_dict["dfdop"])
+                / ground_truth.shape[0]
+            )
         else:
-            d_op = -1.0 * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdop"]) / ground_truth.shape[0]
+            d_op = (
+                -1.0
+                * np.einsum("j,jk->k", weighted_outer_gradient, value_dict["dfdop"])
+                / ground_truth.shape[0]
+            )
         return d_p, d_op
 
 
