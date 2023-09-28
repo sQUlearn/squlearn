@@ -24,16 +24,16 @@ class KernelOptimizer(KernelOptimizerBase):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.feature_map import QEKFeatureMap
+        from squlearn.encoding_circuit import QEKEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.optimizers import Adam
         from squlearn.kernel.optimization import NLL
-        fmap = QEKFeatureMap(num_qubits=num_qubits, num_features=num_features, num_layers=2)
-        q_kernel = FidelityKernel(feature_map=fmap, executor=Executor("statevector_simulator"))
+        enc_circ = QEKEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
         adam = Adam(options={"maxiter": 20, "lr": 0.1})
         nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)
         optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam,
-            initial_parameters=np.random.rand(fmap.num_parameters))
+            initial_parameters=np.random.rand(enc_circ.num_parameters))
         opt_result = optimizer.run_optimization(x=X_train, y=Y_train)
         optimal_parameters = opt_result.x
         q_kernel.assign_parameters(optimal_parameters)

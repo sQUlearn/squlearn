@@ -5,12 +5,12 @@ from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
 
-class FeatureMapBase:
+class EncodingCircuitBase:
     """
-    Feature map base class
+    Encoding circuit base class
 
     Args:
-        num_qubits (int): Number of Qubits of the feature map
+        num_qubits (int): Number of Qubits of the encoding circuit
         num_features (int): Dimension of the feature vector
     """
 
@@ -20,22 +20,22 @@ class FeatureMapBase:
 
     @property
     def num_qubits(self) -> int:
-        """The number of qubits of the feature map."""
+        """The number of qubits of the encoding circuit."""
         return self._num_qubits
 
     @property
     def num_features(self) -> int:
-        """The dimension of the features in the feature map."""
+        """The dimension of the features in the encoding circuit."""
         return self._num_features
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the feature map."""
+        """The number of trainable parameters of the encoding circuit."""
         return 0
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the feature map.
+        """The bounds of the trainable parameters of the encoding circuit.
 
         Default bounds are [-pi,pi] for each parameter.
         """
@@ -43,7 +43,7 @@ class FeatureMapBase:
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the feature map.
+        """The bounds of the features of the encoding circuit.
 
         Default bounds are [-pi,pi] for each feature.
         """
@@ -51,7 +51,7 @@ class FeatureMapBase:
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the feature map
+        Generates random parameters for the encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -71,7 +71,7 @@ class FeatureMapBase:
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit feature map (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -94,7 +94,7 @@ class FeatureMapBase:
         **kwargs,
     ) -> None:
         """
-        Draws the feature map circuit using the QuantumCircuit.draw() function.
+        Draws the encoding circuit circuit using the QuantumCircuit.draw() function.
 
         Args:
             feature_label (str): Label for the feature vector (default:"x").
@@ -117,7 +117,7 @@ class FeatureMapBase:
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the feature map.
+        Returns hyper-parameters and their values of the encoding circuit.
 
         Args:
             deep (bool): If True, also the parameters for
@@ -133,7 +133,7 @@ class FeatureMapBase:
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the feature map hyper-parameters.
+        Sets value of the encoding circuit hyper-parameters.
 
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
@@ -158,35 +158,35 @@ class FeatureMapBase:
     def __add__(self, x):
         """
         Overwrites the a + b function, such that the addition of
-        feature maps returns the composition of both feature maps.
+        encoding circuits returns the composition of both encoding circuits.
 
-        Number of qubits and features have to be equal in both feature maps!
-        The special function and properties of the both feature maps are lost
+        Number of qubits and features have to be equal in both encoding circuits!
+        The special function and properties of the both encoding circuits are lost
         by this composition.
 
         Args:
-            self (FeatureMapBase): right / first feature map
-            x (FeatureMapBase): left / second feature map
+            self (EncodingCircuitBase): right / first encoding circuit
+            x (EncodingCircuitBase): left / second encoding circuit
 
         Returns:
-            Returns the composed feature map as special class ComposedFeatureMap
+            Returns the composed encoding circuit as special class ComposedEncodingCircuit
         """
 
-        if not isinstance(x, FeatureMapBase):
-            raise ValueError("Only the addition with other feature maps is allowed!")
+        if not isinstance(x, EncodingCircuitBase):
+            raise ValueError("Only the addition with other encoding circuits is allowed!")
 
-        class ComposedFeatureMap(FeatureMapBase):
+        class ComposedEncodingCircuit(EncodingCircuitBase):
             """
-            Special class for composed feature maps.
+            Special class for composed encoding circuits.
 
             Args:
-                fm1 (FeatureMapBase): right / first feature map
-                fm2 (FeatureMapBase): left / second feature map
+                fm1 (EncodingCircuitBase): right / first encoding circuit
+                fm2 (EncodingCircuitBase): left / second encoding circuit
             """
 
-            def __init__(self, fm1: FeatureMapBase, fm2: FeatureMapBase):
+            def __init__(self, fm1: EncodingCircuitBase, fm2: EncodingCircuitBase):
                 if fm1.num_qubits != fm2.num_qubits:
-                    raise ValueError("Number of qubits is not equal in both feature maps.")
+                    raise ValueError("Number of qubits is not equal in both encoding circuits.")
 
                 super().__init__(fm1.num_qubits, max(fm1.num_features, fm2.num_features))
 
@@ -195,7 +195,7 @@ class FeatureMapBase:
 
             @property
             def num_parameters(self) -> int:
-                """Returns the number of trainable parameters of composed feature map.
+                """Returns the number of trainable parameters of composed encoding circuit.
 
                 Is equal to the sum of both trainable parameters.
                 """
@@ -203,7 +203,7 @@ class FeatureMapBase:
 
             @property
             def parameter_bounds(self) -> np.ndarray:
-                """Returns the bounds of the trainable parameters of composed feature map.
+                """Returns the bounds of the trainable parameters of composed encoding circuit.
 
                 Is equal to the sum of both bounds.
                 """
@@ -213,7 +213,7 @@ class FeatureMapBase:
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of composed feature map.
+                """Returns the bounds of the features of composed encoding circuit.
 
                 Is equal to the maximum and minimum of both bounds.
                 """
@@ -238,7 +238,7 @@ class FeatureMapBase:
 
             def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
                 """
-                Generates random parameters for the composed feature map
+                Generates random parameters for the composed encoding circuit
 
                 Args:
                     seed (Union[int,None]): Seed for the random number generator
@@ -257,10 +257,10 @@ class FeatureMapBase:
 
             def get_params(self, deep: bool = True) -> dict:
                 """
-                Returns hyper-parameters and their values of the composed feature map.
+                Returns hyper-parameters and their values of the composed encoding circuit.
 
                 Hyper-parameter names are prefixed by ``fm1__`` or ``fm2__`` depending on
-                which feature map they belong to.
+                which encoding circuit they belong to.
 
                 Args:
                     deep (bool): If True, also the parameters for
@@ -320,7 +320,7 @@ class FeatureMapBase:
                 parameters: Union[ParameterVector, np.ndarray],
             ) -> QuantumCircuit:
                 """
-                Returns the circuit of the composed feature maps
+                Returns the circuit of the composed encoding circuits
 
                 Args:
                     features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -329,7 +329,7 @@ class FeatureMapBase:
                         from which the gate inputs are obtained
 
                 Return:
-                    Returns the circuit of the composed feature maps in qiskit QuantumCircuit format
+                    Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
                 """
 
                 circ1 = self._fm1.get_circuit(
@@ -341,4 +341,4 @@ class FeatureMapBase:
 
                 return circ1.compose(circ2, range(self._fm1.num_qubits))
 
-        return ComposedFeatureMap(self, x)
+        return ComposedEncodingCircuit(self, x)

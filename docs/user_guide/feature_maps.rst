@@ -1,230 +1,230 @@
-.. _quantum_feature_maps:
+.. _quantum_encoding_circuits:
 
-.. currentmodule:: squlearn.feature_map
+.. currentmodule:: squlearn.encoding_circuit
 
 ####################
-Quantum Feature Maps
+Quantum Encoding Circuits
 ####################
 
-Quantum feature maps are used to embed classical data :math:`x` into a quantum state and manipulate
+Quantum encoding circuits are used to embed classical data :math:`x` into a quantum state and manipulate
 the quantum state via trainable parameters :math:`p`.
 They are a key component of many quantum machine learning algorithms, and the design of a good
-quantum feature map is crucial for the performance of the algorithm.
-In sQUlearn, feature maps are an obligatory input in the Quantum Neural Network (QNN) or Quantum
+quantum encoding circuit is crucial for the performance of the algorithm.
+In sQUlearn, encoding circuits are an obligatory input in the Quantum Neural Network (QNN) or Quantum
 Kernel programs.
-sQUlearn offers a wide range of pre-implemented quantum feature maps,
-which can be combined to create more sophisticated feature maps.
-Furthermore, it is possible to create custom feature maps that follow a layered approach, in which
+sQUlearn offers a wide range of pre-implemented quantum encoding circuits,
+which can be combined to create more sophisticated encoding circuits.
+Furthermore, it is possible to create custom encoding circuits that follow a layered approach, in which
 each gate is applied to all qubits.
 The package facilitate a fully automated pruning algorithm to remove redundant parameters and
 enables the automatic differentiation of arbitrary derivative.
 
-The following functions and classes are are accessible via :class:`squlearn.feature_map`.
+The following functions and classes are are accessible via :class:`squlearn.encoding_circuit`.
 
-Implemented Quantum Feature Maps
+Implemented Quantum Encoding Circuits
 -----------------------------------
 
-There are several Quantum Feature Maps implemented in sQUlearn:
+There are several Quantum Encoding Circuits implemented in sQUlearn:
 
 .. autosummary::
    :nosignatures:
 
-   YZ_CX_FeatureMap
-   HighDimFeatureMap
-   QEKFeatureMap
+   YZ_CX_EncodingCircuit
+   HighDimEncodingCircuit
+   QEKEncodingCircuit
    ChebyshevTower
    ChebPQC
    HZCRxCRyCRz
    ChebRx
-   ParamZFeatureMap
-   QiskitFeatureMap
+   ParamZEncodingCircuit
+   QiskitEncodingCircuit
 
-Feel free to contribute to sQUlearn by adding your own feature maps in a Pull Request.
+Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pull Request.
 
 
-**Example: Create a QEK feature map**
+**Example: Create a QEK encoding circuit**
 
 .. code-block:: python
 
-   from squlearn.feature_map import QEKFeatureMap
-   pqc = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=2)
+   from squlearn.encoding_circuit import QEKEncodingCircuit
+   pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import QEKFeatureMap
-   pqc = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=2)
+   from squlearn.encoding_circuit import QEKEncodingCircuit
+   pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
 
-Combining Quantum Feature Maps
+Combining Quantum Encoding Circuits
 ------------------------------
-In sQUlearn, quantum feature maps can be combined to create more sophisticated feature maps by
-utilizing the ``+`` operation between two feature maps. However, it is important to note that
-the number of qubits in both feature maps must match for successful combination.
+In sQUlearn, quantum encoding circuits can be combined to create more sophisticated encoding circuits by
+utilizing the ``+`` operation between two encoding circuits. However, it is important to note that
+the number of qubits in both encoding circuits must match for successful combination.
 
-When combining feature maps, the resulting feature dimension is determined by taking the maximum
-value from the two feature dimensions. The parameters of the individual feature maps are
-concatenated. Consequently, the total number of parameters in the combined feature map is
-equal to the sum of the parameters in the two original feature maps.
+When combining encoding circuits, the resulting feature dimension is determined by taking the maximum
+value from the two feature dimensions. The parameters of the individual encoding circuits are
+concatenated. Consequently, the total number of parameters in the combined encoding circuit is
+equal to the sum of the parameters in the two original encoding circuits.
 
-**Example: combine two quantum feature maps**
+**Example: combine two quantum encoding circuits**
 
 .. code-block:: python
 
-   from squlearn.feature_map import QEKFeatureMap, ChebPQC
-   fm1 = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=1, closed=False)
+   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
+   fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
-   # Combining both feature maps
+   # Combining both encoding circuits
    fm3 = fm1 + fm2
    fm3.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import QEKFeatureMap, ChebPQC
-   fm1 = QEKFeatureMap(num_qubits=4, num_features=2, num_layers=1, closed=False)
+   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
+   fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
-   # Combining both feature maps
+   # Combining both encoding circuits
    fm3 = fm1 + fm2
    fm3.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
 
-Wrapping Qiskit Feature Maps
+Wrapping Qiskit Encoding Circuits
 ----------------------------
 
-It is also possible to utilize the wrapper :class:`QiskitFeatureMap` to build Feature Maps from the
+It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to build Encoding Circuits from the
 `Qiskit circuit library <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
 .. code-block:: python
 
-   from squlearn.feature_map import QiskitFeatureMap
+   from squlearn.encoding_circuit import QiskitEncodingCircuit
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-   QiskitFeatureMap(local).draw(output="mpl")
+   QiskitEncodingCircuit(local).draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import QiskitFeatureMap
+   from squlearn.encoding_circuit import QiskitEncodingCircuit
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-   pqc = QiskitFeatureMap(local)
+   pqc = QiskitEncodingCircuit(local)
    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
 
-Create your custom Feature Map via :class:`LayeredFeatureMap`
+Create your custom Encoding Circuit via :class:`LayeredEncodingCircuit`
 -------------------------------------------------------------
 
-sQUlearn offers a user-friendly solution for creating custom layered feature maps effortlessly.
-Layered feature maps involve the application of gates to all qubits, ensuring a comprehensive
-approach. This method allows for the creation of feature maps in a structured manner,
+sQUlearn offers a user-friendly solution for creating custom layered encoding circuits effortlessly.
+Layered encoding circuits involve the application of gates to all qubits, ensuring a comprehensive
+approach. This method allows for the creation of encoding circuits in a structured manner,
 regardless of the number of qubits involved.
 Two-qubit gates are applied either in a nearest neighbor fashion or by entangling all qubits.
-You can construct the layered feature map using either a Qiskit Quantum circuit-inspired approach
+You can construct the layered encoding circuit using either a Qiskit Quantum circuit-inspired approach
 or by providing a string using the
-:meth:`LayeredFeatureMap.from_string() <squlearn.feature_map.LayeredFeatureMap.from_string>`
+:meth:`LayeredEncodingCircuit.from_string() <squlearn.encoding_circuit.LayeredEncodingCircuit.from_string>`
 method. For detailed instructions on the string format, please refer to the documentation of
-the :class:`LayeredFeatureMap` class.
+the :class:`LayeredEncodingCircuit` class.
 
-**Example: Create your custom layered feature map**
+**Example: Create your custom layered encoding circuit**
 
 .. code-block:: python
 
-   from squlearn.feature_map import LayeredFeatureMap
-   from squlearn.feature_map.layered_feature_map import Layer
-   feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-   feature_map.H()
-   layer = Layer(feature_map)
+   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+   encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+   encoding_circuit.H()
+   layer = Layer(encoding_circuit)
    layer.Rz("x")
    layer.Ry("p")
    layer.cx_entangling("NN")
-   feature_map.add_layer(layer,num_layers=3)
-   feature_map.draw(output="mpl")
+   encoding_circuit.add_layer(layer,num_layers=3)
+   encoding_circuit.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import LayeredFeatureMap
-   from squlearn.feature_map.layered_feature_map import Layer
-   feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-   feature_map.H()
-   layer = Layer(feature_map)
+   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+   encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+   encoding_circuit.H()
+   layer = Layer(encoding_circuit)
    layer.Rz("x")
    layer.Ry("p")
    layer.cx_entangling("NN")
-   feature_map.add_layer(layer,num_layers=3)
-   feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+   encoding_circuit.add_layer(layer,num_layers=3)
+   encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
-**Example: Create your custom layered feature map from a string**
+**Example: Create your custom layered encoding circuit from a string**
 
 .. code-block:: python
 
-   from squlearn.feature_map import LayeredFeatureMap
-   feature_map = LayeredFeatureMap.from_string(
+   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   encoding_circuit = LayeredEncodingCircuit.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1, num_layers=2
    )
-   feature_map.draw(output="mpl")
+   encoding_circuit.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import LayeredFeatureMap
-   feature_map = LayeredFeatureMap.from_string(
+   from squlearn.encoding_circuit import LayeredEncodingCircuit
+   encoding_circuit = LayeredEncodingCircuit.from_string(
       "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
    )
-   plt = feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+   plt = encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
-Pruning of Quantum Feature Maps
+Pruning of Quantum Encoding Circuits
 -------------------------------
 
-It is also possible to remove parameterized gates from a quantum feature map by using the
-:class:`PrunedFeatureMap` class.
-This class accepts a quantum feature map as input and removes the parameterized gates
-from the feature map for the parameters which indices are specified in the supplied list.
-The pruned feature map automatically adjusts the number of parameters and features.
+It is also possible to remove parameterized gates from a quantum encoding circuit by using the
+:class:`PrunedEncodingCircuit` class.
+This class accepts a quantum encoding circuit as input and removes the parameterized gates
+from the encoding circuit for the parameters which indices are specified in the supplied list.
+The pruned encoding circuit automatically adjusts the number of parameters and features.
 
-Furthermore it is possible to determine the redundant parameters in feature map automatically.
+Furthermore it is possible to determine the redundant parameters in encoding circuit automatically.
 The algorithm is based on https://doi.org/10.1103/PRXQuantum.2.040309 and is based on evaluating
-the Quantum Fisher Information Matrix (QFIM) of the feature map.
+the Quantum Fisher Information Matrix (QFIM) of the encoding circuit.
 
 sQUlearn features a fully automated pruning algorithm which can be used by calling the routine
-:meth:`automated_pruning` that returns a pruned feature map without the redundant parameters.
+:meth:`automated_pruning` that returns a pruned encoding circuit without the redundant parameters.
 
-**Example: Pruning a feature map with redundant parameters**
+**Example: Pruning a encoding circuit with redundant parameters**
 
 .. code-block:: python
 
-   from squlearn.feature_map import LayeredFeatureMap, automated_pruning
+   from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
-   feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
-   pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
-   pruned_feature_map.draw(output="mpl")
+   encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
+   pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
+   pruned_encoding_circuit.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import LayeredFeatureMap, automated_pruning
+   from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
-   feature_map = LayeredFeatureMap.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
-   pruned_feature_map = automated_pruning(feature_map, Executor("statevector_simulator"))
-   pruned_feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+   encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
+   pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
+   pruned_encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()
 
-Different Quantum Feature Maps via :class:`FeatureMapDerivatives`
+Different Quantum Encoding Circuits via :class:`EncodingCircuitDerivatives`
 -----------------------------------------------------------------
 
-The calculation of derivatives for quantum feature maps is often essential in training a
+The calculation of derivatives for quantum encoding circuits is often essential in training a
 Quantum Machine Learning model. In sQUlearn, we offer a straightforward approach to compute
-these derivatives using the :class:`FeatureMapDerivatives` class.
-This class accepts an existing quantum feature map as input and generates derivatives of the
-feature map with respect to its parameters or features. The derivative circuits are generated
+these derivatives using the :class:`EncodingCircuitDerivatives` class.
+This class accepts an existing quantum encoding circuit as input and generates derivatives of the
+encoding circuit with respect to its parameters or features. The derivative circuits are generated
 by leveraging the parameter-shift rule and are cached for future use.
-Use the function :meth:`get_derivative() <squlearn.feature_map.FeatureMapDerivatives.get_derivative>`
+Use the function :meth:`get_derivative() <squlearn.encoding_circuit.EncodingCircuitDerivatives.get_derivative>`
 to obtain the derivative. There are several options to specify the derivative you want to obtain:
 
 1. Provide a string that specifies the derivative you want to obtain. A list of the available
-   strings can be found in the documentation of the :class:`FeatureMapDerivatives` class.
+   strings can be found in the documentation of the :class:`EncodingCircuitDerivatives` class.
 2. Provide a tuple containing the ParameterVector or an element of the ParameterVector to
    obtain higher order derivatives. The derivatives are applied successively following the order in
    the tuple.
@@ -234,13 +234,13 @@ to obtain the derivative. There are several options to specify the derivative yo
 The derivatives are stored in sQUlearn's proprietary OpTree structure, which
 is utilized for the arithmetic operations of the derivatives.
 
-**Example: Obtain the derivative of a QEK feature map**
+**Example: Obtain the derivative of a QEK encoding circuit**
 
 .. code-block:: python
 
-   from squlearn.feature_map import QEKFeatureMap, FeatureMapDerivatives
-   fm = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
-   fm_deriv = FeatureMapDerivatives(fm)
+   from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
+   fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+   fm_deriv = EncodingCircuitDerivatives(fm)
    # From String (gradient of the parameter vector)
    grad_from_string = fm_deriv.get_derivative("dp")
    # From Tuple (second order derivative of the parameter vector; equal to the Hessian)
@@ -250,30 +250,30 @@ is utilized for the arithmetic operations of the derivatives.
                                                fm_deriv.parameter_vector[1]],
                                              ))
 
-Transpile Quantum Feature Maps via :class:`TranspiledFeatureMap`
+Transpile Quantum Encoding Circuits via :class:`TranspiledEncodingCircuit`
 ----------------------------------------------------------------
 
-To transpile a quantum feature map, you can leverage the functionality provided by the
-:class:`TranspiledFeatureMap` class. By utilizing this class, you can input an existing
-quantum feature map and have its circuit transpiled according to the specified backend and
+To transpile a quantum encoding circuit, you can leverage the functionality provided by the
+:class:`TranspiledEncodingCircuit` class. By utilizing this class, you can input an existing
+quantum encoding circuit and have its circuit transpiled according to the specified backend and
 transpiler settings, which are the same settings used in Qiskit.
-The transpiled feature map is internally employed in the QNN program and projected kernels,
+The transpiled encoding circuit is internally employed in the QNN program and projected kernels,
 where it is employed internally.
 
-**Example: Transpile a existing Feature Map to a fake backend**
+**Example: Transpile a existing Encoding Circuit to a fake backend**
 
 .. code-block:: python
 
-   from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
 
-   fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl")
 
 .. plot::
 
-   from squlearn.feature_map import TranspiledFeatureMap,ChebRx
+   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
-   fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
    plt.tight_layout()

@@ -10,11 +10,11 @@ from ..expectation_operator.expectation_operator_derivatives import (
     ExpectationOperatorDerivatives,
 )
 
-from ..feature_map.feature_map_base import FeatureMapBase
-from ..feature_map.feature_map_derivatives import (
-    FeatureMapDerivatives,
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.encoding_circuit_derivatives import (
+    EncodingCircuitDerivatives,
 )
-from ..feature_map.transpiled_feature_map import TranspiledFeatureMap
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
 from ..util.data_preprocessing import adjust_input
 from ..util import Executor
@@ -234,7 +234,7 @@ class QNN:
     """A class for working with QNNs and its derivatives
 
     Args:
-        pqc (FeatureMapBase) : parameterized quantum circuit in feature map format
+        pqc (EncodingCircuitBase) : parameterized quantum circuit in encoding circuit format
         operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
@@ -245,7 +245,7 @@ class QNN:
 
     def __init__(
         self,
-        pqc: FeatureMapBase,
+        pqc: EncodingCircuitBase,
         operator: Union[ExpectationOperatorBase, list],
         executor: Executor,
         optree_caching=True,
@@ -260,7 +260,7 @@ class QNN:
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        self.pqc = TranspiledFeatureMap(pqc, self._executor.backend)
+        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         self.operator = operator
 
         # Set-Up Executor
@@ -359,7 +359,7 @@ class QNN:
         self.operator_derivatives = ExpectationOperatorDerivatives(
             self.operator, self._optree_caching
         )
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -732,7 +732,7 @@ class QNN:
         return self.evaluate_variance(x, param, param_op)
 
     def evaluate_probabilities(self, x: Union[float, np.ndarray], param: Union[float, np.ndarray]):
-        """Evaluate the probabilities of the feature map / PQC.
+        """Evaluate the probabilities of the encoding circuit / PQC.
 
         The function only works with the QuantumInstance executer.
 
@@ -886,13 +886,13 @@ class QNN:
         param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
 
         # build dictionary for later use
-        dict_feature_map = []
+        dict_encoding_circuit = []
         for x_inp_ in x_inp:
             dd = dict(zip(self.pqc_derivatives.feature_vector, x_inp_))
             for param_inp_ in param_inp:
                 ddd = dd.copy()
                 ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
-                dict_feature_map.append(ddd)
+                dict_encoding_circuit.append(ddd)
         dict_operator = [
             dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
         ]
@@ -921,24 +921,24 @@ class QNN:
                 [self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list]
             )
 
-            # get the circuits of the PQC derivatives from the feature map module
+            # get the circuits of the PQC derivatives from the encoding circuit module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
             num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
                 val = OpTree.evaluate.evaluate_with_sampler(
-                    pqc_optree, operators, dict_feature_map, dict_operator, self._sampler
+                    pqc_optree, operators, dict_encoding_circuit, dict_operator, self._sampler
                 )
             elif self._estimator is not None:
                 val = OpTree.evaluate.evaluate_with_estimator(
-                    pqc_optree, operators, dict_feature_map, dict_operator, self._estimator
+                    pqc_optree, operators, dict_encoding_circuit, dict_operator, self._estimator
                 )
             else:
                 raise ValueError("No execution is set!")
 
             # Swapp results into the following order:
             # 1. different expectation operators (op_list)
-            # 2. different input data/ feature map parameters (x_inp,params) -> separated later
+            # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)
             # 5. If there, lists of the operators (e.g. operator derivatives)

@@ -4,18 +4,18 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class HZCRxCRyCRz(FeatureMapBase):
+class HZCRxCRyCRz(EncodingCircuitBase):
     """
-    Feature map with HZ encoding followed by controlled Rx, Ry Rz rotations.
+    Encoding circuit with HZ encoding followed by controlled Rx, Ry Rz rotations.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 1 layer:**
 
     .. plot::
 
-        from squlearn.feature_map import HZCRxCRyCRz
+        from squlearn.encoding_circuit import HZCRxCRyCRz
         pqc = HZCRxCRyCRz(4, 2, 1)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
@@ -26,7 +26,7 @@ class HZCRxCRyCRz(FeatureMapBase):
     redundant in a fidelity kernel setting.
 
     Args:
-        num_qubits (int): Number of qubits of the HZCRxCRyCRz feature map
+        num_qubits (int): Number of qubits of the HZCRxCRyCRz encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled;
@@ -53,7 +53,7 @@ class HZCRxCRyCRz(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the HZCRxCRyCRz feature map."""
+        """The number of trainable parameters of the HZCRxCRyCRz encoding circuit."""
         num_param = 3 * (self.num_qubits - 1) * self.num_layers
         if self.closed:
             num_param += 3 * self.num_layers
@@ -61,12 +61,12 @@ class HZCRxCRyCRz(FeatureMapBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the HZCRxCRyCRz feature map."""
+        """The bounds of the trainable parameters of the HZCRxCRyCRz encoding circuit."""
         return np.array([[-2.0 * np.pi, 2.0 * np.pi]] * self.num_parameters)
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the HZCRxCRyCRz feature map
+        Returns hyper-parameters and their values of the HZCRxCRyCRz encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -87,7 +87,7 @@ class HZCRxCRyCRz(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the HZCRxCRyCRz feature map
+        Returns the circuit of the HZCRxCRyCRz encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -108,7 +108,7 @@ class HZCRxCRyCRz(FeatureMapBase):
         ioff = 0
 
         for ilayer in range(self.num_layers):
-            # First ZZ-feature map
+            # First ZZ-encoding circuit
             QC.h(range(self.num_qubits))
             for i in range(self.num_qubits):
                 QC.rz(features[i % nfeature], i)

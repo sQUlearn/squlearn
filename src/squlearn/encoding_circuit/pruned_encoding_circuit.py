@@ -7,55 +7,55 @@ import warnings
 from typing import Union, Tuple
 from qiskit import QuantumCircuit
 
-from .feature_map_base import FeatureMapBase
+from .encoding_circuit_base import EncodingCircuitBase
 
 from ..util.data_preprocessing import adjust_input
 from ..util.qfi import get_quantum_fisher
 from ..util.executor import Executor
 
 
-class PrunedFeatureMap(FeatureMapBase):
+class PrunedEncodingCircuit(EncodingCircuitBase):
 
     """
-    Class for pruning redundant parameter of feature maps.
+    Class for pruning redundant parameter of encoding circuits.
 
-    This class is designed to accept a feature map and selectively prune parameters
-    based on a provided list of indices. The pruned feature map can be used as a usual feature map.
+    This class is designed to accept a encoding circuit and selectively prune parameters
+    based on a provided list of indices. The pruned encoding circuit can be used as a usual encoding circuit.
 
-    **Example: Pruned QEK Feature Map**
+    **Example: Pruned QEK Encoding Circuit**
 
     .. code-block:: python
 
-        from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
-        fm = QEKFeatureMap(4,2,2)
+        from squlearn.encoding_circuit import QEKEncodingCircuit,PrunedEncodingCircuit
+        fm = QEKEncodingCircuit(4,2,2)
         fm.draw()
-        PrunedFeatureMap(fm,[4,7,11,15]).draw()
+        PrunedEncodingCircuit(fm,[4,7,11,15]).draw()
 
     .. plot::
 
-        from squlearn.feature_map import QEKFeatureMap,PrunedFeatureMap
-        fm = QEKFeatureMap(4,2,2)
+        from squlearn.encoding_circuit import QEKEncodingCircuit,PrunedEncodingCircuit
+        fm = QEKEncodingCircuit(4,2,2)
         plt = fm.draw(output="mpl")
-        plt.suptitle("QEK Feature Map", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
+        plt.suptitle("QEK Encoding Circuit", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
         plt.tight_layout()
-        plt2 = PrunedFeatureMap(fm,[4,7,11,15]).draw(output="mpl")
-        plt2.suptitle("Pruned Feature Map", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
+        plt2 = PrunedEncodingCircuit(fm,[4,7,11,15]).draw(output="mpl")
+        plt2.suptitle("Pruned Encoding Circuit", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
         plt2.tight_layout()
 
     Args:
-        feature_map (FeatureMapBase): FeatureMap from which the parameters are removed
+        encoding_circuit (EncodingCircuitBase): EncodingCircuit from which the parameters are removed
         pruned_parameters (list): list with indices of the redundant parameters
 
     """
 
-    def __init__(self, feature_map: FeatureMapBase, pruned_parameters: list):
-        self._feature_map = feature_map
+    def __init__(self, encoding_circuit: EncodingCircuitBase, pruned_parameters: list):
+        self._encoding_circuit = encoding_circuit
         self._pruned_parameters = pruned_parameters
 
         # Read in the original pqc
-        self._x_base = ParameterVector("x_base", self._feature_map.num_features)
-        self._p_base = ParameterVector("p_base", self._feature_map.num_parameters)
-        self._base_circuit = self._feature_map.get_circuit(self._x_base, self._p_base)
+        self._x_base = ParameterVector("x_base", self._encoding_circuit.num_features)
+        self._p_base = ParameterVector("p_base", self._encoding_circuit.num_parameters)
+        self._base_circuit = self._encoding_circuit.get_circuit(self._x_base, self._p_base)
 
         # create pruned circuit
         del_list = []
@@ -110,9 +110,9 @@ class PrunedFeatureMap(FeatureMapBase):
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
         self._pruned_circuit.assign_parameters(exchange_both, inplace=True)
-        self._num_qubits = self._feature_map.num_qubits
+        self._num_qubits = self._encoding_circuit.num_qubits
         self._num_features = len(self._x)
-        if self._num_features != self._feature_map._num_features:
+        if self._num_features != self._encoding_circuit._num_features:
             warnings.warn("Number of features changed in the pruning process!", RuntimeWarning)
 
     @property
@@ -122,19 +122,19 @@ class PrunedFeatureMap(FeatureMapBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Feature bounds of the pruned feature map."""
-        bounds = self._feature_map.feature_bounds
+        """Feature bounds of the pruned encoding circuit."""
+        bounds = self._encoding_circuit.feature_bounds
         return np.delete(bounds, self._pruned_features, 0)
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """Parameter bounds of the pruned feature map."""
-        bounds = self._feature_map.parameter_bounds
+        """Parameter bounds of the pruned encoding circuit."""
+        bounds = self._encoding_circuit.parameter_bounds
         return np.delete(bounds, self._pruned_parameters, 0)
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the pruned feature map.
+        Generates random parameters for the pruned encoding circuit.
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -142,13 +142,13 @@ class PrunedFeatureMap(FeatureMapBase):
         Return:
             The randomly generated parameters
         """
-        param = self._feature_map.generate_initial_parameters(seed)
+        param = self._encoding_circuit.generate_initial_parameters(seed)
         return np.delete(param, self._pruned_parameters, 0)
 
     @property
-    def origin_feature_map(self) -> FeatureMapBase:
-        """Feature map that is pruned"""
-        return self._feature_map
+    def origin_encoding_circuit(self) -> EncodingCircuitBase:
+        """Encoding circuit that is pruned"""
+        return self._encoding_circuit
 
     def get_circuit(
         self,
@@ -156,7 +156,7 @@ class PrunedFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Generates and returns the circuit of the pruned feature map.
+        Generates and returns the circuit of the pruned encoding circuit.
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -165,7 +165,7 @@ class PrunedFeatureMap(FeatureMapBase):
                                                            from which the gate inputs are obtained
 
         Return:
-            The circuit in Qiskit's QuantumCircuit format of the pruned feature map.
+            The circuit in Qiskit's QuantumCircuit format of the pruned encoding circuit.
         """
 
         if len(features) != len(self._x):
@@ -181,7 +181,7 @@ class PrunedFeatureMap(FeatureMapBase):
 
 
 def automated_pruning(
-    feature_map: FeatureMapBase,
+    encoding_circuit: EncodingCircuitBase,
     executor: Executor,
     n_sample: int = 1,
     pruning_thresh: float = 1e-10,
@@ -191,7 +191,7 @@ def automated_pruning(
     p_val: Union[Tuple[float, float], None] = None,
     verbose: int = 1,
     seed: Union[int, None] = None,
-) -> PrunedFeatureMap:
+) -> PrunedEncodingCircuit:
     """
     Function for automated pruning of the parameters in the inputted parameterized quantum circuit.
 
@@ -199,8 +199,8 @@ def automated_pruning(
     https://doi.org/10.1103/PRXQuantum.2.040309.
 
     Args:
-        feature_map (FeatureMapBase): Parameterized quantum circuit that will be pruned.
-                                      Has to be in the feature_map format of quantum_fit!
+        encoding_circuit (EncodingCircuitBase): Parameterized quantum circuit that will be pruned.
+                                      Has to be in the encoding_circuit format of quantum_fit!
         executor (Executor): Executor for evaluating the Quantum Fisher Information Matrix
         n_sample (int): Number of random parameter values and input data that is generated.
                                (if ``x_val=None`` and ``p_val=None``, the number of
@@ -220,7 +220,7 @@ def automated_pruning(
         seed (int): Seed for the random input data and parameters generation.
 
     Returns:
-        Pruned feature_map as a PrunedFeatureMap class object.
+        Pruned encoding_circuit as a PrunedEncodingCircuit class object.
     """
 
     # Set-up default limits
@@ -236,30 +236,30 @@ def automated_pruning(
 
     # Process x-values
     if x_val is not None:
-        x_val, multi = adjust_input(x_val, feature_map.num_features)
+        x_val, multi = adjust_input(x_val, encoding_circuit.num_features)
         if not isinstance(x_val, np.ndarray):
             x = np.array(x_val)
         else:
             x = x_val
-        if x.shape[1] != feature_map.num_features:
+        if x.shape[1] != encoding_circuit.num_features:
             raise ValueError("Wrong size of the input x_val")
     else:
         x = np.random.uniform(
-            low=x_lim[0], high=x_lim[1], size=(n_sample, feature_map.num_features)
+            low=x_lim[0], high=x_lim[1], size=(n_sample, encoding_circuit.num_features)
         )
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_input(p_val, feature_map.num_parameters)
+        p_val, multi = adjust_input(p_val, encoding_circuit.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:
             p = p_val
-        if p.shape[1] != feature_map.num_parameters:
+        if p.shape[1] != encoding_circuit.num_parameters:
             raise ValueError("Wrong size of the input p_val")
     else:
         p = np.random.uniform(
-            low=p_lim[0], high=p_lim[1], size=(n_sample, feature_map.num_parameters)
+            low=p_lim[0], high=p_lim[1], size=(n_sample, encoding_circuit.num_parameters)
         )
 
     # Reset numpy random state
@@ -267,8 +267,8 @@ def automated_pruning(
         np.random.set_state(seed_backup)
 
     # Calculate QIF for all x and parameter combinations and average over all fishers
-    qfis = get_quantum_fisher(feature_map, x, p, executor, mode="p")
-    fishers = np.zeros((feature_map.num_parameters, feature_map.num_parameters))
+    qfis = get_quantum_fisher(encoding_circuit, x, p, executor, mode="p")
+    fishers = np.zeros((encoding_circuit.num_parameters, encoding_circuit.num_parameters))
     count = 0
     for ix in range(len(x)):
         for ip in range(len(p)):
@@ -282,8 +282,8 @@ def automated_pruning(
     if verbose >= 1:
         print("Pruned parameters:", np.sort(pruning_list))
 
-    # Return pruned feature_map
-    return PrunedFeatureMap(feature_map, pruning_list)
+    # Return pruned encoding_circuit
+    return PrunedEncodingCircuit(encoding_circuit, pruning_list)
 
 
 def pruning_from_QFI(QFI: np.ndarray, pruning_thresh: float = 1e-10) -> list:

@@ -10,7 +10,7 @@ from .loss import LossBase, VarianceLoss
 from .training import solve_mini_batch, regression
 
 from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..feature_map.feature_map_base import FeatureMapBase
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -24,8 +24,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     Mini-batch training is possible.
 
     Args:
-        feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
-            For a list of feature maps, check this list of implemented :ref:`feature_maps`.
+        encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the QNN.
+            For a list of encoding circuits, check this list of implemented :ref:`encoding_circuit`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
@@ -58,7 +58,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.feature_map import ChebRx
+        from squlearn.encoding_circuit import ChebRx
         from squlearn.expectation_operator import SummedPaulis
         from squlearn.qnn import QNNClassifier, SquaredLoss
         from squlearn.optimizers import SLSQP
@@ -89,7 +89,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
+        encoding_circuit: EncodingCircuitBase,
         operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
         executor: Executor,
         loss: LossBase,
@@ -105,7 +105,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         **kwargs,
     ) -> None:
         super().__init__(
-            feature_map,
+            encoding_circuit,
             operator,
             executor,
             loss,

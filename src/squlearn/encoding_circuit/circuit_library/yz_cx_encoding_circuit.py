@@ -3,26 +3,26 @@ from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class YZ_CX_FeatureMap(FeatureMapBase):
+class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     """
-    Creates the YZ-CX Feature Map from Reference https://arxiv.org/abs/2108.01039v3
+    Creates the YZ-CX Encoding Circuit from Reference https://arxiv.org/abs/2108.01039v3
 
     **Example for 4 qubits, a 4 dimensional feature vector, 2 layers and c = 2.0:**
 
     .. plot::
 
-        from squlearn.feature_map import YZ_CX_FeatureMap
-        pqc = YZ_CX_FeatureMap(4, 4, 2, c=2.0)
+        from squlearn.encoding_circuit import YZ_CX_EncodingCircuit
+        pqc = YZ_CX_EncodingCircuit(4, 4, 2, c=2.0)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     One combination of Ry and Rz is considered as a single layer.
 
     Args:
-        num_qubits (int): Number of qubits of the YZ-CX Feature Map feature map
+        num_qubits (int): Number of qubits of the YZ-CX Encoding Circuit encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         c (float): Prefactor :math:`c` for rescaling the data (default: 1.0)
@@ -38,27 +38,27 @@ class YZ_CX_FeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the YZ-CX Feature Map feature map."""
+        """The number of trainable parameters of the YZ-CX Encoding Circuit encoding circuit."""
         return 2 * self.num_qubits * self._num_layers
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the YZ-CX Feature Map feature map."""
+        """The bounds of the trainable parameters of the YZ-CX Encoding Circuit encoding circuit."""
         return np.array([[-np.pi, np.pi]] * self.num_parameters)
 
     @property
     def num_layers(self) -> int:
-        """The number of layers of the YZ-CX Feature Map feature map."""
+        """The number of layers of the YZ-CX Encoding Circuit encoding circuit."""
         return self._num_layers
 
     @property
     def c(self) -> int:
-        """The prefactor :math:`c` of the YZ-CX Feature Map feature map."""
+        """The prefactor :math:`c` of the YZ-CX Encoding Circuit encoding circuit."""
         return self._c
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the YZ-CX Feature Map feature map
+        Returns hyper-parameters and their values of the YZ-CX Encoding Circuit encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -78,7 +78,7 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit of the YZ-CX feature map.
+        Return the circuit of the YZ-CX encoding circuit.
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -93,7 +93,7 @@ class YZ_CX_FeatureMap(FeatureMapBase):
         nfeature = len(features)
         nparam = len(parameters)
 
-        # Creates the layers of the feature map
+        # Creates the layers of the encoding circuit
         QC = QuantumCircuit(self.num_qubits)
         ioff = 0
         for ilayer in range(self.num_layers):
