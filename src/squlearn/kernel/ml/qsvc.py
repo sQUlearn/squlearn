@@ -95,6 +95,7 @@ class QSVC(SVC):
     @classmethod
     def _get_param_names(cls):
         names = SVC._get_param_names()
+        names.remove("kernel")
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")
