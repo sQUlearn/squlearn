@@ -2,9 +2,9 @@
 
 .. currentmodule:: squlearn.encoding_circuit
 
-####################
+##########################
 Quantum Encoding Circuits
-####################
+##########################
 
 Quantum encoding circuits are used to embed classical data :math:`x` into a quantum state and manipulate
 the quantum state via trainable parameters :math:`p`.
@@ -22,7 +22,7 @@ enables the automatic differentiation of arbitrary derivative.
 The following functions and classes are are accessible via :class:`squlearn.encoding_circuit`.
 
 Implemented Quantum Encoding Circuits
------------------------------------
+--------------------------------------
 
 There are several Quantum Encoding Circuits implemented in sQUlearn:
 
@@ -59,7 +59,7 @@ Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pu
 
 
 Combining Quantum Encoding Circuits
-------------------------------
+--------------------------------------
 In sQUlearn, quantum encoding circuits can be combined to create more sophisticated encoding circuits by
 utilizing the ``+`` operation between two encoding circuits. However, it is important to note that
 the number of qubits in both encoding circuits must match for successful combination.
@@ -92,7 +92,7 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 
 Wrapping Qiskit Encoding Circuits
-----------------------------
+--------------------------------------
 
 It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to build Encoding Circuits from the
 `Qiskit circuit library <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
@@ -115,7 +115,7 @@ It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to bui
 
 
 Create your custom Encoding Circuit via :class:`LayeredEncodingCircuit`
--------------------------------------------------------------
+------------------------------------------------------------------------
 
 sQUlearn offers a user-friendly solution for creating custom layered encoding circuits effortlessly.
 Layered encoding circuits involve the application of gates to all qubits, ensuring a comprehensive
@@ -177,7 +177,7 @@ the :class:`LayeredEncodingCircuit` class.
    plt.tight_layout()
 
 Pruning of Quantum Encoding Circuits
--------------------------------
+--------------------------------------
 
 It is also possible to remove parameterized gates from a quantum encoding circuit by using the
 :class:`PrunedEncodingCircuit` class.
@@ -212,7 +212,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
    plt.tight_layout()
 
 Different Quantum Encoding Circuits via :class:`EncodingCircuitDerivatives`
------------------------------------------------------------------
+----------------------------------------------------------------------------
 
 The calculation of derivatives for quantum encoding circuits is often essential in training a
 Quantum Machine Learning model. In sQUlearn, we offer a straightforward approach to compute
@@ -251,7 +251,7 @@ is utilized for the arithmetic operations of the derivatives.
                                              ))
 
 Transpile Quantum Encoding Circuits via :class:`TranspiledEncodingCircuit`
-----------------------------------------------------------------
+---------------------------------------------------------------------------
 
 To transpile a quantum encoding circuit, you can leverage the functionality provided by the
 :class:`TranspiledEncodingCircuit` class. By utilizing this class, you can input an existing
