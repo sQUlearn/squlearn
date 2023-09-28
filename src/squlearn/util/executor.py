@@ -28,6 +28,7 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
+from qiskit.exceptions import QiskitError
 
 
 class Executor:
@@ -489,6 +490,8 @@ class Executor:
             A qiskit job containing the results of the run.
         """
         success = False
+        critical_error = False
+        critical_error_message = None
 
         for repeat in range(self._max_jobs_retries):
             try:
@@ -499,6 +502,7 @@ class Executor:
                     job = self._cache.get_file(hash_value)
 
                 if job is None:
+                    # TODO: try and except errors 
                     job = run()
                     self._logger.info(
                         f"Executor runs " + label + f" with job: {{}}".format(job.job_id())
@@ -506,6 +510,10 @@ class Executor:
                 else:
                     self._logger.info(f"Cached job found with hash value: {{}}".format(hash_value))
                     cached = True
+
+            except QiskitError as e:
+                critical_error=True
+                critical_error_message = e
 
             except IBMRuntimeError as e:
                 if '"code":1217' in e.message:
@@ -516,13 +524,14 @@ class Executor:
                     )
                     self._session_active = False
                     continue
+
             except Exception as e:
+                print("test exception")
                 self._logger.info(
                     f"Executor failed to run " + label + f" because of unknown error!"
                 )
                 self._logger.info(f"Error message: {{}}".format(e))
                 self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-                continue
 
             # Wait for the job to complete
             if not cached:
@@ -552,10 +561,18 @@ class Executor:
             # Job is completed, check if it was successful
             if status == JobStatus.ERROR:
                 self._logger.info(f"Failed executation of the job!")
-                self._logger.info(f"Error message: {{}}".format(job.error_message()))
+                try:
+                    self._logger.info(f"Error message: {{}}".format(job.error_message()))
+                except Exception as e:
+                    try:
+                        job.result()
+                    except Exception as e2:
+                        pass
+                        critical_error = True
+                        critical_error_message = e2
             elif status == JobStatus.CANCELLED:
-                self._logger.info(f"Throwing RuntimeError, since the job is manually canceled!")
-                raise RuntimeError(f"Job manually canceled!")
+                self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
+                self._logger.info(f"To stop resubmitting the job, cancel the execution script first.")
             else:
                 success = True
                 result_success = False
@@ -566,7 +583,6 @@ class Executor:
                         result_success = True
                     except RuntimeJobFailureError as e:
                         self._logger.info(f"Executor unable to retriev job result!")
-                        self._logger.info(f"Error message: {{}}".format(e))
                         self._logger.info(f"Error message: {{}}".format(e))
                     except Exception as e:
                         self._logger.info(
@@ -587,6 +603,10 @@ class Executor:
                 success = False
                 result_success = False
 
+            if critical_error:
+                self._logger.info(f"Critical error detected; abort execution")
+                raise critical_error_message
+
         if success is not True:
             raise RuntimeError(
                 f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
@@ -602,7 +622,10 @@ class Executor:
             job_pickle._service = None
             job_pickle._ws_client_future = None
             job_pickle._ws_client = None
-            job_pickle._backend = str(job.backend())
+            try:
+                job_pickle._backend = str(job.backend())
+            except QiskitError:
+                job_pickle._backend = self.backend
 
             # overwrite result function with the obtained result
             def result_():

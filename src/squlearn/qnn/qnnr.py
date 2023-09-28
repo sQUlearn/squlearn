@@ -49,6 +49,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
             parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
         caching (bool, default=True): If True, the results of the QNN are cached.
+        pretrained (bool, default=False): Set to true if the supplied parameters are already
+                                          trained.
 
     See Also
     --------
@@ -103,6 +105,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
+        pretrained: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -120,6 +123,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             variance,
             parameter_seed=parameter_seed,
             caching=caching,
+            pretrained=pretrained,
             **kwargs,
         )
 
@@ -132,7 +136,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        if not self._is_fitted:
+        if not self._is_fitted and not self.pretrained:
             warn("The model is not fitted.")
         return self._qnn.evaluate_f(X, self._param, self._param_op)
 
