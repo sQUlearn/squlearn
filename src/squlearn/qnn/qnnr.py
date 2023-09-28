@@ -25,7 +25,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     Args:
         encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the QNN.
-            For a list of encoding circuits, check this list of implemented :ref:`encoding_circuit`.
+            For a list of encoding circuits, check this list of implemented :ref:`encoding_circuits`.
         operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
