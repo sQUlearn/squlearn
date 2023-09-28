@@ -526,7 +526,8 @@ class Executor:
                     continue
 
             except Exception as e:
-                print("test exception")
+                critical_error=True
+                critical_error_message = e
                 self._logger.info(
                     f"Executor failed to run " + label + f" because of unknown error!"
                 )
@@ -723,6 +724,7 @@ class Executor:
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
+    @ property
     def optree_executor(self) -> str:
         """A string that indicates which executor is used for OpTree execution."""
         if self._estimator is not None:
