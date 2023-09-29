@@ -133,9 +133,9 @@ class QSVR(SVR):
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
-        
+
         self_params = self.get_params(deep=False).keys() & params.keys()
-        for  key in self_params:
+        for key in self_params:
             try:
                 setattr(self, key, params[key])
             except AttributeError:
