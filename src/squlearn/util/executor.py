@@ -502,7 +502,7 @@ class Executor:
                     job = self._cache.get_file(hash_value)
 
                 if job is None:
-                    # TODO: try and except errors 
+                    # TODO: try and except errors
                     job = run()
                     self._logger.info(
                         f"Executor runs " + label + f" with job: {{}}".format(job.job_id())
@@ -510,10 +510,6 @@ class Executor:
                 else:
                     self._logger.info(f"Cached job found with hash value: {{}}".format(hash_value))
                     cached = True
-
-            except QiskitError as e:
-                critical_error=True
-                critical_error_message = e
 
             except IBMRuntimeError as e:
                 if '"code":1217' in e.message:
@@ -524,6 +520,10 @@ class Executor:
                     )
                     self._session_active = False
                     continue
+
+            except QiskitError as e:
+                critical_error=True
+                critical_error_message = e
 
             except Exception as e:
                 critical_error=True
@@ -874,7 +874,6 @@ class Executor:
 
     def close_session(self):
         """Closes the current session, is called automatically."""
-        print("session closed!")
         if self._session is not None:
             self._logger.info(f"Executor closed session: {{}}".format(self._session.session_id))
             self._session.close()
