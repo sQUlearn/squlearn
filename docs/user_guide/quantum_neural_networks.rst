@@ -113,12 +113,6 @@ we use a summation over a Pauli Z observable for each qubit and a constant offse
 
     op = SummedPaulis(num_qubits=4)
 
-.. plot::
-    from squlearn.expectation_operator import SummedPaulis
-    op = SummedPaulis(num_qubits=4)
-    print(op)
-
-
 Other expectation operators can be found in the user guide on :ref:`operators`.
 
 Now we can construct a QNN from the encoding circuit and the cost operator.
