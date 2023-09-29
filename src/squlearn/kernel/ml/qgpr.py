@@ -233,27 +233,23 @@ class QGPR(BaseEstimator, RegressorMixin):
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
-        valid_params_qgpr = self.get_params(deep=False)
-        for key, value in params.items():
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-            # Set parameters of the QGPR
-            if key in valid_params_qgpr:
-                try:
-                    setattr(self, key, value)
-                except:
-                    setattr(self, "_" + key, value)
+        # Set parameters of the QGPR
+        self_params = self.get_params(deep=False).keys() & params.keys()
+        for key in self_params:
+            try:
+                setattr(self, key, params[key])
+            except AttributeError:
+                setattr(self, "_" + key, params[key])
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        valid_params = self._quantum_kernel.get_params().keys()
-        for key, value in params.items():
-            if key in valid_params:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self._quantum_kernel.set_params(**param_dict)
+        quantum_kernel_params = self._quantum_kernel.get_params().keys() & params.keys()
+        if quantum_kernel_params:
+            self._quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
         return self

@@ -179,7 +179,7 @@ class BaseQNN(BaseEstimator, ABC):
         qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
         if qnn_params:
             self._qnn.set_params(
-                **{key: value for key, value in params.items() if key in qnn_params}
+                **{key: params[key] for key in qnn_params}
             )
 
             # If the number of parameters has changed, reinitialize the parameters
