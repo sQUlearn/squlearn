@@ -73,18 +73,14 @@ class QSVR(SVR):
         self.quantum_kernel = quantum_kernel
 
         # Apply kwargs to set_params of quantum kernel
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
-        set_quantum_kernel_params_dict = {}
-        for key, value in kwargs.items():
-            if key in valid_params_quantum_kernel:
-                set_quantum_kernel_params_dict[key] = value
-
-        if len(set_quantum_kernel_params_dict) > 0:
-            self.quantum_kernel.set_params(**set_quantum_kernel_params_dict)
-
-        # remove quantum_kernel_kwargs for SVR initialization
-        for key in set_quantum_kernel_params_dict:
-            kwargs.pop(key, None)
+        quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
+        if quantum_kernel_update_params:
+            self.quantum_kernel.set_params(
+                **{key: kwargs[key] for key in quantum_kernel_update_params}
+            )
+            # remove quantum_kernel_kwargs for SVR initialization
+            for key in quantum_kernel_update_params:
+                kwargs.pop(key, None)
 
         super().__init__(
             kernel=self.quantum_kernel.evaluate,
@@ -94,6 +90,7 @@ class QSVR(SVR):
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
+        names.remove("kernel")
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")
@@ -129,28 +126,23 @@ class QSVR(SVR):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
-        valid_params = self.get_params(deep=True)
-        valid_params_qsvr = self.get_params(deep=False)
-        valid_params_quantum_kernel = self.quantum_kernel.get_params(deep=True)
-        for key, value in params.items():
+        valid_params = self.get_params(deep=True).keys()
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-            # Set parameters of the QSVR
-            if key in valid_params_qsvr:
-                try:
-                    setattr(self, key, value)
-                except:
-                    setattr(self, "_" + key, value)
+        self_params = self.get_params(deep=False).keys() & params.keys()
+        for key in self_params:
+            try:
+                setattr(self, key, params[key])
+            except AttributeError:
+                setattr(self, "_" + key, params[key])
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        for key, value in params.items():
-            if key in valid_params_quantum_kernel:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self.quantum_kernel.set_params(**param_dict)
+        quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
+        if quantum_kernel_params:
+            self.quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
         return self
