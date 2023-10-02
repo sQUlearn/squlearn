@@ -117,7 +117,7 @@ along with a constant offset:
 
     op = SummedPaulis(num_qubits=4)
 
-Other expectation operators can be found in the user guide on :ref:`operators`.
+Other expectation operators can be found in the user guide on :ref:`user_guide_operators`.
 
 Now we can construct a QNN from the encoding circuit and the cost operator.
 sQUlearn offers two easy-to-use implementation of QNNs, either for regression or classification:
@@ -249,18 +249,16 @@ The noise level of the model thus depends on its variance, which can be calculat
     \sigma_f^2 = \langle\Psi\lvert\hat{C}^2\rvert\Psi\rangle -
     \langle\Psi\lvert\hat{C}\rvert\Psi\rangle^2 \text{.}
 
-:numref:`fig_qnn_output_high_var` shows the output of a :class:`QNNRegressor` fit to a logarithm
+Fig. 1 shows the output of a :class:`QNNRegressor` fit to a logarithm
 with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
 :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
 The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
 yields a high variance in the model output.
 
-
 .. plot::
-    :caption: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
+    :caption: Figure 1: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
               :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
     :align: center
-    :target: fig_qnn_output_high_var
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -317,15 +315,13 @@ takes the keyword argument ``iteration`` to dynamically adjust the factor. Value
 :math:`10^{-2}` and :math:`10^{-4}` have shown to yield satisfying results. `[1]`_
 
 Evaluation on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` now yields less variance
-in the model, as depicted in :numref:`fig_qnn_output_low_var`.
-
+in the model, as depicted in Fig. 2.
 
 .. plot::
-    :caption: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
+    :caption: Figure 2: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
               regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
               The QNN output has a low variance.
     :align: center
-    :target: fig_qnn_output_low_var
 
     import numpy as np
     import matplotlib.pyplot as plt

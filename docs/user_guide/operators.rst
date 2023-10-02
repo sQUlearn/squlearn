@@ -1,4 +1,4 @@
-.. _operators:
+.. _user_guide_operators:
 
 ################################
 Operators for expectation values

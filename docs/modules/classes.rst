@@ -196,14 +196,24 @@ QNN Core
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
 
+Implemented optimizers
+------------------------------------
+
 .. automodule:: squlearn.optimizers
     :no-members:
     :no-inherited-members:
 
-   optimizers.adam.Adam
-   optimizers.optimizers_wrapper.LBFGSB
-   optimizers.optimizers_wrapper.SLSQP
-   optimizers.optimizers_wrapper.SPSA
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   optimizers.Adam
+   optimizers.LBFGSB
+   optimizers.SLSQP
+   optimizers.SPSA
 
 OpTree Data Structure
 ------------------------------------
