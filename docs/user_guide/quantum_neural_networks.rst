@@ -79,13 +79,15 @@ error between the QNN's output and the target value.
 High-level methods for QNNs
 ====================================
 
-In this section, we will demonstrate how to construct a simple QNN using sQUlearn.
-A QNN is constructed from an encoding circuit, i.e. a parameterized quantum circuit, and a cost
-operator.
-In sQUlearn there are specific classes for the encoding circuits, :class:`EncodingCircuit`,
-and the cost operators, :class:`CostOperator`, which we will use in the following example.
+In this section, we will illustrate the process of constructing a QNN using sQUlearn.
+A QNN is composed of two main components: an encoding circuit, which is essentially a
+parameterized quantum circuit, and a cost operator.
 
-In the example we construct a encoding circuit based on the Chebyshev input encoding:
+In sQUlearn, we have dedicated classes for these components: :class:`EncodingCircuit`
+and :class:`CostOperator`, both of which we will utilize in the upcoming example.
+
+In the following cell, we will build an encoding circuit based on the Chebyshev input encoding
+method:
 
 .. code-block:: python
 
@@ -101,11 +103,13 @@ In the example we construct a encoding circuit based on the Chebyshev input enco
     pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
     plt.tight_layout()
 
-There are several other encoding circuits available in sQUlearn, which can be found in the
-user guide on :ref:`quantum_feature_maps`.
 
-Additionally we have to define a observable to compute the oupout of the QNN. In this example
-we use a summation over a Pauli Z observable for each qubit and a constant offset:
+There are several alternative encoding circuits at your disposal in sQUlearn, which you can
+explore in the user guide located at :ref:`quantum_feature_maps`.
+
+The second ingredient is to specify an observable for computing the QNN's output. In this
+particular example, we employ a summation over a Pauli Z observable for each qubit,
+along with a constant offset:
 
 .. code-block:: python
 
@@ -126,9 +130,9 @@ sQUlearn offers two easy-to-use implementation of QNNs, either for regression or
 
 We refer to the documentations and examples of the respective classes for in-depth information.
 
-In the following example we will use a :class:`QNNRegressor`, the encoding circuit and
-expectation operator as defined above, as well as a mean squared error loss function and the
-Adam optimizer for optimization.
+In the following example we will use a :class:`QNNRegressor`, the encoding circuit, and
+the observable as defined above. Additionally, we utilize the mean squared error loss function
+and the Adam optimizer for optimization.
 
 .. code-block:: python
 
@@ -154,7 +158,8 @@ The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>`
 
     qnn.fit(x_train, y_train)
 
-The inference of the QNN can be calculated using the :meth:`predict <squlearn.qnn.QNNRegressor.predict>` method:
+The inference of the QNN is calculated using the
+:meth:`predict <squlearn.qnn.QNNRegressor.predict>` method:
 
 .. code-block:: python
 
@@ -165,7 +170,7 @@ The inference of the QNN can be calculated using the :meth:`predict <squlearn.qn
 Optimization
 ============
 
-To train a QNN's parameters, sQUlearn offers a lot of possibilities for modification. In this
+sQUlearn offers a lot of possibilities to train a QNN's parameters. In this
 section we will show, how to use :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>`,
 as an example for a wrapped scipy optimizer, and :class:`Adam <squlearn.optimizers.adam.Adam>`
 with mini-batch gradient descent to optimize the loss function.
@@ -178,18 +183,15 @@ and :class:`LBFGSB <squlearn.optimizers.optimizers_wrapper.LBFGSB>`, for scipy's
 L-BFGS-B implementations as well as the wrapper function
 :class:`SPSA <squlearn.optimizers.optimizers_wrapper.SPSA>` for Qiskit's SPSA implementation.
 We show how to import and use :class:`SLSQP <squlearn.optimizers.optimizers_wrapper.SLSQP>`
-in the following code block.
+in the following code block, other optimization methods can be used analogously.
 
 .. code-block:: python
 
     from squlearn.optimizers import SLSQP
 
     ...
-
-    slsqp = SLSQP(options=options_dict)
-
+    slsqp = SLSQP(options={"maxiter": 100})
     ...
-
     reg = QNNRegressor(
         ...
         optimizer=slsqp,
@@ -230,18 +232,17 @@ code block.
         ...
     )
 
-Using the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer allows us to specify further
-hyper parameters such as ``batch_size``, ``epochs`` and ``shuffle``. ``batch_size`` and ``epochs``
-are positive numbers of type :class:`int` and ``shuffle`` is a :class:`bool` which specifies,
-whether data points are shuffled before each epoch.
+Using SGD optimizers like the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer allows us
+to specify further hyper parameters such as ``batch_size``, ``epochs`` and ``shuffle``.
+The parameters ``batch_size`` and ``epochs`` are positive numbers of type :class:`int` and
+``shuffle`` is a :class:`bool` which specifies, whether data points are shuffled before each epoch.
 
 Variance reduction
 ==================
 
 When evaluating a pretrained QNN on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` or
-on real hardware, the model will be subject to randomness due to the inherent nature of
-quantum mechanics. The overall performance of the model thus depends on its variance, which can
-be calculated as
+on real hardware, the model output will be subject to randomness due to the finite number of shots.
+The noise level of the model thus depends on its variance, which can be calculated as
 
 .. math::
 
@@ -250,16 +251,42 @@ be calculated as
 
 :numref:`fig_qnn_output_high_var` shows the output of a :class:`QNNRegressor` fit to a logarithm
 with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
-:class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The model is subject to high variance.
+:class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
+The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
+yields a high variance in the model output.
 
-.. _fig_qnn_output_high_var:
-.. figure:: ../_static/qnn/qnn_output_high_var.svg
-    :alt: QNN Output with high variance
-    :width: 600
+
+.. plot::
+    :caption: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
+              :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
     :align: center
+    :target: fig_qnn_output_high_var
 
-    Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
-    :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from squlearn import Executor
+    from squlearn.feature_map import ChebRx
+    from squlearn.expectation_operator import IsingHamiltonian
+    from squlearn.qnn import QNNRegressor, SquaredLoss
+    from squlearn.optimizers import SLSQP
+    nqubits = 4
+    number_of_layers = 2
+    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    qasm = Executor("qasm_simulator")
+    qasm.set_shots(5000)
+    ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
+    param = np.array([ 0.91858145, -1.1163345,   0.38467092,  1.39597102,  1.10224011,  2.41369111,
+    1.64968778, -0.81903595,  0.4867727,   0.38505193,  1.10635672,  0.72867129,
+    -1.74881862, -0.64411871,  0.86344117, -0.91471452])
+    param_op = np.array([-0.47157523,  5.10755673,  2.63075629])
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    x = np.arange(np.min(0.1), np.max(0.8), 0.005)
+    y = qnn_qasm.predict(x)
+    plt.plot(x, np.log(x))
+    plt.plot(x, y)
+    plt.title("QNN inference without variance regularization")
+    plt.legend([r"$\log(x)$", r"$f(\theta, x)$"])
+    plt
 
 We can mitigate this problem by adding the models variance to the loss function
 :math:`L_\text{fit}` and thus regularizing for variance. We do this by setting the `variance`
@@ -282,8 +309,7 @@ The new total loss function reads as
     \alpha \cdot \sum_k \lVert \sigma_f^2 ( x_i )\rVert \text{,}
 
 where :math:`\sigma_f^2( x_i )` is the variance of the QNN on the training data
-:math:`\{x_i\}`. This approach also allows us to reuse the circuits and function evaluations
-needed for calculating :math:`L_\text{fit}`.
+:math:`\{x_i\}`.
 
 The regularization factor :math:`\alpha` controls the influence of the variance regularization on
 the total loss. It can be either set to a constant :class:`float` or a :class:`Callable` that
@@ -293,15 +319,40 @@ takes the keyword argument ``iteration`` to dynamically adjust the factor. Value
 Evaluation on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` now yields less variance
 in the model, as depicted in :numref:`fig_qnn_output_low_var`.
 
-.. _fig_qnn_output_low_var:
-.. figure:: ../_static/qnn/qnn_output_low_var.svg
-    :alt: QNN Output with low variance
-    :width: 600
-    :align: center
 
-    Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
-    regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
-    The QNN output has a low variance.
+.. plot::
+    :caption: Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
+              regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
+              The QNN output has a low variance.
+    :align: center
+    :target: fig_qnn_output_low_var
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from squlearn import Executor
+    from squlearn.feature_map import ChebRx
+    from squlearn.expectation_operator import IsingHamiltonian
+    from squlearn.qnn import QNNRegressor, SquaredLoss
+    from squlearn.optimizers import SLSQP
+    nqubits = 4
+    number_of_layers = 2
+    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    qasm = Executor("qasm_simulator")
+    qasm.set_shots(5000)
+    ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
+    param = np.array([ 3.41062806,  0.63125445,  4.40119971,  1.25919873, -2.35420942, -0.04354262,
+    -4.22612537, -0.19520602,  0.21838745,  0.78754811,  3.05189136,  0.59189901,
+    -0.52783347, -1.55477309, -2.08338942, -0.29088459])
+    param_op = np.array([-1.57350653,  0.87778247, -0.26884315])
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    x = np.arange(np.min(0.1), np.max(0.8), 0.005)
+    y = qnn_qasm.predict(x)
+    plt.plot(x, np.log(x))
+    plt.plot(x, y)
+    plt.title("QNN inference with variance regularization")
+    plt.legend([r"$\log(x)$", r"$f(\theta, x)$"])
+    plt
+
 
 .. rubric:: References
 
