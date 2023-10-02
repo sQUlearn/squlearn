@@ -64,7 +64,6 @@ Feature Maps
    feature_map.HZCRxCRyCRz
    feature_map.ChebRx
    feature_map.ParamZFeatureMap
-   feature_map.QiskitZFeatureMap
    feature_map.QiskitFeatureMap
 
 Feature Map Tools
@@ -201,6 +200,14 @@ QNN Core
     :no-members:
     :no-inherited-members:
 
+   optimizers.adam.Adam
+   optimizers.optimizers_wrapper.LBFGSB
+   optimizers.optimizers_wrapper.SLSQP
+   optimizers.optimizers_wrapper.SPSA
+
+OpTree Data Structure
+------------------------------------
+
 .. currentmodule:: squlearn
 
 .. autosummary::
@@ -208,10 +215,16 @@ QNN Core
    :toctree: generated/
    :template: class.rst
 
-   optimizers.adam.Adam
-   optimizers.optimizers_wrapper.LBFGSB
-   optimizers.optimizers_wrapper.SLSQP
-   optimizers.optimizers_wrapper.SPSA
+    util.OpTree
+    util.optree.OpTreeList
+    util.optree.OpTreeSum
+    util.optree.OpTreeCircuit
+    util.optree.OpTreeOperator
+    util.optree.OpTreeExpectationValue
+    util.optree.OpTreeMeasuredOperator
+    util.optree.OpTreeContainer
+    util.optree.OpTreeValue
+
 
 Base Classes
 ------------------------------------

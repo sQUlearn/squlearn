@@ -115,6 +115,7 @@ class FidelityKernel(KernelMatrixBase):
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
         else:
+            # Will be soon deprecated!
             self._quantum_kernel = QuantumKernel(
                 feature_map=self._fmap_circuit,
                 quantum_instance=self._executor.backend,

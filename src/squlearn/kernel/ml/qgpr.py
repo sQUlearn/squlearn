@@ -17,6 +17,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     This class implements the Gaussian process regression analogous to scikit-learn
     but is not a wrapper.
     The implementation is based on Algorithm 2.1 of Ref. [1].
+    Additional arguments can be set via ``**kwargs``.
 
     Args:
         quantum_kernel (KernelMatrixBase):
@@ -34,6 +35,10 @@ class QGPR(BaseEstimator, RegressorMixin):
                 unit-variance priors are used. Note that, in this implementation,
                 the normalization is reversed before the GP predictions are reported.
         full_regularization: (bool), default=True: enable full gram matrix regularization.
+        **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
+            by calling ``get_params()``. Can be used to set for example the number of qubits
+            (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
+            of the underlying feature map.
 
     See Also
     --------
@@ -82,7 +87,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.y_train = None
         self.sigma = sigma
         self.normalize_y = normalize_y
-        self._full_regularization = full_regularization
+        self.full_regularization = full_regularization
 
         self.K_train = None
         self.K_test = None
@@ -109,7 +114,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             QuantumGaussianProcessRegressor class instance.
         """
         self.X_train = X_train
-        if self._full_regularization:
+        if self.full_regularization:
             if self._quantum_kernel._regularization is not None:
                 warnings.warn(
                     f"The regularization of the quantum kernel is set to"
@@ -159,11 +164,14 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
+        if return_std and return_cov:
+            raise ValueError(
+                "Only one of return_std or return_cov can be True. " "Currently both are True."
+            )
 
         self.K_test = self._quantum_kernel.evaluate(x=X_test)
         self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
-        if self._full_regularization:
-            print("Regularizing full Gram matrix")
+        if self.full_regularization:
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
             )
@@ -173,7 +181,6 @@ class QGPR(BaseEstimator, RegressorMixin):
         try:
             self._L = cholesky(self.K_train, lower=True)
         except np.linalg.LinAlgError:
-            print("corrected the train matrix a bit")
             self.K_train += 1e-8 * np.identity(self.K_train.shape[0])
             self._L = cholesky(self.K_train, lower=True)
         self._alpha = cho_solve((self._L, True), self.y_train)
@@ -212,7 +219,7 @@ class QGPR(BaseEstimator, RegressorMixin):
             "quantum_kernel": self._quantum_kernel,
             "sigma": self.sigma,
             "normalize_y": self.normalize_y,
-            "full_regularization": self._full_regularization,
+            "full_regularization": self.full_regularization,
         }
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))

@@ -10,7 +10,6 @@ from .feature_map_implemented.cheb_pqc import ChebPQC
 from .feature_map_implemented.hz_crxcrycrz import HZCRxCRyCRz
 from .feature_map_implemented.cheb_rx import ChebRx
 from .feature_map_implemented.param_z_feature_map import ParamZFeatureMap
-from .feature_map_implemented.qiskit_z_feature_map import QiskitZFeatureMap
 from .feature_map_implemented.qiskit_feature_map import QiskitFeatureMap
 
 __all__ = [
@@ -28,6 +27,5 @@ __all__ = [
     "HZCRxCRyCRz",
     "ChebRx",
     "ParamZFeatureMap",
-    "QiskitZFeatureMap",
     "QiskitFeatureMap",
 ]

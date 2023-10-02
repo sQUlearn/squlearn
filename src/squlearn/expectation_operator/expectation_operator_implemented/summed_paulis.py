@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit.opflow import PauliOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparsePauliOp
 
 from ..expectation_operator_base import ExpectationOperatorBase
 
@@ -95,7 +94,7 @@ class SummedPaulis(ExpectationOperatorBase):
         params["include_identity"] = self.include_identity
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
+    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
         Function for generating the PauliOp expression of the summed Paulis operator.
 
@@ -115,21 +114,21 @@ class SummedPaulis(ExpectationOperatorBase):
         nparam = len(parameters)
         ioff = 0
 
-        if self.include_identity:
-            H = PauliOp(Pauli("I" * self.num_qubits)) * parameters[ioff % nparam]
-            ioff += 1
-        else:
-            H = PauliOp(Pauli("I" * self.num_qubits)) * 0.0
+        op_list = []
+        param_list = []
 
-        for s in self.op_str:
+        if self.include_identity:
+            op_list.append("I" * self.num_qubits)
+            param_list.append(parameters[ioff % nparam])
+            ioff += 1
+
+        for op_str in self.op_str:
             for i in range(self.num_qubits):
-                H = H + PauliOp(Pauli(gen_string(i, s))) * parameters[ioff % nparam]
+                op_list.append(gen_string(i, op_str))
+                param_list.append(parameters[ioff % nparam])
                 if self.full_sum:
                     ioff += 1
             if not self.full_sum:
                 ioff += 1
 
-        if not self.include_identity:
-            H.oplist.pop(0)
-
-        return H.reduce()
+        return SparsePauliOp(op_list, np.array(param_list))

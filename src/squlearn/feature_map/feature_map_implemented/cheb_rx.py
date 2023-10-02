@@ -117,18 +117,12 @@ class ChebRx(FeatureMapBase):
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""
-            for i in range(0, self.num_qubits - 1, 2):
-                QC.cx(i, i + 1)
+            for i in range(0, self.num_qubits + self.closed - 1, 2):
+                QC.cx(i, (i + 1) % self.num_qubits)
 
             if self.num_qubits > 2:
-                if self.closed:
-                    istop = self.num_qubits
-                elif self.num_qubits % 2 == 1:
-                    istop = self.num_qubits
-                else:
-                    istop = self.num_qubits - 1
-                for i in range(1, istop - 1, 2):
-                    QC.cx(i, i + 1)
+                for i in range(1, self.num_qubits + self.closed - 1, 2):
+                    QC.cx(i, (i + 1) % self.num_qubits)
 
             return QC
 
@@ -141,7 +135,7 @@ class ChebRx(FeatureMapBase):
 
         QC = QuantumCircuit(self.num_qubits)
         ioff = 0
-        for ilayer in range(self.num_layers):
+        for _ in range(self.num_layers):
             # Chebyshev feature map
             for i in range(self.num_qubits):
                 QC.rx(mapping(parameters[ioff % nparam], features[i % nfeature]), i)

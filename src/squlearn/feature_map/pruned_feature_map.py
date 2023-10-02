@@ -201,7 +201,7 @@ def automated_pruning(
     Args:
         feature_map (FeatureMapBase): Parameterized quantum circuit that will be pruned.
                                       Has to be in the feature_map format of quantum_fit!
-        QI (QuantumInstance): Quantum Instance for evaluating the Quantum Fisher Information Matrix
+        executor (Executor): Executor for evaluating the Quantum Fisher Information Matrix
         n_sample (int): Number of random parameter values and input data that is generated.
                                (if ``x_val=None`` and ``p_val=None``, the number of
                                evaluated Fisher matrices is ``n_sample*n_sample``)

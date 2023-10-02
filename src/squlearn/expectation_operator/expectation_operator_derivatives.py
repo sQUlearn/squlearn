@@ -1,17 +1,19 @@
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.opflow import StateFn, OperatorStateFn
-from qiskit.opflow import SummedOp, ListOp, PauliOp, TensoredOp, PauliSumOp
-from qiskit.opflow import Zero, One
-from qiskit.opflow import OperatorBase
-from qiskit.opflow.list_ops.list_op import ListOp as real_ListOp
-from qiskit.opflow.gradients.derivative_base import _coeff_derivative
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 from typing import Union
 import numpy as np
 
 from .expectation_operator_base import ExpectationOperatorBase
 from ..util.data_preprocessing import adjust_input
+
+from ..util.optree.optree import (
+    OpTreeElementBase,
+    OpTreeSum,
+    OpTreeList,
+    OpTreeOperator,
+    OpTree,
+)
 
 
 class ExpectationOperatorDerivatives:
@@ -27,7 +29,7 @@ class ExpectationOperatorDerivatives:
                                                                      of expectation operators from
                                                                      which the derivatives are
                                                                      obtained.
-        opflow_caching (bool): If True, the opflow structure of the expectation operator is cached
+        optree_caching (bool): If True, the optree structure of the expectation operator is cached
 
     .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
        :widths: 25 75
@@ -79,25 +81,24 @@ class ExpectationOperatorDerivatives:
         num_parameters (int): Total number of trainable parameters in the expectation operator
         num_operators (int): Number operators in case of multiple expectation operators
 
-
     """
 
     def __init__(
         self,
         expectation_operator: Union[ExpectationOperatorBase, list],
-        opflow_caching=True,
+        optree_caching=True,
     ):
-        self.expectation_operator = expectation_operator
+        self._expectation_operator = expectation_operator
 
         # Contains the OperatorMeasurement() of the expectation-operator for later replacement
-        if isinstance(self.expectation_operator, ExpectationOperatorBase):
+        if isinstance(self._expectation_operator, ExpectationOperatorBase):
             # 1d output by a single expectation-operator
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = ParameterVector("p_op", expectation_operator.num_parameters)
-
-            opflow = self.expectation_operator.get_operator(self._parameter_vector)
-            opflow.replace = False
+            optree = OpTreeOperator(
+                self._expectation_operator.get_operator(self._parameter_vector)
+            )
         else:
             # multi dimensional output by multiple Expectation-operators
             expectation_op_list = []
@@ -105,53 +106,57 @@ class ExpectationOperatorDerivatives:
             self._num_operators = len(expectation_operator)
             try:
                 n_oper = 0
-                for op in self.expectation_operator:
+                for op in self._expectation_operator:
                     n_oper = n_oper + op.num_parameters
 
                 self._parameter_vector = ParameterVector("p_op", n_oper)
                 ioff = 0
-                for op in self.expectation_operator:
-                    expectation_op_list.append(op.get_operator(self._parameter_vector[ioff:]))
+                for op in self._expectation_operator:
+                    expectation_op_list.append(
+                        OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]))
+                    )
                     ioff = ioff + op.num_parameters
-                opflow = ListOp(expectation_op_list)
-                opflow.replace = False
+                optree = OpTreeList(expectation_op_list)
             except:
                 raise ValueError("Unknown structure of the Expectation operator!")
 
-        self.opflow = opflow
-        self.opflow_cache = {}
-        self.opflow_caching = opflow_caching
+        self._optree_start = optree
+        self._optree_cache = {}
+        self._optree_caching = optree_caching
 
-        if self.opflow_caching:
-            self.opflow_cache["O"] = opflow
+        if self._optree_caching:
+            self._optree_cache["O"] = optree
 
-    def get_derivative(self, derivative: Union[str, tuple]):
+    def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
         """Determine the derivative of the expectation operator.
 
         Args:
             derivative (str or tuple): String or tuple of parameters for specifying the derivation.
-                                       See :class:`ExpectationOperatorDerivatives` for more information.
+                                       See :class:`ExpectationOperatorDerivatives` for more
+                                       information.
 
         Return:
-            Differentiated expectation operator in opflow StateFn format
+            Differentiated expectation operator in OpTree format
         """
         if isinstance(derivative, str):
             # todo change with replaced operator
             if derivative == "I":
-                measure_op = StateFn(
-                    PauliOp(Pauli("I" * self.opflow.num_qubits)), is_measurement=True
+                measure_op = OpTreeOperator(
+                    SparsePauliOp("I" * self._expectation_operator.num_qubits)
                 )
             elif derivative == "O":
-                measure_op = self.opflow
+                measure_op = self._optree_start
             elif derivative == "OO":
                 measure_op = self.get_operator_squared()
             elif derivative == "dop" or derivative == "Odop":
                 measure_op = self._differentiation_from_tuple(
-                    self.opflow.copy(), (self._parameter_vector,), "O"
+                    self._optree_start.copy(), (self._parameter_vector,), "O"
                 )
             elif derivative == "dopdop" or derivative == "Odopdop":
                 measure_op = self._differentiation_from_tuple(
-                    self.opflow.copy(), (self._parameter_vector, self._parameter_vector), "O"
+                    self._optree_start.copy(),
+                    (self._parameter_vector, self._parameter_vector),
+                    "O",
                 )
             elif derivative == "OOdop":
                 measure_op = self._differentiation_from_tuple(
@@ -167,63 +172,48 @@ class ExpectationOperatorDerivatives:
                 raise ValueError("Unknown string command:", derivative)
 
         elif isinstance(derivative, tuple):
-            measure_op = self._differentiation_from_tuple(self.opflow, derivative, "O")
+            measure_op = self._differentiation_from_tuple(self._optree_start, derivative, "O")
+        elif isinstance(derivative, list):
+            measure_op = self._differentiation_from_tuple(self._optree_start, (derivative,), "O")
         else:
-            raise TypeError("Input is neither string nor tuple, but:", type(derivative))
+            raise TypeError("Input is neither string, list nor tuple, but:", type(derivative))
 
         measure_op.replace = False
         return measure_op
 
-    def get_differentiation_from_tuple(self, diff_tuple: tuple):
-        """Computes the derivative of the expectation operator from a tuple of parameters
-
-        Args:
-            diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
-
-        Return:
-            Differentiated expectation operator
-        """
-
-        return self.get_derivative(diff_tuple)
-
-    def get_derivation_from_string(self, input_string: str):
-        """Returns the derivative of the expectation operator for a string abbreviation.
-
-        The table for the abbreviations can be found at :class:`ExpectationOperatorDerivatives`.
-
-        Args:
-            input_string (str): String for specifying the derivation.
-
-        Return:
-            Differentiated expectation operator
-        """
-        return self.get_derivative(input_string)
-
     def _differentiation_from_tuple(
-        self, expectation_op: OperatorBase, diff_tuple: tuple, expectation_op_label: str
-    ):
+        self, expectation_op: OpTreeElementBase, diff_tuple: tuple, expectation_op_label: str
+    ) -> OpTreeElementBase:
         """Recursive routine for automatic differentiating the expectation_operator
 
         Args:
-            expectation_op (OperatorBase): opflow structure of the expectation operator
+            expectation_op (OpTreeElementBase): optree structure of the expectation operator
             diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
             expectation_op_label (str): string for labeling the expectation operator
 
         Return:
-            The differentiated opflow expression
+            The differentiated OpTree expression
         """
 
+        def helper_hash(diff):
+            if isinstance(diff, list):
+                return ("list",) + tuple([helper_hash(d) for d in diff])
+            elif isinstance(diff, tuple):
+                return tuple([helper_hash(d) for d in diff])
+            else:
+                return diff
+
         if diff_tuple == ():
-            # Cancel the recursion by returning the opflow operator
+            # Cancel the recursion by returning the optree operator
             return expectation_op
         else:
-            # Check if differentiating tuple is already stored in opflow_cache
+            # Check if differentiating tuple is already stored in optree_cache
             if (
-                self.opflow_caching == True
-                and (diff_tuple, expectation_op_label) in self.opflow_cache
+                self._optree_caching == True
+                and (helper_hash(diff_tuple), expectation_op_label) in self._optree_cache
             ):
                 # If stored -> return
-                return self.opflow_cache[(diff_tuple, expectation_op_label)].copy()
+                return self._optree_cache[(diff_tuple, expectation_op_label)].copy()
             else:
                 # Recursive differentiation with the most left object
                 measure = operator_differentiation(
@@ -232,41 +222,42 @@ class ExpectationOperatorDerivatives:
                     ),
                     diff_tuple[0],
                 )
-                # Store result in the opflow_cache
-                if self.opflow_caching == True:
-                    self.opflow_cache[(diff_tuple, expectation_op_label)] = measure
+                # Store result in the optree_cache
+                if self._optree_caching == True:
+                    self._optree_cache[(helper_hash(diff_tuple), expectation_op_label)] = measure
                 return measure
 
     def get_operator_squared(self):
-        "Builds and caches the squared form of the expectation operator OO=O^2"
-        if self.opflow_caching == True and "OO" in self.opflow_cache:
-            return self.opflow_cache["OO"].copy()
+        "Returns the squared form of the expectation operator OO=O^2"
+        if self._optree_caching == True and "OO" in self._optree_cache:
+            return self._optree_cache["OO"].copy()
         else:
-            # Get the operator and store it in ListOp structure
-            if not isinstance(self.opflow, ListOp):
-                op_list = ListOp([self.opflow])
-            else:
-                op_list = self.opflow
 
-            # Loop through the ListOp and generate the squared mesaurment operator
-            o2_list = []
-            for op in op_list:
-                o2_list.append(
-                    StateFn(
-                        (op.primitive @ op.primitive).reduce().reduce(),
-                        is_measurement=True,
+            def recursive_squaring(op):
+                if isinstance(op, OpTreeOperator):
+                    return OpTreeOperator(op.operator.power(2))
+                elif isinstance(op, SparsePauliOp):
+                    return op.operator.power(2)
+                elif isinstance(op, OpTreeSum):
+                    return OpTreeSum(
+                        [recursive_squaring(child) for child in op.children],
+                        op.factor,
+                        op.operation,
                     )
-                )
+                elif isinstance(op, OpTreeList):
+                    return OpTreeList(
+                        [recursive_squaring(child) for child in op.children],
+                        op.factor,
+                        op.operation,
+                    )
+                else:
+                    raise ValueError("Unknown type in recursive_squaring:", type(op))
 
-            # Suitable export format
-            if not isinstance(self.opflow, ListOp):
-                O2 = o2_list[0]
-            else:
-                O2 = ListOp(o2_list)
+            O2 = OpTree.simplify(recursive_squaring(self._optree_start))
 
             # If caching is enabled, store in the dictionary
-            if self.opflow_caching == True:
-                self.opflow_cache["OO"] = O2
+            if self._optree_caching == True:
+                self._optree_cache["OO"] = O2
             return O2
 
     @property
@@ -284,7 +275,9 @@ class ExpectationOperatorDerivatives:
         """Number operators in case of multiple expectation operators"""
         return self._num_operators
 
-    def assign_parameters(self, operator: OperatorBase, parameters: np.ndarray):
+    def assign_parameters(
+        self, operator: OpTreeElementBase, parameters: np.ndarray
+    ) -> OpTreeElementBase:
         """Assign parameters to a derivative that is obtained from this class.
 
         Args:
@@ -299,26 +292,26 @@ class ExpectationOperatorDerivatives:
         return_list = []
         for p in param_op_inp:
             dic = dict(zip(self._parameter_vector, p))
-            return_list.append(_convert_to_sparse(operator.assign_parameters(dic)))
+            return_list.append(OpTree.assign_parameters(operator, dic))
 
         if multi_param_op:
-            return ListOp(return_list)
+            return OpTreeList(return_list)
         else:
             return return_list[0]
 
 
 def operator_differentiation(
-    opflow: OperatorBase, parameters: Union[ParameterVector, list, ParameterExpression]
-):
-    """Core routine for differentiating a given expectation operator w.r.t. to its parameters
+    optree: OpTreeElementBase, parameters: Union[ParameterVector, list, ParameterExpression]
+) -> OpTreeElementBase:
+    """Function for differentiating a given expectation operator w.r.t. to its parameters
 
     Args:
-        expectation_op (OperatorBase): opflow structure of the expectation operator, can also be a
-                                       list of expectation operators
+        expectation_op (OpTreeElementBase): optree structure of the expectation operator, can also be a
+                                            list of expectation operators
         parameters: Union[ParameterVector, list, ParameterExpression]: Parameters that are used for
                                                                        the differentiation.
     Returns:
-        Differentiated expectation operator
+        Differentiated expectation operator as an OpTree
     """
     # Make a list if input is not a list
     if parameters == None or parameters == []:
@@ -327,149 +320,14 @@ def operator_differentiation(
     if isinstance(parameters, ParameterVectorElement):
         parameters = [parameters]
 
-    if not isinstance(opflow, ListOp):
-        expectation_op_ = ListOp([opflow])
+    if len(parameters) == 1:
+        # In case of a single parameter no array has to be returned
+        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters).children[0])
     else:
-        expectation_op_ = opflow
+        # Check if the same variables are the same type
+        params_name = parameters[0].name.split("[", 1)[0]
+        for p in parameters:
+            if p.name.split("[", 1)[0] != params_name:
+                raise TypeError("Differentiable variables are not the same type.")
 
-    list_op = []
-    for op in expectation_op_:
-        if len(parameters) == 1:
-            # In case of a single parameter no array has to be returned
-            expectation_op_grad = _operator_differentiation(op, parameters[0])
-            list_op.append(expectation_op_grad)
-        else:
-            # Build list and derive the differentiated circuit for each parameter separately
-            expectation_op_grad_list = []
-            for p in parameters:
-                expectation_op_grad = _operator_differentiation(op, p)
-                expectation_op_grad_list.append(expectation_op_grad)
-            list_op.append(ListOp(expectation_op_grad_list))
-
-    if not isinstance(opflow, ListOp):
-        return list_op[0]
-    else:
-        return ListOp(list_op)
-
-
-def _operator_differentiation(
-    operator: ListOp, parameters: Union[ParameterVector, list, ParameterExpression]
-):
-    """
-    Function for differentiating a list of operators w.r.t. a list of parameters
-
-    Args:
-        operator (ListOp): List of operators to be differentiated
-        parameters (Union[ParameterVector, list, ParameterExpression]): Parameters to differentiate
-
-    Return:
-        List of differentiated operators
-    """
-
-    # Helper function for getting the coefficient
-    def is_coeff_c(coeff, c):
-        if isinstance(coeff, ParameterExpression):
-            expr = coeff._symbol_expr
-            return expr == c
-        return coeff == c
-
-    # Check for parameter lists, if so iterate through the list can call the function again
-    if isinstance(parameters, (ParameterVector, list)):
-        grad_list = [_operator_differentiation(operator, p) for p in parameters]
-        return ListOp(grad_list)
-
-    # In case input operator is 0 return 0
-    if operator == 0:
-        return 0.0 * PauliOp(Pauli("I" * operator.num_qubits))
-
-    if isinstance(operator, OperatorStateFn):
-        op = _operator_differentiation(operator.primitive, parameters)
-        if op == 0:
-            return StateFn(
-                PauliOp(Pauli("I" * operator.num_qubits)),
-                is_measurement=True,
-                coeff=0.0,
-            )
-        return StateFn(op, is_measurement=True)
-
-    # Handle SummedOp but also ListOps!!
-    if isinstance(operator, ListOp):
-        # Iterate the gradient derivation through the list
-        grad_ops = [_operator_differentiation(op, parameters) for op in operator.oplist]
-
-        # pylint: disable=comparison-with-callable
-        if isinstance(operator, SummedOp):
-            without_zeros = [grad for grad in grad_ops if grad != 0]
-            if len(without_zeros) == 0:
-                return 0
-            return SummedOp(oplist=without_zeros, coeff=operator.coeff).reduce()
-        elif isinstance(operator, real_ListOp):
-            return ListOp(grad_ops, coeff=operator.coeff, combo_fn=operator.combo_fn)
-        else:
-            raise TypeError("Only SummedOp or ListOp are allowed! Type found:", type(operator))
-
-    # No we can finally do the differentiation
-    if not is_coeff_c(operator._coeff, 1.0) and not is_coeff_c(operator._coeff, 1.0j):
-        coeff = operator._coeff
-        if is_coeff_c(coeff, 0.0):
-            return ~Zero @ One
-        op = operator / coeff
-
-        # Call qiskit function for parameter differentiation
-        d_coeff = _coeff_derivative(coeff, parameters)
-        grad_op = 0
-        if op != ~Zero @ One and not is_coeff_c(d_coeff, 0.0):
-            grad_op += d_coeff * op
-
-        return grad_op
-
-    # Only operator without coefficients is left, return 0 since a constant value is differentiated
-    # to zero
-    return 0.0 * PauliOp(Pauli("I" * operator.num_qubits))
-
-
-def _convert_to_sparse(operator: OperatorBase):
-    """
-    Function for converging a operator into PauliSUmOp form (speed up in evaluation)
-
-    Args:
-        operator (OperatorBase): Operator to be converted
-
-    Return:
-        Operator in PauliSumOp form
-    """
-    # convert operator into sparse form
-    if isinstance(operator, OperatorStateFn):
-        if not isinstance(operator.primitive, PauliOp) and not isinstance(
-            operator.primitive, PauliSumOp
-        ):
-            # Recreate OperatorStateFn with PauliSumOp instead of SummedOp -> large speed up!
-            return OperatorStateFn(
-                sum(operator.primitive.oplist),
-                coeff=operator.coeff,
-                is_measurement=operator.is_measurement,
-            )
-        elif isinstance(operator.primitive, PauliOp):
-            return OperatorStateFn(
-                PauliSumOp(
-                    SparsePauliOp(operator.primitive.primitive, coeffs=[operator.primitive.coeff])
-                ),
-                coeff=operator.coeff,
-                is_measurement=operator.is_measurement,
-            )
-        else:
-            return operator
-
-    elif isinstance(operator, ListOp):
-        op_list = [_convert_to_sparse(op) for op in operator.oplist]
-
-        if isinstance(operator, SummedOp):
-            return SummedOp(oplist=op_list, coeff=operator.coeff)
-        elif isinstance(operator, TensoredOp):
-            return TensoredOp(oplist=op_list, coeff=operator.coeff)
-        elif isinstance(operator, real_ListOp):
-            return ListOp(oplist=op_list, coeff=operator.coeff)
-        else:
-            raise ValueError("Unknown ListOp type in _convert_to_sparse:", type(operator))
-    else:
-        raise ValueError("Unsupported type in _convert_to_sparse:", type(operator))
+        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))
