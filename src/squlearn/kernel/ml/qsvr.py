@@ -1,7 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
-from typing import Union
+from typing import Union, Optional
 
 
 class QSVR(SVR):
@@ -71,7 +71,7 @@ class QSVR(SVR):
     def __init__(
         self,
         *,
-        quantum_kernel: Union[KernelMatrixBase, str],
+        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
@@ -91,16 +91,9 @@ class QSVR(SVR):
                 kernel=self.quantum_kernel.evaluate,
                 **kwargs,
             )
-        elif isinstance(self.quantum_kernel, str):
-            if self.quantum_kernel == "precomputed":
-                super().__init__(kernel="precomputed", **kwargs)
-            else:
-                raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
         else:
-            raise ValueError(
-                "Unknown type of quantum kernel: {}".format(type(self.quantum_kernel))
-            )
-
+            super().__init__(kernel="precomputed", **kwargs)
+        
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()

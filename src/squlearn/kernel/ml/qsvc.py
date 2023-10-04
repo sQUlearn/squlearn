@@ -1,7 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVC
-from typing import Union
+from typing import Union, Optional
 
 
 class QSVC(SVC):
@@ -72,7 +72,7 @@ class QSVC(SVC):
     def __init__(
         self,
         *,
-        quantum_kernel: Union[KernelMatrixBase, str],
+        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
@@ -92,15 +92,8 @@ class QSVC(SVC):
                 kernel=self.quantum_kernel.evaluate,
                 **kwargs,
             )
-        elif isinstance(self.quantum_kernel, str):
-            if self.quantum_kernel == "precomputed":
-                super().__init__(kernel="precomputed", **kwargs)
-            else:
-                raise ValueError("Unknown quantum kernel: {}".format(self.quantum_kernel))
         else:
-            raise ValueError(
-                "Unknown type of quantum kernel: {}".format(type(self.quantum_kernel))
-            )
+            super().__init__(kernel="precomputed", **kwargs)
 
     @classmethod
     def _get_param_names(cls):
@@ -130,7 +123,7 @@ class QSVC(SVC):
 
         # add qsvc specific parameters
         params["quantum_kernel"] = self.quantum_kernel
-        if deep:
+        if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
             params.update(self.quantum_kernel.get_params(deep=deep))
         return params
 
