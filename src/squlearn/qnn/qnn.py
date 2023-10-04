@@ -33,8 +33,8 @@ class Expec:
         wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
             its derivative. If tuple or ParameterVectorElement the differentiation with respect to
             the parameters in the tuple or with respect to the ParameterVectorElement is considered
-        operator (str): String for the expectation value operator (``"O"``, ``"OO"``, ``"dop"``,
-            ``"dopdop"``, ``"var"``).
+        observable (str): String for the expectation value observable (``"O"``, ``"OO"``, 
+            ``"dop"``, ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
 
     """
@@ -42,11 +42,11 @@ class Expec:
     def __init__(
         self,
         wave_function: Union[str, tuple, ParameterVectorElement],
-        operator: str,
+        observable: str,
         label: str = "",
     ):
         self.wave_function = wave_function
-        self.operator = operator
+        self.operator = observable
         self.label = label
 
     def __var_to_str(self, val: Union[str, tuple, ParameterExpression, ParameterVector]) -> str:
