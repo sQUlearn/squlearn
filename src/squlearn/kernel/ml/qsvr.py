@@ -1,6 +1,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
+from typing import Union, Optional
 
 
 class QSVR(SVR):
@@ -20,8 +21,11 @@ class QSVR(SVR):
         - `coef0`
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the SVC. Either
-            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided.
+        quantum_kernel (Union[KernelMatrixBase, str]): The quantum kernel matrix to be used in the SVC. Either
+            a fidelity quantum kernel (FQK) or projected quantum kernel (PQK) must be provided. By
+            setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
+            (train and test-train). This is particularly useful when storing quantum kernel
+            matrices from real backends to numpy arrays.
         **kwargs: Possible arguments can be
             obtained by calling ``get_params()``. Notable examples are parameters of the
             :class:`sklearn.svm.SVR` class such as the regularization parameters ``C``
@@ -67,25 +71,28 @@ class QSVR(SVR):
     def __init__(
         self,
         *,
-        quantum_kernel: KernelMatrixBase,
+        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
         self.quantum_kernel = quantum_kernel
 
-        # Apply kwargs to set_params of quantum kernel
-        quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-        if quantum_kernel_update_params:
-            self.quantum_kernel.set_params(
-                **{key: kwargs[key] for key in quantum_kernel_update_params}
-            )
-            # remove quantum_kernel_kwargs for SVR initialization
-            for key in quantum_kernel_update_params:
-                kwargs.pop(key, None)
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            # Apply kwargs to set_params of quantum kernel
+            quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
+            if quantum_kernel_update_params:
+                self.quantum_kernel.set_params(
+                    **{key: kwargs[key] for key in quantum_kernel_update_params}
+                )
+                # remove quantum_kernel_kwargs for SVR initialization
+                for key in quantum_kernel_update_params:
+                    kwargs.pop(key, None)
 
-        super().__init__(
-            kernel=self.quantum_kernel.evaluate,
-            **kwargs,
-        )
+            super().__init__(
+                kernel=self.quantum_kernel.evaluate,
+                **kwargs,
+            )
+        else:
+            super().__init__(kernel="precomputed", **kwargs)
 
     @classmethod
     def _get_param_names(cls):
@@ -115,7 +122,7 @@ class QSVR(SVR):
 
         # add qsvr specific parameters
         params["quantum_kernel"] = self.quantum_kernel
-        if deep:
+        if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
             params.update(self.quantum_kernel.get_params(deep=deep))
         return params
 
@@ -142,7 +149,10 @@ class QSVR(SVR):
                 setattr(self, "_" + key, params[key])
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
-        if quantum_kernel_params:
-            self.quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
+            if quantum_kernel_params:
+                self.quantum_kernel.set_params(
+                    **{key: params[key] for key in quantum_kernel_params}
+                )
         return self

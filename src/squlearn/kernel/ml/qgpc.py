@@ -20,7 +20,7 @@ class QGPC(GaussianProcessClassifier):
     Additional arguments can be set via ``**kwargs``.
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used for the GP
+        quantum_kernel (Union[KernelMatrixBase, str]): The quantum kernel matrix to be used for the GP
                 (either a fidelity quantum kernel (FQK)
                 or projected quantum kernel (PQK) must be provided)
         **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
