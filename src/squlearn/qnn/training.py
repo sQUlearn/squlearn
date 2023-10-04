@@ -280,9 +280,7 @@ def solve_all(
             shot_adjusting.func(x, param, param_op)
 
         # Evaluate the necessary derivatives and call the loss function
-        print("theta", theta)
         return_value = loss_function(qnn.evaluate(input_loss, x, param, param_op), iter_counter)
-        print("Current value:", return_value)
 
         if shot_adjusting is not None:
             qnn.reset_shots()
@@ -316,13 +314,10 @@ def solve_all(
             shot_adjusting.grad(x, param, param_op)
 
         # Evaluate the necessary derivatives and call the loss function gradient
-        print("theta", theta)
         return_value = np.concatenate(
             loss_function_gradient(qnn.evaluate(input_grad, x, param, param_op), iter_counter),
             axis=None,
         )
-        print("Grad length:", np.linalg.norm(return_value, ord=2))
-        print("grad", return_value)
 
         if shot_adjusting is not None:
             qnn.reset_shots()
