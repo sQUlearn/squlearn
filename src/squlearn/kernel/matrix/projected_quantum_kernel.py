@@ -312,7 +312,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.feature_map import ChebyshevTower
        from squlearn.kernel.matrix import ProjectedQuantumKernel
        from squlearn.util import Executor
-       from squlearn.observable import CustomObservable
+       from squlearn.observables import CustomObservable
        from squlearn.kernel.ml import QKRR
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)

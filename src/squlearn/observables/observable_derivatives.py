@@ -61,7 +61,7 @@ class ObservableDerivatives:
 
     .. code-block:: python
 
-       from squlearn.observable import IsingHamiltonian,ObservableDerivatives
+       from squlearn.observables import IsingHamiltonian,ObservableDerivatives
        op = IsingHamiltonian(num_qubits=3)
        print(ObservableDerivatives(op).get_derivative("dop"))
 
@@ -69,7 +69,7 @@ class ObservableDerivatives:
 
     .. code-block:: python
 
-       from squlearn.observable import SummedPaulis,ObservableDerivatives
+       from squlearn.observables import SummedPaulis,ObservableDerivatives
        op = SummedPaulis(num_qubits=3)
        print(ObservableDerivatives(op).get_operator_squared())
 

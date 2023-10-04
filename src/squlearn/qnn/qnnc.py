@@ -59,7 +59,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         from squlearn import Executor
         from squlearn.feature_map import ChebRx
-        from squlearn.observable import SummedPaulis
+        from squlearn.observables import SummedPaulis
         from squlearn.qnn import QNNClassifier, SquaredLoss
         from squlearn.optimizers import SLSQP
         from sklearn.datasets import make_blobs

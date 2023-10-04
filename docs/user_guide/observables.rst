@@ -32,7 +32,7 @@ The following observables are available and implemented as standalone classes:
 
 .. code-block:: python
 
-    from squlearn.observable import SummedPaulis
+    from squlearn.observables import SummedPaulis
 
     op = SummedPaulis(num_qubits=2)
     print(op)
@@ -46,7 +46,7 @@ can be build from strings, your can create more complex observables.
 
 .. code-block:: python
 
-    from squlearn.observable import CustomObservable
+    from squlearn.observables import CustomObservable
 
     op1 = CustomObservable(num_qubits=2, operator_string="IX",parameterized=True)
     op2 = CustomObservable(num_qubits=2, operator_string="ZY",parameterized=True)
@@ -68,7 +68,7 @@ The map can be for example obtained in the transpiled feature map.
 .. code-block:: python
 
    from squlearn.feature_map import ChebRx,TranspiledFeatureMap
-   from squlearn.observable import SummedPaulis
+   from squlearn.observables import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    op = SummedPaulis(num_qubits=3, op_str="Z")
@@ -90,7 +90,7 @@ The derivatives are calculated with respect to the parameters of the observable.
 
 .. code-block:: python
 
-    from squlearn.observable import IsingHamiltonian,ObservableDerivatives
+    from squlearn.observables import IsingHamiltonian,ObservableDerivatives
     op = IsingHamiltonian(num_qubits=3)
     print(ObservableDerivatives(op).get_derivative("dop"))
 
@@ -100,7 +100,7 @@ To calculate the variance of an expectation value, the squared observable has to
 
 .. code-block:: python
 
-    from squlearn.observable import SummedPaulis,ObservableDerivatives
+    from squlearn.observables import SummedPaulis,ObservableDerivatives
     op = SummedPaulis(num_qubits=3)
     print(ObservableDerivatives(op).get_operator_squared())
 
@@ -113,7 +113,7 @@ of parameters :meth:`ObservableDerivatives.parameter_vector`.
 
 .. code-block:: python
 
-   from squlearn.observable import SummedPaulis,ObservableDerivatives
+   from squlearn.observables import SummedPaulis,ObservableDerivatives
 
    # Build cubed SummedPaulis observable
    op = SummedPaulis(num_qubits=2)

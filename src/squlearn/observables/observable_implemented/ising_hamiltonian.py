@@ -27,7 +27,7 @@ class IsingHamiltonian(ObservableBase):
 
     .. code-block:: python
 
-       from squlearn.observable import IsingHamiltonian
+       from squlearn.observables import IsingHamiltonian
        IsingHamiltonian(num_qubits=2, I='S', Z='N', X='S', ZZ='F')
 
     The default Ising Hamiltonian reads:

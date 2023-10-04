@@ -9,7 +9,7 @@ from ..observable_base import ObservableBase
 
 class SummedPaulis(ObservableBase):
     r"""
-    Operator for summation of single Pauli operators.
+    Observable for summation of single Pauli operators.
 
     **Equation for Z Pauli operator:**
 

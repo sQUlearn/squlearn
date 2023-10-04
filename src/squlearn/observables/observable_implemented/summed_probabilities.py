@@ -9,7 +9,7 @@ from ..observable_base import ObservableBase
 
 class SummedProbabilities(ObservableBase):
     r"""
-    Operator for summing single Qubit probabilities of binary states.
+    Observable for summing single Qubit probabilities of binary states.
 
     **Equation for a sum of 0-states:**
 

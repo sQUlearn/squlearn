@@ -9,7 +9,7 @@ from ..observable_base import ObservableBase
 
 class SinglePauli(ObservableBase):
     r"""
-    Single Pauli operator of a single Qubit.
+    Observable constructed from a single Pauli operator of a single Qubit.
 
     **Equation for Z Pauli operator:**
 

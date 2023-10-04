@@ -9,7 +9,7 @@ from ..observable_base import ObservableBase
 
 class CustomObservable(ObservableBase):
     r"""
-    Class for evaluating the expectation value of a custom operator.
+    Class for defining a custom observable.
 
     The operator is supplied as a string of Pauli operators, e.g. ``operator_string='ZI'`` for
     a two qubit operator with a Z operator on the second qubit.

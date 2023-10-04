@@ -9,7 +9,7 @@ from ..observable_base import ObservableBase
 
 class SingleProbability(ObservableBase):
     r"""
-    Operator for measuring the probability of being in state 0 or 1 of a specified qubit.
+    Observable for measuring the probability of being in state 0 or 1 of a specified qubit.
 
     **Equation as the operator is implemented:**
 

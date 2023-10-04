@@ -60,7 +60,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         import numpy as np
         from squlearn import Executor
         from squlearn.feature_map import ChebRx
-        from squlearn.observable import IsingHamiltonian
+        from squlearn.observables import IsingHamiltonian
         from squlearn.qnn import QNNRegressor, SquaredLoss
         from squlearn.optimizers import SLSQP
         from sklearn.model_selection import train_test_split
