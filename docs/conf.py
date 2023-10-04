@@ -89,9 +89,6 @@ latex_elements = {
     """,
 }
 
-# Allow numbering for figures
-numfig = True
-
 # intersphinx
 intersphinx_mapping = {
     "qiskit": ("https://qiskit.org/documentation/", None),
