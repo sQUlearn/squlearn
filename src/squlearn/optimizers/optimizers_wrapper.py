@@ -14,6 +14,7 @@ class SLSQP(OptimizerBase):
         options (dict): Options for the SLSQP optimizer.
                         The options are the same as for :meth:`scipy.optimize.minimize`
     """
+
     def __init__(self, options: dict = None):
         if options is None:
             options = {}
@@ -23,7 +24,9 @@ class SLSQP(OptimizerBase):
             options.pop("tol")
         self.options = options
 
-    def minimize(self, fun: callable, x0: np.ndarray, grad:callable=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
         """
         Function to minimize a given function using the SLSQP optimizer. Is wrapped from scipy.
 
@@ -54,6 +57,7 @@ class LBFGSB(OptimizerBase):
         options (dict): Options for the L-BFGS-B optimizer.
                         The options are the same as for :meth:`scipy.optimize.minimize`
     """
+
     def __init__(self, options: dict = None):
         if options is None:
             options = {}
@@ -63,7 +67,9 @@ class LBFGSB(OptimizerBase):
             options.pop("tol")
         self.options = options
 
-    def minimize(self, fun: callable, x0:np.ndarray, grad:callable=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
         """
         Function to minimize a given function using the L-BFGS-B optimizer. Is wrapped from scipy.
 
@@ -119,7 +125,9 @@ class SPSA(OptimizerBase):
         self.lse_solver = options.get("lse_solver", None)
         self.initial_hessian = options.get("initial_hessian", None)
 
-    def minimize(self, fun:callable, x0:np.ndarray, grad:callable=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
         """
         Function to minimize a given function using Qiskit's SPSA optimizer.
 
