@@ -9,7 +9,7 @@ from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
 from .training import solve_mini_batch, regression
 
-from ..observable.observable_base import ObservableBase
+from ..observables.observable_base import ObservableBase
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor

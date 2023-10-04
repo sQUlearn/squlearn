@@ -8,7 +8,7 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..observable.observable_base import ObservableBase
+from ..observables.observable_base import ObservableBase
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor

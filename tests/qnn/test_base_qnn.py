@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from squlearn import Executor
-from squlearn.observable import IsingHamiltonian
+from squlearn.observables import IsingHamiltonian
 from squlearn.feature_map import ChebPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn import SquaredLoss

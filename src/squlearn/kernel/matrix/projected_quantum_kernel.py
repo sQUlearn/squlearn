@@ -19,8 +19,8 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util import Executor
 from ...qnn.qnn import QNN
-from ...observable import SinglePauli
-from ...observable.observable_base import ObservableBase
+from ...observables import SinglePauli
+from ...observables.observable_base import ObservableBase
 
 
 class OuterKernelBase:
