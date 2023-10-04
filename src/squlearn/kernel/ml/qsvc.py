@@ -160,5 +160,7 @@ class QSVC(SVC):
         if isinstance(self.quantum_kernel, KernelMatrixBase):
             quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
             if quantum_kernel_params:
-                self.quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
+                self.quantum_kernel.set_params(
+                    **{key: params[key] for key in quantum_kernel_params}
+                )
         return self

@@ -77,7 +77,7 @@ class QSVR(SVR):
         self.quantum_kernel = quantum_kernel
 
         if isinstance(self.quantum_kernel, KernelMatrixBase):
-        # Apply kwargs to set_params of quantum kernel
+            # Apply kwargs to set_params of quantum kernel
             quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
             if quantum_kernel_update_params:
                 self.quantum_kernel.set_params(
@@ -159,5 +159,7 @@ class QSVR(SVR):
         if isinstance(self.quantum_kernel, KernelMatrixBase):
             quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
             if quantum_kernel_params:
-                self.quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
+                self.quantum_kernel.set_params(
+                    **{key: params[key] for key in quantum_kernel_params}
+                )
         return self
