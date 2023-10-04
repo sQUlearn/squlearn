@@ -8,7 +8,7 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..observable.observable_base import ObservableBase
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
@@ -41,7 +41,7 @@ class BaseQNN(BaseEstimator, ABC):
     def __init__(
         self,
         feature_map: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,

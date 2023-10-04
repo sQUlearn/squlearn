@@ -9,7 +9,7 @@ from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
 from .training import solve_mini_batch, regression
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..observable.observable_base import ObservableBase
 from ..feature_map.feature_map_base import FeatureMapBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
@@ -26,7 +26,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
     Args:
         feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
             For a list of feature maps, check this list of implemented :ref:`feature_maps`.
-        operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
+        operator (Union[ObservableBase, list[ObservableBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
@@ -60,7 +60,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         import numpy as np
         from squlearn import Executor
         from squlearn.feature_map import ChebRx
-        from squlearn.expectation_operator import IsingHamiltonian
+        from squlearn.observable import IsingHamiltonian
         from squlearn.qnn import QNNRegressor, SquaredLoss
         from squlearn.optimizers import SLSQP
         from sklearn.model_selection import train_test_split
@@ -89,7 +89,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
     def __init__(
         self,
         feature_map: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,

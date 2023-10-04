@@ -4,10 +4,10 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-from ..expectation_operator_base import ExpectationOperatorBase
+from ..observable_base import ObservableBase
 
 
-class IsingHamiltonian(ExpectationOperatorBase):
+class IsingHamiltonian(ObservableBase):
     r"""
     Implementation of Ising type Hamiltonians.
 
@@ -27,7 +27,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     .. code-block:: python
 
-       from squlearn.expectation_operator import IsingHamiltonian
+       from squlearn.observable import IsingHamiltonian
        IsingHamiltonian(num_qubits=2, I='S', Z='N', X='S', ZZ='F')
 
     The default Ising Hamiltonian reads:
@@ -88,7 +88,7 @@ class IsingHamiltonian(ExpectationOperatorBase):
 
     @property
     def num_parameters(self):
-        """Returns the number of free parameters in the expectation operator"""
+        """Returns the number of free parameters in the observable"""
 
         num_parameters = 0
         if self.I == "S":

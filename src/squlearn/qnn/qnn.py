@@ -5,9 +5,9 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..expectation_operator.expectation_operator_derivatives import (
-    ExpectationOperatorDerivatives,
+from ..observable.observable_base import ObservableBase
+from ..observable.observable_derivatives import (
+    ObservableDerivatives,
 )
 
 from ..feature_map.feature_map_base import FeatureMapBase
@@ -235,7 +235,7 @@ class QNN:
 
     Args:
         pqc (FeatureMapBase) : parameterized quantum circuit in feature map format
-        operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
+        operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
         optree_caching : Caching of the optree expressions (default = True recommended)
@@ -246,7 +246,7 @@ class QNN:
     def __init__(
         self,
         pqc: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list],
+        operator: Union[ObservableBase, list],
         executor: Executor,
         optree_caching=True,
         result_caching=True,
@@ -356,7 +356,7 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(
+        self.operator_derivatives = ObservableDerivatives(
             self.operator, self._optree_caching
         )
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
@@ -373,7 +373,7 @@ class QNN:
             if "X" in operator_string or "Y" in operator_string:
                 self._split_paulis = True
                 print(
-                    "The expectation operator includes X and Y gates, consider switching"
+                    "The observable includes X and Y gates, consider switching"
                     + " to the Estimator primitive for a faster performance!"
                 )
             else:
@@ -937,7 +937,7 @@ class QNN:
                 raise ValueError("No execution is set!")
 
             # Swapp results into the following order:
-            # 1. different expectation operators (op_list)
+            # 1. different observables (op_list)
             # 2. different input data/ feature map parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)

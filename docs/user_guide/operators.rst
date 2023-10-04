@@ -2,18 +2,18 @@
 Operators for expectation values
 ################################
 
-.. currentmodule:: squlearn.expectation_operator
+.. currentmodule:: squlearn.observable
 
 Operators play a crucial role in computing the expectation value in conjunction with a
 wave function. Currently, in sQUlearn, only operators constructed from the Pauli group
 :math:`\{\hat{X},\hat{Y},\hat{Z},\hat{I}\}` are supported. In the context of sQUlearn,
-expectation operators are mandatory inputs for the Quantum Neural Network (QNN) and can be
+observables are mandatory inputs for the Quantum Neural Network (QNN) and can be
 employed in the Projected Quantum Kernel program.
-All operators follow the Base Class :class:`ExpectationOperatorBase`.
+All operators follow the Base Class :class:`ObservableBase`.
 
-The following functions and operators are accessible via :class:`squlearn.expectation_operator`.
+The following functions and operators are accessible via :class:`squlearn.observable`.
 
-Implemented expectation operators.
+Implemented observables.
 ----------------------------------
 
 The following operators are available and implemented as standalone classes:
@@ -26,13 +26,13 @@ The following operators are available and implemented as standalone classes:
     SingleProbability
     SummedProbabilities
     IsingHamiltonian
-    CustomExpectationOperator
+    CustomObservable
 
 **Example: Summed Pauli Operator**
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import SummedPaulis
+    from squlearn.observable import SummedPaulis
 
     op = SummedPaulis(num_qubits=2)
     print(op)
@@ -41,15 +41,15 @@ The following operators are available and implemented as standalone classes:
 **Example: Custom operator**
 
 Operators can be added by ``+`` or multiplied by ``*`` with each other.
-Together with the class :class:`CustomExpectationOperator`, in which single parameterized operators
+Together with the class :class:`CustomObservable`, in which single parameterized operators
 can be build from strings, your can create more complex operators.
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import CustomExpectationOperator
+    from squlearn.observable import CustomObservable
 
-    op1 = CustomExpectationOperator(num_qubits=2, operator_string="IX",parameterized=True)
-    op2 = CustomExpectationOperator(num_qubits=2, operator_string="ZY",parameterized=True)
+    op1 = CustomObservable(num_qubits=2, operator_string="IX",parameterized=True)
+    op2 = CustomObservable(num_qubits=2, operator_string="ZY",parameterized=True)
     total_op = op1 + op2
     print(total_op)
 
@@ -60,7 +60,7 @@ basis!
 **Example: Use the mapping from the transpiled feature map**
 
 When running on a backend, the number of physical qubits may change
-from the number of qubits the definition of the expectation operator.
+from the number of qubits the definition of the observable.
 to solve this issue, it is possible to provide a map from the logical qubits to the
 physical qubits via :meth:`set_qubit_map`.
 The map can be for example obtained in the transpiled feature map.
@@ -68,7 +68,7 @@ The map can be for example obtained in the transpiled feature map.
 .. code-block:: python
 
    from squlearn.feature_map import ChebRx,TranspiledFeatureMap
-   from squlearn.expectation_operator import SummedPaulis
+   from squlearn.observable import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    op = SummedPaulis(num_qubits=3, op_str="Z")
@@ -79,20 +79,20 @@ The map can be for example obtained in the transpiled feature map.
 Obtained derivatives of the expectation values
 ----------------------------------------------
 
-.. currentmodule:: squlearn.expectation_operator.expectation_operator_derivatives
+.. currentmodule:: squlearn.observable.observable_derivatives
 
-In sQUlearn it is also possible to evaluate the derivatives of expectation operators
+In sQUlearn it is also possible to evaluate the derivatives of observables
 as for example needed during the training of the QNN.
-This is possible with the class :class:`ExpectationOperatorDerivatives`.
-The derivatives are calculated with respect to the parameters of the expectation operator.
+This is possible with the class :class:`ObservableDerivatives`.
+The derivatives are calculated with respect to the parameters of the observable.
 
 **Example: first-order derivative of the Ising Hamiltonian**
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import IsingHamiltonian,ExpectationOperatorDerivatives
+    from squlearn.observable import IsingHamiltonian,ObservableDerivatives
     op = IsingHamiltonian(num_qubits=3)
-    print(ExpectationOperatorDerivatives(op).get_derivative("dop"))
+    print(ObservableDerivatives(op).get_derivative("dop"))
 
 To calculate the variance of an operator, the squared operator can be used.
 
@@ -100,19 +100,19 @@ To calculate the variance of an operator, the squared operator can be used.
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import SummedPaulis,ExpectationOperatorDerivatives
+    from squlearn.observable import SummedPaulis,ObservableDerivatives
     op = SummedPaulis(num_qubits=3)
-    print(ExpectationOperatorDerivatives(op).get_operator_squared())
+    print(ObservableDerivatives(op).get_operator_squared())
 
 In principle, arbitrary derivatives can be computed by supplying a tuple, but often, the higher-order derivatives
-are zero. To achieve this, the function :meth:`ExpectationOperatorDerivatives.get_derivative` can be used with a tuple
-of parameters :meth:`ExpectationOperatorDerivatives.parameter_vector`.
+are zero. To achieve this, the function :meth:`ObservableDerivatives.get_derivative` can be used with a tuple
+of parameters :meth:`ObservableDerivatives.parameter_vector`.
 
 **Example: higher-order derivative of the cubed SummedPaulis operator**
 
 .. code-block:: python
 
-   from squlearn.expectation_operator import SummedPaulis,ExpectationOperatorDerivatives
+   from squlearn.observable import SummedPaulis,ObservableDerivatives
 
    # Build cubed SummedPaulis operator
    op = SummedPaulis(num_qubits=2)
@@ -120,5 +120,5 @@ of parameters :meth:`ExpectationOperatorDerivatives.parameter_vector`.
    print(op3)
 
    # Get the Hessian from a tuple
-   deriv = ExpectationOperatorDerivatives(op3)
+   deriv = ObservableDerivatives(op3)
    print(deriv.get_derivative((deriv.parameter_vector[0],deriv.parameter_vector[0])))

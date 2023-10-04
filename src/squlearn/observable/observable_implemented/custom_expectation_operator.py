@@ -4,10 +4,10 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-from ..expectation_operator_base import ExpectationOperatorBase
+from ..observable_base import ObservableBase
 
 
-class CustomExpectationOperator(ExpectationOperatorBase):
+class CustomObservable(ObservableBase):
     r"""
     Class for evaluating the expectation value of a custom operator.
 
