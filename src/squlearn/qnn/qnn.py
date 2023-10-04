@@ -33,7 +33,7 @@ class Expec:
         wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
             its derivative. If tuple or ParameterVectorElement the differentiation with respect to
             the parameters in the tuple or with respect to the ParameterVectorElement is considered
-        observable (str): String for the expectation value observable (``"O"``, ``"OO"``, 
+        observable (str): String for the expectation value observable (``"O"``, ``"OO"``,
             ``"dop"``, ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
 
@@ -356,9 +356,7 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(
-            self.operator, self._optree_caching
-        )
+        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:

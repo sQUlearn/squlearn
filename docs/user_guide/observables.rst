@@ -2,7 +2,7 @@
 Observables for expectation values
 ##################################
 
-.. currentmodule:: squlearn.observable
+.. currentmodule:: squlearn.observables
 
 Observables play a crucial role in computing the expectation value in conjunction with a
 wave function. Currently, in sQUlearn, only observables constructed from the Pauli group
@@ -11,7 +11,7 @@ observables are mandatory inputs for the Quantum Neural Network (QNN) and can be
 employed in the Projected Quantum Kernel program.
 All operators follow the Base Class :class:`ObservableBase`.
 
-The following functions and observables are accessible in the module :class:`squlearn.observable`.
+The following functions and observables are accessible in the module :class:`squlearn.observables`.
 
 Implemented observables.
 ----------------------------------
@@ -79,7 +79,7 @@ The map can be for example obtained in the transpiled feature map.
 Obtained derivatives of the observable
 ----------------------------------------------
 
-.. currentmodule:: squlearn.observable.observable_derivatives
+.. currentmodule:: squlearn.observables.observable_derivatives
 
 In sQUlearn it is also possible to evaluate the derivatives of observables
 as for example needed during the training of the QNN.

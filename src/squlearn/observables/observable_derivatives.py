@@ -96,9 +96,7 @@ class ObservableDerivatives:
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = ParameterVector("p_op", observable.num_parameters)
-            optree = OpTreeOperator(
-                self._observable.get_operator(self._parameter_vector)
-            )
+            optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector))
         else:
             # multi dimensional output by multiple Expectation-operators
             observable_list = []
@@ -141,9 +139,7 @@ class ObservableDerivatives:
         if isinstance(derivative, str):
             # todo change with replaced operator
             if derivative == "I":
-                measure_op = OpTreeOperator(
-                    SparsePauliOp("I" * self._observable.num_qubits)
-                )
+                measure_op = OpTreeOperator(SparsePauliOp("I" * self._observable.num_qubits))
             elif derivative == "O":
                 measure_op = self._optree_start
             elif derivative == "OO":
@@ -217,9 +213,7 @@ class ObservableDerivatives:
             else:
                 # Recursive differentiation with the most left object
                 measure = operator_differentiation(
-                    self._differentiation_from_tuple(
-                        optree, diff_tuple[1:], observable_label
-                    ),
+                    self._differentiation_from_tuple(optree, diff_tuple[1:], observable_label),
                     diff_tuple[0],
                 )
                 # Store result in the optree_cache

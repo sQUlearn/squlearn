@@ -96,7 +96,7 @@ Feature Map Tools
 Operators
 ------------------------------------
 
-.. automodule:: squlearn.observable
+.. automodule:: squlearn.observables
     :no-members:
     :no-inherited-members:
 
@@ -107,12 +107,12 @@ Operators
    :toctree: generated/
    :template: class.rst
 
-   observable.SinglePauli
-   observable.SummedPaulis
-   observable.SingleProbability
-   observable.SummedProbabilities
-   observable.IsingHamiltonian
-   observable.CustomObservable
+   observables.SinglePauli
+   observables.SummedPaulis
+   observables.SingleProbability
+   observables.SummedProbabilities
+   observables.IsingHamiltonian
+   observables.CustomObservable
 
 Operator Tools
 ------------------------------------
@@ -124,8 +124,8 @@ Operator Tools
    :toctree: generated/
    :template: class.rst
 
-   observable.observable_base.ObservableBase
-   observable.observable_derivatives.ObservableDerivatives
+   observables.observable_base.ObservableBase
+   observables.observable_derivatives.ObservableDerivatives
 
 
 Execution Tools
@@ -227,7 +227,7 @@ Base Classes
    :toctree: generated/
    :template: class.rst
 
-    observable.observable_base.ObservableBase
+    observables.observable_base.ObservableBase
     feature_map.feature_map_base.FeatureMapBase
     kernel.matrix.kernel_matrix_base.KernelMatrixBase
     kernel.optimization.kernel_loss_base.KernelLossBase
