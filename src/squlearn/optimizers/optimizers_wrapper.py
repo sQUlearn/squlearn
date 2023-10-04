@@ -7,10 +7,15 @@ from scipy.optimize import minimize
 from .optimizer_base import OptimizerBase, OptimizerResult
 
 
+def default_callback(x):
+    """Default callback function."""
+    print(x)
+
+
 class SLSQP(OptimizerBase):
     """Wrapper class for scipy's SLSQP implementation."""
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -18,10 +23,18 @@ class SLSQP(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
     def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
         scipy_result = minimize(
-            fun, jac=grad, x0=x0, method="SLSQP", options=self.options, bounds=bounds, tol=self.tol
+            fun,
+            jac=grad,
+            x0=x0,
+            method="SLSQP",
+            options=self.options,
+            bounds=bounds,
+            tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
@@ -33,7 +46,7 @@ class SLSQP(OptimizerBase):
 class LBFGSB(OptimizerBase):
     """Wrapper class for scipy's L-BFGS-B implementation."""
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -41,6 +54,7 @@ class LBFGSB(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
     def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
         scipy_result = minimize(
@@ -51,6 +65,7 @@ class LBFGSB(OptimizerBase):
             options=self.options,
             bounds=bounds,
             tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
