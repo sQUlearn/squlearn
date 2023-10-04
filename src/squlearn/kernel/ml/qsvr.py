@@ -93,7 +93,7 @@ class QSVR(SVR):
             )
         else:
             super().__init__(kernel="precomputed", **kwargs)
-        
+
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
