@@ -113,11 +113,11 @@ along with a constant offset:
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import SummedPaulis
+    from squlearn.observables import SummedPaulis
 
     op = SummedPaulis(num_qubits=4)
 
-Other expectation operators can be found in the user guide on :ref:`user_guide_operators`.
+Other expectation operators can be found in the user guide on :ref:`user_guide_observables`.
 
 Now we can construct a QNN from the encoding circuit and the cost operator.
 sQUlearn offers two easy-to-use implementation of QNNs, either for regression or classification:
@@ -136,7 +136,7 @@ and the Adam optimizer for optimization.
 
 .. code-block:: python
 
-    from squlearn.expectation_operator import SummedPaulis
+    from squlearn.observables import SummedPaulis
     from squlearn.feature_map import ChebPQC
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import Adam
@@ -265,7 +265,7 @@ yields a high variance in the model output.
     import matplotlib.pyplot as plt
     from squlearn import Executor
     from squlearn.feature_map import ChebRx
-    from squlearn.expectation_operator import IsingHamiltonian
+    from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4
@@ -329,7 +329,7 @@ in the model, as depicted in `figure 3`_.
     import matplotlib.pyplot as plt
     from squlearn import Executor
     from squlearn.feature_map import ChebRx
-    from squlearn.expectation_operator import IsingHamiltonian
+    from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4

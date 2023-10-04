@@ -1,3 +1,5 @@
+.. _user_guide_observables:
+
 ##################################
 Observables for expectation values
 ##################################
