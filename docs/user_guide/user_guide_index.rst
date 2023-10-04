@@ -7,6 +7,6 @@ User Guide
    :maxdepth: 2
 
    executor
-   operators
+   observables
    feature_maps
    kernel_methods

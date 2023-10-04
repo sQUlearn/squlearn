@@ -208,7 +208,7 @@ Moreover, the QNNs can be evaluated with respect to different measurement operat
 addition to the default setting - :code:`measurement='XYZ'` - one can specify :code:`measurement='X'`, 
 :code:`measurement='Y'` and :code:`measurement='Z'` for one-qubit measurements with respect to only 
 one Pauli operator. Beyond that, one can also specify an operator or a list of operators, see the 
-respective examples in :class:`ProjectedQuantumKernel` or the :doc:`./operators`
+respective examples in :class:`ProjectedQuantumKernel` or the :doc:`./observables`
 user guide.
 
 
