@@ -1,3 +1,5 @@
+.. _user_guide_operators:
+
 ################################
 Operators for expectation values
 ################################
