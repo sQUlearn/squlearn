@@ -8,6 +8,11 @@ import abc
 import numpy as np
 
 
+def default_callback(*args):
+    """Default callback function."""
+    pass
+
+
 class OptimizerResult:  # TODO: maybe scipy class?
     """Class for holding the final result of the optimization"""
 

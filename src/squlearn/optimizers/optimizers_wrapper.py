@@ -4,13 +4,7 @@
 import qiskit.algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
-from .optimizer_base import OptimizerBase, OptimizerResult
-
-
-def default_callback(x):
-    """Default callback function."""
-    print(x)
-
+from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
 
 class SLSQP(OptimizerBase):
     """Wrapper class for scipy's SLSQP implementation."""
@@ -77,7 +71,7 @@ class LBFGSB(OptimizerBase):
 class SPSA(OptimizerBase):
     """Wrapper class for Qiskit's SPSA implementation."""
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -95,6 +89,7 @@ class SPSA(OptimizerBase):
         self.hessian_delay = options.get("hessian_delay", 0)
         self.lse_solver = options.get("lse_solver", None)
         self.initial_hessian = options.get("initial_hessian", None)
+        self.callback = callback
 
     def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
         spsa = qiskit_optimizers.SPSA(
@@ -112,6 +107,7 @@ class SPSA(OptimizerBase):
             hessian_delay=self.hessian_delay,
             lse_solver=self.lse_solver,
             initial_hessian=self.initial_hessian,
+            callback=self.callback,
         )
 
         result_qiskit = spsa.minimize(fun=fun, x0=x0, jac=grad, bounds=bounds)
