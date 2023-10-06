@@ -3,26 +3,26 @@ from typing import Union
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ParamZFeatureMap(FeatureMapBase):
+class ParamZEncodingCircuit(EncodingCircuitBase):
     """
-    Parameterized ZFeatureMap with optional CNOT gates between the default layers.
+    Parameterized ZEncodingCircuit with optional CNOT gates between the default layers.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers with entangling:**
 
     .. plot::
 
-        from squlearn.feature_map import ParamZFeatureMap
-        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
+        from squlearn.encoding_circuit import ParamZEncodingCircuit
+        pqc = ParamZEncodingCircuit(4, 2, num_layers=2, entangling=True)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits
         num_features (int): Dimension of the feature vector
-        num_layers (int): Number of layers of the feature map
+        num_layers (int): Number of layers of the encoding circuit
         entangling (bool): If true, entangling gates are added between the layers
 
     """
@@ -36,12 +36,12 @@ class ParamZFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the featuremap."""
+        """The number of trainable parameters of the encoding circuit."""
         return max(self._num_qubits, self._num_features) * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the parameterized Z feature map
+        Returns hyper-parameters and their values of the parameterized Z encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -57,7 +57,7 @@ class ParamZFeatureMap(FeatureMapBase):
 
     @property
     def num_layers(self) -> int:
-        """The number of layers of the featuremap."""
+        """The number of layers of the encoding circuit."""
         return self._num_layers
 
     def get_circuit(
@@ -66,7 +66,7 @@ class ParamZFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the parameterized Z feature map.
+        Returns the circuit of the parameterized Z encoding circuit.
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -75,7 +75,7 @@ class ParamZFeatureMap(FeatureMapBase):
                                                            from which the gate inputs are obtained.
 
         Return:
-            The circuit of the parameterized Z feature map in the form of a QuantumCircuit
+            The circuit of the parameterized Z encoding circuit in the form of a QuantumCircuit
         """
 
         num_features = len(features)

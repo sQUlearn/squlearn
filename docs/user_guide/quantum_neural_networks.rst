@@ -91,21 +91,21 @@ method:
 
 .. code-block:: python
 
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
 
     pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
     pqc.draw("mpl")
 
 .. plot::
 
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
     pqc = ChebPQC(4, 2, 2)
     pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
     plt.tight_layout()
 
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
-explore in the user guide located at :ref:`quantum_feature_maps`.
+explore in the user guide located at :ref:`quantum_encoding_circuits`.
 
 The second ingredient is to specify an observable for computing the QNN's output. In this
 particular example, we employ a summation over a Pauli Z observable for each qubit,
@@ -137,7 +137,7 @@ and the Adam optimizer for optimization.
 .. code-block:: python
 
     from squlearn.observables import SummedPaulis
-    from squlearn.feature_map import ChebPQC
+    from squlearn.encoding_circuit import ChebPQC
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import Adam
     from squlearn import Executor
@@ -264,7 +264,7 @@ yields a high variance in the model output.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.feature_map import ChebRx
+    from squlearn.encoding_circuit import ChebRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
@@ -328,7 +328,7 @@ in the model, as depicted in `figure 3`_.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.feature_map import ChebRx
+    from squlearn.encoding_circuit import ChebRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP

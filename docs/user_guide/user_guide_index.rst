@@ -8,6 +8,6 @@ User Guide
 
    executor
    observables
-   feature_maps
+   encoding_circuits
    kernel_methods
    quantum_neural_networks

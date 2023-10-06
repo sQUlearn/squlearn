@@ -26,7 +26,7 @@ class QGPC(GaussianProcessClassifier):
         **kwargs: Keyword arguments for the quantum kernel matrix, possible arguments can be obtained
             by calling ``get_params()``. Can be used to set for example the number of qubits
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
-            of the underlying feature map.
+            of the underlying encoding circuit.
 
     See Also
     --------
@@ -38,14 +38,14 @@ class QGPC(GaussianProcessClassifier):
 
         from sklearn.datasets import load_iris
         from squlearn import Executor
-        from squlearn.feature_map import QEKFeatureMap
+        from squlearn.encoding_circuit import QEKEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.kernel.ml import QGPC
         X, y = load_iris(return_X_y=True)
 
-        fmap = QEKFeatureMap(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
-        q_kernel = FidelityKernel(feature_map=fmap, executor=Executor("statevector_simulator"))
-        q_kernel.assign_parameters(np.random.rand(fmap.num_parameters))
+        enc_circ = QEKEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
+        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
+        q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpc_ansatz = QGPC(quantum_kernel=q_kernel)
         qgpc_ansatz.fit(X, y)
         qgpc_ansatz.score(X, y)

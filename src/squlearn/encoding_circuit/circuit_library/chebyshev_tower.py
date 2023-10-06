@@ -4,10 +4,10 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ChebyshevTower(FeatureMapBase):
+class ChebyshevTower(EncodingCircuitBase):
     r"""
     A feature-map that is based on the Chebyshev Tower encoding.
 
@@ -16,7 +16,7 @@ class ChebyshevTower(FeatureMapBase):
 
     .. plot::
 
-        from squlearn.feature_map import ChebyshevTower
+        from squlearn.encoding_circuit import ChebyshevTower
         pqc = ChebyshevTower(4, 2, 2, num_layers=2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
@@ -25,7 +25,7 @@ class ChebyshevTower(FeatureMapBase):
     It is also possible to change the indexing of the features.
 
     Args:
-        num_qubits (int): Number of qubits of the ChebyshevTower feature map
+        num_qubits (int): Number of qubits of the ChebyshevTower encoding circuit
         num_features (int): Dimension of the feature vector
         n_chebyshev (int): Number of Chebyshev tower terms per feature dimension
         alpha (float): Scaling factor of Chebyshev tower
@@ -95,7 +95,7 @@ class ChebyshevTower(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray] = None,
     ) -> QuantumCircuit:
         """
-        Generates and returns the circuit of the Chebyshev feature map.
+        Generates and returns the circuit of the Chebyshev encoding circuit.
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features

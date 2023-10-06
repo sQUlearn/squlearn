@@ -29,7 +29,7 @@ class QSVC(SVC):
         **kwargs: Possible arguments can be
             obtained by calling ``get_params()``. Notable examples are parameters of the
             :class:`sklearn.svm.SVC` class such as the regularization parameters ``C``
-            (float, default=1.0). Additionally, properties of the underlying feature map can be
+            (float, default=1.0). Additionally, properties of the underlying encoding circuit can be
             adjusted via kwargs such as the number of qubits (``num_qubits``), or (if supported)
             the number of layers (``num_layers``).
 
@@ -47,15 +47,15 @@ class QSVC(SVC):
         from sklearn.model_selection import train_test_split
 
         from squlearn import Executor
-        from squlearn.feature_map import QEKFeatureMap
+        from squlearn.encoding_circuit import QEKEncodingCircuit
         from squlearn.kernel.ml.qsvc import QSVC
         from squlearn.kernel.matrix import ProjectedQuantumKernel
 
-        feature_map = QEKFeatureMap(num_qubits=2, num_features=2, num_layers=2)
+        encoding_circuit = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map,
+            encoding_circuit,
             executor=Executor("statevector_simulator"),
-            initial_parameters=np.random.rand(feature_map.num_parameters)
+            initial_parameters=np.random.rand(encoding_circuit.num_parameters)
         )
 
         X, y = make_moons(n_samples=100, noise=0.3, random_state=0)

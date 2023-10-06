@@ -4,21 +4,21 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info.operators import Operator
 
-from ..feature_map_base import FeatureMapBase
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class HighDimFeatureMap(FeatureMapBase):
+class HighDimEncodingCircuit(EncodingCircuitBase):
     r"""
-    The high-dimensional feature map from Reference https://doi.org/10.1103/PhysRevA.106.042431
+    The high-dimensional encoding circuit from Reference https://doi.org/10.1103/PhysRevA.106.042431
 
-    A feature map that can be used for the classification of high-dimensional data.
+    A encoding circuit that can be used for the classification of high-dimensional data.
 
     **Example for 5 qubits, a 23 dimensional feature vector and 2 layers:**
 
     .. plot::
 
-        from squlearn.feature_map import HighDimFeatureMap
-        pqc = HighDimFeatureMap(5, 23, num_layers=2)
+        from squlearn.encoding_circuit import HighDimEncodingCircuit
+        pqc = HighDimEncodingCircuit(5, 23, num_layers=2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -26,7 +26,7 @@ class HighDimFeatureMap(FeatureMapBase):
     ``cycling``, ``cycling_type`` and ``layer_type``.
 
     Args:
-        num_qubits (int): Number of qubits of the HighDim feature map
+        num_qubits (int): Number of qubits of the HighDim encoding circuit
         num_features (int): Dimension of the feature vector
         cycling (bool): If true, the assignment of gates cycles, i.e. if reaching the last feature,
                         the layer is filled by starting again from the first feature.
@@ -74,12 +74,12 @@ class HighDimFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the HighDim feature map (equal to 0)."""
+        """The number of trainable parameters of the HighDim encoding circuit (equal to 0)."""
         return 0
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the HighDim feature map
+        Returns hyper-parameters and their values of the HighDim encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -102,7 +102,7 @@ class HighDimFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray] = None,
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the HighDim feature map
+        Returns the circuit of the HighDim encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -111,7 +111,7 @@ class HighDimFeatureMap(FeatureMapBase):
                                                            from which the gate inputs are obtained.
 
         Return:
-            The circuit of the high-dimensional feature map
+            The circuit of the high-dimensional encoding circuit
         """
 
         if self.cycling_type not in ("saw", "hat"):
@@ -226,7 +226,7 @@ class HighDimFeatureMap(FeatureMapBase):
         # Overwrite number of layers if given by the user
         if self.num_layers is not None:
             if self.num_layers < num_layers:
-                raise RuntimeError("Not all features are represented in the feature map!")
+                raise RuntimeError("Not all features are represented in the encoding circuit!")
             num_layers = self.num_layers
 
         # Loop through the layers

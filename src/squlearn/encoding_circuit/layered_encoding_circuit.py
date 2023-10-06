@@ -6,10 +6,10 @@ from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
 from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
 from typing import Union, Callable
 
-# is needed for making feature maps with numpy functions using strings:
+# is needed for making encoding circuits with numpy functions using strings:
 import numpy as np
 
-from .feature_map_base import FeatureMapBase
+from .encoding_circuit_base import EncodingCircuitBase
 
 
 class VariableGroup:
@@ -20,7 +20,7 @@ class VariableGroup:
     def __init__(self, variable_name: str, size=None):
         """
         Args:
-            variable_name [String]: the name of the variable type, which one can see, if he draws the circuit of a feature map with this variable group
+            variable_name [String]: the name of the variable type, which one can see, if he draws the circuit of a encoding circuit with this variable group
             size (int): The dimension of the variable group
             index (int): The index of the variable group (only important for creating the circuit)
             Only if size is not given:
@@ -736,12 +736,12 @@ class LayeredPQC:
         -----------
 
         Attributes:
-            num_qubits (int): Number of qubits in this feature map
+            num_qubits (int): Number of qubits in this encoding circuit
             operation_list [list]: List of objects of the class operation with the tuple of the variablegroups used for each operation and the number of variables used in that operation, e.g. [[_H_operation,None], [Rx_operation, (x_var,x_var2), [5,5],...]
-            variable_groups [tuple]: Tuple of all variable groups used in this feature map; ATTENTION: If there is only one variable group, be sure to type in "(x,)" and not "(x)" initializing the feature map
+            variable_groups [tuple]: Tuple of all variable groups used in this encoding circuit; ATTENTION: If there is only one variable group, be sure to type in "(x,)" and not "(x)" initializing the encoding circuit
             Only if variable_groups is not None:
             variable_name_tuple [tuple]: Tuple of variable names of each variablegroup e.g. variablegroup x_var, x_var2, p_var; variable_name_tuple = (x,x2,p);
-                this is only used to create feature maps with Strings
+                this is only used to create encoding circuits with Strings
             variable_groups_string_tuple [tuple]: Tuple of the hash values for each variable group, with that, you can search the position of each variable_group,
                 e.g. variable_groups = (x_var, x_var2,...) with type(x_var) = variable_group and variable_string_list = (hash(x_var),hash(x_var2),...)
         """
@@ -791,7 +791,7 @@ class LayeredPQC:
                 iteration_counter += 1
 
     def add_layer(self, layer, num_layers=1):
-        """adds a layer of gates to the given feature map"""
+        """adds a layer of gates to the given encoding circuit"""
         for i in range(num_layers):
             for operation_iter in layer.operation_list:
                 if len(operation_iter) == 3:
@@ -1197,7 +1197,7 @@ class LayeredPQC:
 
     @classmethod
     def from_string(cls, num_qubits: int, gate_layers: str, variable_groups=None):
-        """initializes a feature map through a given string of gates"""
+        """initializes a encoding circuit through a given string of gates"""
 
         def generate_function(map_string, args):
             """Translates a string into a function"""
@@ -1230,10 +1230,10 @@ def math_function({var}):
             number_string = "".join(digit_list)
             return int(number_string)
 
-        featuremap = cls(num_qubits, variable_groups)
+        encoding_circuit = cls(num_qubits, variable_groups)
         gate_layers = gate_layers.replace(" ", "")
         string_iterator = 0
-        featuremap_active = featuremap
+        encoding_circuit_active = encoding_circuit
         # Variable that detects, if all brackets "[" are closed (is needed for layers e.g. 3[H-X] etc.):
         closed_brackets = True
         while string_iterator < len(gate_layers):
@@ -1251,7 +1251,7 @@ def math_function({var}):
                 if gate_layers[string_iterator] != "[":
                     raise ValueError('To create different layers we need "[".')
                 number_of_layers = make_digit_list_to_number(digit_list)
-                featuremap_active = LayerPQC(featuremap)
+                encoding_circuit_active = LayerPQC(encoding_circuit)
             elif character_iter == "[":
                 closed_brackets = False
                 string_iterator += 1
@@ -1259,26 +1259,26 @@ def math_function({var}):
                 if closed_brackets == True:
                     raise ValueError("There are to many closed brackets.")
                 closed_brackets = True
-                featuremap.add_layer(featuremap_active, num_layers=number_of_layers)
-                featuremap_active = featuremap
+                encoding_circuit.add_layer(encoding_circuit_active, num_layers=number_of_layers)
+                encoding_circuit_active = encoding_circuit
                 string_iterator += 1
             # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
             # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Operations without parameters:
             elif character_iter == "H":
-                featuremap_active.H()
+                encoding_circuit_active.H()
                 string_iterator += 1
             elif character_iter == "X":
-                featuremap_active.X()
+                encoding_circuit_active.X()
                 string_iterator += 1
             elif character_iter == "Y":
-                featuremap_active.Y()
+                encoding_circuit_active.Y()
                 string_iterator += 1
             elif character_iter == "Z":
-                featuremap_active.Z()
+                encoding_circuit_active.Z()
                 string_iterator += 1
             elif character_iter == "I":
-                featuremap_active.I()
+                encoding_circuit_active.I()
                 string_iterator += 1
             # For the two following operations S and T there exists also the conjugated version: s_conjugated and t_conjugated ("Sc" and "Tc" not to be confused with "cs", which stands for the swap operation)
             elif character_iter == "S":
@@ -1286,26 +1286,26 @@ def math_function({var}):
                 if string_iterator + 1 < len(gate_layers):
                     character_iter_1 = gate_layers[string_iterator + 1]
                     if character_iter_1 == "c":
-                        featuremap_active.S_conjugate()
+                        encoding_circuit_active.S_conjugate()
                         string_iterator += 2
                     else:
-                        featuremap_active.S()
+                        encoding_circuit_active.S()
                         string_iterator += 1
                 else:
-                    featuremap_active.S()
+                    encoding_circuit_active.S()
                     string_iterator += 1
             elif character_iter == "T":
                 # check first, if the entry gate_layers[string_iterator+1] exists, otherwise it will raise an error
                 if string_iterator + 1 < len(gate_layers):
                     character_iter_1 = gate_layers[string_iterator + 1]
                     if character_iter_1 == "c":
-                        featuremap_active.T_conjugate()
+                        encoding_circuit_active.T_conjugate()
                         string_iterator += 2
                     else:
-                        featuremap_active.T()
+                        encoding_circuit_active.T()
                         string_iterator += 1
                 else:
-                    featuremap_active.T()
+                    encoding_circuit_active.T()
                     string_iterator += 1
             # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Operations with parameters
@@ -1328,8 +1328,8 @@ def math_function({var}):
                     param_vector_list = []
                     # Assigning the parameter names to the right parameters:
                     for param_vector_name in param_vector_name_list:
-                        param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                        param_vector_list.append(featuremap.variable_groups[param_index])
+                        param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                        param_vector_list.append(encoding_circuit.variable_groups[param_index])
                     if gate_layers[semicolon1_index + 1] == "=":
                         # Evaluates all variables, that are stored in the brackets "{}", and creates a map with the given string of a function
                         map_comma_index = gate_layers.index(",", semicolon1_index)
@@ -1342,24 +1342,24 @@ def math_function({var}):
                         raise ValueError("Wrong input 2.")
 
                     if character_iter_1 == "x":
-                        featuremap_active.Rx(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Rx(*param_vector_list, map=map_from_string)
                     elif character_iter_1 == "y":
-                        featuremap_active.Ry(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Ry(*param_vector_list, map=map_from_string)
                     elif character_iter_1 == "z":
-                        featuremap_active.Rz(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Rz(*param_vector_list, map=map_from_string)
                     else:
                         raise ValueError("Unknown rotation gate.")
                 else:
                     # There is no semicolon so there is no given map. That means there must be exactly one parameter vector name, which will be assigned to its parameter vector in the following step:
                     param_vector_name = gate_layers[(string_iterator + 3) : end_word]
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector = featuremap.variable_groups[param_index]
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector = encoding_circuit.variable_groups[param_index]
                     if character_iter_1 == "x":
-                        featuremap_active.Rx(param_vector)
+                        encoding_circuit_active.Rx(param_vector)
                     elif character_iter_1 == "y":
-                        featuremap_active.Ry(param_vector)
+                        encoding_circuit_active.Ry(param_vector)
                     elif character_iter_1 == "z":
-                        featuremap_active.Rz(param_vector)
+                        encoding_circuit_active.Rz(param_vector)
                     else:
                         raise ValueError("Unknown rotation gate.")
                 string_iterator = end_word + 1
@@ -1381,8 +1381,8 @@ def math_function({var}):
                     param_vector_list = []
                     # Assigning the parameter names to the right parameters:
                     for param_vector_name in param_vector_name_list:
-                        param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                        param_vector_list.append(featuremap.variable_groups[param_index])
+                        param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                        param_vector_list.append(encoding_circuit.variable_groups[param_index])
                     if gate_layers[semicolon1_index + 1] == "=":
                         # Evaluates all variables, that are stored in the brackets "{}", and creates a map with the given string of a function
                         map_comma_index = gate_layers.index(",", semicolon1_index)
@@ -1393,13 +1393,13 @@ def math_function({var}):
                         map_from_string = generate_function(map_string, map_args)
                     else:
                         raise ValueError("Wrong input 2.")
-                    featuremap_active.P(*param_vector_list, map=map_from_string)
+                    encoding_circuit_active.P(*param_vector_list, map=map_from_string)
                 else:
                     # There is no semicolon so there is no given map. That means there must be exactly one parameter vector name, which will be assigned to its parameter vector in the following step:
                     param_vector_name = gate_layers[(string_iterator + 2) : end_word]
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector = featuremap.variable_groups[param_index]
-                    featuremap_active.P(param_vector)
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector = encoding_circuit.variable_groups[param_index]
+                    encoding_circuit_active.P(param_vector)
                 string_iterator = end_word + 1
             elif character_iter == "U":
                 open_bracket_index = string_iterator + 1
@@ -1410,9 +1410,9 @@ def math_function({var}):
                     raise ValueError("There must be exactly three parameters for an U gate.")
                 param_vector_list = []
                 for param_vector_name in param_vector_name_list:
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector_list.append(featuremap.variable_groups[param_index])
-                featuremap_active.U(*param_vector_list)
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                encoding_circuit_active.U(*param_vector_list)
                 string_iterator = end_word + 1
             # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Beginning of the entangling layers:
@@ -1423,15 +1423,15 @@ def math_function({var}):
                 # h, x, y, z, s gates work in the same way, we use a function pointer to handle all those gates at once:
                 function_pointer = None
                 if character_iter_1 == "h":
-                    function_pointer = featuremap_active.ch_entangling
+                    function_pointer = encoding_circuit_active.ch_entangling
                 elif character_iter_1 == "x":
-                    function_pointer = featuremap_active.cx_entangling
+                    function_pointer = encoding_circuit_active.cx_entangling
                 elif character_iter_1 == "y":
-                    function_pointer = featuremap_active.cy_entangling
+                    function_pointer = encoding_circuit_active.cy_entangling
                 elif character_iter_1 == "z":
-                    function_pointer = featuremap_active.cz_entangling
+                    function_pointer = encoding_circuit_active.cz_entangling
                 elif character_iter_1 == "s":
-                    function_pointer = featuremap_active.swap
+                    function_pointer = encoding_circuit_active.swap
 
                 # overwrite function pointer for rxx,ryy,... gates
                 if character_iter == "r":
@@ -1470,19 +1470,19 @@ def math_function({var}):
 
                         func = None
                         if character_iter_1 == "r" and character_iter_2 == "x":
-                            func = featuremap_active.crx_entangling
+                            func = encoding_circuit_active.crx_entangling
                         elif character_iter_1 == "r" and character_iter_2 == "y":
-                            func = featuremap_active.cry_entangling
+                            func = encoding_circuit_active.cry_entangling
                         elif character_iter_1 == "r" and character_iter_2 == "z":
-                            func = featuremap_active.crz_entangling
+                            func = encoding_circuit_active.crz_entangling
                         elif character_iter_1 == "x" and character_iter_2 == "x":
-                            func = featuremap_active.rxx_entangling
+                            func = encoding_circuit_active.rxx_entangling
                         elif character_iter_1 == "y" and character_iter_2 == "y":
-                            func = featuremap_active.ryy_entangling
+                            func = encoding_circuit_active.ryy_entangling
                         elif character_iter_1 == "z" and character_iter_2 == "z":
-                            func = featuremap_active.rzz_entangling
+                            func = encoding_circuit_active.rzz_entangling
                         elif character_iter_1 == "z" and character_iter_2 == "x":
-                            func = featuremap_active.rzx_entangling
+                            func = encoding_circuit_active.rzx_entangling
                         else:
                             raise ValueError("Unknown rotation gate.")
 
@@ -1509,10 +1509,12 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: crx(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1565,8 +1567,10 @@ def math_function({var}):
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 4) : end_word]
-                            param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                            param_vector = featuremap.variable_groups[param_index]
+                            param_index = encoding_circuit.variable_name_tuple.index(
+                                param_vector_name
+                            )
+                            param_vector = encoding_circuit.variable_groups[param_index]
                             func(param_vector)
                         string_iterator = end_word + 1
                     elif character_iter_1 == "p":
@@ -1597,10 +1601,12 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: cp(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1643,21 +1649,23 @@ def math_function({var}):
                                 raise ValueError("Wrong input2.")
 
                             if given_map:
-                                featuremap_active.cp_entangling(
+                                encoding_circuit_active.cp_entangling(
                                     *param_vector_list,
                                     map=map_from_string,
                                     ent_strategy=ent_strategy,
                                 )
                             else:
-                                featuremap_active.cp_entangling(
+                                encoding_circuit_active.cp_entangling(
                                     *param_vector_list, ent_strategy=ent_strategy
                                 )
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 3) : end_word]
-                            param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                            param_vector = featuremap.variable_groups[param_index]
-                            featuremap_active.cp_entangling(param_vector)
+                            param_index = encoding_circuit.variable_name_tuple.index(
+                                param_vector_name
+                            )
+                            param_vector = encoding_circuit.variable_groups[param_index]
+                            encoding_circuit_active.cp_entangling(param_vector)
                         string_iterator = end_word + 1
                     elif character_iter_1 == "u":
                         if string_iterator + 2 < len(gate_layers):
@@ -1678,16 +1686,18 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
                             if gate_layers[semicolon1_index + 1 : semicolon1_index + 3] == "AA":
-                                featuremap_active.cu_entangling(
+                                encoding_circuit_active.cu_entangling(
                                     *param_vector_list, ent_strategy="AA"
                                 )
                             elif gate_layers[semicolon1_index + 1 : semicolon1_index + 3] == "NN":
-                                featuremap_active.cu_entangling(
+                                encoding_circuit_active.cu_entangling(
                                     *param_vector_list, ent_strategy="NN"
                                 )
                             else:
@@ -1700,11 +1710,13 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
-                            featuremap_active.cu_entangling(*param_vector_list)
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
+                            encoding_circuit_active.cu_entangling(*param_vector_list)
                         string_iterator = end_word + 1
                     else:
                         raise ValueError("Unknown entangling operation.")
@@ -1712,23 +1724,25 @@ def math_function({var}):
                 raise ValueError(
                     character_iter + " is an unknown operation input or an unknown character."
                 )
-        return featuremap
+        return encoding_circuit
 
-    def to_feature_map(
+    def to_encoding_circuit(
         self,
         feature_variable_group: Union[VariableGroup, list],
         parameters_variable_group: Union[VariableGroup, list],
     ):
-        return ConvertedLayeredFeatureMap(self, feature_variable_group, parameters_variable_group)
+        return ConvertedLayeredEncodingCircuit(
+            self, feature_variable_group, parameters_variable_group
+        )
 
 
 class LayerPQC(LayeredPQC):
     """
-    default class for a layer: the user is able to build his one list of operations and this list can be added to the main class LayeredFeatureMap
+    default class for a layer: the user is able to build his one list of operations and this list can be added to the main class LayeredEncodingCircuit
     """
 
-    def __init__(self, featuremap: LayeredPQC):
-        super().__init__(featuremap.num_qubits, featuremap.variable_groups)
+    def __init__(self, encoding_circuit: LayeredPQC):
+        super().__init__(encoding_circuit.num_qubits, encoding_circuit.variable_groups)
 
     def add_operation(
         self, operation: _operation, variablegroup_tuple: tuple, variable_num_list=None
@@ -1746,9 +1760,9 @@ class LayerPQC(LayeredPQC):
             self.operation_list.append([operation, variablegroup_tuple, variable_num_list])
 
 
-class ConvertedLayeredFeatureMap(FeatureMapBase):
+class ConvertedLayeredEncodingCircuit(EncodingCircuitBase):
     """
-    Data structure for converting a LayeredPQC structure into sqlearn feature map structure.
+    Data structure for converting a LayeredPQC structure into sqlearn encoding circuit structure.
     The programmer specifies, which variable groups are considered as features
     and which are parameters
 
@@ -1780,12 +1794,12 @@ class ConvertedLayeredFeatureMap(FeatureMapBase):
 
     @property
     def num_qubits(self) -> int:
-        """Returns number of qubits of the Layered Feature Map"""
+        """Returns number of qubits of the Layered Encoding Circuit"""
         return self._layered_pqc.num_qubits
 
     @property
     def num_features(self) -> int:
-        """Returns number of features of the Layered Feature Map"""
+        """Returns number of features of the Layered Encoding Circuit"""
         num_features = 0
         for vg in self._feature_variable_group:
             num_features += self._layered_pqc.get_number_of_variables(vg)
@@ -1793,7 +1807,7 @@ class ConvertedLayeredFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """Returns number of parameters of the Layered Feature Map"""
+        """Returns number of parameters of the Layered Encoding Circuit"""
         num_parameters = 0
         for vg in self._parameters_variable_group:
             num_parameters += self._layered_pqc.get_number_of_variables(vg)
@@ -1805,7 +1819,7 @@ class ConvertedLayeredFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the Layered Feature Map
+        Returns the circuit of the Layered Encoding Circuit
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -1844,9 +1858,9 @@ class ConvertedLayeredFeatureMap(FeatureMapBase):
         return self._layered_pqc.get_circuit(*input_list)
 
 
-class LayeredFeatureMap(FeatureMapBase):
+class LayeredEncodingCircuit(EncodingCircuitBase):
     r"""
-    A class for a simple creation of layered feature maps.
+    A class for a simple creation of layered encoding circuits.
 
     Gates are added to all qubits by calling the associated function similar to Qiskit's circuits.
     Single qubit gates are added to all qubits, while two qubits gates can be added with different
@@ -1857,31 +1871,31 @@ class LayeredFeatureMap(FeatureMapBase):
     be added by setting the map variable ``map=``. Two qubit gates can be placed either
     in a nearest-neighbor ``NN`` or a all to all entangling pattern ``AA``.
 
-    **Simple Layered Feature Map**
+    **Simple Layered Encoding Circuit**
 
     .. code-block:: python
 
-        from squlearn.feature_map import LayeredFeatureMap
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        feature_map.Rz("x")
-        feature_map.Ry("p")
-        feature_map.cx_entangling("NN")
-        feature_map.draw()
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        encoding_circuit.Rz("x")
+        encoding_circuit.Ry("p")
+        encoding_circuit.cx_entangling("NN")
+        encoding_circuit.draw()
 
     .. plot::
 
-        from squlearn.feature_map import LayeredFeatureMap
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        feature_map.Rz("x")
-        feature_map.Ry("p")
-        feature_map.cx_entangling("NN")
-        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        encoding_circuit.Rz("x")
+        encoding_circuit.Ry("p")
+        encoding_circuit.cx_entangling("NN")
+        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
 
-    **Create a layered feature map with non-linear input encoding**
+    **Create a layered encoding circuit with non-linear input encoding**
 
     It is also possible to define a non-linear function for encoding variables in gates by
     supplying a function for the encoding as the second argument
@@ -1889,68 +1903,68 @@ class LayeredFeatureMap(FeatureMapBase):
     .. code-block:: python
 
         import numpy as np
-        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
 
         def func(a,b):
             return a*np.arccos(b)
 
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        feature_map.Rz("p","x",encoding=func)
-        feature_map.cx_entangling("NN")
-        feature_map.draw()
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        encoding_circuit.Rz("p","x",encoding=func)
+        encoding_circuit.cx_entangling("NN")
+        encoding_circuit.draw()
 
     .. plot::
 
         import numpy as np
-        from squlearn.feature_map import LayeredFeatureMap
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
 
         def func(a,b):
             return a*np.arccos(b)
 
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        feature_map.Rz("p","x",encoding=func)
-        feature_map.cx_entangling("NN")
-        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        encoding_circuit.Rz("p","x",encoding=func)
+        encoding_circuit.cx_entangling("NN")
+        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
 
-    **Create a layered feature map with layers**
+    **Create a layered encoding circuit with layers**
 
     Furthermore, it is possible to define layers and repeat them.
 
     .. code-block:: python
 
-        from squlearn.feature_map import LayeredFeatureMap
-        from squlearn.feature_map.layered_feature_map import Layer
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        layer = Layer(feature_map)
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        layer = Layer(encoding_circuit)
         layer.Rz("x")
         layer.Ry("p")
         layer.cx_entangling("NN")
-        feature_map.add_layer(layer,num_layers=3)
-        feature_map.draw()
+        encoding_circuit.add_layer(layer,num_layers=3)
+        encoding_circuit.draw()
 
     .. plot::
 
-        from squlearn.feature_map import LayeredFeatureMap
-        from squlearn.feature_map.layered_feature_map import Layer
-        feature_map = LayeredFeatureMap(num_qubits=4,num_features=2)
-        feature_map.H()
-        layer = Layer(feature_map)
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        from squlearn.encoding_circuit.layered_encoding_circuit import Layer
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit.H()
+        layer = Layer(encoding_circuit)
         layer.Rz("x")
         layer.Ry("p")
         layer.cx_entangling("NN")
-        feature_map.add_layer(layer,num_layers=3)
-        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        encoding_circuit.add_layer(layer,num_layers=3)
+        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
-    **Create a layered feature map from string**
+    **Create a layered encoding circuit from string**
 
-    Another very useful feature is the creation from feature maps from strings.
-    This can be achieved by the function ``LayeredFeatureMap.from_string()``.
+    Another very useful feature is the creation from encoding circuits from strings.
+    This can be achieved by the function ``LayeredEncodingCircuit.from_string()``.
 
     Gates are separated by ``-``, layers can be specified by ``N[...]`` where ``N`` is the
     number of repetitions. The entangling strategy can be set by adding ``NN`` or ``AA``.
@@ -2044,23 +2058,23 @@ class LayeredFeatureMap(FeatureMapBase):
 
     .. code-block:: python
 
-        from squlearn.feature_map import LayeredFeatureMap
-        feature_map = LayeredFeatureMap.from_string(
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        encoding_circuit = LayeredEncodingCircuit.from_string(
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
         )
-        feature_map.draw()
+        encoding_circuit.draw()
 
     .. plot::
 
-        from squlearn.feature_map import LayeredFeatureMap
-        feature_map = LayeredFeatureMap.from_string(
+        from squlearn.encoding_circuit import LayeredEncodingCircuit
+        encoding_circuit = LayeredEncodingCircuit.from_string(
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
         )
-        feature_map.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     Args:
-        num_qubits (int): Number of qubits of the feature map
+        num_qubits (int): Number of qubits of the encoding circuit
         num_features (int): Dimension of the feature vector
         feature_str (str): Label for identifying the feature variable group (default: ``"x"``).
         parameter_str (str): Label for identifying the parameter variable group (default: ``"p"``).
@@ -2082,7 +2096,7 @@ class LayeredFeatureMap(FeatureMapBase):
 
     @property
     def num_parameters(self) -> int:
-        """Returns number of parameters of the Layered Feature Map"""
+        """Returns number of parameters of the Layered Encoding Circuit"""
         return self._layered_pqc.get_number_of_variables(self._p)
 
     def get_circuit(
@@ -2091,7 +2105,7 @@ class LayeredFeatureMap(FeatureMapBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the Layered Feature Map
+        Returns the circuit of the Layered Encoding Circuit
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -2107,7 +2121,7 @@ class LayeredFeatureMap(FeatureMapBase):
     @classmethod
     def from_string(
         cls,
-        feature_map_str: str,
+        encoding_circuit_str: str,
         num_qubits: int,
         num_features: int,
         feature_str: str = "x",
@@ -2115,29 +2129,29 @@ class LayeredFeatureMap(FeatureMapBase):
         num_layers: int = 1,
     ):
         """
-        Constructs a Layered Feature Map through a given string of gates.
+        Constructs a Layered Encoding Circuit through a given string of gates.
 
         Args:
-            feature_map_str (str): String that specifies the feature map
-            num_qubits (int): Number of qubits in the feature map
+            encoding_circuit_str (str): String that specifies the encoding circuit
+            num_qubits (int): Number of qubits in the encoding circuit
             num_features (int): Dimension of the feature vector.
-            feature_str (str): String that is used in feature_map_str to label features (default: 'x')
-            parameter_str (str): String that is used in feature_map_str to label parameters (default: 'p')
-            num_laters (int): Number of layers, i.e., the number of repetitions of the feature map (default: 1)
+            feature_str (str): String that is used in encoding_circuit_str to label features (default: 'x')
+            parameter_str (str): String that is used in encoding_circuit_str to label parameters (default: 'p')
+            num_laters (int): Number of layers, i.e., the number of repetitions of the encoding circuit (default: 1)
 
         Returns:
-            Returns a LayeredFeatureMap object that contains the specified feature map.
+            Returns a LayeredEncodingCircuit object that contains the specified encoding circuit.
 
         """
 
-        feature_map_str *= num_layers
-        layered_feature_map = cls(num_qubits, num_features, feature_str, parameter_str)
-        layered_feature_map._layered_pqc = LayeredPQC.from_string(
+        encoding_circuit_str *= num_layers
+        layered_encoding_circuit = cls(num_qubits, num_features, feature_str, parameter_str)
+        layered_encoding_circuit._layered_pqc = LayeredPQC.from_string(
             num_qubits,
-            feature_map_str,
-            (layered_feature_map._x, layered_feature_map._p),
+            encoding_circuit_str,
+            (layered_encoding_circuit._x, layered_encoding_circuit._p),
         )
-        return layered_feature_map
+        return layered_encoding_circuit
 
     def add_layer(self, layer, num_layers=1) -> None:
         """
@@ -2198,43 +2212,43 @@ class LayeredFeatureMap(FeatureMapBase):
         return function(*vg_list, ent_strategy=ent_strategy, map=encoding)
 
     def H(self):
-        """Adds a layer of H gates to the Layered Feature Map"""
+        """Adds a layer of H gates to the Layered Encoding Circuit"""
         self._layered_pqc.H()
 
     def X(self):
-        """Adds a layer of X gates to the Layered Feature Map"""
+        """Adds a layer of X gates to the Layered Encoding Circuit"""
         self._layered_pqc.X()
 
     def Y(self):
-        """Adds a layer of Y gates to the Layered Feature Map"""
+        """Adds a layer of Y gates to the Layered Encoding Circuit"""
         self._layered_pqc.Y()
 
     def Z(self):
-        """Adds a layer of Z gates to the Layered Feature Map"""
+        """Adds a layer of Z gates to the Layered Encoding Circuit"""
         self._layered_pqc.Z()
 
     def I(self):
-        """Adds a layer of I gates to the Layered Feature Map"""
+        """Adds a layer of I gates to the Layered Encoding Circuit"""
         self._layered_pqc.I()
 
     def S(self):
-        """Adds a layer of S gates to the Layered Feature Map"""
+        """Adds a layer of S gates to the Layered Encoding Circuit"""
         self._layered_pqc.S()
 
     def S_conjugate(self):
-        """Adds a layer of conjugated S gates to the Layered Feature Map"""
+        """Adds a layer of conjugated S gates to the Layered Encoding Circuit"""
         self._layered_pqc.S_conjugate()
 
     def T(self):
-        """Adds a layer of T gates to the Layered Feature Map"""
+        """Adds a layer of T gates to the Layered Encoding Circuit"""
         self._layered_pqc.T()
 
     def T_conjugate(self):
-        """Adds a layer of conjugated T gates to the Layered Feature Map"""
+        """Adds a layer of conjugated T gates to the Layered Encoding Circuit"""
         self._layered_pqc.T_conjugate()
 
     def Rx(self, *variable_str: str, encoding: Union[Callable, None] = None):
-        """Adds a layer of Rx gates to the Layered Feature Map
+        """Adds a layer of Rx gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2244,7 +2258,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._param_gate(*variable_str, function=self._layered_pqc.Rx, encoding=encoding)
 
     def Ry(self, *variable_str, encoding: Union[Callable, None] = None):
-        """Adds a layer of Ry gates to the Layered Feature Map
+        """Adds a layer of Ry gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2254,7 +2268,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._param_gate(*variable_str, function=self._layered_pqc.Ry, encoding=encoding)
 
     def Rz(self, *variable_str, encoding: Union[Callable, None] = None):
-        """Adds a layer of Rz gates to the Layered Feature Map
+        """Adds a layer of Rz gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2264,7 +2278,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._param_gate(*variable_str, function=self._layered_pqc.Rz, encoding=encoding)
 
     def P(self, *variable_str, encoding: Union[Callable, None] = None):
-        """Adds a layer of P gates to the Layered Feature Map
+        """Adds a layer of P gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2274,7 +2288,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._param_gate(*variable_str, function=self._layered_pqc.P, encoding=encoding)
 
     def U(self, *variable_str):
-        """Adds a layer of U gates to the Layered Feature Map
+        """Adds a layer of U gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2284,7 +2298,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._param_gate_U(*variable_str, function=self._layered_pqc.U)
 
     def ch_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled H gates to the Layered Feature Map
+        """Adds a layer of controlled H gates to the Layered Encoding Circuit
 
         Args:
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
@@ -2293,7 +2307,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.ch_entangling(ent_strategy)
 
     def cx_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled X gates to the Layered Feature Map
+        """Adds a layer of controlled X gates to the Layered Encoding Circuit
 
         Args:
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
@@ -2302,7 +2316,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.cx_entangling(ent_strategy)
 
     def cy_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled Y gates to the Layered Feature Map
+        """Adds a layer of controlled Y gates to the Layered Encoding Circuit
 
         Args:
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
@@ -2311,7 +2325,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.cy_entangling(ent_strategy)
 
     def cz_entangling(self, ent_strategy="NN"):
-        """Adds a layer of controlled Z gates to the Layered Feature Map
+        """Adds a layer of controlled Z gates to the Layered Encoding Circuit
 
         Args:
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
@@ -2320,7 +2334,7 @@ class LayeredFeatureMap(FeatureMapBase):
         self._layered_pqc.cz_entangling(ent_strategy)
 
     def swap(self, ent_strategy="NN"):
-        """Adds a layer of swap gates to the Layered Feature Map
+        """Adds a layer of swap gates to the Layered Encoding Circuit
 
         Args:
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
@@ -2331,7 +2345,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def cp_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of controlled P gates to the Layered Feature Map
+        """Adds a layer of controlled P gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2351,7 +2365,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def crx_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of controlled Rx gates to the Layered Feature Map
+        """Adds a layer of controlled Rx gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2370,7 +2384,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def cry_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of controlled Ry gates to the Layered Feature Map
+        """Adds a layer of controlled Ry gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2389,7 +2403,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def crz_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of controlled Rz gates to the Layered Feature Map
+        """Adds a layer of controlled Rz gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2408,7 +2422,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def rxx_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of Rxx gates to the Layered Feature Map
+        """Adds a layer of Rxx gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2427,7 +2441,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def ryy_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of Ryy gates to the Layered Feature Map
+        """Adds a layer of Ryy gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2446,7 +2460,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def rzx_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of Rzx gates to the Layered Feature Map
+        """Adds a layer of Rzx gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2465,7 +2479,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def rzz_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of Rzz gates to the Layered Feature Map
+        """Adds a layer of Rzz gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2484,7 +2498,7 @@ class LayeredFeatureMap(FeatureMapBase):
     def cu_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
-        """Adds a layer of controlled U gates to the Layered Feature Map
+        """Adds a layer of controlled U gates to the Layered Encoding Circuit
 
         Args:
             variable_str (str): Labels of variables that are used in the gate
@@ -2501,22 +2515,22 @@ class LayeredFeatureMap(FeatureMapBase):
         )
 
 
-class Layer(LayeredFeatureMap):
-    """Class for defining a Layer of the Layered Feature Map"""
+class Layer(LayeredEncodingCircuit):
+    """Class for defining a Layer of the Layered Encoding Circuit"""
 
-    def __init__(self, feature_map: LayeredFeatureMap):
+    def __init__(self, encoding_circuit: LayeredEncodingCircuit):
         super().__init__(
-            feature_map.num_qubits,
-            feature_map.num_features,
-            feature_map._feature_str,
-            feature_map._parameter_str,
+            encoding_circuit.num_qubits,
+            encoding_circuit.num_features,
+            encoding_circuit._feature_str,
+            encoding_circuit._parameter_str,
         )
-        # Copy relevant data from input feature_map
-        self._x = feature_map._x
-        self._p = feature_map._p
-        self._layered_pqc = LayerPQC(feature_map._layered_pqc)
+        # Copy relevant data from input encoding_circuit
+        self._x = encoding_circuit._x
+        self._p = encoding_circuit._p
+        self._layered_pqc = LayerPQC(encoding_circuit._layered_pqc)
 
     @property
     def layered_pqc(self):
-        """Returns the LayerPQC object of the Layered Feature Map"""
+        """Returns the LayerPQC object of the Layered Encoding Circuit"""
         return self._layered_pqc

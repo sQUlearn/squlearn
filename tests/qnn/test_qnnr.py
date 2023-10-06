@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
 from squlearn.observables import SummedPaulis
-from squlearn.feature_map import ChebRx
+from squlearn.encoding_circuit import ChebRx
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNRegressor, SquaredLoss
 

@@ -238,10 +238,10 @@ class ObservableBase(ABC):
 
             def get_params(self, deep: bool = True) -> dict:
                 """
-                Returns hyper-parameters and their values of the composed feature map.
+                Returns hyper-parameters and their values of the composed encoding circuit.
 
                 Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
-                which feature map they belong to.
+                which encoding circuit they belong to.
 
                 Args:
                     deep (bool): If True, also the parameters for
@@ -389,10 +389,10 @@ class ObservableBase(ABC):
 
             def get_params(self, deep: bool = True) -> dict:
                 """
-                Returns hyper-parameters and their values of the composed feature map.
+                Returns hyper-parameters and their values of the composed encoding circuit.
 
                 Hyper-parameter names are prefixed by ``op1__`` or ``op2__`` depending on
-                which feature map they belong to.
+                which encoding circuit they belong to.
 
                 Args:
                     deep (bool): If True, also the parameters for

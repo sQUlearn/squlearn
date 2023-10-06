@@ -4,18 +4,18 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from squlearn.feature_map import LayeredFeatureMap, ChebPQC
+from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebPQC
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
 
 
-class TestLayeredFeatureMap:
-    """Test class for LayeredFeatureMap."""
+class TestLayeredEncodingCircuit:
+    """Test class for LayeredEncodingCircuit."""
 
-    def test_layered_feature_map_gates(self):
-        """Test the non-parameterized gates of the LayeredFeatureMap."""
+    def test_layered_encoding_circuit_gates(self):
+        """Test the non-parameterized gates of the LayeredEncodingCircuit."""
 
-        lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
+        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
 
         # Test the H gate
         lfm.H()
@@ -68,10 +68,10 @@ class TestLayeredFeatureMap:
         )
         assert np.allclose(kernel, np.array([1.0]))
 
-    def test_layered_feature_map_param_gates(self):
-        """Test the parameterized gates of the LayeredFeatureMap."""
+    def test_layered_encoding_circuit_param_gates(self):
+        """Test the parameterized gates of the LayeredEncodingCircuit."""
 
-        lfm = LayeredFeatureMap(num_qubits=4, num_features=2)
+        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=2)
         expected_circuit = QuantumCircuit(4)
         p = ParameterVector("p", 16)
         x = ParameterVector("x", 2)
@@ -115,8 +115,8 @@ class TestLayeredFeatureMap:
         ).evaluate(np.ones((1, 2)), np.ones((1, 2)))
         assert np.allclose(kernel, np.array([1.0]))
 
-    def test_layered_feature_map_entangling_gates(self):
-        """Test the entangling gates of the LayeredFeatureMap."""
+    def test_layered_encoding_circuit_entangling_gates(self):
+        """Test the entangling gates of the LayeredEncodingCircuit."""
 
         def add_NN(gate_function):
             gate_function(0, 1)
@@ -131,8 +131,8 @@ class TestLayeredFeatureMap:
             gate_function(1, 3)
             gate_function(2, 3)
 
-        # Create a LayeredFeatureMap with 2 layers and 3 features per layer
-        lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
+        # Create a LayeredEncodingCircuit with 2 layers and 3 features per layer
+        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
         expected_circuit = QuantumCircuit(4)
 
         lfm_list = [
@@ -164,8 +164,8 @@ class TestLayeredFeatureMap:
         )
         assert np.allclose(kernel, np.array([1.0]))
 
-    def test_layered_feature_map_param_entangling_gates(self):
-        """Test the parameterized entangling gates of the LayeredFeatureMap."""
+    def test_layered_encoding_circuit_param_entangling_gates(self):
+        """Test the parameterized entangling gates of the LayeredEncodingCircuit."""
 
         def add_NN(gate_function, p, offset=0):
             gate_function(np.arccos(p[offset]), 0, 1)
@@ -182,8 +182,8 @@ class TestLayeredFeatureMap:
             gate_function(np.arccos(p[offset + 5]), 2, 3)
             return offset + 6
 
-        # Create a LayeredFeatureMap with 2 layers and 3 features per layer
-        lfm = LayeredFeatureMap(num_qubits=4, num_features=0)
+        # Create a LayeredEncodingCircuit with 2 layers and 3 features per layer
+        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
         expected_circuit = QuantumCircuit(4)
         p = ParameterVector("p", 72)
         x = ParameterVector("x", 2)
@@ -246,9 +246,9 @@ class TestLayeredFeatureMap:
         # assert np.allclose(kernel, np.array([1.0]))
 
     def test_from_string(self):
-        """Test the from_string method of the LayeredFeatureMap."""
+        """Test the from_string method of the LayeredEncodingCircuit."""
 
-        lfm = LayeredFeatureMap.from_string(
+        lfm = LayeredEncodingCircuit.from_string(
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
         )
 
