@@ -4,6 +4,11 @@ import abc
 import numpy as np
 
 
+def default_callback(*args):
+    """Default callback function."""
+    pass
+
+
 class OptimizerResult:  # TODO: maybe scipy class?
     """Class for holding the final result of the optimization"""
 
@@ -35,6 +40,10 @@ class OptimizerBase(abc.ABC):
             Result of the optimization in class:`OptimizerResult` format.
         """
         raise NotImplementedError()
+
+    def set_callback(self, callback):
+        """Set the callback function."""
+        self.callback = callback
 
 
 class IterativeOptimizerMixin:

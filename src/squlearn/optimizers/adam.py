@@ -2,7 +2,7 @@ import abc
 from collections import deque
 import numpy as np
 
-from .optimizer_base import OptimizerBase, SGDMixin, OptimizerResult
+from .optimizer_base import OptimizerBase, SGDMixin, OptimizerResult, default_callback
 from .approximated_gradients import FiniteDiffGradient
 
 
@@ -30,7 +30,7 @@ class Adam(OptimizerBase, SGDMixin):
 
     """
 
-    def __init__(self, options: dict = None) -> None:  # TODO: kwargs?
+    def __init__(self, options: dict = None, callback=default_callback) -> None:  # TODO: kwargs?
         super(SGDMixin, self).__init__()  #  set-up of self.iterations=0
 
         if options is None:
@@ -47,6 +47,9 @@ class Adam(OptimizerBase, SGDMixin):
         self.log_file = options.get("log_file", None)
         self.skip_fun = options.get("skip_fun", False)
         self.eps = options.get("eps", 0.01)
+
+        self.callback = callback
+        self.options = options
 
         self.gradient_deque = deque(maxlen=self.num_average)
         self.m = None
@@ -133,6 +136,9 @@ class Adam(OptimizerBase, SGDMixin):
 
             if self.log_file is not None:
                 self._log(fval, gradient, np.linalg.norm(self.x - x_updated))
+
+            if self.callback is not None:
+                self.callback(self.iteration, self.x, gradient, fval)
 
             # check termination
             if np.linalg.norm(self.x - x_updated) < self.tol:

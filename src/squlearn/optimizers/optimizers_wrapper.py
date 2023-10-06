@@ -4,7 +4,7 @@ import numpy as np
 import qiskit.algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
-from .optimizer_base import OptimizerBase, OptimizerResult
+from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
 
 
 class SLSQP(OptimizerBase):
@@ -15,7 +15,7 @@ class SLSQP(OptimizerBase):
                         The options are the same as for :meth:`scipy.optimize.minimize`
     """
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -23,6 +23,7 @@ class SLSQP(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
     def minimize(
         self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
@@ -41,7 +42,14 @@ class SLSQP(OptimizerBase):
         """
 
         scipy_result = minimize(
-            fun, jac=grad, x0=x0, method="SLSQP", options=self.options, bounds=bounds, tol=self.tol
+            fun,
+            jac=grad,
+            x0=x0,
+            method="SLSQP",
+            options=self.options,
+            bounds=bounds,
+            tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
@@ -58,7 +66,7 @@ class LBFGSB(OptimizerBase):
                         The options are the same as for :meth:`scipy.optimize.minimize`
     """
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -66,6 +74,7 @@ class LBFGSB(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
     def minimize(
         self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
@@ -90,6 +99,7 @@ class LBFGSB(OptimizerBase):
             options=self.options,
             bounds=bounds,
             tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
@@ -106,10 +116,11 @@ class SPSA(OptimizerBase):
                         The options are the same as for :meth:`qiskit.algorithms.optimizers.SPSA`
     """
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
+        self.options = options
         self.maxiter = options.get("maxiter", 100)
         self.blocking = options.get("blocking", False)
         self.allowed_increase = options.get("allowed_increase", None)
@@ -124,6 +135,7 @@ class SPSA(OptimizerBase):
         self.hessian_delay = options.get("hessian_delay", 0)
         self.lse_solver = options.get("lse_solver", None)
         self.initial_hessian = options.get("initial_hessian", None)
+        self.callback = callback
 
     def minimize(
         self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
@@ -156,6 +168,7 @@ class SPSA(OptimizerBase):
             hessian_delay=self.hessian_delay,
             lse_solver=self.lse_solver,
             initial_hessian=self.initial_hessian,
+            callback=self.callback,
         )
 
         result_qiskit = spsa.minimize(fun=fun, x0=x0, jac=grad, bounds=bounds)
