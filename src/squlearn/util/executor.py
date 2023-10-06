@@ -521,11 +521,11 @@ class Executor:
                     continue
 
             except QiskitError as e:
-                critical_error=True
+                critical_error = True
                 critical_error_message = e
 
             except Exception as e:
-                critical_error=True
+                critical_error = True
                 critical_error_message = e
                 self._logger.info(
                     f"Executor failed to run " + label + f" because of unknown error!"
@@ -572,7 +572,9 @@ class Executor:
                         critical_error_message = e2
             elif status == JobStatus.CANCELLED:
                 self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
-                self._logger.info(f"To stop resubmitting the job, cancel the execution script first.")
+                self._logger.info(
+                    f"To stop resubmitting the job, cancel the execution script first."
+                )
             else:
                 success = True
                 result_success = False
@@ -723,7 +725,7 @@ class Executor:
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
-    @ property
+    @property
     def optree_executor(self) -> str:
         """A string that indicates which executor is used for OpTree execution."""
         if self._estimator is not None:
@@ -915,7 +917,7 @@ class Executor:
         """
         self._options_estimator = options
 
-        if isinstance(options,qiskit_ibm_runtime_Options):
+        if isinstance(options, qiskit_ibm_runtime_Options):
             self.estimator._options = asdict(options)
         else:
             self.estimator._run_options = Options()
@@ -930,11 +932,12 @@ class Executor:
         """
         self._options_sampler = options
 
-        if isinstance(options,qiskit_ibm_runtime_Options):
+        if isinstance(options, qiskit_ibm_runtime_Options):
             self.sampler._options = asdict(options)
         else:
             self.sampler._run_options = Options()
             self.sampler._run_options.update_options(**options)
+
 
 class ExecutorEstimator(BaseEstimator):
     """

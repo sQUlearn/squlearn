@@ -116,7 +116,9 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(self.encoding_circuit, self.operator, executor,result_caching=self.caching)
+        self._qnn = QNN(
+            self.encoding_circuit, self.operator, executor, result_caching=self.caching
+        )
 
         self.callback = callback
 
