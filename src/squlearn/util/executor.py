@@ -10,7 +10,6 @@ import traceback
 from dataclasses import asdict
 import time
 import dill as pickle
-from dataclasses import asdict
 
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
 from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
@@ -905,7 +904,7 @@ class Executor:
             **fields: The fields to update the options
         """
         self.sampler.set_options(**fields)
-        self._options_sampler = self.sampler.options        
+        self._options_sampler = self.sampler.options
 
     def reset_options_estimator(self, options: Union[Options, qiskit_ibm_runtime_Options]):
         """
@@ -936,34 +935,6 @@ class Executor:
         else:
             self.sampler._run_options = Options()
             self.sampler._run_options.update_options(**options)
-
-    # def set_options_sampler(self, options: Union[Options, qiskit_ibm_runtime_Options]):
-    #     """Set option values for the sampler.
-
-    #     Args:
-    #         **fields: The fields to update the options
-    #     """
-    #     self._options_sampler = options
-    #     self._sampler.options = options
-
-    # def update_options_estimator(self, **fields):
-    #     """Update option values for the estimator.
-
-    #     Args:
-    #         **fields: The fields to update the options
-    #     """
-    #     if self._options_estimator is None:
-    #         self._options_estimator = {}
-    #     self._options_estimator.update(**fields)
-
-    #     # Update shots in estimator primitive
-    #     if self._estimator is not None:
-    #         try:
-    #             self._estimator.set_options(fields)
-    #         except:
-    #             pass
-
-    #     if self
 
 class ExecutorEstimator(BaseEstimator):
     """
