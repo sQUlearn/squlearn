@@ -36,6 +36,9 @@ class BaseQNN(BaseEstimator, ABC):
         opt_param_op : If True, operators parameters get optimized
         variance : Variance factor
         parameter_seed : Seed for the random number generator for the parameter initialization
+        callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
+            Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
+            If None, the optimizers (default) callback will be used.
     """
 
     def __init__(
@@ -54,6 +57,7 @@ class BaseQNN(BaseEstimator, ABC):
         variance: Union[float, Callable] = None,
         shot_adjusting: shot_adjusting_options = None,
         parameter_seed: Union[int, None] = 0,
+        callback: Union[Callable, str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -101,6 +105,21 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
         self._qnn = QNN(self.feature_map, self.operator, executor)
+
+        self.callback = callback
+
+        if self.callback:
+            if callable(self.callback):
+                self.optimizer.set_callback(self.callback)
+            elif self.callback == "pbar":
+                self._pbar = None
+                def pbar_callback(*args):
+                    self._pbar.update(1)
+                self.optimizer.set_callback(pbar_callback)
+            elif isinstance(self.callback, str):
+                raise ValueError(f"Unknown callback string value {self.callback}")
+            else:
+                raise TypeError(f"Unknown callback type {type(self.callback)}")
 
         update_params = self.get_params().keys() & kwargs.keys()
         if update_params:

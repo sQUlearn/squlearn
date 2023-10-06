@@ -30,6 +30,10 @@ class OptimizerBase(abc.ABC):
     ) -> OptimizerResult:
         """Minimize a function"""
         raise NotImplementedError()
+    
+    def set_callback(self, callback):
+        """Set the callback function."""
+        self.callback = callback
 
 
 class IterativeOptimizerMixin:

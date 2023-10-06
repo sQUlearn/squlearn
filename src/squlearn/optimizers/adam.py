@@ -28,6 +28,7 @@ class Adam(OptimizerBase, SGDMixin):
         self.eps = options.get("eps", 0.01)
 
         self.callback = callback
+        self.options = options
 
         self.gradient_deque = deque(maxlen=self.num_average)
         self.m = None
