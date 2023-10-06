@@ -16,11 +16,11 @@ from sklearn.gaussian_process.kernels import (
 from sklearn.gaussian_process.kernels import Kernel as SklearnKernel
 
 from .kernel_matrix_base import KernelMatrixBase
-from ...feature_map.feature_map_base import FeatureMapBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 from ...qnn.qnn import QNN
-from ...expectation_operator import SinglePauli
-from ...expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ...observables import SinglePauli
+from ...observables.observable_base import ObservableBase
 
 
 class OuterKernelBase:
@@ -160,9 +160,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     than projects down into a real space by measurements. The real space is than used to
     evaluate a classical kernel.
 
-    The projection is done by evaluating the expectation values of the feature map with respect
+    The projection is done by evaluating the expectation values of the encoding circuit with respect
     to given Pauli operators. This is achieved by supplying a list of
-    :class:`squlearn.expectation_operator` objects to the Projected Quantum Kernel.
+    :class:`squlearn.observable` objects to the Projected Quantum Kernel.
     The expectation values are than used as features for the classical kernel, for which
     the different implementations of scikit-learn's kernels can be used.
 
@@ -173,15 +173,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
     Args:
-        feature_map (FeatureMapBase): Feature map that is evaluated
+        encoding_circuit (EncodingCircuitBase): Encoding circuit that is evaluated
         executor (Executor): Executor object
-        measurement (Union[str, ExpectationOperatorBase, list]): Expectation values that are
-            computed from the feature map. Either an operator, a list of operators or a
+        measurement (Union[str, ObservableBase, list]): Expectation values that are
+            computed from the encoding circuit. Either an operator, a list of operators or a
             combination of the string values ``X``,``Y``,``Z``, e.g. ``XYZ``
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values. Possible string values are: ``Gaussian``, ``Matern``, ``ExpSineSquared``,
             ``RationalQuadratic``, ``DotProduct``, ``PairwiseKernel``
-        initial_parameters (np.ndarray): Initial parameters of the feature map and the
+        initial_parameters (np.ndarray): Initial parameters of the encoding circuit and the
             operator (if parameterized)
         parameter_seed (Union[int, None], default=0):
             Seed for the random number generator for the parameter initialization, if
@@ -196,17 +196,17 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     -----------
 
     Attributes:
-        num_qubits (int): Number of qubits of the feature map and the operators
-        num_features (int): Number of features of the feature map
-        num_parameters (int): Number of trainable parameters of the feature map
-        feature_map (FeatureMapBase): Feature map that is evaluated
-        measurement (Union[str, ExpectationOperatorBase, list]): Measurements that are
-            performed on the feature map
+        num_qubits (int): Number of qubits of the encoding circuit and the operators
+        num_features (int): Number of features of the encoding circuit
+        num_parameters (int): Number of trainable parameters of the encoding circuit
+        encoding_circuit (EncodingCircuitBase): Encoding circuit that is evaluated
+        measurement (Union[str, ObservableBase, list]): Measurements that are
+            performed on the encoding circuit
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values
         num_hyper_parameters (int): Number of hyper parameters of the outer kernel
         name_hyper_parameters (List[str]): Names of the hyper parameters of the outer kernel
-        parameters (np.ndarray): Parameters of the feature map and the
+        parameters (np.ndarray): Parameters of the encoding circuit and the
             operator (if parameterized)
 
     Outer Kernels are implemented as follows:
@@ -295,12 +295,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     .. code-block:: python
 
        import numpy as np
-       from squlearn.feature_map import ChebyshevTower
+       from squlearn.encoding_circuit import ChebyshevTower
        from squlearn.kernel.matrix import ProjectedQuantumKernel
        from squlearn.util import Executor
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
-       kernel = ProjectedQuantumKernel(feature_map=fm, executor=Executor("statevector_simulator"))
+       kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor("statevector_simulator"))
        x = np.random.rand(10)
        kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
 
@@ -309,22 +309,22 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     .. code-block:: python
 
        import numpy as np
-       from squlearn.feature_map import ChebyshevTower
+       from squlearn.encoding_circuit import ChebyshevTower
        from squlearn.kernel.matrix import ProjectedQuantumKernel
        from squlearn.util import Executor
-       from squlearn.expectation_operator import CustomExpectationOperator
+       from squlearn.observables import CustomObservable
        from squlearn.kernel.ml import QKRR
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
 
-       # Create custom expectation operators
+       # Create custom observables
        measuments = []
-       measuments.append(CustomExpectationOperator(4,"ZZZZ"))
-       measuments.append(CustomExpectationOperator(4,"YYYY"))
-       measuments.append(CustomExpectationOperator(4,"XXXX"))
+       measuments.append(CustomObservable(4,"ZZZZ"))
+       measuments.append(CustomObservable(4,"YYYY"))
+       measuments.append(CustomObservable(4,"XXXX"))
 
        # Use Matern Outer kernel with nu=0.5 as a outer kernel hyperparameter
-       kernel = ProjectedQuantumKernel(feature_map=fm,
+       kernel = ProjectedQuantumKernel(encoding_circuit=fm,
                                        executor=Executor("statevector_simulator"),
                                        measurement=measuments,
                                        outer_kernel="matern",
@@ -337,16 +337,18 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
+        encoding_circuit: EncodingCircuitBase,
         executor: Executor,
-        measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
+        measurement: Union[str, ObservableBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         regularization: Union[str, None] = None,
         **kwargs,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
+        super().__init__(
+            encoding_circuit, executor, initial_parameters, parameter_seed, regularization
+        )
 
         self._measurement_input = measurement
 
@@ -358,13 +360,13 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     raise ValueError("Unknown measurement operator: {}".format(m_str))
                 for i in range(self.num_qubits):
                     self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
-        elif isinstance(measurement, ExpectationOperatorBase) or isinstance(measurement, list):
+        elif isinstance(measurement, ObservableBase) or isinstance(measurement, list):
             self._measurement = measurement
         else:
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
         # Set-up of the QNN
-        self._qnn = QNN(self._feature_map, self._measurement, executor)
+        self._qnn = QNN(self._encoding_circuit, self._measurement, executor)
 
         # Set-up of the outer kernel
         if isinstance(outer_kernel, str):
@@ -401,12 +403,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     @property
     def num_features(self) -> int:
-        """Feature dimension of the feature map"""
+        """Feature dimension of the encoding circuit"""
         return self._qnn.num_features
 
     @property
     def num_parameters(self) -> int:
-        """Number of trainable parameters of the feature map"""
+        """Number of trainable parameters of the encoding circuit"""
         return self._qnn.num_parameters + self._qnn.num_parameters_operator
 
     @property
@@ -502,14 +504,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         dict_qnn = {}
 
         if "num_qubits" in params:
-            self._feature_map.set_params(num_qubits=params["num_qubits"])
+            self._encoding_circuit.set_params(num_qubits=params["num_qubits"])
             if isinstance(self._measurement_input, list):
                 for m in self._measurement_input:
                     m.set_params(num_qubits=params["num_qubits"])
-            elif isinstance(self._measurement_input, ExpectationOperatorBase):
+            elif isinstance(self._measurement_input, ObservableBase):
                 self._measurement_input.set_params(num_qubits=params["num_qubits"])
             self.__init__(
-                self._feature_map,
+                self._encoding_circuit,
                 self._executor,
                 self._measurement_input,
                 self._outer_kernel,
@@ -521,7 +523,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if "measurement" in params:
             self._measurement_input = params["measurement"]
             self.__init__(
-                self._feature_map,
+                self._encoding_circuit,
                 self._executor,
                 self._measurement_input,
                 self._outer_kernel,
@@ -531,9 +533,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             )
 
         if "num_layers" in params:
-            self._feature_map.set_params(num_layers=params["num_layers"])
+            self._encoding_circuit.set_params(num_layers=params["num_layers"])
             self.__init__(
-                self._feature_map,
+                self._encoding_circuit,
                 self._executor,
                 self._measurement_input,
                 self._outer_kernel,

@@ -8,8 +8,9 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..feature_map.feature_map_base import FeatureMapBase
+
+from ..observables.observable_base import ObservableBase
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -22,7 +23,7 @@ class BaseQNN(BaseEstimator, ABC):
     """Base Class for Quantum Neural Networks.
 
     Args:
-        feature_map : Parameterized quantum circuit in feature map format
+        encoding_circuit : Parameterized quantum circuit in encoding circuit format
         operator : Operator that are used in the expectation value of the QNN. Can be a list for
             multiple outputs.
         executor : Executor instance
@@ -43,8 +44,8 @@ class BaseQNN(BaseEstimator, ABC):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        encoding_circuit: EncodingCircuitBase,
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,
@@ -61,7 +62,7 @@ class BaseQNN(BaseEstimator, ABC):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.feature_map = feature_map
+        self.encoding_circuit = encoding_circuit
         self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
@@ -69,7 +70,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.parameter_seed = parameter_seed
 
         if param_ini is None:
-            self.param_ini = feature_map.generate_initial_parameters(seed=parameter_seed)
+            self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
         else:
             self.param_ini = param_ini
         self._param = self.param_ini.copy()
@@ -104,7 +105,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.shot_adjusting = shot_adjusting
 
         self.executor = executor
-        self._qnn = QNN(self.feature_map, self.operator, executor)
+        self._qnn = QNN(self.encoding_circuit, self.operator, executor)
 
         self.callback = callback
 
@@ -202,8 +203,8 @@ class BaseQNN(BaseEstimator, ABC):
             self._qnn.set_params(**{key: params[key] for key in qnn_params})
 
             # If the number of parameters has changed, reinitialize the parameters
-            if self.feature_map.num_parameters != len(self.param_ini):
-                self.param_ini = self.feature_map.generate_initial_parameters(
+            if self.encoding_circuit.num_parameters != len(self.param_ini):
+                self.param_ini = self.encoding_circuit.generate_initial_parameters(
                     seed=self.parameter_seed
                 )
             if isinstance(self.operator, list):
