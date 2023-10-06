@@ -105,7 +105,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
-        callback: Union[Callable, str, None] = None,
+        callback: Union[Callable, str, None] = "pbar",
         **kwargs,
     ) -> None:
         super().__init__(

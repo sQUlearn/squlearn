@@ -76,6 +76,7 @@ class SPSA(OptimizerBase):
         if options is None:
             options = {}
 
+        self.options = options
         self.maxiter = options.get("maxiter", 100)
         self.blocking = options.get("blocking", False)
         self.allowed_increase = options.get("allowed_increase", None)
