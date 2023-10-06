@@ -180,7 +180,7 @@ over all qubits except for the :math:`k`-\ :spelling:word:`th` qubit. After some
 these :math:`\mathrm{tr}` arguments are nothing but expectation values for measuring the Paulis 
 :math:`X,Y,Z` on each qubit in the state :math:`\ket{\psi(x,\boldsymbol{\theta})}` and thus can be 
 viewed as QNNs. The definition of PQKs is ambiguous. This concerns the outer form of the kernel, i.e. 
-the function into which the QNN is put, the choice measurement operators used to evaluate the QNN 
+the function into which the QNN is put, the choice of observables used to evaluate the QNN 
 as well as their respective locality, which eventually reflects in the order of RDMs used in the 
 definition. Currently, sQUlearn implements different outer forms :math:`f(\cdot)`, which represent 
 standard scikit-learn kernel functions (`Gaussian`, `Matern`, `ExpSineSquared`, `RationalQuadratic`,
@@ -204,11 +204,11 @@ the following example:
         outer_kernel='gaussian'
     )
 
-Moreover, the QNNs can be evaluated with respect to different measurement operators, where in
+Moreover, the QNNs can be evaluated with respect to different observables, where in
 addition to the default setting - :code:`measurement='XYZ'` - one can specify :code:`measurement='X'`, 
 :code:`measurement='Y'` and :code:`measurement='Z'` for one-qubit measurements with respect to only 
-one Pauli operator. Beyond that, one can also specify an operator or a list of operators, see the 
-respective examples in :class:`ProjectedQuantumKernel` or the :doc:`./operators`
+one Pauli operator. Beyond that, one can also specify an observable or a list of observables, see the 
+respective examples in :class:`ProjectedQuantumKernel` or the :doc:`./observables`
 user guide.
 
 

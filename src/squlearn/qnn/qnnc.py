@@ -9,7 +9,7 @@ from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
 from .training import solve_mini_batch, regression
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
@@ -26,7 +26,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     Args:
         encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the QNN.
             For a list of encoding circuits, check this list of implemented :ref:`encoding_circuits`.
-        operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
+        operator (Union[ObservableBase, list[ObservableBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
@@ -59,7 +59,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import ChebRx
-        from squlearn.expectation_operator import SummedPaulis
+        from squlearn.observables import SummedPaulis
         from squlearn.qnn import QNNClassifier, SquaredLoss
         from squlearn.optimizers import SLSQP
         from sklearn.datasets import make_blobs
@@ -90,7 +90,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     def __init__(
         self,
         encoding_circuit: EncodingCircuitBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,

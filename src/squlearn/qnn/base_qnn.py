@@ -8,7 +8,8 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
+
+from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
@@ -41,7 +42,7 @@ class BaseQNN(BaseEstimator, ABC):
     def __init__(
         self,
         encoding_circuit: EncodingCircuitBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,
@@ -178,9 +179,7 @@ class BaseQNN(BaseEstimator, ABC):
         # Set parameters of the QNN
         qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
         if qnn_params:
-            self._qnn.set_params(
-                **{key: value for key, value in params.items() if key in qnn_params}
-            )
+            self._qnn.set_params(**{key: params[key] for key in qnn_params})
 
             # If the number of parameters has changed, reinitialize the parameters
             if self.encoding_circuit.num_parameters != len(self.param_ini):

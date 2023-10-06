@@ -6,7 +6,7 @@ from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.expectation_operator import SummedPaulis
+from squlearn.observables import SummedPaulis
 from squlearn.encoding_circuit import ChebRx
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNRegressor, SquaredLoss

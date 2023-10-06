@@ -20,9 +20,12 @@ class QKRR(BaseEstimator, RegressorMixin):
     Additional arguments can be set via ``**kwargs``.
 
     Args:
-        quantum_kernel (KernelMatrixBase) :
+        quantum_kernel (Optional[Union[KernelMatrixBase, str]]) :
             The quantum kernel matrix to be used in the KRR pipeline (either a fidelity
-            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided)
+            quantum kernel (FQK) or projected quantum kernel (PQK) must be provided). By
+            setting quantum_kernel="precomputed", X is assumed to be a kernel matrix
+            (train and test-train). This is particularly useful when storing quantum kernel
+            matrices from real backends to numpy arrays.
         alpha (Union[float, np.ndarray], default=1.0e-6) :
             Hyperparameter for the regularization strength; must be a positive float. This
             regularization improves the conditioning of the problem and assure the solvability
@@ -83,7 +86,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def __init__(
         self,
-        quantum_kernel: Optional[KernelMatrixBase] = None,
+        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         alpha: Union[float, np.ndarray] = 1.0e-6,
         **kwargs,
     ) -> None:
@@ -109,7 +112,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            x_train (np.ndarray) : Training data of shape (n_samples, n_features)
+            x_train (np.ndarray) : Training data of shape (n_samples, n_features). If
+                quantum_kernel == "precomputed" this is instead a precomputed training kernel
+                matrix of shape (n_samples, n_samples).
             y_train (np.ndarray) : Target values or labels of shape (n_samples,)
 
         Returns:
@@ -117,7 +122,18 @@ class QKRR(BaseEstimator, RegressorMixin):
                 Returns the instance itself.
         """
         self.x_train = x_train
-        self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
+
+        if isinstance(self._quantum_kernel, str):
+            if self._quantum_kernel == "precomputed":
+                self.k_train = x_train
+            else:
+                raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
+        elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
+        else:
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
+            )
 
         self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
 
@@ -136,7 +152,9 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         Args:
             x_test (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
-                model makes predictions.
+                model makes predictions. If quantum_kernel == "precomputed" this is instead a
+                precomputed (test-train) kernel matrix of shape (n_samples, n_samples_fitted),
+                where n_samples_fitted is the number of samples used in the fitting.
 
         Returns:
             np.ndarray :
@@ -145,7 +163,16 @@ class QKRR(BaseEstimator, RegressorMixin):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+        if isinstance(self._quantum_kernel, str):
+            if self._quantum_kernel == "precomputed":
+                self.k_testtrain = x_test
+        elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+        else:
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
+            )
+
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
 
@@ -164,7 +191,8 @@ class QKRR(BaseEstimator, RegressorMixin):
             "quantum_kernel": self._quantum_kernel,
             "alpha": self.alpha,
         }
-        if deep:
+
+        if deep and isinstance(self._quantum_kernel, KernelMatrixBase):
             params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
@@ -176,27 +204,26 @@ class QKRR(BaseEstimator, RegressorMixin):
             params: Hyperparameters and their values, e.g. ``num_qubits=2``.
         """
         valid_params = self.get_params()
-        valid_params_qkrr = self.get_params(deep=False)
-        for key, value in params.items():
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-            # Set parameters of the QKRR
-            if key in valid_params_qkrr:
-                try:
-                    setattr(self, key, value)
-                except:
-                    setattr(self, "_" + key, value)
+        # Set parameters of the QKRR
+        self_params = self.get_params(deep=False).keys() & params.keys()
+        for key in self_params:
+            try:
+                setattr(self, key, params[key])
+            except AttributeError:
+                setattr(self, "_" + key, params[key])
 
-        # Set parameters of the Quantum Kernel and its underlying objects
-        param_dict = {}
-        valid_params = self._quantum_kernel.get_params().keys()
-        for key, value in params.items():
-            if key in valid_params:
-                param_dict[key] = value
-        if len(param_dict) > 0:
-            self._quantum_kernel.set_params(**param_dict)
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            # Set parameters of the Quantum Kernel and its underlying objects
+            quantum_kernel_params = self._quantum_kernel.get_params().keys() & params.keys()
+            if quantum_kernel_params:
+                self._quantum_kernel.set_params(
+                    **{key: params[key] for key in quantum_kernel_params}
+                )
         return self

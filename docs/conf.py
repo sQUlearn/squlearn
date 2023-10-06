@@ -89,10 +89,10 @@ latex_elements = {
     """,
 }
 
-# Allow numbering for figures
-numfig = True
-
 # intersphinx
 intersphinx_mapping = {
-    "sklearn": ("http://scikit-learn.org/stable", (None, "./_intersphinx/sklearn-objects.inv"))
+    "qiskit": ("https://qiskit.org/documentation/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }

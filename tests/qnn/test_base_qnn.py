@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from squlearn import Executor
-from squlearn.expectation_operator import IsingHamiltonian
+from squlearn.observables import IsingHamiltonian
 from squlearn.encoding_circuit import ChebPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn import SquaredLoss
@@ -86,7 +86,7 @@ class TestBaseQNN:
 
     def test_set_params_num_qubits_multi_op(self, qnn_multi_op):
         """
-        Test `set_params` with `num_qubits` for mutiple operators.
+        Test `set_params` with `num_qubits` for multiple operators.
 
         Args:
             qnn_multi_op (MockBaseQNN): An instance of the `MockBaseQNN` class.

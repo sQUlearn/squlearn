@@ -96,7 +96,7 @@ Encoding Circuit Tools
 Operators
 ------------------------------------
 
-.. automodule:: squlearn.expectation_operator
+.. automodule:: squlearn.observables
     :no-members:
     :no-inherited-members:
 
@@ -107,12 +107,12 @@ Operators
    :toctree: generated/
    :template: class.rst
 
-   expectation_operator.SinglePauli
-   expectation_operator.SummedPaulis
-   expectation_operator.SingleProbability
-   expectation_operator.SummedProbabilities
-   expectation_operator.IsingHamiltonian
-   expectation_operator.CustomExpectationOperator
+   observables.SinglePauli
+   observables.SummedPaulis
+   observables.SingleProbability
+   observables.SummedProbabilities
+   observables.IsingHamiltonian
+   observables.CustomObservable
 
 Operator Tools
 ------------------------------------
@@ -124,8 +124,8 @@ Operator Tools
    :toctree: generated/
    :template: class.rst
 
-   expectation_operator.expectation_operator_base.ExpectationOperatorBase
-   expectation_operator.expectation_operator_derivatives.ExpectationOperatorDerivatives
+   observables.observable_base.ObservableBase
+   observables.observable_derivatives.ObservableDerivatives
 
 
 Execution Tools
@@ -196,6 +196,25 @@ QNN Core
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
 
+Implemented optimizers
+------------------------------------
+
+.. automodule:: squlearn.optimizers
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   optimizers.Adam
+   optimizers.LBFGSB
+   optimizers.SLSQP
+   optimizers.SPSA
+
 OpTree Data Structure
 ------------------------------------
 
@@ -227,7 +246,7 @@ Base Classes
    :toctree: generated/
    :template: class.rst
 
-    expectation_operator.expectation_operator_base.ExpectationOperatorBase
+    observables.observable_base.ObservableBase
     encoding_circuit.encoding_circuit_base.EncodingCircuitBase
     kernel.matrix.kernel_matrix_base.KernelMatrixBase
     kernel.optimization.kernel_loss_base.KernelLossBase

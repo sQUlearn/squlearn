@@ -4,12 +4,12 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-from ..expectation_operator_base import ExpectationOperatorBase
+from ..observable_base import ObservableBase
 
 
-class SummedProbabilities(ExpectationOperatorBase):
+class SummedProbabilities(ObservableBase):
     r"""
-    Operator for summing single Qubit probabilities of binary states.
+    Observable for summing single Qubit probabilities of binary states.
 
     **Equation for a sum of 0-states:**
 

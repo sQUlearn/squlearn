@@ -4,7 +4,7 @@ from qiskit.quantum_info import SparsePauliOp
 from typing import Union
 import numpy as np
 
-from .expectation_operator_base import ExpectationOperatorBase
+from .observable_base import ObservableBase
 from ..util.data_preprocessing import adjust_input
 
 from ..util.optree.optree import (
@@ -16,8 +16,8 @@ from ..util.optree.optree import (
 )
 
 
-class ExpectationOperatorDerivatives:
-    r"""Class for calculating derivatives of expectation operators.
+class ObservableDerivatives:
+    r"""Class for calculating derivatives of observables.
 
     The derivatives are calculated by automatic differentiation of parameter in the expectation
     operator. Also, squaring of the operator is implemented.
@@ -25,11 +25,11 @@ class ExpectationOperatorDerivatives:
     results are cached for faster evaluation.
 
     Args:
-        expectation_operator (Union[ExpectationOperatorBase, list]): Expectation operator or list
-                                                                     of expectation operators from
+        observable (Union[ObservableBase, list]): Expectation operator or list
+                                                                     of observables from
                                                                      which the derivatives are
                                                                      obtained.
-        optree_caching (bool): If True, the optree structure of the expectation operator is cached
+        optree_caching (bool): If True, the optree structure of the observable is cached
 
     .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
        :widths: 25 75
@@ -40,83 +40,81 @@ class ExpectationOperatorDerivatives:
        * - ``"O"``
          - Expectation operator :math:`\hat{O}`
        * - ``"OO"``
-         - Squared expectation operator :math:`\hat{O}^2`
+         - Squared observable :math:`\hat{O}^2`
        * - ``"dop"`` or ``"Odop"``
-         - First-order derivative of the expectation operator:
+         - First-order derivative of the observable:
            :math:`\frac{d}{dp}\hat{O}(p)`
        * - ``"dopdop"`` or ``"Odopdop"``
-         - Second-order derivative of the expectation operator:
+         - Second-order derivative of the observable:
            :math:`\frac{d^2}{dp^2}\hat{O}(p)`
        * - ``"OOdop"``
-         - First-order derivative of the squared expectation operator:
+         - First-order derivative of the squared observable:
            :math:`\frac{d}{dp}\hat{O}^2(p)`
        * - ``"OOdopdop"``
-         - Second-order derivative of the squared expectation operator:
+         - Second-order derivative of the squared observable:
            :math:`\frac{d^2}{dp^2}\hat{O}^2(p)`
        * - ``"I"``
          - Returns a identity operator with the same number of qubits as the provided
-           expectation operator
+           observable
 
     **Example: first-order derivative of the Ising Hamiltonian**
 
     .. code-block:: python
 
-       from squlearn.expectation_operator import IsingHamiltonian,ExpectationOperatorDerivatives
+       from squlearn.observables import IsingHamiltonian,ObservableDerivatives
        op = IsingHamiltonian(num_qubits=3)
-       print(ExpectationOperatorDerivatives(op).get_derivative("dop"))
+       print(ObservableDerivatives(op).get_derivative("dop"))
 
     **Example: Squared summed Pauli Operator**
 
     .. code-block:: python
 
-       from squlearn.expectation_operator import SummedPaulis,ExpectationOperatorDerivatives
+       from squlearn.observables import SummedPaulis,ObservableDerivatives
        op = SummedPaulis(num_qubits=3)
-       print(ExpectationOperatorDerivatives(op).get_operator_squared())
+       print(ObservableDerivatives(op).get_operator_squared())
 
     Attributes:
     -----------
 
     Attributes:
-        parameter_vector (ParameterVector): Parameter vector used in the expectation operator
-        num_parameters (int): Total number of trainable parameters in the expectation operator
-        num_operators (int): Number operators in case of multiple expectation operators
+        parameter_vector (ParameterVector): Parameter vector used in the observable
+        num_parameters (int): Total number of trainable parameters in the observable
+        num_operators (int): Number operators in case of multiple observables
 
     """
 
     def __init__(
         self,
-        expectation_operator: Union[ExpectationOperatorBase, list],
+        observable: Union[ObservableBase, list],
         optree_caching=True,
     ):
-        self._expectation_operator = expectation_operator
+        self._observable = observable
 
         # Contains the OperatorMeasurement() of the expectation-operator for later replacement
-        if isinstance(self._expectation_operator, ExpectationOperatorBase):
+        if isinstance(self._observable, ObservableBase):
             # 1d output by a single expectation-operator
             self.multiple_output = False
             self._num_operators = 1
-            self._parameter_vector = ParameterVector("p_op", expectation_operator.num_parameters)
-            optree = OpTreeOperator(
-                self._expectation_operator.get_operator(self._parameter_vector)
-            )
+            self._parameter_vector = ParameterVector("p_op", observable.num_parameters)
+            optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector))
         else:
             # multi dimensional output by multiple Expectation-operators
-            expectation_op_list = []
+            observable_list = []
             self.multiple_output = True
-            self._num_operators = len(expectation_operator)
+            self._num_operators = len(observable)
             try:
                 n_oper = 0
-                for op in self._expectation_operator:
+                for op in self._observable:
                     n_oper = n_oper + op.num_parameters
 
                 self._parameter_vector = ParameterVector("p_op", n_oper)
                 ioff = 0
-                for op in self._expectation_operator:
-                    expectation_op_list.append(
+                for op in self._observable:
+                    observable_list.append(
                         OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]))
                     )
                     ioff = ioff + op.num_parameters
-                optree = OpTreeList(expectation_op_list)
+                optree = OpTreeList(observable_list)
             except:
                 raise ValueError("Unknown structure of the Expectation operator!")
 
@@ -128,22 +126,20 @@ class ExpectationOperatorDerivatives:
             self._optree_cache["O"] = optree
 
     def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
-        """Determine the derivative of the expectation operator.
+        """Determine the derivative of the observable.
 
         Args:
             derivative (str or tuple): String or tuple of parameters for specifying the derivation.
-                                       See :class:`ExpectationOperatorDerivatives` for more
+                                       See :class:`ObservableDerivatives` for more
                                        information.
 
         Return:
-            Differentiated expectation operator in OpTree format
+            Differentiated observable in OpTree format
         """
         if isinstance(derivative, str):
             # todo change with replaced operator
             if derivative == "I":
-                measure_op = OpTreeOperator(
-                    SparsePauliOp("I" * self._expectation_operator.num_qubits)
-                )
+                measure_op = OpTreeOperator(SparsePauliOp("I" * self._observable.num_qubits))
             elif derivative == "O":
                 measure_op = self._optree_start
             elif derivative == "OO":
@@ -182,14 +178,14 @@ class ExpectationOperatorDerivatives:
         return measure_op
 
     def _differentiation_from_tuple(
-        self, expectation_op: OpTreeElementBase, diff_tuple: tuple, expectation_op_label: str
+        self, optree: OpTreeElementBase, diff_tuple: tuple, observable_label: str
     ) -> OpTreeElementBase:
-        """Recursive routine for automatic differentiating the expectation_operator
+        """Recursive routine for automatic differentiating the observable
 
         Args:
-            expectation_op (OpTreeElementBase): optree structure of the expectation operator
+            optree (OpTreeElementBase): optree structure of the observable
             diff_tuple (tuple): Tuple containing ParameterVectors or ParameterExpressions
-            expectation_op_label (str): string for labeling the expectation operator
+            observable_label (str): string for labeling the observable
 
         Return:
             The differentiated OpTree expression
@@ -205,30 +201,28 @@ class ExpectationOperatorDerivatives:
 
         if diff_tuple == ():
             # Cancel the recursion by returning the optree operator
-            return expectation_op
+            return optree
         else:
             # Check if differentiating tuple is already stored in optree_cache
             if (
                 self._optree_caching == True
-                and (helper_hash(diff_tuple), expectation_op_label) in self._optree_cache
+                and (helper_hash(diff_tuple), observable_label) in self._optree_cache
             ):
                 # If stored -> return
-                return self._optree_cache[(diff_tuple, expectation_op_label)].copy()
+                return self._optree_cache[(diff_tuple, observable_label)].copy()
             else:
                 # Recursive differentiation with the most left object
                 measure = operator_differentiation(
-                    self._differentiation_from_tuple(
-                        expectation_op, diff_tuple[1:], expectation_op_label
-                    ),
+                    self._differentiation_from_tuple(optree, diff_tuple[1:], observable_label),
                     diff_tuple[0],
                 )
                 # Store result in the optree_cache
                 if self._optree_caching == True:
-                    self._optree_cache[(helper_hash(diff_tuple), expectation_op_label)] = measure
+                    self._optree_cache[(helper_hash(diff_tuple), observable_label)] = measure
                 return measure
 
     def get_operator_squared(self):
-        "Returns the squared form of the expectation operator OO=O^2"
+        "Returns the squared form of the observable OO=O^2"
         if self._optree_caching == True and "OO" in self._optree_cache:
             return self._optree_cache["OO"].copy()
         else:
@@ -262,17 +256,17 @@ class ExpectationOperatorDerivatives:
 
     @property
     def parameter_vector(self):
-        """Parameter vector of the expectation operator"""
+        """Parameter vector of the observable"""
         return self._parameter_vector
 
     @property
     def num_parameters(self):
-        """Total number of trainable parameters in the expectation operator"""
+        """Total number of trainable parameters in the observable"""
         return len(self._parameter_vector)
 
     @property
     def num_operators(self):
-        """Number operators in case of multiple expectation operators"""
+        """Number operators in case of multiple observables"""
         return self._num_operators
 
     def assign_parameters(
@@ -303,15 +297,15 @@ class ExpectationOperatorDerivatives:
 def operator_differentiation(
     optree: OpTreeElementBase, parameters: Union[ParameterVector, list, ParameterExpression]
 ) -> OpTreeElementBase:
-    """Function for differentiating a given expectation operator w.r.t. to its parameters
+    """Function for differentiating a given observable w.r.t. to its parameters
 
     Args:
-        expectation_op (OpTreeElementBase): optree structure of the expectation operator, can also be a
-                                            list of expectation operators
+        optree (OpTreeElementBase): optree structure of the observable, can also be a
+                                            list of observables
         parameters: Union[ParameterVector, list, ParameterExpression]: Parameters that are used for
                                                                        the differentiation.
     Returns:
-        Differentiated expectation operator as an OpTree
+        Differentiated observable as an OpTree
     """
     # Make a list if input is not a list
     if parameters == None or parameters == []:
