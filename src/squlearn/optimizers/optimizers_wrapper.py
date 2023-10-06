@@ -6,6 +6,7 @@ from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
 
+
 class SLSQP(OptimizerBase):
     """Wrapper class for scipy's SLSQP implementation."""
 

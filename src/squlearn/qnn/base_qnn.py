@@ -113,8 +113,10 @@ class BaseQNN(BaseEstimator, ABC):
                 self.optimizer.set_callback(self.callback)
             elif self.callback == "pbar":
                 self._pbar = None
+
                 def pbar_callback(*args):
                     self._pbar.update(1)
+
                 self.optimizer.set_callback(pbar_callback)
             elif isinstance(self.callback, str):
                 raise ValueError(f"Unknown callback string value {self.callback}")
