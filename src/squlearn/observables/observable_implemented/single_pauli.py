@@ -4,12 +4,12 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-from ..expectation_operator_base import ExpectationOperatorBase
+from ..observable_base import ObservableBase
 
 
-class SinglePauli(ExpectationOperatorBase):
+class SinglePauli(ObservableBase):
     r"""
-    Single Pauli operator of a single Qubit.
+    Observable constructed from a single Pauli operator of a single Qubit.
 
     **Equation for Z Pauli operator:**
 

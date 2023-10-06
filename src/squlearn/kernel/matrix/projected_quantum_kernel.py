@@ -19,8 +19,8 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...feature_map.feature_map_base import FeatureMapBase
 from ...util import Executor
 from ...qnn.qnn import QNN
-from ...expectation_operator import SinglePauli
-from ...expectation_operator.expectation_operator_base import ExpectationOperatorBase
+from ...observables import SinglePauli
+from ...observables.observable_base import ObservableBase
 
 
 class OuterKernelBase:
@@ -162,7 +162,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     The projection is done by evaluating the expectation values of the feature map with respect
     to given Pauli operators. This is achieved by supplying a list of
-    :class:`squlearn.expectation_operator` objects to the Projected Quantum Kernel.
+    :class:`squlearn.observable` objects to the Projected Quantum Kernel.
     The expectation values are than used as features for the classical kernel, for which
     the different implementations of scikit-learn's kernels can be used.
 
@@ -175,7 +175,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     Args:
         feature_map (FeatureMapBase): Feature map that is evaluated
         executor (Executor): Executor object
-        measurement (Union[str, ExpectationOperatorBase, list]): Expectation values that are
+        measurement (Union[str, ObservableBase, list]): Expectation values that are
             computed from the feature map. Either an operator, a list of operators or a
             combination of the string values ``X``,``Y``,``Z``, e.g. ``XYZ``
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
@@ -200,7 +200,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         num_features (int): Number of features of the feature map
         num_parameters (int): Number of trainable parameters of the feature map
         feature_map (FeatureMapBase): Feature map that is evaluated
-        measurement (Union[str, ExpectationOperatorBase, list]): Measurements that are
+        measurement (Union[str, ObservableBase, list]): Measurements that are
             performed on the feature map
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values
@@ -312,16 +312,16 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.feature_map import ChebyshevTower
        from squlearn.kernel.matrix import ProjectedQuantumKernel
        from squlearn.util import Executor
-       from squlearn.expectation_operator import CustomExpectationOperator
+       from squlearn.observables import CustomObservable
        from squlearn.kernel.ml import QKRR
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
 
-       # Create custom expectation operators
+       # Create custom observables
        measuments = []
-       measuments.append(CustomExpectationOperator(4,"ZZZZ"))
-       measuments.append(CustomExpectationOperator(4,"YYYY"))
-       measuments.append(CustomExpectationOperator(4,"XXXX"))
+       measuments.append(CustomObservable(4,"ZZZZ"))
+       measuments.append(CustomObservable(4,"YYYY"))
+       measuments.append(CustomObservable(4,"XXXX"))
 
        # Use Matern Outer kernel with nu=0.5 as a outer kernel hyperparameter
        kernel = ProjectedQuantumKernel(feature_map=fm,
@@ -339,7 +339,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         self,
         feature_map: FeatureMapBase,
         executor: Executor,
-        measurement: Union[str, ExpectationOperatorBase, list] = "XYZ",
+        measurement: Union[str, ObservableBase, list] = "XYZ",
         outer_kernel: Union[str, OuterKernelBase] = "gaussian",
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
@@ -358,7 +358,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     raise ValueError("Unknown measurement operator: {}".format(m_str))
                 for i in range(self.num_qubits):
                     self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
-        elif isinstance(measurement, ExpectationOperatorBase) or isinstance(measurement, list):
+        elif isinstance(measurement, ObservableBase) or isinstance(measurement, list):
             self._measurement = measurement
         else:
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
@@ -506,7 +506,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             if isinstance(self._measurement_input, list):
                 for m in self._measurement_input:
                     m.set_params(num_qubits=params["num_qubits"])
-            elif isinstance(self._measurement_input, ExpectationOperatorBase):
+            elif isinstance(self._measurement_input, ObservableBase):
                 self._measurement_input.set_params(num_qubits=params["num_qubits"])
             self.__init__(
                 self._feature_map,

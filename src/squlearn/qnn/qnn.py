@@ -5,9 +5,9 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..expectation_operator.expectation_operator_derivatives import (
-    ExpectationOperatorDerivatives,
+from ..observables.observable_base import ObservableBase
+from ..observables.observable_derivatives import (
+    ObservableDerivatives,
 )
 
 from ..feature_map.feature_map_base import FeatureMapBase
@@ -33,8 +33,8 @@ class Expec:
         wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
             its derivative. If tuple or ParameterVectorElement the differentiation with respect to
             the parameters in the tuple or with respect to the ParameterVectorElement is considered
-        operator (str): String for the expectation value operator (``"O"``, ``"OO"``, ``"dop"``,
-            ``"dopdop"``, ``"var"``).
+        observable (str): String for the expectation value observable (``"O"``, ``"OO"``,
+            ``"dop"``, ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
 
     """
@@ -42,11 +42,11 @@ class Expec:
     def __init__(
         self,
         wave_function: Union[str, tuple, ParameterVectorElement],
-        operator: str,
+        observable: str,
         label: str = "",
     ):
         self.wave_function = wave_function
-        self.operator = operator
+        self.operator = observable
         self.label = label
 
     def __var_to_str(self, val: Union[str, tuple, ParameterExpression, ParameterVector]) -> str:
@@ -235,7 +235,7 @@ class QNN:
 
     Args:
         pqc (FeatureMapBase) : parameterized quantum circuit in feature map format
-        operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
+        operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
         optree_caching : Caching of the optree expressions (default = True recommended)
@@ -246,7 +246,7 @@ class QNN:
     def __init__(
         self,
         pqc: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list],
+        operator: Union[ObservableBase, list],
         executor: Executor,
         optree_caching=True,
         result_caching=True,
@@ -356,9 +356,7 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(
-            self.operator, self._optree_caching
-        )
+        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
@@ -373,7 +371,7 @@ class QNN:
             if "X" in operator_string or "Y" in operator_string:
                 self._split_paulis = True
                 print(
-                    "The expectation operator includes X and Y gates, consider switching"
+                    "The observable includes X and Y gates, consider switching"
                     + " to the Estimator primitive for a faster performance!"
                 )
             else:
@@ -937,7 +935,7 @@ class QNN:
                 raise ValueError("No execution is set!")
 
             # Swapp results into the following order:
-            # 1. different expectation operators (op_list)
+            # 1. different observables (op_list)
             # 2. different input data/ feature map parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)

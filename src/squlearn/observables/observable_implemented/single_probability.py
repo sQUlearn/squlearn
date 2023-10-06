@@ -4,12 +4,12 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 
-from ..expectation_operator_base import ExpectationOperatorBase
+from ..observable_base import ObservableBase
 
 
-class SingleProbability(ExpectationOperatorBase):
+class SingleProbability(ObservableBase):
     r"""
-    Operator for measuring the probability of being in state 0 or 1 of a specified qubit.
+    Observable for measuring the probability of being in state 0 or 1 of a specified qubit.
 
     **Equation as the operator is implemented:**
 

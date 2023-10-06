@@ -7,7 +7,7 @@ User Guide
    :maxdepth: 1
 
    executor
-   operators
+   observables
    feature_maps
    kernel_methods
    quantum_neural_networks

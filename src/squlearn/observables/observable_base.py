@@ -8,8 +8,8 @@ from qiskit.quantum_info import SparsePauliOp, Pauli
 from ..util.optree.optree import OpTreeNodeBase, OpTreeList, OpTreeSum, OpTreeOperator, OpTree
 
 
-class ExpectationOperatorBase(ABC):
-    """Base class for expectation operators.
+class ObservableBase(ABC):
+    """Base class for observables.
 
     Args:
         num_qubits (int): Number of qubits.
@@ -18,8 +18,8 @@ class ExpectationOperatorBase(ABC):
     -----------
 
     Attributes:
-        num_parameters (int): Number of trainable parameters in the expectation operator.
-        num_qubits (int): Number of qubits in the expectation operator.
+        num_parameters (int): Number of trainable parameters in the observable.
+        num_qubits (int): Number of qubits in the observable.
 
     """
 
@@ -36,7 +36,7 @@ class ExpectationOperatorBase(ABC):
         This function is necessary whenever the number of physical qubits are different from the
         operator definition, as for example when running on a real backend.
         The number of qubits in the system has to be larger than the number
-        of qubits in the expectation operator.
+        of qubits in the observable.
 
         Args:
             qubit_map (Union[list, dict]): A list or dictionary specifying which of the input
@@ -49,7 +49,7 @@ class ExpectationOperatorBase(ABC):
         if self._num_all_qubits < self._num_qubits:
             raise ValueError(
                 """Number of qubits in the system is smaller than the number
-                                of qubits in the expectation operator."""
+                                of qubits in the observable."""
             )
 
     @property
@@ -59,19 +59,19 @@ class ExpectationOperatorBase(ABC):
 
     @property
     def num_parameters(self):
-        """Number of free parameters in the expectation operator."""
+        """Number of free parameters in the observable."""
         return 0
 
     @property
     def parameter_bounds(self):
-        """Bounds of the free parameters in the expectation operator."""
+        """Bounds of the free parameters in the observable."""
         return np.array([[0, 5]] * self.num_parameters)
 
     def generate_initial_parameters(
         self, ones: bool = True, seed: Union[int, None] = None
     ) -> np.ndarray:
         """
-        Generates random parameters for the expectation operator
+        Generates random parameters for the observable
 
         Args:
             ones (bool): If True, returns an array of ones (default: True)
@@ -91,7 +91,7 @@ class ExpectationOperatorBase(ABC):
 
     @property
     def num_qubits(self):
-        """Number of qubits in the expectation operator."""
+        """Number of qubits in the observable."""
         return self._num_qubits
 
     def get_params(self, deep: bool = True) -> dict:
@@ -140,7 +140,7 @@ class ExpectationOperatorBase(ABC):
             parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
                                                              the operator
         Return:
-            StateFn expression of the expectation operator.
+            StateFn expression of the observable.
         """
 
         if self._is_mapped:
@@ -151,7 +151,7 @@ class ExpectationOperatorBase(ABC):
     @abstractmethod
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
         """
-        Returns the PauliOp expression of the expectation operator.
+        Returns the PauliOp expression of the observable.
 
         Args:
             parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
@@ -205,31 +205,31 @@ class ExpectationOperatorBase(ABC):
         return map_operator(self.get_pauli(parameters))
 
     def __str__(self):
-        """Return a string representation of the ExpectationOperatorBase."""
+        """Return a string representation of the ObservableBase."""
         p = ParameterVector("p", self.num_parameters)
         return str(self.get_operator(p))
 
     def __repr__(self):
-        """Return a string representation of the ExpectationOperatorBase."""
+        """Return a string representation of the ObservableBase."""
         p = ParameterVector("p", self.num_parameters)
         return repr(self.get_operator(p))
 
     def __add__(self, x):
-        """Addition of two expectation operators."""
-        if not isinstance(x, ExpectationOperatorBase):
-            raise ValueError("Only the addition with other expectation operator is allowed!")
+        """Addition of two observables."""
+        if not isinstance(x, ObservableBase):
+            raise ValueError("Only the addition with other observable is allowed!")
 
-        class AddedExpectationOperator(ExpectationOperatorBase):
-            """Internal class for a sum of expectation operators.
+        class AddedObservable(ObservableBase):
+            """Internal class for a sum of observables.
 
             Args:
-                op1 (ExpectationOperatorBase): Left expectation operator
-                op2 (ExpectationOperatorBase): Right expectation operator
+                op1 (ObservableBase): Left observable
+                op2 (ObservableBase): Right observable
             """
 
-            def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
+            def __init__(self, op1: ObservableBase, op2: ObservableBase):
                 if op1.num_qubits != op2.num_qubits:
-                    raise ValueError("Number of qubits is not equal in both expectation operator.")
+                    raise ValueError("Number of qubits is not equal in both observable.")
 
                 super().__init__(op1.num_qubits)
 
@@ -305,7 +305,7 @@ class ExpectationOperatorBase(ABC):
 
             @property
             def num_parameters(self) -> int:
-                """The number of trainable parameters of added expectation operator.
+                """The number of trainable parameters of added observable.
 
                 Is equal to the sum of both trainable parameters.
                 """
@@ -316,7 +316,7 @@ class ExpectationOperatorBase(ABC):
 
             @property
             def parameter_bounds(self) -> np.ndarray:
-                """The bounds of the trainable parameters of added expectation operator."""
+                """The bounds of the trainable parameters of added observable."""
                 if self._op1 == self._op2:
                     return self._op1.parameter_bounds
                 else:
@@ -328,7 +328,7 @@ class ExpectationOperatorBase(ABC):
                 self, ones: bool = True, seed: Union[int, None] = None
             ) -> np.ndarray:
                 """
-                Generates random parameters for the expectation operator.
+                Generates random parameters for the observable.
 
                 Args:
                     ones (bool): If True, returns an array of ones (default: True)
@@ -346,7 +346,7 @@ class ExpectationOperatorBase(ABC):
                 )
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """Returns the PauliOp expression of the added expectation operator.
+                """Returns the PauliOp expression of the added observable.
 
                 Args:
                     parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
@@ -363,24 +363,24 @@ class ExpectationOperatorBase(ABC):
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
                     return OpTree.simplify(paulis_op1 + paulis_op2)
 
-        return AddedExpectationOperator(self, x)
+        return AddedObservable(self, x)
 
     def __mul__(self, x):
-        """Multiplication of two expectation operators."""
-        if not isinstance(x, ExpectationOperatorBase):
-            raise ValueError("Only the multiplication with other expectation operator is allowed!")
+        """Multiplication of two observables."""
+        if not isinstance(x, ObservableBase):
+            raise ValueError("Only the multiplication with other observable is allowed!")
 
-        class MultipliedExpectationOperator(ExpectationOperatorBase):
-            """Internal class for a multiplication of expectation operators.
+        class MultipliedObservable(ObservableBase):
+            """Internal class for a multiplication of observables.
 
             Args:
-                op1 (ExpectationOperatorBase): Left expectation operator
-                op2 (ExpectationOperatorBase): Right expectation operator
+                op1 (ObservableBase): Left observable
+                op2 (ObservableBase): Right observable
             """
 
-            def __init__(self, op1: ExpectationOperatorBase, op2: ExpectationOperatorBase):
+            def __init__(self, op1: ObservableBase, op2: ObservableBase):
                 if op1.num_qubits != op2.num_qubits:
-                    raise ValueError("Number of qubits is not equal in both expectation operator.")
+                    raise ValueError("Number of qubits is not equal in both observable.")
 
                 super().__init__(op1.num_qubits)
 
@@ -455,7 +455,7 @@ class ExpectationOperatorBase(ABC):
 
             @property
             def num_parameters(self) -> int:
-                """The number of trainable parameters of multiplied expectation operator.
+                """The number of trainable parameters of multiplied observable.
 
                 Is equal to the sum of both trainable parameters.
                 """
@@ -465,7 +465,7 @@ class ExpectationOperatorBase(ABC):
                     return self._op1.num_parameters + self._op2.num_parameters
 
             def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """Returns the PauliOp expression of the multiplied expectation operator.
+                """Returns the PauliOp expression of the multiplied observable.
 
                 Args:
                     parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
@@ -482,4 +482,4 @@ class ExpectationOperatorBase(ABC):
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
                     return OpTree.simplify(paulis_op1.compose(paulis_op2))
 
-        return MultipliedExpectationOperator(self, x)
+        return MultipliedObservable(self, x)
