@@ -36,7 +36,7 @@ class ParamZEncodingCircuit(EncodingCircuitBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the featuremap."""
+        """The number of trainable parameters of the encoding circuit."""
         return max(self._num_qubits, self._num_features) * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
@@ -57,7 +57,7 @@ class ParamZEncodingCircuit(EncodingCircuitBase):
 
     @property
     def num_layers(self) -> int:
-        """The number of layers of the featuremap."""
+        """The number of layers of the encoding circuit."""
         return self._num_layers
 
     def get_circuit(

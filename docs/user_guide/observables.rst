@@ -59,20 +59,20 @@ Note that in Qiskit, the qubits are counted from the right to the left as in the
 basis!
 
 
-**Example: Use the mapping from the transpiled feature map**
+**Example: Use the mapping from the transpiled encoding circuit**
 
 When running on a backend, the number of physical qubits may change
 from the number of qubits the definition of the observable.
 to solve this issue, it is possible to provide a map from the logical qubits to the
 physical qubits via :meth:`set_qubit_map`.
-The map can be for example obtained in the transpiled feature map.
+The map can be for example obtained in the transpiled encoding circuit.
 
 .. code-block:: python
 
-   from squlearn.feature_map import ChebRx,TranspiledFeatureMap
+   from squlearn.encoding_circuit import ChebRx,TranspiledEncodingCircuit
    from squlearn.observables import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
-   fm = TranspiledFeatureMap(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    op = SummedPaulis(num_qubits=3, op_str="Z")
    op.set_map(fm.qubit_map, fm.num_all_qubits)
    print(op)

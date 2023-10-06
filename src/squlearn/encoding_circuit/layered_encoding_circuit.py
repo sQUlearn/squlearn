@@ -1230,10 +1230,10 @@ def math_function({var}):
             number_string = "".join(digit_list)
             return int(number_string)
 
-        featuremap = cls(num_qubits, variable_groups)
+        encoding_circuit = cls(num_qubits, variable_groups)
         gate_layers = gate_layers.replace(" ", "")
         string_iterator = 0
-        featuremap_active = featuremap
+        encoding_circuit_active = encoding_circuit
         # Variable that detects, if all brackets "[" are closed (is needed for layers e.g. 3[H-X] etc.):
         closed_brackets = True
         while string_iterator < len(gate_layers):
@@ -1251,7 +1251,7 @@ def math_function({var}):
                 if gate_layers[string_iterator] != "[":
                     raise ValueError('To create different layers we need "[".')
                 number_of_layers = make_digit_list_to_number(digit_list)
-                featuremap_active = LayerPQC(featuremap)
+                encoding_circuit_active = LayerPQC(encoding_circuit)
             elif character_iter == "[":
                 closed_brackets = False
                 string_iterator += 1
@@ -1259,26 +1259,26 @@ def math_function({var}):
                 if closed_brackets == True:
                     raise ValueError("There are to many closed brackets.")
                 closed_brackets = True
-                featuremap.add_layer(featuremap_active, num_layers=number_of_layers)
-                featuremap_active = featuremap
+                encoding_circuit.add_layer(encoding_circuit_active, num_layers=number_of_layers)
+                encoding_circuit_active = encoding_circuit
                 string_iterator += 1
             # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
             # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Operations without parameters:
             elif character_iter == "H":
-                featuremap_active.H()
+                encoding_circuit_active.H()
                 string_iterator += 1
             elif character_iter == "X":
-                featuremap_active.X()
+                encoding_circuit_active.X()
                 string_iterator += 1
             elif character_iter == "Y":
-                featuremap_active.Y()
+                encoding_circuit_active.Y()
                 string_iterator += 1
             elif character_iter == "Z":
-                featuremap_active.Z()
+                encoding_circuit_active.Z()
                 string_iterator += 1
             elif character_iter == "I":
-                featuremap_active.I()
+                encoding_circuit_active.I()
                 string_iterator += 1
             # For the two following operations S and T there exists also the conjugated version: s_conjugated and t_conjugated ("Sc" and "Tc" not to be confused with "cs", which stands for the swap operation)
             elif character_iter == "S":
@@ -1286,26 +1286,26 @@ def math_function({var}):
                 if string_iterator + 1 < len(gate_layers):
                     character_iter_1 = gate_layers[string_iterator + 1]
                     if character_iter_1 == "c":
-                        featuremap_active.S_conjugate()
+                        encoding_circuit_active.S_conjugate()
                         string_iterator += 2
                     else:
-                        featuremap_active.S()
+                        encoding_circuit_active.S()
                         string_iterator += 1
                 else:
-                    featuremap_active.S()
+                    encoding_circuit_active.S()
                     string_iterator += 1
             elif character_iter == "T":
                 # check first, if the entry gate_layers[string_iterator+1] exists, otherwise it will raise an error
                 if string_iterator + 1 < len(gate_layers):
                     character_iter_1 = gate_layers[string_iterator + 1]
                     if character_iter_1 == "c":
-                        featuremap_active.T_conjugate()
+                        encoding_circuit_active.T_conjugate()
                         string_iterator += 2
                     else:
-                        featuremap_active.T()
+                        encoding_circuit_active.T()
                         string_iterator += 1
                 else:
-                    featuremap_active.T()
+                    encoding_circuit_active.T()
                     string_iterator += 1
             # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Operations with parameters
@@ -1328,8 +1328,8 @@ def math_function({var}):
                     param_vector_list = []
                     # Assigning the parameter names to the right parameters:
                     for param_vector_name in param_vector_name_list:
-                        param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                        param_vector_list.append(featuremap.variable_groups[param_index])
+                        param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                        param_vector_list.append(encoding_circuit.variable_groups[param_index])
                     if gate_layers[semicolon1_index + 1] == "=":
                         # Evaluates all variables, that are stored in the brackets "{}", and creates a map with the given string of a function
                         map_comma_index = gate_layers.index(",", semicolon1_index)
@@ -1342,24 +1342,24 @@ def math_function({var}):
                         raise ValueError("Wrong input 2.")
 
                     if character_iter_1 == "x":
-                        featuremap_active.Rx(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Rx(*param_vector_list, map=map_from_string)
                     elif character_iter_1 == "y":
-                        featuremap_active.Ry(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Ry(*param_vector_list, map=map_from_string)
                     elif character_iter_1 == "z":
-                        featuremap_active.Rz(*param_vector_list, map=map_from_string)
+                        encoding_circuit_active.Rz(*param_vector_list, map=map_from_string)
                     else:
                         raise ValueError("Unknown rotation gate.")
                 else:
                     # There is no semicolon so there is no given map. That means there must be exactly one parameter vector name, which will be assigned to its parameter vector in the following step:
                     param_vector_name = gate_layers[(string_iterator + 3) : end_word]
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector = featuremap.variable_groups[param_index]
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector = encoding_circuit.variable_groups[param_index]
                     if character_iter_1 == "x":
-                        featuremap_active.Rx(param_vector)
+                        encoding_circuit_active.Rx(param_vector)
                     elif character_iter_1 == "y":
-                        featuremap_active.Ry(param_vector)
+                        encoding_circuit_active.Ry(param_vector)
                     elif character_iter_1 == "z":
-                        featuremap_active.Rz(param_vector)
+                        encoding_circuit_active.Rz(param_vector)
                     else:
                         raise ValueError("Unknown rotation gate.")
                 string_iterator = end_word + 1
@@ -1381,8 +1381,8 @@ def math_function({var}):
                     param_vector_list = []
                     # Assigning the parameter names to the right parameters:
                     for param_vector_name in param_vector_name_list:
-                        param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                        param_vector_list.append(featuremap.variable_groups[param_index])
+                        param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                        param_vector_list.append(encoding_circuit.variable_groups[param_index])
                     if gate_layers[semicolon1_index + 1] == "=":
                         # Evaluates all variables, that are stored in the brackets "{}", and creates a map with the given string of a function
                         map_comma_index = gate_layers.index(",", semicolon1_index)
@@ -1393,13 +1393,13 @@ def math_function({var}):
                         map_from_string = generate_function(map_string, map_args)
                     else:
                         raise ValueError("Wrong input 2.")
-                    featuremap_active.P(*param_vector_list, map=map_from_string)
+                    encoding_circuit_active.P(*param_vector_list, map=map_from_string)
                 else:
                     # There is no semicolon so there is no given map. That means there must be exactly one parameter vector name, which will be assigned to its parameter vector in the following step:
                     param_vector_name = gate_layers[(string_iterator + 2) : end_word]
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector = featuremap.variable_groups[param_index]
-                    featuremap_active.P(param_vector)
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector = encoding_circuit.variable_groups[param_index]
+                    encoding_circuit_active.P(param_vector)
                 string_iterator = end_word + 1
             elif character_iter == "U":
                 open_bracket_index = string_iterator + 1
@@ -1410,9 +1410,9 @@ def math_function({var}):
                     raise ValueError("There must be exactly three parameters for an U gate.")
                 param_vector_list = []
                 for param_vector_name in param_vector_name_list:
-                    param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                    param_vector_list.append(featuremap.variable_groups[param_index])
-                featuremap_active.U(*param_vector_list)
+                    param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                    param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                encoding_circuit_active.U(*param_vector_list)
                 string_iterator = end_word + 1
             # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # Beginning of the entangling layers:
@@ -1423,15 +1423,15 @@ def math_function({var}):
                 # h, x, y, z, s gates work in the same way, we use a function pointer to handle all those gates at once:
                 function_pointer = None
                 if character_iter_1 == "h":
-                    function_pointer = featuremap_active.ch_entangling
+                    function_pointer = encoding_circuit_active.ch_entangling
                 elif character_iter_1 == "x":
-                    function_pointer = featuremap_active.cx_entangling
+                    function_pointer = encoding_circuit_active.cx_entangling
                 elif character_iter_1 == "y":
-                    function_pointer = featuremap_active.cy_entangling
+                    function_pointer = encoding_circuit_active.cy_entangling
                 elif character_iter_1 == "z":
-                    function_pointer = featuremap_active.cz_entangling
+                    function_pointer = encoding_circuit_active.cz_entangling
                 elif character_iter_1 == "s":
-                    function_pointer = featuremap_active.swap
+                    function_pointer = encoding_circuit_active.swap
 
                 # overwrite function pointer for rxx,ryy,... gates
                 if character_iter == "r":
@@ -1470,19 +1470,19 @@ def math_function({var}):
 
                         func = None
                         if character_iter_1 == "r" and character_iter_2 == "x":
-                            func = featuremap_active.crx_entangling
+                            func = encoding_circuit_active.crx_entangling
                         elif character_iter_1 == "r" and character_iter_2 == "y":
-                            func = featuremap_active.cry_entangling
+                            func = encoding_circuit_active.cry_entangling
                         elif character_iter_1 == "r" and character_iter_2 == "z":
-                            func = featuremap_active.crz_entangling
+                            func = encoding_circuit_active.crz_entangling
                         elif character_iter_1 == "x" and character_iter_2 == "x":
-                            func = featuremap_active.rxx_entangling
+                            func = encoding_circuit_active.rxx_entangling
                         elif character_iter_1 == "y" and character_iter_2 == "y":
-                            func = featuremap_active.ryy_entangling
+                            func = encoding_circuit_active.ryy_entangling
                         elif character_iter_1 == "z" and character_iter_2 == "z":
-                            func = featuremap_active.rzz_entangling
+                            func = encoding_circuit_active.rzz_entangling
                         elif character_iter_1 == "z" and character_iter_2 == "x":
-                            func = featuremap_active.rzx_entangling
+                            func = encoding_circuit_active.rzx_entangling
                         else:
                             raise ValueError("Unknown rotation gate.")
 
@@ -1509,10 +1509,10 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: crx(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1565,8 +1565,8 @@ def math_function({var}):
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 4) : end_word]
-                            param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                            param_vector = featuremap.variable_groups[param_index]
+                            param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                            param_vector = encoding_circuit.variable_groups[param_index]
                             func(param_vector)
                         string_iterator = end_word + 1
                     elif character_iter_1 == "p":
@@ -1597,10 +1597,10 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: cp(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1643,21 +1643,21 @@ def math_function({var}):
                                 raise ValueError("Wrong input2.")
 
                             if given_map:
-                                featuremap_active.cp_entangling(
+                                encoding_circuit_active.cp_entangling(
                                     *param_vector_list,
                                     map=map_from_string,
                                     ent_strategy=ent_strategy,
                                 )
                             else:
-                                featuremap_active.cp_entangling(
+                                encoding_circuit_active.cp_entangling(
                                     *param_vector_list, ent_strategy=ent_strategy
                                 )
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 3) : end_word]
-                            param_index = featuremap.variable_name_tuple.index(param_vector_name)
-                            param_vector = featuremap.variable_groups[param_index]
-                            featuremap_active.cp_entangling(param_vector)
+                            param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                            param_vector = encoding_circuit.variable_groups[param_index]
+                            encoding_circuit_active.cp_entangling(param_vector)
                         string_iterator = end_word + 1
                     elif character_iter_1 == "u":
                         if string_iterator + 2 < len(gate_layers):
@@ -1678,16 +1678,16 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
+                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
                             if gate_layers[semicolon1_index + 1 : semicolon1_index + 3] == "AA":
-                                featuremap_active.cu_entangling(
+                                encoding_circuit_active.cu_entangling(
                                     *param_vector_list, ent_strategy="AA"
                                 )
                             elif gate_layers[semicolon1_index + 1 : semicolon1_index + 3] == "NN":
-                                featuremap_active.cu_entangling(
+                                encoding_circuit_active.cu_entangling(
                                     *param_vector_list, ent_strategy="NN"
                                 )
                             else:
@@ -1700,11 +1700,11 @@ def math_function({var}):
                             param_vector_list = []
                             # Assigning the parameter names to the right parameters:
                             for param_vector_name in param_vector_name_list:
-                                param_index = featuremap.variable_name_tuple.index(
+                                param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(featuremap.variable_groups[param_index])
-                            featuremap_active.cu_entangling(*param_vector_list)
+                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                            encoding_circuit_active.cu_entangling(*param_vector_list)
                         string_iterator = end_word + 1
                     else:
                         raise ValueError("Unknown entangling operation.")
@@ -1712,7 +1712,7 @@ def math_function({var}):
                 raise ValueError(
                     character_iter + " is an unknown operation input or an unknown character."
                 )
-        return featuremap
+        return encoding_circuit
 
     def to_encoding_circuit(
         self,
@@ -1729,8 +1729,8 @@ class LayerPQC(LayeredPQC):
     default class for a layer: the user is able to build his one list of operations and this list can be added to the main class LayeredEncodingCircuit
     """
 
-    def __init__(self, featuremap: LayeredPQC):
-        super().__init__(featuremap.num_qubits, featuremap.variable_groups)
+    def __init__(self, encoding_circuit: LayeredPQC):
+        super().__init__(encoding_circuit.num_qubits, encoding_circuit.variable_groups)
 
     def add_operation(
         self, operation: _operation, variablegroup_tuple: tuple, variable_num_list=None

@@ -198,10 +198,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     Attributes:
         num_qubits (int): Number of qubits of the encoding circuit and the operators
         num_features (int): Number of features of the encoding circuit
-        num_parameters (int): Number of trainable parameters of the feature map
+        num_parameters (int): Number of trainable parameters of the encoding circuit
         encoding_circuit (EncodingCircuitBase): Encoding circuit that is evaluated
         measurement (Union[str, ObservableBase, list]): Measurements that are
-            performed on the feature map
+            performed on the encoding circuit
         outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the expectation
             values
         num_hyper_parameters (int): Number of hyper parameters of the outer kernel
