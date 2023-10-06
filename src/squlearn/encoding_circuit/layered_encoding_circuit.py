@@ -1512,7 +1512,9 @@ def math_function({var}):
                                 param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: crx(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1565,7 +1567,9 @@ def math_function({var}):
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 4) : end_word]
-                            param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                            param_index = encoding_circuit.variable_name_tuple.index(
+                                param_vector_name
+                            )
                             param_vector = encoding_circuit.variable_groups[param_index]
                             func(param_vector)
                         string_iterator = end_word + 1
@@ -1600,7 +1604,9 @@ def math_function({var}):
                                 param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
 
                             # if the second semicolon exists, you have to put the map (with "=") first and then the entangling strategy like this: cp(x1,p;=x*y,{x,y};AA)
                             # if the second semicolon doesn't exist, you can also write the entangling strategy without a map
@@ -1655,7 +1661,9 @@ def math_function({var}):
                         else:
                             # So there is no semicolon. That means there must be exactly one parameter vector and the default entangling strategy is NN:
                             param_vector_name = gate_layers[(string_iterator + 3) : end_word]
-                            param_index = encoding_circuit.variable_name_tuple.index(param_vector_name)
+                            param_index = encoding_circuit.variable_name_tuple.index(
+                                param_vector_name
+                            )
                             param_vector = encoding_circuit.variable_groups[param_index]
                             encoding_circuit_active.cp_entangling(param_vector)
                         string_iterator = end_word + 1
@@ -1681,7 +1689,9 @@ def math_function({var}):
                                 param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
                             if gate_layers[semicolon1_index + 1 : semicolon1_index + 3] == "AA":
                                 encoding_circuit_active.cu_entangling(
                                     *param_vector_list, ent_strategy="AA"
@@ -1703,7 +1713,9 @@ def math_function({var}):
                                 param_index = encoding_circuit.variable_name_tuple.index(
                                     param_vector_name
                                 )
-                                param_vector_list.append(encoding_circuit.variable_groups[param_index])
+                                param_vector_list.append(
+                                    encoding_circuit.variable_groups[param_index]
+                                )
                             encoding_circuit_active.cu_entangling(*param_vector_list)
                         string_iterator = end_word + 1
                     else:

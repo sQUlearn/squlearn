@@ -356,9 +356,7 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(
-            self.operator, self._optree_caching
-        )
+        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
