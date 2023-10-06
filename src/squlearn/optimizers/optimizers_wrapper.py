@@ -1,16 +1,21 @@
-""" Various optimization methods that are implemented via wrappers
-"""
+""" Various optimization methods that are implemented via wrappers"""
 
+import numpy as np
 import qiskit.algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
-from .optimizer_base import OptimizerBase, OptimizerResult
+from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
 
 
 class SLSQP(OptimizerBase):
-    """Wrapper class for scpiy's SLSQP implementation."""
+    """Wrapper class for scipy's SLSQP implementation.
 
-    def __init__(self, options: dict = None):
+    Args:
+        options (dict): Options for the SLSQP optimizer.
+                        The options are the same as for :meth:`scipy.optimize.minimize`
+    """
+
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -18,10 +23,33 @@ class SLSQP(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
-    def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
+        """
+        Function to minimize a given function using the SLSQP optimizer. Is wrapped from scipy.
+
+        Args:
+            fun (callable): Function to minimize.
+            x0 (numpy.ndarray): Initial guess.
+            grad (callable): Gradient of the function to minimize.
+            bounds (sequence): Bounds for the parameters.
+
+        Returns:
+            Result of the optimization in class:`OptimizerResult` format.
+        """
+
         scipy_result = minimize(
-            fun, jac=grad, x0=x0, method="SLSQP", options=self.options, bounds=bounds, tol=self.tol
+            fun,
+            jac=grad,
+            x0=x0,
+            method="SLSQP",
+            options=self.options,
+            bounds=bounds,
+            tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
@@ -31,9 +59,14 @@ class SLSQP(OptimizerBase):
 
 
 class LBFGSB(OptimizerBase):
-    """Wrapper class for scpiy's L-BFGS-B implementation."""
+    """Wrapper class for scipy's L-BFGS-B implementation.
 
-    def __init__(self, options: dict = None):
+    Args:
+        options (dict): Options for the L-BFGS-B optimizer.
+                        The options are the same as for :meth:`scipy.optimize.minimize`
+    """
+
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
@@ -41,8 +74,23 @@ class LBFGSB(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
+        self.callback = callback
 
-    def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
+        """
+        Function to minimize a given function using the L-BFGS-B optimizer. Is wrapped from scipy.
+
+        Args:
+            fun (callable): Function to minimize.
+            x0 (numpy.ndarray): Initial guess.
+            grad (callable): Gradient of the function to minimize.
+            bounds (sequence): Bounds for the parameters.
+
+        Returns:
+            Result of the optimization in class:`OptimizerResult` format.
+        """
         scipy_result = minimize(
             fun,
             jac=grad,
@@ -51,6 +99,7 @@ class LBFGSB(OptimizerBase):
             options=self.options,
             bounds=bounds,
             tol=self.tol,
+            callback=self.callback,
         )
         result = OptimizerResult()
         result.x = scipy_result.x
@@ -60,12 +109,18 @@ class LBFGSB(OptimizerBase):
 
 
 class SPSA(OptimizerBase):
-    """Wrapper class for Qiskit's SPSA implementation."""
+    """Wrapper class for Qiskit's SPSA implementation.
 
-    def __init__(self, options: dict = None):
+    Args:
+        options (dict): Options for the SPSA optimizer.
+                        The options are the same as for :meth:`qiskit.algorithms.optimizers.SPSA`
+    """
+
+    def __init__(self, options: dict = None, callback=default_callback):
         if options is None:
             options = {}
 
+        self.options = options
         self.maxiter = options.get("maxiter", 100)
         self.blocking = options.get("blocking", False)
         self.allowed_increase = options.get("allowed_increase", None)
@@ -80,8 +135,24 @@ class SPSA(OptimizerBase):
         self.hessian_delay = options.get("hessian_delay", 0)
         self.lse_solver = options.get("lse_solver", None)
         self.initial_hessian = options.get("initial_hessian", None)
+        self.callback = callback
 
-    def minimize(self, fun, x0, grad=None, bounds=None) -> OptimizerResult:
+    def minimize(
+        self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
+    ) -> OptimizerResult:
+        """
+        Function to minimize a given function using Qiskit's SPSA optimizer.
+
+        Args:
+            fun (callable): Function to minimize.
+            x0 (numpy.ndarray): Initial guess.
+            grad (callable): Gradient of the function to minimize.
+            bounds (sequence): Bounds for the parameters.
+
+        Returns:
+            Result of the optimization in class:`OptimizerResult` format.
+        """
+
         spsa = qiskit_optimizers.SPSA(
             maxiter=self.maxiter,
             blocking=self.blocking,
@@ -97,6 +168,7 @@ class SPSA(OptimizerBase):
             hessian_delay=self.hessian_delay,
             lse_solver=self.lse_solver,
             initial_hessian=self.initial_hessian,
+            callback=self.callback,
         )
 
         result_qiskit = spsa.minimize(fun=fun, x0=x0, jac=grad, bounds=bounds)

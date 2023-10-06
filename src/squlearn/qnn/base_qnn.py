@@ -8,8 +8,9 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..feature_map.feature_map_base import FeatureMapBase
+
+from ..observables.observable_base import ObservableBase
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -22,7 +23,7 @@ class BaseQNN(BaseEstimator, ABC):
     """Base Class for Quantum Neural Networks.
 
     Args:
-        feature_map : Parameterized quantum circuit in feature map format
+        encoding_circuit : Parameterized quantum circuit in encoding circuit format
         operator : Operator that are used in the expectation value of the QNN. Can be a list for
             multiple outputs.
         executor : Executor instance
@@ -38,12 +39,15 @@ class BaseQNN(BaseEstimator, ABC):
         parameter_seed : Seed for the random number generator for the parameter initialization
         caching : If True, the results of the QNN are cached.
         pretrained : Set to true if the supplied parameters are already trained.
+        callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
+            Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
+            If None, the optimizers (default) callback will be used.
     """
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        encoding_circuit: EncodingCircuitBase,
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,
@@ -58,10 +62,11 @@ class BaseQNN(BaseEstimator, ABC):
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
         pretrained: bool = False,
+        callback: Union[Callable, str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
-        self.feature_map = feature_map
+        self.encoding_circuit = encoding_circuit
         self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
@@ -69,7 +74,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.parameter_seed = parameter_seed
 
         if param_ini is None:
-            self.param_ini = feature_map.generate_initial_parameters(seed=parameter_seed)
+            self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
             if pretrained:
                 raise ValueError("If pretrained is True, param_ini must be provided!")
         else:
@@ -111,7 +116,24 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(self.feature_map, self.operator, executor,result_caching=self.caching)
+        self._qnn = QNN(self.encoding_circuit, self.operator, executor,result_caching=self.caching)
+
+        self.callback = callback
+
+        if self.callback:
+            if callable(self.callback):
+                self.optimizer.set_callback(self.callback)
+            elif self.callback == "pbar":
+                self._pbar = None
+
+                def pbar_callback(*args):
+                    self._pbar.update(1)
+
+                self.optimizer.set_callback(pbar_callback)
+            elif isinstance(self.callback, str):
+                raise ValueError(f"Unknown callback string value {self.callback}")
+            else:
+                raise TypeError(f"Unknown callback type {type(self.callback)}")
 
         update_params = self.get_params().keys() & kwargs.keys()
         if update_params:
@@ -189,13 +211,11 @@ class BaseQNN(BaseEstimator, ABC):
         # Set parameters of the QNN
         qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
         if qnn_params:
-            self._qnn.set_params(
-                **{key: value for key, value in params.items() if key in qnn_params}
-            )
+            self._qnn.set_params(**{key: params[key] for key in qnn_params})
 
             # If the number of parameters has changed, reinitialize the parameters
-            if self.feature_map.num_parameters != len(self.param_ini):
-                self.param_ini = self.feature_map.generate_initial_parameters(
+            if self.encoding_circuit.num_parameters != len(self.param_ini):
+                self.param_ini = self.encoding_circuit.generate_initial_parameters(
                     seed=self.parameter_seed
                 )
             if isinstance(self.operator, list):

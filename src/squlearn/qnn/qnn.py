@@ -5,16 +5,16 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..expectation_operator.expectation_operator_derivatives import (
-    ExpectationOperatorDerivatives,
+from ..observables.observable_base import ObservableBase
+from ..observables.observable_derivatives import (
+    ObservableDerivatives,
 )
 
-from ..feature_map.feature_map_base import FeatureMapBase
-from ..feature_map.feature_map_derivatives import (
-    FeatureMapDerivatives,
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.encoding_circuit_derivatives import (
+    EncodingCircuitDerivatives,
 )
-from ..feature_map.transpiled_feature_map import TranspiledFeatureMap
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
 from ..util.data_preprocessing import adjust_input
 from ..util import Executor
@@ -33,8 +33,8 @@ class Expec:
         wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
             its derivative. If tuple or ParameterVectorElement the differentiation with respect to
             the parameters in the tuple or with respect to the ParameterVectorElement is considered
-        operator (str): String for the expectation value operator (``"O"``, ``"OO"``, ``"dop"``,
-            ``"dopdop"``, ``"var"``).
+        observable (str): String for the expectation value observable (``"O"``, ``"OO"``,
+            ``"dop"``, ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
 
     """
@@ -42,11 +42,11 @@ class Expec:
     def __init__(
         self,
         wave_function: Union[str, tuple, ParameterVectorElement],
-        operator: str,
+        observable: str,
         label: str = "",
     ):
         self.wave_function = wave_function
-        self.operator = operator
+        self.operator = observable
         self.label = label
 
     def __var_to_str(self, val: Union[str, tuple, ParameterExpression, ParameterVector]) -> str:
@@ -234,8 +234,8 @@ class QNN:
     """A class for working with QNNs and its derivatives
 
     Args:
-        pqc (FeatureMapBase) : parameterized quantum circuit in feature map format
-        operator (Union[ExpectationOperatorBase,list]): Operator that is used in the expectation
+        pqc (EncodingCircuitBase) : parameterized quantum circuit in encoding circuit format
+        operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
         optree_caching : Caching of the optree expressions (default = True recommended)
@@ -245,8 +245,8 @@ class QNN:
 
     def __init__(
         self,
-        pqc: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list],
+        pqc: EncodingCircuitBase,
+        operator: Union[ObservableBase, list],
         executor: Executor,
         optree_caching=True,
         result_caching=True,
@@ -260,7 +260,7 @@ class QNN:
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        self.pqc = TranspiledFeatureMap(pqc, self._executor.backend)
+        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         self.operator = operator
 
         # Set-Up Executor
@@ -356,10 +356,8 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ExpectationOperatorDerivatives(
-            self.operator, self._optree_caching
-        )
-        self.pqc_derivatives = FeatureMapDerivatives(self.pqc, self._optree_caching)
+        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
 
         if self.pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -373,7 +371,7 @@ class QNN:
             if "X" in operator_string or "Y" in operator_string:
                 self._split_paulis = True
                 print(
-                    "The expectation operator includes X and Y gates, consider switching"
+                    "The observable includes X and Y gates, consider switching"
                     + " to the Estimator primitive for a faster performance!"
                 )
             else:
@@ -732,7 +730,7 @@ class QNN:
         return self.evaluate_variance(x, param, param_op)
 
     def evaluate_probabilities(self, x: Union[float, np.ndarray], param: Union[float, np.ndarray]):
-        """Evaluate the probabilities of the feature map / PQC.
+        """Evaluate the probabilities of the encoding circuit / PQC.
 
         The function only works with the QuantumInstance executer.
 
@@ -886,13 +884,13 @@ class QNN:
         param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
 
         # build dictionary for later use
-        dict_feature_map = []
+        dict_encoding_circuit = []
         for x_inp_ in x_inp:
             dd = dict(zip(self.pqc_derivatives.feature_vector, x_inp_))
             for param_inp_ in param_inp:
                 ddd = dd.copy()
                 ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
-                dict_feature_map.append(ddd)
+                dict_encoding_circuit.append(ddd)
         dict_operator = [
             dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
         ]
@@ -921,24 +919,24 @@ class QNN:
                 [self.operator_derivatives.get_derivative(expec_.operator) for expec_ in op_list]
             )
 
-            # get the circuits of the PQC derivatives from the feature map module
+            # get the circuits of the PQC derivatives from the encoding circuit module
             pqc_optree = self.pqc_derivatives.get_derivative(key)
             num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
                 val = OpTree.evaluate.evaluate_with_sampler(
-                    pqc_optree, operators, dict_feature_map, dict_operator, self._sampler
+                    pqc_optree, operators, dict_encoding_circuit, dict_operator, self._sampler
                 )
             elif self._estimator is not None:
                 val = OpTree.evaluate.evaluate_with_estimator(
-                    pqc_optree, operators, dict_feature_map, dict_operator, self._estimator
+                    pqc_optree, operators, dict_encoding_circuit, dict_operator, self._estimator
                 )
             else:
                 raise ValueError("No execution is set!")
 
             # Swapp results into the following order:
-            # 1. different expectation operators (op_list)
-            # 2. different input data/ feature map parameters (x_inp,params) -> separated later
+            # 1. different observables (op_list)
+            # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)
             # 5. If there, lists of the operators (e.g. operator derivatives)

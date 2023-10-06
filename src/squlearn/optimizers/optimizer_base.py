@@ -1,11 +1,12 @@
-"""Optimization methods for QNNs
-"""
-
-# Authors: Moritz Willmann <moritz.willmann@ipa.fraunhofer.de>
-# License: ...
+"""Optimization methods in sQUlearn."""
 
 import abc
 import numpy as np
+
+
+def default_callback(*args):
+    """Default callback function."""
+    pass
 
 
 class OptimizerResult:  # TODO: maybe scipy class?
@@ -21,10 +22,28 @@ class OptimizerBase(abc.ABC):
     """Base class for QNN optimizers."""
 
     def minimize(
-        self, fun, x0, grad=None, bounds=None  # pylint: disable=invalid-name
+        self,
+        fun: callable,
+        x0: np.ndarray,
+        grad: callable = None,
+        bounds=None,  # pylint: disable=invalid-name
     ) -> OptimizerResult:
-        """Minimize a function"""
+        """Function to minimize a given function.
+
+        Args:
+            fun (callable): Function to minimize.
+            x0 (numpy.ndarray): Initial guess.
+            grad (callable): Gradient of the function to minimize.
+            bounds (sequence): Bounds for the parameters.
+
+        Returns:
+            Result of the optimization in class:`OptimizerResult` format.
+        """
         raise NotImplementedError()
+
+    def set_callback(self, callback):
+        """Set the callback function."""
+        self.callback = callback
 
 
 class IterativeOptimizerMixin:
@@ -42,7 +61,7 @@ class SGDMixin(IterativeOptimizerMixin, abc.ABC):
     """Mixin for stochastic gradient descent based optimizers."""
 
     def step(self, **kwargs):
-        """ "
+        """Perform one update step.
 
         Args:
             x: Current value
@@ -79,8 +98,10 @@ class SGDMixin(IterativeOptimizerMixin, abc.ABC):
 
     @abc.abstractmethod
     def _get_update(self, grad: np.ndarray) -> np.ndarray:
+        """Function that returns the update for a given gradient."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def _update_lr(self) -> None:
+        """Function for updating the learning rate."""
         raise NotImplementedError()

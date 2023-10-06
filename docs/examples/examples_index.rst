@@ -4,7 +4,7 @@ Examples
 ========
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
     :glob:
 
     example_kernel_digit_classification
