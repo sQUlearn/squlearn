@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 
 from squlearn import Executor
-from squlearn.expectation_operator import IsingHamiltonian
-from squlearn.feature_map import ChebPQC
+from squlearn.observables import IsingHamiltonian
+from squlearn.encoding_circuit import ChebPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn import SquaredLoss
 from squlearn.qnn.base_qnn import BaseQNN
@@ -80,13 +80,13 @@ class TestBaseQNN:
             None
         """
         qnn_single_op.set_params(num_qubits=5)
-        assert qnn_single_op.feature_map.num_qubits == 5
+        assert qnn_single_op.encoding_circuit.num_qubits == 5
         assert qnn_single_op.operator.num_qubits == 5
         assert qnn_single_op._qnn.num_qubits == 5
 
     def test_set_params_num_qubits_multi_op(self, qnn_multi_op):
         """
-        Test `set_params` with `num_qubits` for mutiple operators.
+        Test `set_params` with `num_qubits` for multiple operators.
 
         Args:
             qnn_multi_op (MockBaseQNN): An instance of the `MockBaseQNN` class.
@@ -95,12 +95,12 @@ class TestBaseQNN:
             None
         """
         qnn_multi_op.set_params(num_qubits=5)
-        assert qnn_multi_op.feature_map.num_qubits == 5
+        assert qnn_multi_op.encoding_circuit.num_qubits == 5
         for operator in qnn_multi_op.operator:
             assert operator.num_qubits == 5
         assert qnn_multi_op._qnn.num_qubits == 5
 
-    def test_set_params_feature_map(self, qnn_single_op):
+    def test_set_params_encoding_circuit(self, qnn_single_op):
         """
         Test `set_params` for pqc parameters.
 
@@ -111,8 +111,8 @@ class TestBaseQNN:
             None
         """
         qnn_single_op.set_params(num_layers=3, closed=True)
-        assert qnn_single_op.feature_map.num_layers == 3
-        assert qnn_single_op.feature_map.closed
+        assert qnn_single_op.encoding_circuit.num_layers == 3
+        assert qnn_single_op.encoding_circuit.closed
         assert qnn_single_op._qnn.pqc.get_params()["num_layers"] == 3
         assert qnn_single_op._qnn.pqc.get_params()["closed"]
 

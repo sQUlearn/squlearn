@@ -2,7 +2,7 @@
 import numpy as np
 from typing import Union
 from .kernel_matrix_base import KernelMatrixBase
-from ...feature_map.feature_map_base import FeatureMapBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
 from qiskit_machine_learning.kernels import QuantumKernel
@@ -32,7 +32,7 @@ class FidelityKernel(KernelMatrixBase):
     appropriate Quantum Kernel implementation is chosen.
 
     Args:
-        feature_map (FeatureMapBase): PQC feature map.
+        encoding_circuit (EncodingCircuitBase): PQC encoding circuit.
         executor (Executor): Executor object.
         evaluate_duplicates (str), default='off_diagonal':
             Option for evaluating duplicates ('all', 'off_diagonal', 'none').
@@ -41,7 +41,7 @@ class FidelityKernel(KernelMatrixBase):
             Ref. [4]. Only meaningful for
             FQKs computed on a real backend.
         initial_parameters (Union[np.ndarray, None], default=None):
-            Initial parameters for the feature map.
+            Initial parameters for the encoding circuit.
         parameter_seed (Union[int, None], default=0):
             Seed for the random number generator for the parameter initialization, if
             initial_parameters is None.
@@ -73,7 +73,7 @@ class FidelityKernel(KernelMatrixBase):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
+        encoding_circuit: EncodingCircuitBase,
         executor: Executor,
         evaluate_duplicates: str = "off_diagonal",
         mit_depol_noise: Union[str, None] = None,
@@ -81,7 +81,9 @@ class FidelityKernel(KernelMatrixBase):
         parameter_seed: Union[int, None] = 0,
         regularization: Union[str, None] = None,
     ) -> None:
-        super().__init__(feature_map, executor, initial_parameters, parameter_seed, regularization)
+        super().__init__(
+            encoding_circuit, executor, initial_parameters, parameter_seed, regularization
+        )
 
         self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates
@@ -93,7 +95,7 @@ class FidelityKernel(KernelMatrixBase):
         else:
             self._parameter_vector = None
 
-        self._fmap_circuit = self._feature_map.get_circuit(
+        self._enc_circ = self._encoding_circuit.get_circuit(
             self._feature_vector, self._parameter_vector
         )
 
@@ -102,21 +104,22 @@ class FidelityKernel(KernelMatrixBase):
             if self._parameter_vector is None:
                 # Fidelity Quantum Kernel without any parameters
                 self._quantum_kernel = FidelityQuantumKernel(
-                    feature_map=self._fmap_circuit,
+                    feature_map=self._enc_circ,
                     fidelity=fidelity,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
             else:
                 # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
                 self._quantum_kernel = TrainableFidelityQuantumKernel(
-                    feature_map=self._fmap_circuit,
+                    feature_map=self._enc_circ,
                     fidelity=fidelity,
                     training_parameters=self._parameter_vector,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
         else:
+            # Will be soon deprecated!
             self._quantum_kernel = QuantumKernel(
-                feature_map=self._fmap_circuit,
+                feature_map=self._enc_circ,
                 quantum_instance=self._executor.backend,
                 training_parameters=self._parameter_vector,
                 evaluate_duplicates=self._evaluate_duplicates,
@@ -138,7 +141,7 @@ class FidelityKernel(KernelMatrixBase):
         params["mit_depol_noise"] = self._mit_depol_noise
         params["regularization"] = self._regularization
         if deep:
-            params.update(self._feature_map.get_params())
+            params.update(self._encoding_circuit.get_params())
         return params
 
     def set_params(self, **params):
@@ -160,11 +163,11 @@ class FidelityKernel(KernelMatrixBase):
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-        dict_feature_map = {}
+        dict_encoding_circuit = {}
         for key in params.keys():
-            if key in self._feature_map.get_params().keys():
-                dict_feature_map[key] = params[key]
-        self._feature_map.set_params(**dict_feature_map)
+            if key in self._encoding_circuit.get_params().keys():
+                dict_encoding_circuit[key] = params[key]
+        self._encoding_circuit.set_params(**dict_encoding_circuit)
 
         if "evaluate_duplicates" in params.keys():
             self._evaluate_duplicates = params["evaluate_duplicates"].lower()
@@ -174,7 +177,7 @@ class FidelityKernel(KernelMatrixBase):
             self._regularization = params["regularization"]
 
         self.__init__(
-            self._feature_map,
+            self._encoding_circuit,
             self._executor,
             self._evaluate_duplicates,
             self._mit_depol_noise,

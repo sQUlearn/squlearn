@@ -21,7 +21,7 @@ copyright = "2023, Fraunhofer IPA"
 author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = "0.3.0"
+release = "0.4.0"
 
 # -- General configuration ---------------------------------------------------
 
@@ -32,6 +32,7 @@ release = "0.3.0"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinxcontrib.spelling",
     "matplotlib.sphinxext.plot_directive",
@@ -45,20 +46,18 @@ source_suffix = {
     ".md": "markdown",
 }
 
-autodoc_default_options = {
-    "members": True,
-    "inherited-members": True,
-    "member-order": "groupwise",
-}
-autodoc_mock_imports = ["sklearn"]
+autodoc_default_options = {"members": True, "inherited-members": True}
+
 
 # Skip property members --> They should be defined in Attributes
 def skip_property_member(app, what, name, obj, skip, options):
     if isinstance(obj, property):
         return True
 
+
 def setup(app):
     app.connect("autodoc-skip-member", skip_property_member)
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -90,5 +89,10 @@ latex_elements = {
     """,
 }
 
-# Allow numbering for figures
-numfig = True
+# intersphinx
+intersphinx_mapping = {
+    "qiskit": ("https://qiskit.org/documentation/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
+}

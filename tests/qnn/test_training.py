@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from squlearn import Executor
-from squlearn.expectation_operator import SummedPaulis
-from squlearn.feature_map import ChebPQC
+from squlearn.observables import SummedPaulis
+from squlearn.encoding_circuit import ChebPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.qnn import QNN

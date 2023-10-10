@@ -6,8 +6,8 @@ from sklearn.datasets import make_blobs
 from sklearn.preprocessing import LabelBinarizer, MinMaxScaler
 
 from squlearn import Executor
-from squlearn.expectation_operator import IsingHamiltonian
-from squlearn.feature_map import ChebPQC
+from squlearn.observables import SummedPaulis
+from squlearn.encoding_circuit import ChebPQC
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNClassifier, SquaredLoss
 
@@ -29,8 +29,8 @@ class TestQNNClassifier:
         """QNNClassifier module."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        pqc = ChebPQC(num_qubits=4, num_features=2, num_layers=2)
-        operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
+        pqc = ChebPQC(num_qubits=2, num_features=2, num_layers=1)
+        operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = np.random.rand(pqc.num_parameters)
@@ -111,8 +111,8 @@ class TestQNNClassifier:
             - whether the prediction output is correct
         """
         X, y = data
-        qnn_classifier._param = np.arange(0.1, 2.45, 0.1)
-        qnn_classifier._param_op = np.arange(0.1, 0.35, 0.1)
+        qnn_classifier._param = np.linspace(0.1, 0.7, 7)
+        qnn_classifier._param_op = np.linspace(0.1, 0.3, 3)
         qnn_classifier._label_binarizer = LabelBinarizer()
         qnn_classifier._label_binarizer.fit(y)
         qnn_classifier._is_fitted = True

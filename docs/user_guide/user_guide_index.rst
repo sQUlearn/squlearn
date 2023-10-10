@@ -4,9 +4,10 @@ User Guide
 ============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    executor
-   operators
-   feature_maps
+   observables
+   encoding_circuits
    kernel_methods
+   quantum_neural_networks

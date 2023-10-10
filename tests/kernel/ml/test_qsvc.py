@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.feature_map import QEKFeatureMap
+from squlearn.encoding_circuit import QEKEncodingCircuit
 from squlearn.kernel import QSVC
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,9 +30,12 @@ class TestQSVC:
         """QSVC module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
-            feature_map, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
         )
         return QSVC(quantum_kernel=kernel)
 
@@ -41,9 +44,9 @@ class TestQSVC:
         """QSVC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = QEKFeatureMap(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map, executor=executor, regularization="thresholding"
+            encoding_circuit, executor=executor, regularization="thresholding"
         )
         return QSVC(quantum_kernel=kernel)
 
@@ -118,8 +121,10 @@ class TestQSVC:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
-    def test_feature_map_params_can_be_changed_after_initialization(self, qsvc, request, data):
-        """Tests concerning the feature map parameter changes."""
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qsvc, request, data
+    ):
+        """Tests concerning the encoding circuit parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
         assert qsvc_instance.get_params()["num_layers"] == 2
         qsvc_instance.set_params(num_layers=4)
@@ -130,10 +135,10 @@ class TestQSVC:
         try:
             qsvc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qsvc_pqk, data):
-        """Tests concerning the feature map parameter changes."""
+        """Tests concerning the encoding circuit parameter changes."""
         qsvc_params = qsvc_pqk.get_params()
         assert qsvc_params["gamma"] == 1.0
         assert qsvc_params["measurement"] == "XYZ"
@@ -148,7 +153,7 @@ class TestQSVC:
         try:
             qsvc_pqk.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvc, request):

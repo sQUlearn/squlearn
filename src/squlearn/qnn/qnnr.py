@@ -4,13 +4,14 @@ from warnings import warn
 
 import numpy as np
 from sklearn.base import RegressorMixin
+from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
 from .training import solve_mini_batch, regression
 
-from ..expectation_operator.expectation_operator_base import ExpectationOperatorBase
-from ..feature_map.feature_map_base import FeatureMapBase
+from ..observables.observable_base import ObservableBase
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -24,9 +25,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
     training is possible.
 
     Args:
-        feature_map (FeatureMapBase): The parameterized quantum circuit (PQC) part of the QNN.
-            For a list of feature maps, check this list of implemented :ref:`feature_maps`.
-        operator (Union[ExpectationOperatorBase, list[ExpectationOperatorBase]]): The operator that
+        encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the QNN.
+            For a list of encoding circuits, check this list of implemented :ref:`encoding_circuits`.
+        operator (Union[ObservableBase, list[ObservableBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
@@ -48,6 +49,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
             parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
+        callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
+            Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
+            If None, the optimizers (default) callback will be used.
 
     See Also
     --------
@@ -59,8 +63,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         import numpy as np
         from squlearn import Executor
-        from squlearn.feature_map import ChebRx
-        from squlearn.expectation_operator import IsingHamiltonian
+        from squlearn.encoding_circuit import ChebRx
+        from squlearn.observables import IsingHamiltonian
         from squlearn.qnn import QNNRegressor, SquaredLoss
         from squlearn.optimizers import SLSQP
         from sklearn.model_selection import train_test_split
@@ -88,8 +92,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     def __init__(
         self,
-        feature_map: FeatureMapBase,
-        operator: Union[ExpectationOperatorBase, list[ExpectationOperatorBase]],
+        encoding_circuit: EncodingCircuitBase,
+        operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
         loss: LossBase,
         optimizer: OptimizerBase,
@@ -101,10 +105,11 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
+        callback: Union[Callable, str, None] = "pbar",
         **kwargs,
     ) -> None:
         super().__init__(
-            feature_map,
+            encoding_circuit,
             operator,
             executor,
             loss,
@@ -117,6 +122,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             opt_param_op,
             variance,
             parameter_seed=parameter_seed,
+            callback=callback,
             **kwargs,
         )
 
@@ -210,4 +216,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Internal fit function."""
+        if self.callback == "pbar":
+            self._pbar = tqdm(total=self.optimizer.options.get("maxiter", 100), desc="fit")
         self.partial_fit(X, y, weights)
