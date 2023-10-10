@@ -1,4 +1,4 @@
-# sQUlearn 0.3.0
+# sQUlearn 0.4.0
 
 sQUlearn is a novel Python package introducing Quantum Machine Learning (QML) capabilities to 
 traditional machine learning pipelines via a *high-level / low-level* design approach. The package
