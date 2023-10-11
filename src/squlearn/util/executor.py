@@ -27,6 +27,7 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
+from qiskit.exceptions import QiskitError
 
 
 class Executor:
@@ -488,6 +489,8 @@ class Executor:
             A qiskit job containing the results of the run.
         """
         success = False
+        critical_error = False
+        critical_error_message = None
 
         for repeat in range(self._max_jobs_retries):
             try:
@@ -498,6 +501,7 @@ class Executor:
                     job = self._cache.get_file(hash_value)
 
                 if job is None:
+                    # TODO: try and except errors
                     job = run()
                     self._logger.info(
                         f"Executor runs " + label + f" with job: {{}}".format(job.job_id())
@@ -515,13 +519,19 @@ class Executor:
                     )
                     self._session_active = False
                     continue
+
+            except QiskitError as e:
+                critical_error = True
+                critical_error_message = e
+
             except Exception as e:
+                critical_error = True
+                critical_error_message = e
                 self._logger.info(
                     f"Executor failed to run " + label + f" because of unknown error!"
                 )
                 self._logger.info(f"Error message: {{}}".format(e))
                 self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-                continue
 
             # Wait for the job to complete
             if not cached:
@@ -551,10 +561,20 @@ class Executor:
             # Job is completed, check if it was successful
             if status == JobStatus.ERROR:
                 self._logger.info(f"Failed executation of the job!")
-                self._logger.info(f"Error message: {{}}".format(job.error_message()))
+                try:
+                    self._logger.info(f"Error message: {{}}".format(job.error_message()))
+                except Exception as e:
+                    try:
+                        job.result()
+                    except Exception as e2:
+                        pass
+                        critical_error = True
+                        critical_error_message = e2
             elif status == JobStatus.CANCELLED:
-                self._logger.info(f"Throwing RuntimeError, since the job is manually canceled!")
-                raise RuntimeError(f"Job manually canceled!")
+                self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
+                self._logger.info(
+                    f"To stop resubmitting the job, cancel the execution script first."
+                )
             else:
                 success = True
                 result_success = False
@@ -565,7 +585,6 @@ class Executor:
                         result_success = True
                     except RuntimeJobFailureError as e:
                         self._logger.info(f"Executor unable to retriev job result!")
-                        self._logger.info(f"Error message: {{}}".format(e))
                         self._logger.info(f"Error message: {{}}".format(e))
                     except Exception as e:
                         self._logger.info(
@@ -586,6 +605,10 @@ class Executor:
                 success = False
                 result_success = False
 
+            if critical_error:
+                self._logger.info(f"Critical error detected; abort execution")
+                raise critical_error_message
+
         if success is not True:
             raise RuntimeError(
                 f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
@@ -601,7 +624,10 @@ class Executor:
             job_pickle._service = None
             job_pickle._ws_client_future = None
             job_pickle._ws_client = None
-            job_pickle._backend = str(job.backend())
+            try:
+                job_pickle._backend = str(job.backend())
+            except QiskitError:
+                job_pickle._backend = self.backend
 
             # overwrite result function with the obtained result
             def result_():
@@ -699,6 +725,7 @@ class Executor:
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
 
+    @property
     def optree_executor(self) -> str:
         """A string that indicates which executor is used for OpTree execution."""
         if self._estimator is not None:
@@ -862,6 +889,54 @@ class Executor:
                 self.close_session()
             except:
                 pass
+
+    def set_options_estimator(self, **fields):
+        """Set options values for the estimator.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self.estimator.set_options(**fields)
+        self._options_estimator = self.estimator.options
+
+    def set_options_sampler(self, **fields):
+        """Set options values for the sampler.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self.sampler.set_options(**fields)
+        self._options_sampler = self.sampler.options
+
+    def reset_options_estimator(self, options: Union[Options, qiskit_ibm_runtime_Options]):
+        """
+        Overwrites the options for the estimator primitive.
+
+        Args:
+            options: Options for the estimator
+        """
+        self._options_estimator = options
+
+        if isinstance(options, qiskit_ibm_runtime_Options):
+            self.estimator._options = asdict(options)
+        else:
+            self.estimator._run_options = Options()
+            self.estimator._run_options.update_options(**options)
+
+    def reset_options_sampler(self, options: Union[Options, qiskit_ibm_runtime_Options]):
+        """
+        Overwrites the options for the sampler primitive.
+
+        Args:
+            options: Options for the sampler
+        """
+        self._options_sampler = options
+
+        if isinstance(options, qiskit_ibm_runtime_Options):
+            self.sampler._options = asdict(options)
+        else:
+            self.sampler._run_options = Options()
+            self.sampler._run_options.update_options(**options)
 
 
 class ExecutorEstimator(BaseEstimator):

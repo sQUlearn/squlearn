@@ -1,5 +1,6 @@
 """QNNClassifier Implemenation"""
 from typing import Callable, Union
+import sys
 
 import numpy as np
 from sklearn.base import ClassifierMixin
@@ -49,6 +50,9 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
             parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
+        caching (bool, default=True): If True, the results of the QNN are cached.
+        pretrained (bool, default=False): Set to true if the supplied parameters are already
+                                          trained.
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
@@ -106,6 +110,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
         parameter_seed: Union[int, None] = 0,
+        caching: bool = True,
+        pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
         **kwargs,
     ) -> None:
@@ -123,6 +129,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             opt_param_op,
             variance,
             parameter_seed=parameter_seed,
+            caching=caching,
+            pretrained=pretrained,
             callback=callback,
             **kwargs,
         )
@@ -137,7 +145,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        if not self._is_fitted:
+        if not self._is_fitted and not self.pretrained:
             raise RuntimeError("The model is not fitted.")
         pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         return self._label_binarizer.inverse_transform(pred)
@@ -243,5 +251,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Internal fit function."""
         if self.callback == "pbar":
-            self._pbar = tqdm(total=self.optimizer.options.get("maxiter", 100), desc="fit")
+            self._pbar = tqdm(
+                total=self.optimizer.options.get("maxiter", 100), desc="fit", file=sys.stdout
+            )
         self.partial_fit(X, y, weights)

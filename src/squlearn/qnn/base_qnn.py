@@ -37,6 +37,8 @@ class BaseQNN(BaseEstimator, ABC):
         opt_param_op : If True, operators parameters get optimized
         variance : Variance factor
         parameter_seed : Seed for the random number generator for the parameter initialization
+        caching : If True, the results of the QNN are cached.
+        pretrained : Set to true if the supplied parameters are already trained.
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
@@ -58,6 +60,8 @@ class BaseQNN(BaseEstimator, ABC):
         variance: Union[float, Callable] = None,
         shot_adjusting: shot_adjusting_options = None,
         parameter_seed: Union[int, None] = 0,
+        caching: bool = True,
+        pretrained: bool = False,
         callback: Union[Callable, str, None] = None,
         **kwargs,
     ) -> None:
@@ -71,11 +75,16 @@ class BaseQNN(BaseEstimator, ABC):
 
         if param_ini is None:
             self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
+            if pretrained:
+                raise ValueError("If pretrained is True, param_ini must be provided!")
         else:
             self.param_ini = param_ini
         self._param = self.param_ini.copy()
 
         if param_op_ini is None:
+            if pretrained:
+                raise ValueError("If pretrained is True, param_op_ini must be provided!")
+
             if isinstance(operator, list):
                 self.param_op_ini = np.concatenate(
                     [
@@ -103,9 +112,13 @@ class BaseQNN(BaseEstimator, ABC):
         self.opt_param_op = opt_param_op
 
         self.shot_adjusting = shot_adjusting
+        self.caching = caching
+        self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(self.encoding_circuit, self.operator, executor)
+        self._qnn = QNN(
+            self.encoding_circuit, self.operator, executor, result_caching=self.caching
+        )
 
         self.callback = callback
 
@@ -128,7 +141,7 @@ class BaseQNN(BaseEstimator, ABC):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-        self._is_fitted = False
+        self._is_fitted = self.pretrained
 
     @property
     def param(self) -> np.ndarray:

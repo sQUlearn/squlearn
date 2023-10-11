@@ -264,7 +264,7 @@ class QNN:
         self.operator = operator
 
         # Set-Up Executor
-        if self._executor.optree_executor() == "estimator":
+        if self._executor.optree_executor == "estimator":
             self._estimator = self._executor.get_estimator()
             self._sampler = None
         else:
@@ -364,7 +364,7 @@ class QNN:
         else:
             self._num_qubits = self.pqc.num_virtual_qubits
 
-        if self._executor.optree_executor() == "sampler":
+        if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
             operator_string = str(self.operator)
