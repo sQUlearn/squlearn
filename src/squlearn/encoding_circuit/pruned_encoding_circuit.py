@@ -9,7 +9,7 @@ from qiskit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_features
 from ..util.qfi import get_quantum_fisher
 from ..util.executor import Executor
 
@@ -236,7 +236,7 @@ def automated_pruning(
 
     # Process x-values
     if x_val is not None:
-        x_val, multi = adjust_input(x_val, encoding_circuit.num_features)
+        x_val, multi = adjust_features(x_val, encoding_circuit.num_features)
         if not isinstance(x_val, np.ndarray):
             x = np.array(x_val)
         else:
@@ -250,7 +250,7 @@ def automated_pruning(
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_input(p_val, encoding_circuit.num_parameters)
+        p_val, multi = adjust_parameter_vec(p_val, encoding_circuit.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:

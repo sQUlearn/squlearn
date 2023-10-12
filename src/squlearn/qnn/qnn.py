@@ -16,7 +16,7 @@ from ..encoding_circuit.encoding_circuit_derivatives import (
 )
 from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_features, adjust_parameters
 from ..util import Executor
 
 from ..util.optree.optree import (
@@ -879,9 +879,9 @@ class QNN:
         # Done with the helper functions, start of the evaluate function
 
         # input adjustments for x, param, param_op to get correct stacking of values
-        x_inp, multi_x = adjust_input(x, self.num_features)
-        param_inp, multi_param = adjust_input(param, self.num_parameters)
-        param_op_inp, multi_param_op = adjust_input(param_op, self.num_parameters_operator)
+        x_inp, multi_x = adjust_features(x, self.num_features)
+        param_inp, multi_param = adjust_parameters(param, self.num_parameters)
+        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_operator)
 
         # build dictionary for later use
         dict_encoding_circuit = []
@@ -1023,38 +1023,28 @@ class QNN:
                         )
             # d/dp variance
             elif todo_expec.operator == "var" and todo_expec.wave_function == "dp":
-                if self.num_parameters == 1:
-                    value_dict[todo_expec] = value_dict[Expec("dp", "OO")] - 2.0 * (
-                        np.multiply(value_dict[Expec("dp", "O")], value_dict[Expec("I", "O")])
-                    )
-                else:
-                    value_dict[todo_expec] = np.zeros(value_dict[Expec("dp", "OO")].shape)
-                    for i in range(value_dict[Expec("dp", "OO")].shape[-1]):
-                        value_dict[todo_expec][..., i] = value_dict[Expec("dp", "OO")][
-                            ..., i
-                        ] - 2.0 * (
-                            np.multiply(
-                                value_dict[Expec("dp", "O")][..., i],
-                                value_dict[Expec("I", "O")],
-                            )
+                value_dict[todo_expec] = np.zeros(value_dict[Expec("dp", "OO")].shape)
+                for i in range(value_dict[Expec("dp", "OO")].shape[-1]):
+                    value_dict[todo_expec][..., i] = value_dict[Expec("dp", "OO")][
+                        ..., i
+                    ] - 2.0 * (
+                        np.multiply(
+                            value_dict[Expec("dp", "O")][..., i],
+                            value_dict[Expec("I", "O")],
                         )
+                    )
             # d/dop variance
             elif todo_expec.operator == "dvardop" and todo_expec.wave_function == "I":
-                if self.num_parameters_operator == 1:
-                    value_dict[todo_expec] = value_dict[Expec("I", "OOdop")] - 2.0 * (
-                        np.multiply(value_dict[Expec("I", "dop")], value_dict[Expec("I", "O")])
-                    )
-                else:
-                    value_dict[todo_expec] = np.zeros(value_dict[Expec("I", "OOdop")].shape)
-                    for i in range(value_dict[Expec("I", "OOdop")].shape[-1]):
-                        value_dict[todo_expec][..., i] = value_dict[Expec("I", "OOdop")][
-                            ..., i
-                        ] - 2.0 * (
-                            np.multiply(
-                                value_dict[Expec("I", "dop")][..., i],
-                                value_dict[Expec("I", "O")],
-                            )
+                value_dict[todo_expec] = np.zeros(value_dict[Expec("I", "OOdop")].shape)
+                for i in range(value_dict[Expec("I", "OOdop")].shape[-1]):
+                    value_dict[todo_expec][..., i] = value_dict[Expec("I", "OOdop")][
+                        ..., i
+                    ] - 2.0 * (
+                        np.multiply(
+                            value_dict[Expec("I", "dop")][..., i],
+                            value_dict[Expec("I", "O")],
                         )
+                    )
 
             # assign values to the label of the expectation value
             value_dict[todo] = value_dict[todo_expec]
