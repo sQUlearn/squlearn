@@ -80,5 +80,4 @@ extension-pkg-allow-list = [
 addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
-    "--nbmake-timeout=600",
 ]
