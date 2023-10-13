@@ -44,18 +44,11 @@ Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pu
 
 **Example: Create a QEK encoding circuit**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import QEKEncodingCircuit
    pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl")
-
-.. plot::
-
-   from squlearn.encoding_circuit import QEKEncodingCircuit
-   pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
-   pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
 
 
 Combining Quantum Encoding Circuits
@@ -71,7 +64,7 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 **Example: combine two quantum encoding circuits**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
    fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
@@ -80,16 +73,6 @@ equal to the sum of the parameters in the two original encoding circuits.
    fm3 = fm1 + fm2
    fm3.draw(output="mpl")
 
-.. plot::
-
-   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
-   fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
-   fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
-   # Combining both encoding circuits
-   fm3 = fm1 + fm2
-   fm3.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
-
 
 Wrapping Qiskit Encoding Circuits
 --------------------------------------
@@ -97,21 +80,12 @@ Wrapping Qiskit Encoding Circuits
 It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to build Encoding Circuits from the
 `Qiskit circuit library <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import QiskitEncodingCircuit
    from qiskit.circuit.library import TwoLocal
    local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    QiskitEncodingCircuit(local).draw(output="mpl")
-
-.. plot::
-
-   from squlearn.encoding_circuit import QiskitEncodingCircuit
-   from qiskit.circuit.library import TwoLocal
-   local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-   pqc = QiskitEncodingCircuit(local)
-   pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
 
 
 Create your custom Encoding Circuit via :class:`LayeredEncodingCircuit`
@@ -130,7 +104,7 @@ the :class:`LayeredEncodingCircuit` class.
 
 **Example: Create your custom layered encoding circuit**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import LayeredEncodingCircuit
    from squlearn.encoding_circuit.layered_encoding_circuit import Layer
@@ -143,23 +117,10 @@ the :class:`LayeredEncodingCircuit` class.
    encoding_circuit.add_layer(layer,num_layers=3)
    encoding_circuit.draw(output="mpl")
 
-.. plot::
-
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
-   from squlearn.encoding_circuit.layered_encoding_circuit import Layer
-   encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
-   encoding_circuit.H()
-   layer = Layer(encoding_circuit)
-   layer.Rz("x")
-   layer.Ry("p")
-   layer.cx_entangling("NN")
-   encoding_circuit.add_layer(layer,num_layers=3)
-   encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
 
 **Example: Create your custom layered encoding circuit from a string**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import LayeredEncodingCircuit
    encoding_circuit = LayeredEncodingCircuit.from_string(
@@ -167,14 +128,6 @@ the :class:`LayeredEncodingCircuit` class.
    )
    encoding_circuit.draw(output="mpl")
 
-.. plot::
-
-   from squlearn.encoding_circuit import LayeredEncodingCircuit
-   encoding_circuit = LayeredEncodingCircuit.from_string(
-      "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-   )
-   plt = encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
 
 Pruning of Quantum Encoding Circuits
 --------------------------------------
@@ -194,7 +147,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
 
 **Example: Pruning a encoding circuit with redundant parameters**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
@@ -202,14 +155,6 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
    pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
    pruned_encoding_circuit.draw(output="mpl")
 
-.. plot::
-
-   from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
-   from squlearn.util import Executor
-   encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
-   pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor("statevector_simulator"))
-   pruned_encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()
 
 Different Quantum Encoding Circuits via :class:`EncodingCircuitDerivatives`
 ----------------------------------------------------------------------------
@@ -236,7 +181,7 @@ is utilized for the arithmetic operations of the derivatives.
 
 **Example: Obtain the derivative of a QEK encoding circuit**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
    fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
@@ -262,7 +207,7 @@ where it is employed internally.
 
 **Example: Transpile a existing Encoding Circuit to a fake backend**
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
    from qiskit.providers.fake_provider import FakeManilaV2
@@ -270,10 +215,3 @@ where it is employed internally.
    fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl")
 
-.. plot::
-
-   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
-   from qiskit.providers.fake_provider import FakeManilaV2
-   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-   fm.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-   plt.tight_layout()

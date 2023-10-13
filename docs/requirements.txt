@@ -1,4 +1,4 @@
-ipython
+ipykernel
 matplotlib
 myst-parser
 nbsphinx
@@ -7,3 +7,4 @@ pylatexenc
 sphinx
 sphinxcontrib-spelling
 sphinx-rtd-theme
+jupyter-sphinx

@@ -89,20 +89,12 @@ and :class:`CostOperator`, both of which we will utilize in the upcoming example
 In the following cell, we will build an encoding circuit based on the Chebyshev input encoding
 method:
 
-.. code-block:: python
+.. jupyter-execute::
 
     from squlearn.encoding_circuit import ChebPQC
 
     pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
     pqc.draw("mpl")
-
-.. plot::
-
-    from squlearn.encoding_circuit import ChebPQC
-    pqc = ChebPQC(4, 2, 2)
-    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-    plt.tight_layout()
-
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
 explore in the user guide located at :ref:`quantum_encoding_circuits`.
@@ -111,11 +103,12 @@ The second ingredient is to specify an observable for computing the QNN's output
 particular example, we employ a summation over a Pauli Z observable for each qubit,
 along with a constant offset:
 
-.. code-block:: python
+.. jupyter-execute::
 
     from squlearn.observables import SummedPaulis
 
     op = SummedPaulis(num_qubits=4)
+    print(op)
 
 Other expectation operators can be found in the user guide on :ref:`user_guide_observables`.
 
@@ -278,7 +271,7 @@ yields a high variance in the model output.
     1.64968778, -0.81903595,  0.4867727,   0.38505193,  1.10635672,  0.72867129,
     -1.74881862, -0.64411871,  0.86344117, -0.91471452])
     param_op = np.array([-0.47157523,  5.10755673,  2.63075629])
-    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, pretrained=True)
     x = np.arange(np.min(0.1), np.max(0.8), 0.005)
     y = qnn_qasm.predict(x)
     plt.plot(x, np.log(x))
@@ -342,7 +335,7 @@ in the model, as depicted in `figure 3`_.
     -4.22612537, -0.19520602,  0.21838745,  0.78754811,  3.05189136,  0.59189901,
     -0.52783347, -1.55477309, -2.08338942, -0.29088459])
     param_op = np.array([-1.57350653,  0.87778247, -0.26884315])
-    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, pretrained=True)
     x = np.arange(np.min(0.1), np.max(0.8), 0.005)
     y = qnn_qasm.predict(x)
     plt.plot(x, np.log(x))

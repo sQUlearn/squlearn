@@ -292,7 +292,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     **Example: Calculate a kernel matrix with the Projected Quantum Kernel**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
        import numpy as np
        from squlearn.encoding_circuit import ChebyshevTower
@@ -303,10 +303,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor("statevector_simulator"))
        x = np.random.rand(10)
        kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
+       print(kernel_matrix)
 
     **Example: Change measurement and outer kernel**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
        import numpy as np
        from squlearn.encoding_circuit import ChebyshevTower

@@ -178,9 +178,9 @@ Qiskit framework. The primitives can be obtained by the :meth:`get_estimator` an
 Executor class for all executions, and thus benefit from all comfort features of the Executor.
 
 The following example shows, how to evaluate the Quantum Fisher Information utilizing the
-Executor primitive.
+Executor primitive (see `QFI in Qiskit <https://qiskit.org/documentation/stubs/qiskit.algorithms.gradients.QFI.html>`_)
 
-  .. code-block:: python
+  .. jupyter-execute::
 
       from squlearn import Executor
       from qiskit.algorithms.gradients import LinCombQGT, QFI
