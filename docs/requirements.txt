@@ -7,3 +7,4 @@ pylatexenc
 sphinx
 sphinxcontrib-spelling
 sphinx-rtd-theme
+jupyter-sphinx

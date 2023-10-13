@@ -49,6 +49,7 @@ dev = [
     "sphinx",
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme",
+    "jupyter-sphinx",
 ]
 examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
 

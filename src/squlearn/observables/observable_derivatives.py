@@ -59,17 +59,19 @@ class ObservableDerivatives:
 
     **Example: first-order derivative of the Ising Hamiltonian**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
-       from squlearn.observables import IsingHamiltonian,ObservableDerivatives
+       from squlearn.observables import IsingHamiltonian
+       from squlearn.observables.observable_derivatives import ObservableDerivatives
        op = IsingHamiltonian(num_qubits=3)
        print(ObservableDerivatives(op).get_derivative("dop"))
 
     **Example: Squared summed Pauli Operator**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
-       from squlearn.observables import SummedPaulis,ObservableDerivatives
+       from squlearn.observables import SummedPaulis
+       from squlearn.observables.observable_derivatives import ObservableDerivatives
        op = SummedPaulis(num_qubits=3)
        print(ObservableDerivatives(op).get_operator_squared())
 

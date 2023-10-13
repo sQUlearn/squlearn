@@ -61,18 +61,20 @@ class EncodingCircuitDerivatives:
 
     **Example: Encoding Circuit gradient with respect to the trainable parameters**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
-       from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
+       from squlearn.encoding_circuit import QEKEncodingCircuit
+       from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
        fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
        fm_deriv = EncodingCircuitDerivatives(fm)
        grad = fm_deriv.get_derivative("dp")
 
     **Example: Derivative with respect to only the first trainable parameter**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
-       from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
+       from squlearn.encoding_circuit import QEKEncodingCircuit
+       from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
        fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
        fm_deriv = EncodingCircuitDerivatives(fm)
        dp0 = fm_deriv.get_derivative((fm_deriv.parameter_vector[0],))

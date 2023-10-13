@@ -32,7 +32,7 @@ The following observables are available and implemented as standalone classes:
 
 **Example: Summed Pauli observable**
 
-.. code-block:: python
+.. jupyter-execute::
 
     from squlearn.observables import SummedPaulis
 
@@ -46,7 +46,7 @@ Observables can be added by ``+`` or multiplied by ``*`` with each other.
 Together with the class :class:`CustomObservable`, in which single parameterized operators
 can be build from strings, your can create more complex observables.
 
-.. code-block:: python
+.. jupyter-execute::
 
     from squlearn.observables import CustomObservable
 
@@ -67,14 +67,14 @@ to solve this issue, it is possible to provide a map from the logical qubits to 
 physical qubits via :meth:`set_qubit_map`.
 The map can be for example obtained in the transpiled encoding circuit.
 
-.. code-block:: python
+.. jupyter-execute::
 
    from squlearn.encoding_circuit import ChebRx,TranspiledEncodingCircuit
    from squlearn.observables import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
    fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    op = SummedPaulis(num_qubits=3, op_str="Z")
-   op.set_map(fm.qubit_map, fm.num_all_qubits)
+   op.set_map(fm.qubit_map, fm.num_physical_qubits)
    print(op)
 
 
@@ -90,9 +90,10 @@ The derivatives are calculated with respect to the parameters of the observable.
 
 **Example: first-order derivative of the Ising Hamiltonian**
 
-.. code-block:: python
+.. jupyter-execute::
 
-    from squlearn.observables import IsingHamiltonian,ObservableDerivatives
+    from squlearn.observables import IsingHamiltonian
+    from squlearn.observables.observable_derivatives import ObservableDerivatives
     op = IsingHamiltonian(num_qubits=3)
     print(ObservableDerivatives(op).get_derivative("dop"))
 
@@ -100,9 +101,10 @@ To calculate the variance of an expectation value, the squared observable has to
 
 **Example: Squared summed Pauli Observable**
 
-.. code-block:: python
+.. jupyter-execute::
 
-    from squlearn.observables import SummedPaulis,ObservableDerivatives
+    from squlearn.observables import SummedPaulis
+    from squlearn.observables.observable_derivatives import ObservableDerivatives
     op = SummedPaulis(num_qubits=3)
     print(ObservableDerivatives(op).get_operator_squared())
 
@@ -113,9 +115,10 @@ of parameters :meth:`ObservableDerivatives.parameter_vector`.
 
 **Example: higher-order derivative of the cubed SummedPaulis observable**
 
-.. code-block:: python
+.. jupyter-execute::
 
-   from squlearn.observables import SummedPaulis,ObservableDerivatives
+   from squlearn.observables import SummedPaulis
+   from squlearn.observables.observable_derivatives import ObservableDerivatives
 
    # Build cubed SummedPaulis observable
    op = SummedPaulis(num_qubits=2)
