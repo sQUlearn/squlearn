@@ -25,10 +25,12 @@ class IsingHamiltonian(ObservableBase):
     Example for creating an Ising Hamiltonian with no :math:`\hat{Z}` term, :math:`\hat{X}` term with equal
     parameters, and the :math:`\hat{Z}\hat{Z}` term with different parameters:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
        from squlearn.observables import IsingHamiltonian
-       IsingHamiltonian(num_qubits=2, I='S', Z='N', X='S', ZZ='F')
+       ob = IsingHamiltonian(num_qubits=2, I='S', Z='N', X='S', ZZ='F')
+       print(ob)
+
 
     The default Ising Hamiltonian reads:
 

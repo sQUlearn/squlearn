@@ -124,12 +124,12 @@ class Executor:
 
     **Example: Get the Executor based primitives**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
        from squlearn import Executor
 
        # Initialize the Executor
-       Executor("statevector_simulator")
+       executor = Executor("statevector_simulator")
 
        # Get the Executor based Estimator - can be used as a normal Qiskit Estimator
        estimator = executor.get_estimator()
@@ -137,7 +137,7 @@ class Executor:
        # Get the Executor based Sampler - can be used as a normal Qiskit Sampler
        sampler = executor.get_sampler()
 
-    .. code-block:: python
+    .. jupyter-execute::
 
        # Run a circuit with the Executor based Sampler
        from qiskit.circuit.random import random_circuit

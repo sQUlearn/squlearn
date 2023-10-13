@@ -1873,7 +1873,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     **Simple Layered Encoding Circuit**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
         encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
@@ -1881,18 +1881,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         encoding_circuit.Rz("x")
         encoding_circuit.Ry("p")
         encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw()
-
-    .. plot::
-
-        from squlearn.encoding_circuit import LayeredEncodingCircuit
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
-        encoding_circuit.H()
-        encoding_circuit.Rz("x")
-        encoding_circuit.Ry("p")
-        encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-        plt.tight_layout()
+        encoding_circuit.draw("mpl")
 
 
     **Create a layered encoding circuit with non-linear input encoding**
@@ -1900,7 +1889,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     It is also possible to define a non-linear function for encoding variables in gates by
     supplying a function for the encoding as the second argument
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         import numpy as np
         from squlearn.encoding_circuit import LayeredEncodingCircuit
@@ -1912,29 +1901,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         encoding_circuit.H()
         encoding_circuit.Rz("p","x",encoding=func)
         encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw()
-
-    .. plot::
-
-        import numpy as np
-        from squlearn.encoding_circuit import LayeredEncodingCircuit
-
-        def func(a,b):
-            return a*np.arccos(b)
-
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
-        encoding_circuit.H()
-        encoding_circuit.Rz("p","x",encoding=func)
-        encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-        plt.tight_layout()
+        encoding_circuit.draw("mpl")
 
 
     **Create a layered encoding circuit with layers**
 
     Furthermore, it is possible to define layers and repeat them.
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
         from squlearn.encoding_circuit.layered_encoding_circuit import Layer
@@ -1945,21 +1919,8 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         layer.Ry("p")
         layer.cx_entangling("NN")
         encoding_circuit.add_layer(layer,num_layers=3)
-        encoding_circuit.draw()
+        encoding_circuit.draw("mpl")
 
-    .. plot::
-
-        from squlearn.encoding_circuit import LayeredEncodingCircuit
-        from squlearn.encoding_circuit.layered_encoding_circuit import Layer
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
-        encoding_circuit.H()
-        layer = Layer(encoding_circuit)
-        layer.Rz("x")
-        layer.Ry("p")
-        layer.cx_entangling("NN")
-        encoding_circuit.add_layer(layer,num_layers=3)
-        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-        plt.tight_layout()
 
     **Create a layered encoding circuit from string**
 
@@ -2056,22 +2017,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
           -
           -
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
         encoding_circuit = LayeredEncodingCircuit.from_string(
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
         )
-        encoding_circuit.draw()
+        encoding_circuit.draw("mpl")
 
-    .. plot::
-
-        from squlearn.encoding_circuit import LayeredEncodingCircuit
-        encoding_circuit = LayeredEncodingCircuit.from_string(
-            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-        )
-        encoding_circuit.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-        plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit

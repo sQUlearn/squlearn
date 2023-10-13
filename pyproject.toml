@@ -50,6 +50,7 @@ dev = [
     "sphinx",
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme",
+    "jupyter-sphinx",
 ]
 examples = [
     "jupyter",

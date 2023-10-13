@@ -4,7 +4,7 @@ from qiskit.algorithms.gradients import LinCombQGT, QFI
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from .executor import Executor
-from .data_preprocessing import adjust_input
+from .data_preprocessing import adjust_features, adjust_parameters
 
 
 def get_quantum_fisher(
@@ -48,8 +48,8 @@ def get_quantum_fisher(
     circuit = encoding_circuit.get_circuit(x_, p_)
 
     # Adjust input
-    x_list, multi_x = adjust_input(x, encoding_circuit.num_features)
-    p_list, multi_p = adjust_input(p, encoding_circuit.num_parameters)
+    x_list, multi_x = adjust_features(x, encoding_circuit.num_features)
+    p_list, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
 
     circ_list = []
     param_values_list = []

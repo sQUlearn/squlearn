@@ -9,7 +9,7 @@ from qiskit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_features
 from ..util.qfi import get_quantum_fisher
 from ..util.executor import Executor
 
@@ -24,23 +24,11 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
     **Example: Pruned QEK Encoding Circuit**
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import QEKEncodingCircuit,PrunedEncodingCircuit
         fm = QEKEncodingCircuit(4,2,2)
-        fm.draw()
-        PrunedEncodingCircuit(fm,[4,7,11,15]).draw()
-
-    .. plot::
-
-        from squlearn.encoding_circuit import QEKEncodingCircuit,PrunedEncodingCircuit
-        fm = QEKEncodingCircuit(4,2,2)
-        plt = fm.draw(output="mpl")
-        plt.suptitle("QEK Encoding Circuit", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
-        plt.tight_layout()
-        plt2 = PrunedEncodingCircuit(fm,[4,7,11,15]).draw(output="mpl")
-        plt2.suptitle("Pruned Encoding Circuit", x=0.55, y=0.88, fontsize=14, ha='center', va='center')
-        plt2.tight_layout()
+        PrunedEncodingCircuit(fm,[4,7,11,15]).draw("mpl")
 
     Args:
         encoding_circuit (EncodingCircuitBase): EncodingCircuit from which the parameters are removed
@@ -236,7 +224,7 @@ def automated_pruning(
 
     # Process x-values
     if x_val is not None:
-        x_val, multi = adjust_input(x_val, encoding_circuit.num_features)
+        x_val, multi = adjust_features(x_val, encoding_circuit.num_features)
         if not isinstance(x_val, np.ndarray):
             x = np.array(x_val)
         else:
@@ -250,7 +238,7 @@ def automated_pruning(
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_input(p_val, encoding_circuit.num_parameters)
+        p_val, multi = adjust_parameter_vec(p_val, encoding_circuit.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:

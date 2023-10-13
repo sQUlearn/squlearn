@@ -96,6 +96,6 @@ class SinglePauli(ObservableBase):
 
         H = "I" * self.num_qubits
         if self.parameterized:
-            SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]], [parameters[0]])
+            return SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]], [parameters[0]])
 
         return SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]])
