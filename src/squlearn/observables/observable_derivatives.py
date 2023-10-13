@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 
 from .observable_base import ObservableBase
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_parameters
 
 from ..util.optree.optree import (
     OpTreeElementBase,
@@ -281,7 +281,7 @@ class ObservableDerivatives:
         Return:
             Operator with assigned parameters
         """
-        param_op_inp, multi_param_op = adjust_input(parameters, len(self._parameter_vector))
+        param_op_inp, multi_param_op = adjust_parameters(parameters, len(self._parameter_vector))
 
         return_list = []
         for p in param_op_inp:
@@ -314,14 +314,10 @@ def operator_differentiation(
     if isinstance(parameters, ParameterVectorElement):
         parameters = [parameters]
 
-    if len(parameters) == 1:
-        # In case of a single parameter no array has to be returned
-        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters).children[0])
-    else:
-        # Check if the same variables are the same type
-        params_name = parameters[0].name.split("[", 1)[0]
-        for p in parameters:
-            if p.name.split("[", 1)[0] != params_name:
-                raise TypeError("Differentiable variables are not the same type.")
+    # Check if the same variables are the same type
+    params_name = parameters[0].name.split("[", 1)[0]
+    for p in parameters:
+        if p.name.split("[", 1)[0] != params_name:
+            raise TypeError("Differentiable variables are not the same type.")
 
-        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))
+    return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))

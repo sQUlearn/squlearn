@@ -8,7 +8,7 @@ from .encoding_circuit_base import EncodingCircuitBase
 
 from ..util.optree.optree import OpTreeElementBase, OpTreeCircuit, OpTreeSum, OpTreeList, OpTree
 
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_features, adjust_parameters
 
 
 class EncodingCircuitDerivatives:
@@ -245,12 +245,12 @@ class EncodingCircuitDerivatives:
 
         # check shape of the x and adjust to [[]] form if necessary
         if features is not None:
-            xx, multi_x = adjust_input(features, len(self._x))
+            xx, multi_x = adjust_features(features, len(self._x))
             todo_list.append(xx)
             param_list.append(self._x)
             multi_list.append(multi_x)
         if parameters is not None:
-            pp, multi_p = adjust_input(parameters, len(self._p))
+            pp, multi_p = adjust_parameters(parameters, len(self._p))
             todo_list.append(pp)
             param_list.append(self._p)
             multi_list.append(multi_p)
@@ -300,55 +300,10 @@ class EncodingCircuitDerivatives:
             parameters = list(parameters)
 
         # Call the automatic differentiation routine
-        # Separate routine for for one dim. or multi dim. variables
-        if len(parameters) == 1:
-            return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters).children[0])
-        else:
-            # If multiple variables are differentiated -> results are returned in array
+        # Check if the same variables are the same type
+        params_name = parameters[0].name.split("[", 1)[0]
+        for p in parameters:
+            if p.name.split("[", 1)[0] != params_name:
+                raise TypeError("Differentiable variables are not the same type.")
 
-            # Check if the same variables are the same type
-            params_name = parameters[0].name.split("[", 1)[0]
-            for p in parameters:
-                if p.name.split("[", 1)[0] != params_name:
-                    raise TypeError("Differentiable variables are not the same type.")
-
-            return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))
-
-
-# def _optree_transpile_back(
-#     optree_element: Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit], instruction_set
-# ) -> Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]:
-
-#     print("optree_element",optree_element)
-
-#     if isinstance(optree_element, OpTreeNodeBase):
-#         # Recursive call for all children
-#         children_list = [
-#             _optree_transpile_back(child, instruction_set) for child in optree_element.children
-#         ]
-#         if isinstance(optree_element, OpTreeNodeSum):
-#             return OpTreeNodeSum(children_list, optree_element.factor, optree_element.operation)
-#         elif isinstance(optree_element, OpTreeNodeList):
-#             return OpTreeNodeList(children_list, optree_element.factor, optree_element.operation)
-#         else:
-#             raise ValueError("element must be a CircuitTreeSum or a CircuitTreeList")
-#     elif isinstance(optree_element, (OpTreeLeafCircuit, QuantumCircuit)):
-#         circuit = optree_element
-#         if isinstance(optree_element, OpTreeLeafCircuit):
-#             circuit = optree_element.circuit
-
-#         # Transpile back to the given instruction set
-#         transpiled_circ = transpile(
-#             circuit,
-#             basis_gates=instruction_set,
-#             optimization_level=1,  # 1 for reducing number of gates
-#             layout_method="trivial",
-#         )
-
-#         if isinstance(optree_element, OpTreeLeafCircuit):
-#             return OpTreeLeafCircuit(transpiled_circ)
-
-#         return transpiled_circ
-
-#     else:
-#         raise ValueError("Unsupported type in _optree_transpile_back:", type(optree_element))
+        return OpTree.simplify(OpTree.derivative.differentiate(optree, parameters))
