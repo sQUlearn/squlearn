@@ -1,4 +1,4 @@
-ipython
+ipykernel
 matplotlib
 myst-parser
 nbsphinx
