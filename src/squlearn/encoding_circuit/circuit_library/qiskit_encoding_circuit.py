@@ -58,7 +58,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         self,
         qiskit_circuit: Union[BlueprintCircuit, Callable, QuantumCircuit],
         mode: str = "auto",
-        decompose: bool = True,
+        decompose: bool = False,
         feature_label: str = "x",
         parameter_label: str = "θp",
         **kwargs,
@@ -158,7 +158,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = {}
+        params = {"qiskit_circuit": self._qiskit_circuit}
         return params
 
     def get_circuit(
