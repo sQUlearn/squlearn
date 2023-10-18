@@ -393,11 +393,24 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
+
+        # Generate default parameters of the measurement operators
+        if initial_parameters is None:
+            if self._parameters is None:
+                self._parameters = np.array([])
+            if isinstance(self._measurement, list):
+                for i,m in enumerate(self._measurement):
+                    self._parameters = np.concatenate((self._parameters, m.generate_initial_parameters(seed=parameter_seed+i+1)))
+            elif isinstance(self._measurement, ObservableBase):
+                self._parameters = np.concatenate((self._parameters,self._measurement.generate_initial_parameters(seed=parameter_seed)))
+            else:
+                raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
+
         # Check if the number of parameters is correct
         if self._parameters is not None:
             if len(self._parameters) != self.num_parameters:
                 raise ValueError(
-                    "Number of inital parameters is wrong, expected number: {}".format(
+                    "Number of initial parameters is wrong, expected number: {}".format(
                         self.num_parameters
                     )
                 )
