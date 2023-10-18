@@ -222,7 +222,7 @@ def solve_all(
     minimize: OptimizerBase,
     opt_tuple: tuple = (False, True, True),
     bounds=None,
-    shot_adjusting: shot_adjusting_options = None,
+    shot_adjusting: shot_adjusting_options = None, # TODO: change
 ):
     """General function for minimizing a given loss function
 
@@ -276,6 +276,9 @@ def solve_all(
             param_op = param_op_ini
 
         # adjust shots
+
+        # TODO: change
+
         if shot_adjusting is not None:
             shot_adjusting.func(x, param, param_op)
 
@@ -310,6 +313,8 @@ def solve_all(
             param_op = param_op_ini
 
         # adjust shots
+        # TODO: change
+
         if shot_adjusting is not None:
             shot_adjusting.grad(x, param, param_op)
 
@@ -438,6 +443,9 @@ def solve_mini_batch(
         if shuffle:
             idcs = np.random.permutation(idcs)
         for batch_slice in gen_batches(n_samples, batch_size):
+            
+            # todo shot adjustments here
+            
             loss_values = qnn.evaluate(
                 loss.loss_args_tuple, input_values[idcs[batch_slice]], param, param_op
             )
@@ -448,6 +456,8 @@ def solve_mini_batch(
                 weights=weights_values[idcs[batch_slice]],
                 iteration=epoch,
             )
+
+            # todo shot adjustments here
 
             diff_values = qnn.evaluate(
                 loss.gradient_args_tuple, input_values[idcs[batch_slice]], param, param_op
