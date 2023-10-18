@@ -88,12 +88,12 @@ class BaseQNN(BaseEstimator, ABC):
             if isinstance(operator, list):
                 self.param_op_ini = np.concatenate(
                     [
-                        operator.generate_initial_parameters(seed=parameter_seed)
-                        for operator in operator
+                        operator.generate_initial_parameters(seed=parameter_seed+i+1)
+                        for i,operator in enumerate(operator)
                     ]
                 )
             else:
-                self.param_op_ini = operator.generate_initial_parameters(seed=parameter_seed)
+                self.param_op_ini = operator.generate_initial_parameters(seed=parameter_seed+1)
         else:
             self.param_op_ini = param_op_ini
         self._param_op = self.param_op_ini.copy()
