@@ -474,9 +474,14 @@ def solve_mini_batch(
                     x=param,
                     grad=grad,
                 )
-        print(
-            f"Epoch {epoch+1: >5}/{epochs: >5}:\taverage_loss = {accumulated_loss/n_samples:.5f}"
-        )
+        if optimizer.callback:
+            if opt_param_op:
+                optimizer.callback(
+                    epoch,
+                    np.concatenate((param, param_op), axis=None),
+                    np.concatenate(grad, axis=None),
+                    accumulated_loss / n_samples,
+                )
 
     if opt_param_op:
         return param, param_op

@@ -127,6 +127,10 @@ class BaseQNN(BaseEstimator, ABC):
                 self.optimizer.set_callback(self.callback)
             elif self.callback == "pbar":
                 self._pbar = None
+                if isinstance(self.optimizer, SGDMixin) and self.batch_size:
+                    self._total_iterations = self.epochs
+                else:
+                    self._total_iterations = self.optimizer.options.get("maxiter", 100)
 
                 def pbar_callback(*args):
                     self._pbar.update(1)
