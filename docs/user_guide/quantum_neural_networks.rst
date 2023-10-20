@@ -93,7 +93,7 @@ method:
 
     from squlearn.encoding_circuit import ChebPQC
 
-    pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
+    pqc = ChebPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     pqc.draw("mpl")
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
@@ -136,7 +136,7 @@ and the Adam optimizer for optimization.
     from squlearn import Executor
 
     op = SummedPaulis(num_qubits = 4)
-    pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
+    pqc = ChebPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     qnn = QNNRegressor(pqc, op, Executor("statevector_simulator"), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
