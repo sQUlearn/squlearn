@@ -252,6 +252,6 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         """Internal fit function."""
         if self.callback == "pbar":
             self._pbar = tqdm(
-                total=self.optimizer.options.get("maxiter", 100), desc="fit", file=sys.stdout
+                total=self._total_iterations, desc="fit", file=sys.stdout
             )
         self.partial_fit(X, y, weights)
