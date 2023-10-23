@@ -6,7 +6,7 @@ from typing import Union
 
 from .loss import LossBase
 from .qnn import QNN
-from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeOptimizerMixin
 from ..util import Executor
 
 def get_variance_fac(v, a, b, offset=0):
@@ -160,288 +160,409 @@ class ShotsFromRSTD(ShotAdjustingBase):
 
 
 
-    def set_l2_rstd(self, qnn: QNN, Y: np.ndarray) -> None:
-        """
-        Initialization function for adjusting the number of shots for a L2 Loss.
-        Number of shots are adjusted with respect to the relative standard deviation of the L2 loss.
+#     def set_l2_rstd(self, qnn: QNN, Y: np.ndarray) -> None:
+#         """
+#         Initialization function for adjusting the number of shots for a L2 Loss.
+#         Number of shots are adjusted with respect to the relative standard deviation of the L2 loss.
 
-        Args:
-            qnn [QNN]: Instance of the QNN that is optimized
-            Y [np.ndarray]: Output data that is used in the L2 loss.
+#         Args:
+#             qnn [QNN]: Instance of the QNN that is optimized
+#             Y [np.ndarray]: Output data that is used in the L2 loss.
 
-        """
+#         """
 
-        self.qnn = qnn
+#         self.qnn = qnn
 
-        def func(x, param, param_op):
-            self.qnn.reset_shots()
+#         def func(x, param, param_op):
+#             self.qnn.reset_shots()
 
-        self.func = func
+#         self.func = func
 
-        def grad(x, param, param_op):
-            self.qnn.reset_shots()
-            value_dict = self.qnn.evaluate(("f", "var"), x, param, param_op)
-            diff_square = np.square(value_dict["f"] - Y)
-            var = np.sum(4 * np.multiply(diff_square, value_dict["var"]))
-            exp = np.sum(diff_square)
-            shots = int(np.divide(var, np.square(exp) * np.square(self.parameter)))
-            num_shots = min(max(shots, self.min_shots), self.max_shots)
-            print(
-                "Set shots for gradient evaluation to: ",
-                num_shots,
-                " ( RSTD: ",
-                "%0.3f" % np.divide(np.sqrt(var / num_shots), exp),
-                ")",
-            )
-            self.qnn.set_shots(num_shots)
+#         def grad(x, param, param_op):
+#             self.qnn.reset_shots()
+#             value_dict = self.qnn.evaluate(("f", "var"), x, param, param_op)
+#             diff_square = np.square(value_dict["f"] - Y)
+#             var = np.sum(4 * np.multiply(diff_square, value_dict["var"]))
+#             exp = np.sum(diff_square)
+#             shots = int(np.divide(var, np.square(exp) * np.square(self.parameter)))
+#             num_shots = min(max(shots, self.min_shots), self.max_shots)
+#             print(
+#                 "Set shots for gradient evaluation to: ",
+#                 num_shots,
+#                 " ( RSTD: ",
+#                 "%0.3f" % np.divide(np.sqrt(var / num_shots), exp),
+#                 ")",
+#             )
+#             self.qnn.set_shots(num_shots)
 
-        self.grad = grad
+#         self.grad = grad
 
 
-def solve_param(
+# def solve_param(
+#     qnn: QNN,
+#     x_space,
+#     param_ini,
+#     param_op_ini,
+#     loss: LossBase,
+#     # loss_function,
+#     # input_loss: tuple,
+#     # loss_function_gradient,
+#     # input_grad: tuple,
+#     minimize: OptimizerBase,
+#     opt_param_op=True,
+#     bounds=None,
+#     shot_adjusting: ShotAdjustingBase = None,
+# ):
+#     """Wrapper function for optimizing only the parameters
+
+#     Args:
+#         x_space : Supporting vectors in x (constant in opt.)
+#         param_ini : Initial values for the PQC parameters
+#         param_op_ini : Initial values of the cost operator parameters
+#         loss_function : Loss function for the optimization (gets a dictionary as input)
+#         input_loss : Derivatives which has to be accessible in the loss_function dictionary
+#         loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
+#         input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
+#         opt_param_op : Option for optimizing the parameter of the cost operator
+#         bounds : Boundaries for the x variable
+
+#     Returns:
+#         Optimized parameters of the PQC, and, if opt_param_op=True, the parameters
+#         of the cost operator
+#     """
+
+#     return solve_all(
+#         qnn,
+#         x_space,
+#         param_ini,
+#         param_op_ini,
+#         loss,
+#         # loss_function,
+#         # input_loss,
+#         # loss_function_gradient,
+#         # input_grad,
+#         minimize,
+#         (False, True, opt_param_op),
+#         bounds=bounds,
+#         shot_adjusting=shot_adjusting,
+#     )
+
+
+# def solve_x(
+#     qnn,
+#     x_ini,
+#     param,
+#     param_op,
+#     loss: LossBase,
+#     # loss_function,
+#     # input_loss: tuple,
+#     # loss_function_gradient,
+#     # input_grad: tuple,
+#     minimize: OptimizerBase,
+#     bounds=None,
+#     shot_adjusting: ShotAdjustingBase = None,
+# ):
+#     """Wrapper function for optimizing only the x values
+
+#     Args:
+#         x_space : Initial values of x
+#         param_ini : Values for the PQC parameters
+#         param_op_ini : Values of the cost operator parameters
+#         loss_function : Loss function for the optimization (gets a dictionary as input)
+#         input_loss : Derivatives which has to be accessible in the loss_function dictionary
+#         loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
+#         input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
+#         bounds : Boundaries for the x variable
+
+#     Returns:
+#         Optimized parameters of the PQC, and, if opt_param_op=True, the parameters
+#         of the cost operator
+#     """
+
+#     return solve_all(
+#         qnn,
+#         x_ini,
+#         param,
+#         param_op,
+#         loss,
+#         minimize,
+#         (True, False, False),
+#         bounds=bounds,
+#         shot_adjusting=shot_adjusting,
+#     )
+
+
+# def solve_all(
+#     qnn: QNN,
+#     x_ini,
+#     param_ini,
+#     param_op_ini,
+#     loss: LossBase,
+#     # loss_function,
+#     # input_loss: tuple,
+#     # loss_function_gradient,
+#     # input_grad: tuple,
+#     minimize: OptimizerBase,
+#     opt_tuple: tuple = (False, True, True),
+#     bounds=None,
+#     shot_adjusting: ShotAdjustingBase = None,
+# ):
+#     """General function for minimizing a given loss function
+
+#     Args:
+#         x_ini : Initial values for x
+#         param_ini : Initial values for the PQC parameters
+#         param_op_ini : Initial values of the cost operator parameters
+#         loss_function : Loss function for the optimization (gets a dictionary as input)
+#         input_loss : Derivatives which has to be accessible in the loss_function dictionary
+#         loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
+#         input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
+#         opt_tuple : Three entry boolean tuple which specifies which variables are optimized
+#                     Structure: (opt x, opt param, opt param_op)
+#         bounds : Boundaries for the optimization variable
+
+#     Returns:
+#         Returns a tuple of array containing the optimized values (specified by opt_tuple)
+
+#     """
+#     # # Container class for storing already calculated data to avoid
+#     # # recomputation of already known data points
+#     # cont = self.FContainer(self)
+
+#     # Size of the parameters
+#     nx = qnn.num_features
+#     nparam = qnn.num_parameters
+#     nparam_op = qnn.num_parameters_operator
+
+#     global iter_counter
+#     iter_counter = 0
+
+#     def opt_func(theta):
+#         """Optimization function for minimize"""
+#         global iter_counter
+
+#         # Splitting theta in the arrays
+#         ioff = 0
+#         if opt_tuple[0]:
+#             x = theta[:nx]
+#             ioff += nx
+#         else:
+#             x = x_ini
+#         if opt_tuple[1]:
+#             param = theta[ioff : (ioff + nparam)]
+#             ioff += nparam
+#         else:
+#             param = param_ini
+#         if opt_tuple[2]:
+#             param_op = theta[ioff : (ioff + nparam_op)]
+#         else:
+#             param_op = param_op_ini
+
+#         # adjust shots
+
+#         # TODO: change
+
+#         if shot_adjusting is not None:
+#             shot_adjusting.func(x, param, param_op)
+
+#         # Evaluate the necessary derivatives and call the loss function
+        
+#         loss.value(qnn.evaluate(loss.loss_args_tuple, x, param, param_op),
+#                    ground_truth=re,
+                   
+                   
+#                     iter_counter)
+        
+#         return_value = loss_function(qnn.evaluate(input_loss, x, param, param_op), iter_counter)
+
+#         if shot_adjusting is not None:
+#             qnn.reset_shots()
+
+#         return return_value
+
+#     def opt_func_grad(theta):
+#         """Optimization function gradient for minimize"""
+#         global iter_counter
+#         iter_counter = iter_counter + 1
+
+#         # Splitting theta in the arrays
+#         ioff = 0
+#         if opt_tuple[0]:
+#             x = theta[:nx]
+#             ioff += nx
+#         else:
+#             x = x_ini
+#         if opt_tuple[1]:
+#             param = theta[ioff : (ioff + nparam)]
+#             ioff += nparam
+#         else:
+#             param = param_ini
+#         if opt_tuple[2]:
+#             param_op = theta[ioff : (ioff + nparam_op)]
+#         else:
+#             param_op = param_op_ini
+
+#         # adjust shots
+#         # TODO: change
+
+#         if shot_adjusting is not None:
+#             shot_adjusting.grad(x, param, param_op)
+
+#         # Evaluate the necessary derivatives and call the loss function gradient
+#         return_value = np.concatenate(
+#             loss_function_gradient(qnn.evaluate(input_grad, x, param, param_op), iter_counter),
+#             axis=None,
+#         )
+
+#         if shot_adjusting is not None:
+#             qnn.reset_shots()
+
+#         return return_value
+
+#     # Merge initialization values for minimize
+#     val_ini = np.array([])
+#     if opt_tuple[0]:
+#         val_ini = np.concatenate((val_ini, x_ini), axis=None)
+#     if opt_tuple[1]:
+#         val_ini = np.concatenate((val_ini, param_ini), axis=None)
+#     if opt_tuple[2]:
+#         val_ini = np.concatenate((val_ini, param_op_ini), axis=None)
+
+#     # Call optimization function
+#     result = minimize(opt_func, val_ini, opt_func_grad, bounds=bounds)
+
+#     if hasattr(result, "x"):
+#         result = result.x
+
+#     # Split up final result into its x, param, param_op pieces
+#     return_list = []
+#     ioff = 0
+#     if opt_tuple[0]:
+#         return_list.append(result[:nx])
+#         ioff += nx
+#     if opt_tuple[1]:
+#         return_list.append(result[ioff : (ioff + nparam)])
+#         ioff += nparam
+#     if opt_tuple[2]:
+#         return_list.append(result[ioff : (ioff + nparam_op)])
+#     if len(return_list) == 1:
+#         return return_list[0]
+#     else:
+#         return tuple(return_list)
+
+def solve(
     qnn: QNN,
-    x_space,
+    input_values,
+    ground_truth,
     param_ini,
     param_op_ini,
     loss: LossBase,
-    # loss_function,
-    # input_loss: tuple,
-    # loss_function_gradient,
-    # input_grad: tuple,
-    minimize: OptimizerBase,
-    opt_param_op=True,
-    bounds=None,
-    shot_adjusting: ShotAdjustingBase = None,
+    optimizer: OptimizerBase,
+    weights=None,
+    opt_param_op: bool = True,
+    shot_control=None
 ):
-    """Wrapper function for optimizing only the parameters
 
-    Args:
-        x_space : Supporting vectors in x (constant in opt.)
-        param_ini : Initial values for the PQC parameters
-        param_op_ini : Initial values of the cost operator parameters
-        loss_function : Loss function for the optimization (gets a dictionary as input)
-        input_loss : Derivatives which has to be accessible in the loss_function dictionary
-        loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
-        input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
-        opt_param_op : Option for optimizing the parameter of the cost operator
-        bounds : Boundaries for the x variable
+    if isinstance(weights, np.ndarray):
+        weights_values = weights
+    elif weights is None:
+        weights_values = np.ones(ground_truth.shape)
+    else:
+        raise TypeError(f"Unknown weight format: {type(weights)}")
 
-    Returns:
-        Optimized parameters of the PQC, and, if opt_param_op=True, the parameters
-        of the cost operator
-    """
+    # Tell the loss function if the cost operator parameters are optimized
+    loss.set_opt_param_op(opt_param_op)
 
-    return solve_all(
-        qnn,
-        x_space,
-        param_ini,
-        param_op_ini,
-        loss,
-        # loss_function,
-        # input_loss,
-        # loss_function_gradient,
-        # input_grad,
-        minimize,
-        (False, True, opt_param_op),
-        bounds=bounds,
-        shot_adjusting=shot_adjusting,
-    )
-
-
-def solve_x(
-    qnn,
-    x_ini,
-    param,
-    param_op,
-    loss: LossBase,
-    # loss_function,
-    # input_loss: tuple,
-    # loss_function_gradient,
-    # input_grad: tuple,
-    minimize: OptimizerBase,
-    bounds=None,
-    shot_adjusting: ShotAdjustingBase = None,
-):
-    """Wrapper function for optimizing only the x values
-
-    Args:
-        x_space : Initial values of x
-        param_ini : Values for the PQC parameters
-        param_op_ini : Values of the cost operator parameters
-        loss_function : Loss function for the optimization (gets a dictionary as input)
-        input_loss : Derivatives which has to be accessible in the loss_function dictionary
-        loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
-        input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
-        bounds : Boundaries for the x variable
-
-    Returns:
-        Optimized parameters of the PQC, and, if opt_param_op=True, the parameters
-        of the cost operator
-    """
-
-    return solve_all(
-        qnn,
-        x_ini,
-        param,
-        param_op,
-        loss,
-        minimize,
-        (True, False, False),
-        bounds=bounds,
-        shot_adjusting=shot_adjusting,
-    )
-
-
-def solve_all(
-    qnn: QNN,
-    x_ini,
-    param_ini,
-    param_op_ini,
-    loss: LossBase,
-    # loss_function,
-    # input_loss: tuple,
-    # loss_function_gradient,
-    # input_grad: tuple,
-    minimize: OptimizerBase,
-    opt_tuple: tuple = (False, True, True),
-    bounds=None,
-    shot_adjusting: ShotAdjustingBase = None,
-):
-    """General function for minimizing a given loss function
-
-    Args:
-        x_ini : Initial values for x
-        param_ini : Initial values for the PQC parameters
-        param_op_ini : Initial values of the cost operator parameters
-        loss_function : Loss function for the optimization (gets a dictionary as input)
-        input_loss : Derivatives which has to be accessible in the loss_function dictionary
-        loss_function_gradient : Gradient of the loss function (gets a dictionary as input)
-        input_grad : Derivatives which has to be accessible in the loss_function_gradient dictionary
-        opt_tuple : Three entry boolean tuple which specifies which variables are optimized
-                    Structure: (opt x, opt param, opt param_op)
-        bounds : Boundaries for the optimization variable
-
-    Returns:
-        Returns a tuple of array containing the optimized values (specified by opt_tuple)
-
-    """
-    # # Container class for storing already calculated data to avoid
-    # # recomputation of already known data points
-    # cont = self.FContainer(self)
-
-    # Size of the parameters
-    nx = qnn.num_features
-    nparam = qnn.num_parameters
-    nparam_op = qnn.num_parameters_operator
-
-    global iter_counter
-    iter_counter = 0
-
-    def opt_func(theta):
-        """Optimization function for minimize"""
-        global iter_counter
-
-        # Splitting theta in the arrays
-        ioff = 0
-        if opt_tuple[0]:
-            x = theta[:nx]
-            ioff += nx
-        else:
-            x = x_ini
-        if opt_tuple[1]:
-            param = theta[ioff : (ioff + nparam)]
-            ioff += nparam
-        else:
-            param = param_ini
-        if opt_tuple[2]:
-            param_op = theta[ioff : (ioff + nparam_op)]
-        else:
-            param_op = param_op_ini
-
-        # adjust shots
-
-        # TODO: change
-
-        if shot_adjusting is not None:
-            shot_adjusting.func(x, param, param_op)
-
-        # Evaluate the necessary derivatives and call the loss function
-        return_value = loss_function(qnn.evaluate(input_loss, x, param, param_op), iter_counter)
-
-        if shot_adjusting is not None:
-            qnn.reset_shots()
-
-        return return_value
-
-    def opt_func_grad(theta):
-        """Optimization function gradient for minimize"""
-        global iter_counter
-        iter_counter = iter_counter + 1
-
-        # Splitting theta in the arrays
-        ioff = 0
-        if opt_tuple[0]:
-            x = theta[:nx]
-            ioff += nx
-        else:
-            x = x_ini
-        if opt_tuple[1]:
-            param = theta[ioff : (ioff + nparam)]
-            ioff += nparam
-        else:
-            param = param_ini
-        if opt_tuple[2]:
-            param_op = theta[ioff : (ioff + nparam_op)]
-        else:
-            param_op = param_op_ini
-
-        # adjust shots
-        # TODO: change
-
-        if shot_adjusting is not None:
-            shot_adjusting.grad(x, param, param_op)
-
-        # Evaluate the necessary derivatives and call the loss function gradient
-        return_value = np.concatenate(
-            loss_function_gradient(qnn.evaluate(input_grad, x, param, param_op), iter_counter),
-            axis=None,
+    if weights_values.shape != ground_truth.shape:
+        raise ValueError(
+            f"Shape {weights_values.shape} of weight values doesn't match shape"
+            f" {ground_truth.shape} of reference values"
         )
 
-        if shot_adjusting is not None:
-            qnn.reset_shots()
-
-        return return_value
+    # Preprocessing of the input values in case of lists
+    if not isinstance(param_ini, np.ndarray):
+        param = np.array([param_ini])
+    else:
+        param = param_ini
+    if not isinstance(param_op_ini, np.ndarray):
+        param_op = np.array([param_op_ini])
+    else:
+        param_op = param_op_ini
 
     # Merge initialization values for minimize
-    val_ini = np.array([])
-    if opt_tuple[0]:
-        val_ini = np.concatenate((val_ini, x_ini), axis=None)
-    if opt_tuple[1]:
-        val_ini = np.concatenate((val_ini, param_ini), axis=None)
-    if opt_tuple[2]:
-        val_ini = np.concatenate((val_ini, param_op_ini), axis=None)
+    val_ini = param
+    if opt_param_op:
+        val_ini = np.concatenate((val_ini, param_op))
 
-    # Call optimization function
-    result = minimize(opt_func, val_ini, opt_func_grad, bounds=bounds)
+    iteration = 0
+
+    def _fun(theta):
+        nonlocal iteration
+        nonlocal optimizer
+        if isinstance(optimizer,IterativeOptimizerMixin):
+            iteration = optimizer.iteration
+
+        # Splitting theta in the arrays
+        if opt_param_op:
+            param = theta[:len(param_ini)]
+            param_op = theta[len(param_ini):]
+        else:
+            param = theta
+
+        # TODO: shot control
+
+        loss_values = qnn.evaluate(
+            loss.loss_args_tuple, input_values, param, param_op
+        )
+
+        return loss.value(
+            loss_values,
+            ground_truth=ground_truth,
+            weights=weights_values,
+            iteration=iteration,
+        )
+
+    def _grad(theta):
+        nonlocal iteration
+        nonlocal optimizer
+        if isinstance(optimizer,IterativeOptimizerMixin):
+            iter_counter = optimizer.iteration
+
+        # Splitting theta in the arrays
+        if opt_param_op:
+            param = theta[:len(param_ini)]
+            param_op = theta[len(param_ini):]
+        else:
+            param = theta
+
+        # TODO: shot control
+
+        grad_values = qnn.evaluate(
+            loss.gradient_args_tuple, input_values, param, param_op
+        )
+
+        return loss.gradient(
+                grad_values,
+                ground_truth=ground_truth,
+                weights=weights_values,
+                iteration=iteration,
+                multiple_output=qnn.multiple_output,
+                opt_param_op=opt_param_op,
+            )
+
+    # TODO: what to do with bounds
+    result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
 
     if hasattr(result, "x"):
         result = result.x
 
-    # Split up final result into its x, param, param_op pieces
-    return_list = []
-    ioff = 0
-    if opt_tuple[0]:
-        return_list.append(result[:nx])
-        ioff += nx
-    if opt_tuple[1]:
-        return_list.append(result[ioff : (ioff + nparam)])
-        ioff += nparam
-    if opt_tuple[2]:
-        return_list.append(result[ioff : (ioff + nparam_op)])
-    if len(return_list) == 1:
-        return return_list[0]
-    else:
-        return tuple(return_list)
+    if opt_param_op:
+        param = result[:len(param_ini)]
+        param_op = result[len(param_ini):]
+        return param, param_op
+
+    param = result
+    return param
 
 
 def solve_mini_batch(
@@ -454,6 +575,7 @@ def solve_mini_batch(
     optimizer: OptimizerBase,
     weights=None,
     opt_param_op: bool = True,
+    shot_control=None,
     epochs: int = 10,
     batch_size: int = None,
     shuffle=False,
@@ -582,6 +704,7 @@ def solve_mini_batch(
     return param
 
 
+
 def regression(
     qnn,
     x_space,
@@ -609,53 +732,54 @@ def regression(
         optimized parameters of the PQC, and, if opt_param_op=True,
         the optimized parameters of the cost operator
     """
-    if isinstance(weights, np.ndarray):
-        weights_values = weights
-    elif weights is None:
-        weights_values = np.ones(ref_values.shape)
-    else:
-        raise TypeError("Unknown weight format")
+    pass
+    # if isinstance(weights, np.ndarray):
+    #     weights_values = weights
+    # elif weights is None:
+    #     weights_values = np.ones(ref_values.shape)
+    # else:
+    #     raise TypeError("Unknown weight format")
 
-    # Tell the loss function if the cost operator parameters are optimized
-    loss.set_opt_param_op(opt_param_op)
+    # # Tell the loss function if the cost operator parameters are optimized
+    # loss.set_opt_param_op(opt_param_op)
 
-    if weights_values.shape != ref_values.shape:
-        raise ValueError(
-            f"Shape {weights_values.shape} of weight values doesn't match shape"
-            f" {ref_values.shape} of reference values"
-        )
+    # if weights_values.shape != ref_values.shape:
+    #     raise ValueError(
+    #         f"Shape {weights_values.shape} of weight values doesn't match shape"
+    #         f" {ref_values.shape} of reference values"
+    #     )
 
-    # Loss function of the regression problem
-    def loss_function(value_dict, iteration):
-        return loss.value(
-            value_dict,
-            ground_truth=ref_values,
-            weights=weights_values,
-            iteration=iteration,
-        )
+    # # # Loss function of the regression problem
+    # # def loss_function(value_dict, iteration):
+    # #     return loss.value(
+    # #         value_dict,
+    # #         ground_truth=ref_values,
+    # #         weights=weights_values,
+    # #         iteration=iteration,
+    # #     )
 
-    # Gradient of the loss function
-    def loss_function_gradient(value_dict, iteration):
-        return loss.gradient(
-            value_dict,
-            ground_truth=ref_values,
-            weights=weights_values,
-            iteration=iteration,
-            multiple_output=qnn.multiple_output,
-        )
+    # # # Gradient of the loss function
+    # # def loss_function_gradient(value_dict, iteration):
+    # #     return loss.gradient(
+    # #         value_dict,
+    # #         ground_truth=ref_values,
+    # #         weights=weights_values,
+    # #         iteration=iteration,
+    # #         multiple_output=qnn.multiple_output,
+    # #     )
 
-    # Call optimization function
-    return solve_all(
-        qnn,
-        x_space,
-        param_ini,
-        param_op_ini,
-        loss,
-        # loss_function,
-        # loss.loss_args_tuple,
-        # loss_function_gradient,
-        # loss.gradient_args_tuple,
-        minimize,
-        (False, True, opt_param_op),
-        shot_adjusting=shot_adjusting,
-    )
+    # # Call optimization function
+    # return solve_all(
+    #     qnn,
+    #     x_space,
+    #     param_ini,
+    #     param_op_ini,
+    #     loss,
+    #     # loss_function,
+    #     # loss.loss_args_tuple,
+    #     # loss_function_gradient,
+    #     # loss.gradient_args_tuple,
+    #     minimize,
+    #     (False, True, opt_param_op),
+    #     shot_adjusting=shot_adjusting,
+    # )

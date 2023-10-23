@@ -6,6 +6,8 @@ from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
 
+# TODO: Add iterative mixin
+# TODO: adjust callback to increase iteration counter
 
 class SLSQP(OptimizerBase):
     """Wrapper class for scipy's SLSQP implementation.

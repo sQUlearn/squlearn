@@ -16,7 +16,7 @@ from ..util import Executor
 
 from .loss import LossBase
 from .qnn import QNN
-from .training import shot_adjusting_options
+from .training import ShotAdjustingBase
 
 
 class BaseQNN(BaseEstimator, ABC):
@@ -58,7 +58,7 @@ class BaseQNN(BaseEstimator, ABC):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
-        shot_adjusting: shot_adjusting_options = None,
+        shot_adjusting: ShotAdjustingBase = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
         pretrained: bool = False,
