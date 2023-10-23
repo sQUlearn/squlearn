@@ -6,7 +6,7 @@ from typing import Union
 
 from .loss import LossBase
 from .qnn import QNN
-from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeOptimizerMixin
+from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
 from ..util import Executor
 
 def get_variance_fac(v, a, b, offset=0):
@@ -450,7 +450,7 @@ class ShotsFromRSTD(ShotAdjustingBase):
 #     else:
 #         return tuple(return_list)
 
-def solve(
+def train(
     qnn: QNN,
     input_values,
     ground_truth,
@@ -492,15 +492,17 @@ def solve(
     # Merge initialization values for minimize
     val_ini = param
     if opt_param_op:
-        val_ini = np.concatenate((val_ini, param_op))
+        val_ini = np.concatenate((val_ini, param_op), axis=None)
 
     iteration = 0
 
     def _fun(theta):
         nonlocal iteration
         nonlocal optimizer
-        if isinstance(optimizer,IterativeOptimizerMixin):
+        if isinstance(optimizer,IterativeMixin):
             iteration = optimizer.iteration
+        else:
+            iteration = None
 
         # Splitting theta in the arrays
         if opt_param_op:
@@ -525,8 +527,11 @@ def solve(
     def _grad(theta):
         nonlocal iteration
         nonlocal optimizer
-        if isinstance(optimizer,IterativeOptimizerMixin):
-            iter_counter = optimizer.iteration
+
+        if isinstance(optimizer,IterativeMixin):
+            iteration = optimizer.iteration
+        else:
+            iteration = None
 
         # Splitting theta in the arrays
         if opt_param_op:
@@ -540,15 +545,14 @@ def solve(
         grad_values = qnn.evaluate(
             loss.gradient_args_tuple, input_values, param, param_op
         )
-
-        return loss.gradient(
+        return np.concatenate(loss.gradient(
                 grad_values,
                 ground_truth=ground_truth,
                 weights=weights_values,
                 iteration=iteration,
                 multiple_output=qnn.multiple_output,
                 opt_param_op=opt_param_op,
-            )
+            ), axis=None)
 
     # TODO: what to do with bounds
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
@@ -565,7 +569,7 @@ def solve(
     return param
 
 
-def solve_mini_batch(
+def train_mini_batch(
     qnn: QNN,
     input_values,
     ground_truth,

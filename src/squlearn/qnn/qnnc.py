@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_mini_batch, regression
+from .training import train_mini_batch, train
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -191,7 +191,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self._param, self._param_op = solve_mini_batch(
+                self._param, self._param_op = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -206,7 +206,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     opt_param_op=True,
                 )
             else:
-                self._param = solve_mini_batch(
+                self._param = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -223,26 +223,26 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         else:
             if self.opt_param_op:
-                self._param, self._param_op = regression(
+                self._param, self._param_op = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
                     weights,
                     True,
                 )
             else:
-                self._param = regression(
+                self._param = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
                     weights,
                     False,
                 )

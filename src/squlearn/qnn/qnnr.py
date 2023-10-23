@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_mini_batch, regression, solve
+from .training import train_mini_batch, train
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -165,7 +165,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self._param, self._param_op = solve_mini_batch(
+                self._param, self._param_op = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -180,7 +180,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     opt_param_op=True,
                 )
             else:
-                self._param = solve_mini_batch(
+                self._param = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -197,7 +197,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         else:
             if self.opt_param_op:
-                self._param, self._param_op = solve(
+                self._param, self._param_op = train(
                     self._qnn,
                     X,
                     y,
@@ -209,7 +209,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     True,
                 )
             else:
-                self._param = solve(
+                self._param = train(
                     self._qnn,
                     X,
                     y,
