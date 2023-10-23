@@ -7,7 +7,7 @@ from typing import Union
 from .loss import LossBase
 from .qnn import QNN
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
-
+from ..util import Executor
 
 def get_variance_fac(v, a, b, offset=0):
     """
@@ -56,27 +56,109 @@ def get_annealed_lr(lr_start, lr_end, iter_plateau, iter_decay):
 
     return get_annealed_lr_
 
+class ShotAdjustingBase:
 
-class shot_adjusting_options:
-    # Move to loss function class?
-    """
-    Class for automatic adjustment of the shots in an optimization.
-    Shots are adjusted such that the relative standard deviation is lower than the given parameter
+    def __init__(self) -> None:
+        self._executor = None
 
-    Args:
-        parameter [float]: Parameter value between 1 and 0 for adjusting the shots
-        min_shots [int]: Minimal number of shots
-        max_shots [int]: Maximum number of allows shots
-    """
+    def set_executor(self, executor: Executor) -> None:
+        self._executor = executor
+
+    @property
+    def executor(self) -> Executor:
+        return self._executor
+
+    def set_shots_for_loss(self, **kwargs):
+
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+
+        self._executor.reset_shots()
+
+    def set_shots_for_grad(self, **kwargs):
+
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+
+        self._executor.reset_shots()
+
+
+class ShotsFromRSTD(ShotAdjustingBase):
 
     def __init__(
-        self, parameter: float = 0.1, min_shots: int = 100, max_shots: int = 5000
+        self, rstd_bound: float = 0.1, min_shots: int = 100, max_shots: int = 5000
     ) -> None:
-        self.parameter = parameter
+        self.rstd_bound = rstd_bound
         self.min_shots = min_shots
         self.max_shots = max_shots
-        self.func = lambda *args: None
-        self.grad = lambda *args: None
+
+    def set_shots_for_grad(self, **kwargs):
+
+        if "value" not in kwargs:
+            raise AttributeError("Value requires ground_truth.")
+
+        if "variance" not in kwargs:
+            raise AttributeError("Variance requires variance.")
+
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+
+        value = kwargs["value"]
+        variance = kwargs["variance"]
+
+        shots = int(np.divide(variance, np.square(value) * np.square(self.rstd_bound)))
+        num_shots = min(max(shots, self.min_shots), self.max_shots)
+        self._executor.set_shots(num_shots)
+        print(
+            "Set shots for gradient evaluation to: ",
+            num_shots,
+            " ( RSTD: ",
+            "%0.3f" % np.divide(np.sqrt(variance / num_shots), value),
+            ")",
+        )
+
+
+# class shot_adjusting_options:
+#     # Move to loss function class?
+#     """
+#     Class for automatic adjustment of the shots in an optimization.
+#     Shots are adjusted such that the relative standard deviation is lower than the given parameter
+
+#     Args:
+#         parameter [float]: Parameter value between 1 and 0 for adjusting the shots
+#         min_shots [int]: Minimal number of shots
+#         max_shots [int]: Maximum number of allows shots
+#     """
+
+#     def __init__(
+#         self, executor: Executor, parameter: float = 0.1, min_shots: int = 100, max_shots: int = 5000
+#     ) -> None:
+#         self._executor = executor
+#         self.parameter = parameter
+#         self.min_shots = min_shots
+#         self.max_shots = max_shots
+
+#         def grad(x, param, param_op):
+#             self.qnn.reset_shots()
+#             value_dict = self.qnn.evaluate(("f", "var"), x, param, param_op)
+#             diff_square = np.square(value_dict["f"] - Y)
+#             var = np.sum(4 * np.multiply(diff_square, value_dict["var"]))
+#             exp = np.sum(diff_square)
+#             shots = int(np.divide(var, np.square(exp) * np.square(self.parameter)))
+#             num_shots = min(max(shots, self.min_shots), self.max_shots)
+#             print(
+#                 "Set shots for gradient evaluation to: ",
+#                 num_shots,
+#                 " ( RSTD: ",
+#                 "%0.3f" % np.divide(np.sqrt(var / num_shots), exp),
+#                 ")",
+#             )
+#             self.qnn.set_shots(num_shots)
+
+#         self.grad = grad
+
+
+
 
     def set_l2_rstd(self, qnn: QNN, Y: np.ndarray) -> None:
         """
@@ -121,14 +203,15 @@ def solve_param(
     x_space,
     param_ini,
     param_op_ini,
-    loss_function,
-    input_loss: tuple,
-    loss_function_gradient,
-    input_grad: tuple,
+    loss: LossBase,
+    # loss_function,
+    # input_loss: tuple,
+    # loss_function_gradient,
+    # input_grad: tuple,
     minimize: OptimizerBase,
     opt_param_op=True,
     bounds=None,
-    shot_adjusting: shot_adjusting_options = None,
+    shot_adjusting: ShotAdjustingBase = None,
 ):
     """Wrapper function for optimizing only the parameters
 
@@ -153,10 +236,11 @@ def solve_param(
         x_space,
         param_ini,
         param_op_ini,
-        loss_function,
-        input_loss,
-        loss_function_gradient,
-        input_grad,
+        loss,
+        # loss_function,
+        # input_loss,
+        # loss_function_gradient,
+        # input_grad,
         minimize,
         (False, True, opt_param_op),
         bounds=bounds,
@@ -169,13 +253,14 @@ def solve_x(
     x_ini,
     param,
     param_op,
-    loss_function,
-    input_loss: tuple,
-    loss_function_gradient,
-    input_grad: tuple,
+    loss: LossBase,
+    # loss_function,
+    # input_loss: tuple,
+    # loss_function_gradient,
+    # input_grad: tuple,
     minimize: OptimizerBase,
     bounds=None,
-    shot_adjusting: shot_adjusting_options = None,
+    shot_adjusting: ShotAdjustingBase = None,
 ):
     """Wrapper function for optimizing only the x values
 
@@ -199,10 +284,7 @@ def solve_x(
         x_ini,
         param,
         param_op,
-        loss_function,
-        input_loss,
-        loss_function_gradient,
-        input_grad,
+        loss,
         minimize,
         (True, False, False),
         bounds=bounds,
@@ -215,14 +297,15 @@ def solve_all(
     x_ini,
     param_ini,
     param_op_ini,
-    loss_function,
-    input_loss: tuple,
-    loss_function_gradient,
-    input_grad: tuple,
+    loss: LossBase,
+    # loss_function,
+    # input_loss: tuple,
+    # loss_function_gradient,
+    # input_grad: tuple,
     minimize: OptimizerBase,
     opt_tuple: tuple = (False, True, True),
     bounds=None,
-    shot_adjusting: shot_adjusting_options = None, # TODO: change
+    shot_adjusting: ShotAdjustingBase = None,
 ):
     """General function for minimizing a given loss function
 
@@ -509,7 +592,7 @@ def regression(
     minimize: OptimizerBase,
     weights=None,
     opt_param_op=True,
-    shot_adjusting: shot_adjusting_options = None,
+    shot_adjusting: ShotAdjustingBase = None,
 ):
     """Function for a simple regression of the given reference values
 
@@ -567,10 +650,11 @@ def regression(
         x_space,
         param_ini,
         param_op_ini,
-        loss_function,
-        loss.loss_args_tuple,
-        loss_function_gradient,
-        loss.gradient_args_tuple,
+        loss,
+        # loss_function,
+        # loss.loss_args_tuple,
+        # loss_function_gradient,
+        # loss.gradient_args_tuple,
         minimize,
         (False, True, opt_param_op),
         shot_adjusting=shot_adjusting,
