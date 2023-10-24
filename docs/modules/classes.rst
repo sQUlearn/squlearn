@@ -196,18 +196,18 @@ QNN Core
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
 
-Tools for training QNNClassifier
+Tools for training QNNs
 
 .. autosummary::
    :nosignatures:
    :toctree: generated/
    :template: class.rst
 
+   qnn.get_variance_fac
+   qnn.get_annealed_lr
+   qnn.ShotsFromRSTD
    qnn.training.train
    qnn.training.train_mini_batch
-   qnn.training.get_variance_fac
-   qnn.training.get_annealed_lr
-   qnn.training.ShotsFromRSTD
 
 
 Implemented optimizers

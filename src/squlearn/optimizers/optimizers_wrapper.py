@@ -1,15 +1,10 @@
 """ Various optimization methods that are implemented via wrappers"""
 
 import numpy as np
-import abc
 import qiskit.algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, default_callback
-
-# TODO: Add iterative mixin
-# TODO: adjust callback to increase iteration counter
-
 
 class WrappedOptimizerBase(OptimizerBase, IterativeMixin):
     """Base class for wrapped optimizers.

@@ -1,6 +1,5 @@
 import numpy as np
 
-from abc import ABCMeta
 from sklearn.utils import gen_batches
 from typing import Union
 
