@@ -166,6 +166,10 @@ cython_debug/
 
 #Example logs
 examples/qnn/*_log.csv
+examples/**/*.log
+
+#Example caches
+examples/**/_cache
 
 # Genereated doc images
 docs/examples/images/*
