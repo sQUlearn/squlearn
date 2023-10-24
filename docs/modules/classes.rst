@@ -61,7 +61,7 @@ Encoding Circuits
    encoding_circuit.HubregtsenEncodingCircuit
    encoding_circuit.ChebyshevTower
    encoding_circuit.ChebPQC
-   encoding_circuit.HZCRxCRyCRz
+   encoding_circuit.MultiControlEncodingCircuit
    encoding_circuit.ChebRx
    encoding_circuit.ParamZEncodingCircuit
    encoding_circuit.QiskitEncodingCircuit

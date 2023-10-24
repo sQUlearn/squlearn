@@ -34,7 +34,7 @@ There are several Quantum Encoding Circuits implemented in sQUlearn:
    HubregtsenEncodingCircuit
    ChebyshevTower
    ChebPQC
-   HZCRxCRyCRz
+   MultiControlEncodingCircuit
    ChebRx
    ParamZEncodingCircuit
    QiskitEncodingCircuit

@@ -7,7 +7,7 @@ from .circuit_library.highdim_encoding_circuit import HighDimEncodingCircuit
 from .circuit_library.hubregtsen_encoding_circuit import HubregtsenEncodingCircuit
 from .circuit_library.chebyshev_tower import ChebyshevTower
 from .circuit_library.cheb_pqc import ChebPQC
-from .circuit_library.hz_crxcrycrz import HZCRxCRyCRz
+from .circuit_library.multi_control_encoding_circuit import MultiControlEncodingCircuit
 from .circuit_library.cheb_rx import ChebRx
 from .circuit_library.param_z_encoding_circuit import ParamZEncodingCircuit
 from .circuit_library.qiskit_encoding_circuit import QiskitEncodingCircuit
@@ -24,7 +24,7 @@ __all__ = [
     "HubregtsenEncodingCircuit",
     "ChebyshevTower",
     "ChebPQC",
-    "HZCRxCRyCRz",
+    "MultiControlEncodingCircuit",
     "ChebRx",
     "ParamZEncodingCircuit",
     "QiskitEncodingCircuit",
