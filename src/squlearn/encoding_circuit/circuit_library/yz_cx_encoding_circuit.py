@@ -26,7 +26,7 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         c (float): Prefactor :math:`c` for rescaling the data (default: 1.0)
-    
+
     References
     ----------
     [1]: T. Haug, C. N. Self and M. S. Kim, "Quantum machine learning of large datasets using

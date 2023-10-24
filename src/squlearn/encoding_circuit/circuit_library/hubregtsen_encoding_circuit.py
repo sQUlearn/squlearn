@@ -31,7 +31,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         closed (bool): If true, the last and the first qubit are entangled;
                        not necessarily hardware efficient! (default: true)
         final_encoding (bool): If True, the encoding is repeated at the end (default: False)
-    
+
     References
     ----------
     [1]: T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
