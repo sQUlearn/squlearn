@@ -31,7 +31,7 @@ There are several Quantum Encoding Circuits implemented in sQUlearn:
 
    YZ_CX_EncodingCircuit
    HighDimEncodingCircuit
-   QEKEncodingCircuit
+   HubregtsenEncodingCircuit
    ChebyshevTower
    ChebPQC
    HZCRxCRyCRz
@@ -42,12 +42,12 @@ There are several Quantum Encoding Circuits implemented in sQUlearn:
 Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pull Request.
 
 
-**Example: Create a QEK encoding circuit**
+**Example: Create a Hubregtsen encoding circuit**
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit
-   pqc = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
+   from squlearn.encoding_circuit import HubregtsenEncodingCircuit
+   pqc = HubregtsenEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
    pqc.draw(output="mpl")
 
 
@@ -66,8 +66,8 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit, ChebPQC
-   fm1 = QEKEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
+   from squlearn.encoding_circuit import HubregtsenEncodingCircuit, ChebPQC
+   fm1 = HubregtsenEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
    fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both encoding circuits
    fm3 = fm1 + fm2
@@ -179,12 +179,12 @@ to obtain the derivative. There are several options to specify the derivative yo
 The derivatives are stored in sQUlearn's proprietary OpTree structure, which
 is utilized for the arithmetic operations of the derivatives.
 
-**Example: Obtain the derivative of a QEK encoding circuit**
+**Example: Obtain the derivative of a Hubregtsen encoding circuit**
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import QEKEncodingCircuit, EncodingCircuitDerivatives
-   fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+   from squlearn.encoding_circuit import HubregtsenEncodingCircuit, EncodingCircuitDerivatives
+   fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
    fm_deriv = EncodingCircuitDerivatives(fm)
    # From String (gradient of the parameter vector)
    grad_from_string = fm_deriv.get_derivative("dp")

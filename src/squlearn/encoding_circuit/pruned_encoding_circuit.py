@@ -22,12 +22,12 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
     This class is designed to accept a encoding circuit and selectively prune parameters
     based on a provided list of indices. The pruned encoding circuit can be used as a usual encoding circuit.
 
-    **Example: Pruned QEK Encoding Circuit**
+    **Example: Pruned Hubregtsen Encoding Circuit**
 
     .. jupyter-execute::
 
-        from squlearn.encoding_circuit import QEKEncodingCircuit,PrunedEncodingCircuit
-        fm = QEKEncodingCircuit(4,2,2)
+        from squlearn.encoding_circuit import HubregtsenEncodingCircuit,PrunedEncodingCircuit
+        fm = HubregtsenEncodingCircuit(4,2,2)
         PrunedEncodingCircuit(fm,[4,7,11,15]).draw("mpl")
 
     Args:

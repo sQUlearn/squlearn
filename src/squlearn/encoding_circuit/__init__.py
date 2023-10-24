@@ -4,7 +4,7 @@ from .transpiled_encoding_circuit import TranspiledEncodingCircuit
 from .encoding_circuit_derivatives import EncodingCircuitDerivatives
 from .circuit_library.yz_cx_encoding_circuit import YZ_CX_EncodingCircuit
 from .circuit_library.highdim_encoding_circuit import HighDimEncodingCircuit
-from .circuit_library.qek_encoding_circuit import QEKEncodingCircuit
+from .circuit_library.hubregtsen_encoding_circuit import HubregtsenEncodingCircuit
 from .circuit_library.chebyshev_tower import ChebyshevTower
 from .circuit_library.cheb_pqc import ChebPQC
 from .circuit_library.hz_crxcrycrz import HZCRxCRyCRz
@@ -21,7 +21,7 @@ __all__ = [
     "LayeredEncodingCircuit",
     "YZ_CX_EncodingCircuit",
     "HighDimEncodingCircuit",
-    "QEKEncodingCircuit",
+    "HubregtsenEncodingCircuit",
     "ChebyshevTower",
     "ChebPQC",
     "HZCRxCRyCRz",

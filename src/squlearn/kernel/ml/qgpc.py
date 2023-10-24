@@ -38,12 +38,12 @@ class QGPC(GaussianProcessClassifier):
 
         from sklearn.datasets import load_iris
         from squlearn import Executor
-        from squlearn.encoding_circuit import QEKEncodingCircuit
+        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.kernel.ml import QGPC
         X, y = load_iris(return_X_y=True)
 
-        enc_circ = QEKEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpc_ansatz = QGPC(quantum_kernel=q_kernel)
