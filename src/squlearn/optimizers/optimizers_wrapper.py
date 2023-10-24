@@ -11,7 +11,7 @@ from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, defa
 # TODO: adjust callback to increase iteration counter
 
 
-class WrappedOptimizerBase(OptimizerBase,IterativeMixin):
+class WrappedOptimizerBase(OptimizerBase, IterativeMixin):
     """Base class for wrapped optimizers.
 
     Overwrites the set_callback function to additionally increase the iteration counter.
@@ -19,10 +19,12 @@ class WrappedOptimizerBase(OptimizerBase,IterativeMixin):
 
     def set_callback(self, callback):
         """Set the callback function with additional iteration counter increasing."""
+
         def callback_wrapper(*args):
             nonlocal self
             self.iteration += 1
             callback(*args)
+
         super().set_callback(callback_wrapper)
 
 
@@ -35,7 +37,6 @@ class SLSQP(WrappedOptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
-
         super().__init__()
 
         if options is None:
@@ -89,7 +90,6 @@ class LBFGSB(WrappedOptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
-
         super().__init__()
 
         if options is None:
@@ -142,7 +142,6 @@ class SPSA(WrappedOptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
-
         super().__init__()
         self.set_callback(callback)
 

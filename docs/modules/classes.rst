@@ -173,7 +173,7 @@ Quantum Kernel Core
    :template: class.rst
 
    kernel.optimization.kernel_optimizer.KernelOptimizer
-   kernel.optimization.negative_log_likelihood.NLL 
+   kernel.optimization.negative_log_likelihood.NLL
    kernel.optimization.target_alignment.TargetAlignment
 
 QNN Core
@@ -195,6 +195,20 @@ QNN Core
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
+
+Tools for training QNNClassifier
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   qnn.training.train
+   qnn.training.train_mini_batch
+   qnn.training.get_variance_fac
+   qnn.training.get_annealed_lr
+   qnn.training.ShotsFromRSTD
+
 
 Implemented optimizers
 ------------------------------------

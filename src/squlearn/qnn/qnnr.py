@@ -212,7 +212,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self.shot_control,
                     weights,
                     True,
-
                 )
             else:
                 self._param = train(

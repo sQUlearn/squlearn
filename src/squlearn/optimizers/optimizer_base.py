@@ -47,17 +47,19 @@ class OptimizerBase(abc.ABC):
 
 
 class IterativeMixin:
-    """ Mixin for iteration based optimizers. """
+    """Mixin for iteration based optimizers."""
+
     def __init__(self):
         self.iteration = 0
 
 
 class StepwiseMixin(IterativeMixin):
-    """ Mixin for optimizer for which we can execute single steps."""
+    """Mixin for optimizer for which we can execute single steps."""
 
     def step(self, **kwargs):
         """Perform one update step."""
         raise NotImplementedError()
+
 
 class SGDMixin(StepwiseMixin, abc.ABC):
     """Mixin for stochastic gradient descent based optimizers."""

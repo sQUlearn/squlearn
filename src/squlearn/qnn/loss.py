@@ -437,8 +437,8 @@ class SquaredLoss(LossBase):
         else:
             weights = np.ones_like(ground_truth)
 
-        diff_square = np.multiply(weights,np.square(value_dict["f"]-ground_truth))
-        return np.sum(4*np.multiply(diff_square,value_dict["var"]))
+        diff_square = np.multiply(weights, np.square(value_dict["f"] - ground_truth))
+        return np.sum(4 * np.multiply(diff_square, value_dict["var"]))
 
     def gradient(
         self, value_dict: dict, **kwargs
@@ -547,7 +547,7 @@ class VarianceLoss(LossBase):
         return alpha * np.sum(value_dict["var"])
 
     def variance(self, value_dict: dict, **kwargs) -> float:
-        """ Returns 0 since we neglect the variance of the variance. """
+        """Returns 0 since we neglect the variance of the variance."""
         return 0.0
 
     def gradient(
@@ -703,7 +703,7 @@ class ParameterRegularizationLoss(LossBase):
         return alpha * loss
 
     def variance(self, value_dict: dict, **kwargs) -> float:
-        """ Returns 0 since the variance is equal to zero. """
+        """Returns 0 since the variance is equal to zero."""
         return 0.0
 
     def gradient(
