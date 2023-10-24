@@ -230,6 +230,56 @@ to specify further hyper parameters such as ``batch_size``, ``epochs`` and ``shu
 The parameters ``batch_size`` and ``epochs`` are positive numbers of type :class:`int` and
 ``shuffle`` is a :class:`bool` which specifies, whether data points are shuffled before each epoch.
 
+Schedule of the learning rate of Adam
+-------------------------------------
+
+Sometimes it can be beneficial to adjust the learning rate of the optimizer during the training.
+This is possible by providing a :class:`List` or a :class:`Callable` to the learning rate option
+``lr`` of the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer.
+Then a learning rate is chosen from the list or calculated by the callable at the beginning of
+each iteration or epoch.
+A suitable function for generating a callable with an exponential decay of the learning rate is
+provided by :meth:`get_lr_decay`. The following example will generate an Adam optimization
+with an exponential decay in the learning rate from 0.01 to 0.001 over 100 iterations.
+
+.. jupyter-execute::
+
+    from squlearn.optimizers import Adam
+    from squlearn.qnn import get_lr_decay
+    adam = Adam({'lr':get_lr_decay(0.01, 0.001, 100)})
+
+
+Dynamically adjustments of the shots
+-------------------------------------
+
+It is possible to adjust the number of shots for the gradient evaluation. The number of
+shots are calculated from the relative standard deviation (RSTD) of the Loss function :math:`L`.
+Objective is that the RSTD should be smaller than a given threshold :math:`\beta`.
+
+.. math::
+    \text{RSTD}(L) = \frac{\sqrt{\frac{\sigma_L^2}{N_\text{shots}}}}{L} < \beta
+
+The high-level implementations of QNNs, :class:`QNNRegressor` and :class:`QNNClassifier`,
+can be initialized with a shot controller that takes care to automatically adjust the number of
+shots. The following example will generate a :class:`QNNRegressor`
+with a RSTD threshold of 0.1 and a minimum and maximum number of shots of 100 and 10000.
+It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.ShotsFromRSTD>` shot controller.
+
+.. code-block:: python
+
+    from squlearn.qnn import QNNRegressor, ShotsFromRSTD
+    reg = QNNRegressor(
+        ...
+        shot_controller = ShotsFromRSTD(rstd_bound=0.1,min_shots=100,max_shots=10000),
+        ...
+    )
+
+
+Together with the variance reduction described in the next section, this allows to reduce the
+number of shots in the early stages of the optimization significantly and
+increase them in the later stages when a higher accuracy is required.
+
+
 Variance reduction
 ==================
 
@@ -343,6 +393,28 @@ in the model, as depicted in `figure 3`_.
     plt.title("QNN inference with variance regularization")
     plt.legend([r"$\log(x)$", r"$f(\theta, x)$"])
     plt
+
+Variance reduction with dynamic adjustment of the regularization factor
+-----------------------------------------------------------------------
+
+Furthermore it is possible to adjust the variance regularization factor dynamically during the
+optimization. This allows for example to prioritize the minimization of the variance in the early
+stages of the optimization and then focus on the minimization of the loss function in the later
+stages (see Ref. [1]). This can be achieved by passing a :class:`List` or a :class:`Callable`
+to the keyword argument ``variance`` of the :class:`QNNRegressor` (or :class:`QNNClassifier`).
+The following example will generate a :class:`QNNRegressor` with a variance
+regularization factor that is adjusted dynamically during the optimization by utilizing the
+function :meth:`get_variance_fac`. The set-up features a final regularization factor of 0.005,
+a decay factor of 0.08 and a plateau at :math:`\alpha=1` of 20 iterations at the beginning.
+
+.. code-block:: python
+
+    from squlearn.qnn import QNNRegressor,get_variance_fac
+    reg = QNNRegressor(
+        ...
+        variance = get_variance_fac(0.005,0.08,20),
+        ...
+    )
 
 
 .. rubric:: References

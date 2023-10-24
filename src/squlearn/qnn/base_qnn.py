@@ -16,7 +16,7 @@ from ..util import Executor
 
 from .loss import LossBase
 from .qnn import QNN
-from .training import shot_adjusting_options
+from .training import ShotControlBase
 
 
 class BaseQNN(BaseEstimator, ABC):
@@ -58,7 +58,7 @@ class BaseQNN(BaseEstimator, ABC):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
-        shot_adjusting: shot_adjusting_options = None,
+        shot_control: ShotControlBase = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
         pretrained: bool = False,
@@ -71,6 +71,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
+        self.shot_control = shot_control
         self.parameter_seed = parameter_seed
 
         if param_ini is None:
@@ -111,7 +112,6 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.opt_param_op = opt_param_op
 
-        self.shot_adjusting = shot_adjusting
         self.caching = caching
         self.pretrained = pretrained
 
@@ -119,6 +119,10 @@ class BaseQNN(BaseEstimator, ABC):
         self._qnn = QNN(
             self.encoding_circuit, self.operator, executor, result_caching=self.caching
         )
+
+        self.shot_control = shot_control
+        if self.shot_control is not None:
+            self.shot_control.set_executor(self.executor)
 
         self.callback = callback
 

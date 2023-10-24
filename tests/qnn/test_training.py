@@ -9,7 +9,7 @@ from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.qnn import QNN
-from squlearn.qnn.training import solve_mini_batch
+from squlearn.qnn.training import train_mini_batch
 
 executor = Executor("statevector_simulator")
 
@@ -29,7 +29,7 @@ class TestSolvemini_batch:
         param_ini = np.random.rand(self.qnn.num_parameters) * 4
         param_op_ini = np.ones(self.qnn.num_qubits + 1)
         with pytest.raises(TypeError, match="is not supported for mini-batch gradient descent."):
-            solve_mini_batch(
+            train_mini_batch(
                 self.qnn,
                 self.ex_1[0],
                 self.ex_1[1],
