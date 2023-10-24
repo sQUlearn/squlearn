@@ -57,7 +57,7 @@ class QGPR(BaseEstimator, RegressorMixin):
        MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
 
        [2]: F.Rapp, M.Roth "Quantum Gaussian Process Regression for Bayesian Optimization",
-       `<https://arxiv.org/pdf/2304.12923.pdf>`_.
+       `<https://arxiv.org/abs/2304.12923>`_.
 
 
     **Example**
