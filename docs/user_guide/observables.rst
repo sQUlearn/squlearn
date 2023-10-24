@@ -97,10 +97,10 @@ The map can be for example obtained in the transpiled encoding circuit.
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import ChebRx,TranspiledEncodingCircuit
+   from squlearn.encoding_circuit import ChebyshevRx,TranspiledEncodingCircuit
    from squlearn.observables import SummedPaulis
    from qiskit.providers.fake_provider import FakeManilaV2
-   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    ob = SummedPaulis(num_qubits=3, op_str="Z")
    print("Observable before mapping:\n",ob,"\n\n")
    ob.set_map(fm.qubit_map, fm.num_physical_qubits)

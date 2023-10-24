@@ -7,7 +7,7 @@ from qiskit import QuantumCircuit
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ChebRx(EncodingCircuitBase):
+class ChebyshevRx(EncodingCircuitBase):
     """
     Simple Chebyshev encoding circuit build from  Rx gates
 
@@ -15,13 +15,13 @@ class ChebRx(EncodingCircuitBase):
 
     .. plot::
 
-        from squlearn.encoding_circuit import ChebRx
-        pqc = ChebRx(4, 2, 2)
+        from squlearn.encoding_circuit import ChebyshevRx
+        pqc = ChebyshevRx(4, 2, 2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
     Args:
-        num_qubits (int): Number of qubits of the ChebRx encoding circuit
+        num_qubits (int): Number of qubits of the ChebyshevRx encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
@@ -42,12 +42,12 @@ class ChebRx(EncodingCircuitBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the ChebRx encoding circuit."""
+        """The number of trainable parameters of the ChebyshevRx encoding circuit."""
         return 2 * self.num_qubits * self.num_layers
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the ChebRx encoding circuit."""
+        """The bounds of the trainable parameters of the ChebyshevRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
         ioff = 0
         for ilayer in range(self.num_layers):
@@ -63,7 +63,7 @@ class ChebRx(EncodingCircuitBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebRx encoding circuit.
+        Generates random parameters for the ChebyshevRx encoding circuit.
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -83,7 +83,7 @@ class ChebRx(EncodingCircuitBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the ChebRx encoding circuit
+        Returns hyper-parameters and their values of the ChebyshevRx encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -103,7 +103,7 @@ class ChebRx(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the ChebRx encoding circuit
+        Returns the circuit of the ChebyshevRx encoding circuit
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features

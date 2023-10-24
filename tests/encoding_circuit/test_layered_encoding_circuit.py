@@ -4,7 +4,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebPQC
+from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebyshevPQC
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
 
@@ -252,7 +252,7 @@ class TestLayeredEncodingCircuit:
             "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
         )
 
-        cpqc = ChebPQC(num_qubits=4, num_features=1, num_layers=3, closed=False)
+        cpqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=3, closed=False)
 
         assert str(lfm.draw(output="text")) == str(cpqc.draw(output="text"))
 

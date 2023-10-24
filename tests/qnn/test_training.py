@@ -5,7 +5,7 @@ import pytest
 
 from squlearn import Executor
 from squlearn.observables import SummedPaulis
-from squlearn.encoding_circuit import ChebPQC
+from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.qnn import QNN
@@ -19,7 +19,7 @@ examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 class TestSolvemini_batch:
     """Tests for mini-batch gradient descent."""
 
-    pqc = ChebPQC(4, 1, 3, False)
+    pqc = ChebyshevPQC(4, 1, 3, False)
     cost_op = SummedPaulis(4)
     qnn = QNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]

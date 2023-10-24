@@ -8,7 +8,7 @@ from ..encoding_circuit_base import EncodingCircuitBase
 
 class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     """
-    Creates the YZ-CX Encoding Circuit from Reference https://arxiv.org/abs/2108.01039v3
+    Creates the YZ-CX Encoding Circuit from reference [1].
 
     **Example for 4 qubits, a 4 dimensional feature vector, 2 layers and c = 2.0:**
 
@@ -26,6 +26,11 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         c (float): Prefactor :math:`c` for rescaling the data (default: 1.0)
+
+    References
+    ----------
+    [1]: T. Haug, C. N. Self and M. S. Kim, "Quantum machine learning of large datasets using
+    randomized measurements", `arxiv:2108.01039v3 (2021). <https://arxiv.org/abs/2108.01039v3>`_
     """
 
     def __init__(

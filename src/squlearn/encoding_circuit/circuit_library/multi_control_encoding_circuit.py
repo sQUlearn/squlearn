@@ -7,7 +7,7 @@ from qiskit import QuantumCircuit
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class HZCRxCRyCRz(EncodingCircuitBase):
+class MultiControlEncodingCircuit(EncodingCircuitBase):
     """
     Encoding circuit with HZ encoding followed by controlled Rx, Ry Rz rotations.
 
@@ -15,8 +15,8 @@ class HZCRxCRyCRz(EncodingCircuitBase):
 
     .. plot::
 
-        from squlearn.encoding_circuit import HZCRxCRyCRz
-        pqc = HZCRxCRyCRz(4, 2, 1)
+        from squlearn.encoding_circuit import MultiControlEncodingCircuit
+        pqc = MultiControlEncodingCircuit(4, 2, 1)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -26,7 +26,7 @@ class HZCRxCRyCRz(EncodingCircuitBase):
     redundant in a fidelity kernel setting.
 
     Args:
-        num_qubits (int): Number of qubits of the HZCRxCRyCRz encoding circuit
+        num_qubits (int): Number of qubits of the MultiControlEncodingCircuit encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled;
@@ -45,7 +45,7 @@ class HZCRxCRyCRz(EncodingCircuitBase):
         super().__init__(num_qubits, num_features)
 
         if self.num_qubits < 2:
-            raise ValueError("HZCRxCRyCRz requires at least two qubits.")
+            raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
 
         self.num_layers = num_layers
         self.closed = closed
@@ -53,7 +53,7 @@ class HZCRxCRyCRz(EncodingCircuitBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the HZCRxCRyCRz encoding circuit."""
+        """The number of trainable parameters of the MultiControlEncodingCircuit encoding circuit."""
         num_param = 3 * (self.num_qubits - 1) * self.num_layers
         if self.closed:
             num_param += 3 * self.num_layers
@@ -61,12 +61,12 @@ class HZCRxCRyCRz(EncodingCircuitBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the HZCRxCRyCRz encoding circuit."""
+        """The bounds of the trainable parameters of the MultiControlEncodingCircuit encoding circuit."""
         return np.array([[-2.0 * np.pi, 2.0 * np.pi]] * self.num_parameters)
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the HZCRxCRyCRz encoding circuit
+        Returns hyper-parameters and their values of the MultiControlEncodingCircuit encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -87,7 +87,7 @@ class HZCRxCRyCRz(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the HZCRxCRyCRz encoding circuit
+        Returns the circuit of the MultiControlEncodingCircuit encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -100,7 +100,7 @@ class HZCRxCRyCRz(EncodingCircuitBase):
         """
 
         if self.num_qubits < 2:
-            raise ValueError("HZCRxCRyCRz requires at least two qubits.")
+            raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
 
         nfeature = len(features)
         nparam = len(parameters)

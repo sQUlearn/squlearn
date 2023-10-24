@@ -66,7 +66,7 @@ class FidelityKernel(KernelMatrixBase):
         [4]: `T. Hubregtsen et al.,
         "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
         arXiv:2105.02276v1 (2021)
-        <https://arxiv.org/pdf/2105.02276.pdf>`_
+        <https://arxiv.org/abs/2105.02276>`_
 
 
     """
@@ -222,7 +222,7 @@ class FidelityKernel(KernelMatrixBase):
         return kernel_matrix
 
     ###########
-    ## Mitigating depolarizing noise after http://arxiv.org/pdf/2105.02276v1
+    ## Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
     ###########
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
         msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))

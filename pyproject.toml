@@ -42,6 +42,7 @@ dev = [
     "black",
     "flit",
     "myst-parser",
+    "nbmake",
     "nbsphinx",
     "nbsphinx_link",
     "pylint",
@@ -51,7 +52,14 @@ dev = [
     "sphinx-rtd-theme",
     "jupyter-sphinx",
 ]
-examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
+examples = [
+    "jupyter",
+    "matplotlib>=3.5",
+    "pandas",
+    "pylatexenc>=2.10",
+    "seaborn",
+    "scikit-optimize",
+]
 
 [project.urls]
 Homepage = "https://github.com/sQUlearn/squlearn"
@@ -71,4 +79,5 @@ extension-pkg-allow-list = [
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
+    "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
 ]

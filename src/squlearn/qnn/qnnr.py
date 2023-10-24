@@ -67,7 +67,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         import numpy as np
         from squlearn import Executor
-        from squlearn.encoding_circuit import ChebRx
+        from squlearn.encoding_circuit import ChebyshevRx
         from squlearn.observables import IsingHamiltonian
         from squlearn.qnn import QNNRegressor, SquaredLoss
         from squlearn.optimizers import SLSQP
@@ -78,7 +78,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             X, y, test_size=0.33, random_state=42
         )
         reg = QNNRegressor(
-            ChebRx(4, 1, 2),
+            ChebyshevRx(4, 1, 2),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
             Executor("statevector_simulator"),
             SquaredLoss(),
