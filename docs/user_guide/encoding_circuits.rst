@@ -36,7 +36,7 @@ There are several Quantum Encoding Circuits implemented in sQUlearn:
    ChebPQC
    MultiControlEncodingCircuit
    ChebRx
-   ParamZEncodingCircuit
+   ParamZFeatureMap
    QiskitEncodingCircuit
 
 Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pull Request.

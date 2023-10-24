@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import ParamZEncodingCircuit
+from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.kernel import QKRR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,7 +30,7 @@ class TestQKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        encoding_circuit = ParamZEncodingCircuit(
+        encoding_circuit = ParamZFeatureMap(
             num_qubits=3, num_features=2, num_layers=2, entangling=True
         )
         kernel = FidelityKernel(
@@ -46,7 +46,7 @@ class TestQKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        encoding_circuit = ParamZEncodingCircuit(
+        encoding_circuit = ParamZFeatureMap(
             num_qubits=3, num_features=2, num_layers=2, entangling=True
         )
         kernel = ProjectedQuantumKernel(

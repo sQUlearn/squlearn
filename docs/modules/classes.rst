@@ -63,7 +63,7 @@ Encoding Circuits
    encoding_circuit.ChebPQC
    encoding_circuit.MultiControlEncodingCircuit
    encoding_circuit.ChebRx
-   encoding_circuit.ParamZEncodingCircuit
+   encoding_circuit.ParamZFeatureMap
    encoding_circuit.QiskitEncodingCircuit
 
 Encoding Circuit Tools
