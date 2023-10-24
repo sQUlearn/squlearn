@@ -9,7 +9,7 @@ from ..encoding_circuit_base import EncodingCircuitBase
 
 class ChebyshevPQC(EncodingCircuitBase):
     """
-    Chebyshev Encoding Circuit from Reference https://arxiv.org/abs/2306.01639
+    Chebyshev Encoding Circuit from reference [1].
 
     The encoding circuit consists of three elements:
 
@@ -44,6 +44,11 @@ class ChebyshevPQC(EncodingCircuitBase):
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
         entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
+
+    References
+    ----------
+    [1]: D. A. Kreplin and M. Roth "Reduction of finite sampling noise in quantum neural networks".
+    `arXiv:2306.01639 <https://arxiv.org/abs/2306.01639>`_ (2023).
     """
 
     def __init__(

@@ -34,10 +34,8 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
     
     References
     ----------
-        [1]: `T. Hubregtsen et al.,
-        "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
-        arXiv:2105.02276v1 (2021)
-        <https://arxiv.org/abs/2105.02276>`_
+    [1]: T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
+    `arXiv:2105.02276v1 (2021). <https://arxiv.org/abs/2105.02276>`_
     """
 
     def __init__(
