@@ -63,9 +63,9 @@ class EncodingCircuitDerivatives:
 
     .. jupyter-execute::
 
-       from squlearn.encoding_circuit import QEKEncodingCircuit
+       from squlearn.encoding_circuit import HubregtsenEncodingCircuit
        from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
-       fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+       fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
        fm_deriv = EncodingCircuitDerivatives(fm)
        grad = fm_deriv.get_derivative("dp")
 
@@ -73,9 +73,9 @@ class EncodingCircuitDerivatives:
 
     .. jupyter-execute::
 
-       from squlearn.encoding_circuit import QEKEncodingCircuit
+       from squlearn.encoding_circuit import HubregtsenEncodingCircuit
        from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
-       fm = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+       fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
        fm_deriv = EncodingCircuitDerivatives(fm)
        dp0 = fm_deriv.get_derivative((fm_deriv.parameter_vector[0],))
 

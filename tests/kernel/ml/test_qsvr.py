@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import HZCRxCRyCRz
+from squlearn.encoding_circuit import MultiControlEncodingCircuit
 from squlearn.kernel import QSVR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,7 +30,7 @@ class TestQSVR:
         """QSVR module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
             executor=executor,
@@ -44,7 +44,7 @@ class TestQSVR:
         """QSVR module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )

@@ -288,7 +288,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         `Nat Commun 12, 2631 (2021). <https://doi.org/10.1038/s41467-021-22539-9>`_
 
         [2] T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
-        `arXiv:2105.02276v1 (2021). <https://arxiv.org/pdf/2105.02276.pdf>`_
+        `arXiv:2105.02276v1 (2021). <https://arxiv.org/abs/2105.02276>`_
 
     **Example: Calculate a kernel matrix with the Projected Quantum Kernel**
 

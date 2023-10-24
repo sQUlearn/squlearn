@@ -24,11 +24,11 @@ class KernelOptimizer(KernelOptimizerBase):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import QEKEncodingCircuit
+        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.optimizers import Adam
         from squlearn.kernel.optimization import NLL
-        enc_circ = QEKEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
         adam = Adam(options={"maxiter": 20, "lr": 0.1})
         nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)

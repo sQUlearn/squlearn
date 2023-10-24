@@ -91,9 +91,9 @@ method:
 
 .. jupyter-execute::
 
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
 
-    pqc = ChebPQC(num_qubits = 4, num_features = 1, num_layers = 2)
+    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     pqc.draw("mpl")
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
@@ -130,13 +130,13 @@ and the Adam optimizer for optimization.
 .. code-block:: python
 
     from squlearn.observables import SummedPaulis
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import Adam
     from squlearn import Executor
 
     op = SummedPaulis(num_qubits = 4)
-    pqc = ChebPQC(num_qubits = 4, num_features = 1, num_layers = 2)
+    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     qnn = QNNRegressor(pqc, op, Executor("statevector_simulator"), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
@@ -257,13 +257,13 @@ yields a high variance in the model output.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.encoding_circuit import ChebRx
+    from squlearn.encoding_circuit import ChebyshevRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
     qasm = Executor("qasm_simulator")
     qasm.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
@@ -321,13 +321,13 @@ in the model, as depicted in `figure 3`_.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.encoding_circuit import ChebRx
+    from squlearn.encoding_circuit import ChebyshevRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
     qasm = Executor("qasm_simulator")
     qasm.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")

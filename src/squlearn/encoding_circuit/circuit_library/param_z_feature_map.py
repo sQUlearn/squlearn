@@ -6,16 +6,18 @@ from qiskit.circuit import ParameterVector
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ParamZEncodingCircuit(EncodingCircuitBase):
+class ParamZFeatureMap(EncodingCircuitBase):
     """
-    Parameterized ZEncodingCircuit with optional CNOT gates between the default layers.
+    Parameterized Z feature map  with optional CNOT gates between the default layers.
+
+    This encoding circuit is based on Qiskit's :class:`qiskit.circuit.library.ZFeatureMap`.
 
     **Example for 4 qubits, a 2 dimensional feature vector and 2 layers with entangling:**
 
     .. plot::
 
-        from squlearn.encoding_circuit import ParamZEncodingCircuit
-        pqc = ParamZEncodingCircuit(4, 2, num_layers=2, entangling=True)
+        from squlearn.encoding_circuit import ParamZFeatureMap
+        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -41,7 +43,7 @@ class ParamZEncodingCircuit(EncodingCircuitBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the parameterized Z encoding circuit
+        Returns hyper-parameters and their values of the parameterized Z feature map.
 
         Args:
             deep (bool): If True, also the parameters for
@@ -66,7 +68,7 @@ class ParamZEncodingCircuit(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the parameterized Z encoding circuit.
+        Returns the circuit of the parameterized Z feature map.
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
@@ -75,7 +77,7 @@ class ParamZEncodingCircuit(EncodingCircuitBase):
                                                            from which the gate inputs are obtained.
 
         Return:
-            The circuit of the parameterized Z encoding circuit in the form of a QuantumCircuit
+            The circuit of the parameterized Z feature map in the form of a QuantumCircuit
         """
 
         num_features = len(features)

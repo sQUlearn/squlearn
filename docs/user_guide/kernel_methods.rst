@@ -141,9 +141,9 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
 .. jupyter-execute::
 
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.kernel import FidelityKernel
-    enc_circ = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+    enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     fqk_instance = FidelityKernel(
         encoding_circuit=enc_circ,
         executor=Executor('statevector_simulator')
@@ -194,9 +194,9 @@ the following example:
 .. jupyter-execute::
 
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.kernel import ProjectedQuantumKernel
-    enc_circ = ChebPQC(num_qubits=4, num_features= 1, num_layers=2)
+    enc_circ = ChebyshevPQC(num_qubits=4, num_features= 1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
         encoding_circuit=enc_circ,
         executor=Executor('statevector_simulator'),
@@ -235,11 +235,11 @@ training and test data and shows how to optimize kernels.
         import numpy as np
         from qiskit.primitives import Estimator
         from squlearn.util import Executor
-        from squlearn.encoding_circuit import ChebPQC
+        from squlearn.encoding_circuit import ChebyshevPQC
         from squlearn.optimizers import Adam
         from squlearn.kernel import ProjectedQuantumKernel
         from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-        enc_circ = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         pqk_instance = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
             executor=Executor(Estimator()),
@@ -267,11 +267,11 @@ training and test data and shows how to optimize kernels.
     import numpy as np
     from qiskit.primitives import Estimator
     from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.optimizers import Adam
     from squlearn.kernel import ProjectedQuantumKernel
     from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-    enc_circ = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+    enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
         encoding_circuit=enc_circ,
         executor=Executor(Estimator()),
@@ -295,9 +295,9 @@ training and test data and shows how to optimize kernels.
 *References*
 ------------
 
-[1] `M. Schuld, "Supervised quantum machine learning models are kernel methods". arXiv:2101.11020v2 (2021). <http://arxiv.org/pdf/2101.11020v2>`_
+[1] `M. Schuld, "Supervised quantum machine learning models are kernel methods". arXiv:2101.11020v2 (2021). <http://arxiv.org/abs/2101.11020v2>`_
 
-[2] `T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers". arXiv:2105.02276v1 (2021). <https://arxiv.org/pdf/2105.02276.pdf>`_
+[2] `T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers". arXiv:2105.02276v1 (2021). <https://arxiv.org/abs/2105.02276>`_
 
 [3] `M. Schuld and N. Killoran, "Quantum Machine Learning in feature Hilbert spaces". Phys. Rev. Lett. 112(4), 040504 (2019). <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.040504>`_
 

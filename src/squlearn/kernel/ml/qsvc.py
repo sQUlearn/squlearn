@@ -47,11 +47,11 @@ class QSVC(SVC):
         from sklearn.model_selection import train_test_split
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import QEKEncodingCircuit
+        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.ml.qsvc import QSVC
         from squlearn.kernel.matrix import ProjectedQuantumKernel
 
-        encoding_circuit = QEKEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
             executor=Executor("statevector_simulator"),

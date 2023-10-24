@@ -63,11 +63,11 @@ class QKRR(BaseEstimator, RegressorMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import ChebPQC
+        from squlearn.encoding_circuit import ChebyshevPQC
         from squlearn.kernel.matrix import ProjectedQuantumKernel
         from squlearn.kernel.ml import QKRR
 
-        enc_circ = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
             executor=Executor("statevector_simulator"),

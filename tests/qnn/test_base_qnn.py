@@ -5,7 +5,7 @@ import numpy as np
 
 from squlearn import Executor
 from squlearn.observables import IsingHamiltonian
-from squlearn.encoding_circuit import ChebPQC
+from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP
 from squlearn.qnn import SquaredLoss
 from squlearn.qnn.base_qnn import BaseQNN
@@ -26,7 +26,7 @@ class TestBaseQNN:
         """BaseQNN module with single operator."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        pqc = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
@@ -37,7 +37,7 @@ class TestBaseQNN:
         """BaseQNN module with multiple operators."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        pqc = ChebPQC(num_qubits=4, num_features=1, num_layers=2)
+        pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         operator = [IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S") for _ in range(5)]
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
