@@ -56,7 +56,7 @@ def get_annealed_lr(lr_start, lr_end, iter_plateau, iter_decay):
 
     return get_annealed_lr_
 
-class ShotAdjustingBase:
+class ShotControlBase:
 
     def __init__(self) -> None:
         self._executor = None
@@ -73,21 +73,23 @@ class ShotAdjustingBase:
         if self._executor is None:
             raise ValueError("Executor not set, call set_executor() first")
 
+        print("reset shots (loss)")
         self._executor.reset_shots()
 
     def set_shots_for_grad(self, **kwargs):
 
         if self._executor is None:
             raise ValueError("Executor not set, call set_executor() first")
-
+        print("reset shots (grad)")
         self._executor.reset_shots()
 
 
-class ShotsFromRSTD(ShotAdjustingBase):
+class ShotsFromRSTD(ShotControlBase):
 
     def __init__(
         self, rstd_bound: float = 0.1, min_shots: int = 100, max_shots: int = 5000
     ) -> None:
+        super().__init__()
         self.rstd_bound = rstd_bound
         self.min_shots = min_shots
         self.max_shots = max_shots
@@ -458,9 +460,9 @@ def train(
     param_op_ini,
     loss: LossBase,
     optimizer: OptimizerBase,
+    shot_control: ShotControlBase = None,
     weights=None,
     opt_param_op: bool = True,
-    shot_control=None
 ):
 
     if isinstance(weights, np.ndarray):
@@ -511,7 +513,10 @@ def train(
         else:
             param = theta
 
-        # TODO: shot control
+        # Shot controlling
+        if shot_control is not None:
+            if isinstance(shot_control,ShotsFromRSTD):
+                shot_control.set_shots_for_loss()
 
         loss_values = qnn.evaluate(
             loss.loss_args_tuple, input_values, param, param_op
@@ -540,7 +545,23 @@ def train(
         else:
             param = theta
 
-        # TODO: shot control
+        # Shot controlling
+        if shot_control is not None:
+            if isinstance(shot_control,ShotsFromRSTD):
+                if loss.loss_variance_available:
+                    loss_variance = loss.variance(qnn.evaluate(loss.variance_args_tuple, input_values, param, param_op),
+                        ground_truth=ground_truth,
+                        weights=weights_values,
+                        iteration=iteration,)
+                    loss_values = loss.value(
+                        qnn.evaluate(loss.loss_args_tuple, input_values, param, param_op),
+                        ground_truth=ground_truth,
+                        weights=weights_values,
+                        iteration=iteration,
+                    )
+                    shot_control.set_shots_for_grad(value=loss_values, variance=loss_variance)
+                else:
+                    raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
         grad_values = qnn.evaluate(
             loss.gradient_args_tuple, input_values, param, param_op
@@ -554,7 +575,6 @@ def train(
                 opt_param_op=opt_param_op,
             ), axis=None)
 
-    # TODO: what to do with bounds
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
 
     if hasattr(result, "x"):
@@ -577,9 +597,9 @@ def train_mini_batch(
     param_op_ini,
     loss: LossBase,
     optimizer: OptimizerBase,
+    shot_control: ShotControlBase=None,
     weights=None,
     opt_param_op: bool = True,
-    shot_control=None,
     epochs: int = 10,
     batch_size: int = None,
     shuffle=False,
@@ -652,21 +672,37 @@ def train_mini_batch(
         if shuffle:
             idcs = np.random.permutation(idcs)
         for batch_slice in gen_batches(n_samples, batch_size):
-            
-            # todo shot adjustments here
-            
+
+            # Shot controlling
+            if shot_control is not None:
+                if isinstance(shot_control, ShotsFromRSTD):
+                    shot_control.set_shots_for_loss()
+
             loss_values = qnn.evaluate(
                 loss.loss_args_tuple, input_values[idcs[batch_slice]], param, param_op
             )
 
-            accumulated_loss += loss.value(
+            batch_loss = loss.value(
                 loss_values,
                 ground_truth=ground_truth[idcs[batch_slice]],
                 weights=weights_values[idcs[batch_slice]],
                 iteration=epoch,
             )
 
-            # todo shot adjustments here
+            accumulated_loss += batch_loss
+
+            # Shot controlling
+            if shot_control is not None:
+                if isinstance(shot_control, ShotsFromRSTD):
+                    if loss.loss_variance_available:
+                        batch_loss_variance = loss.variance(qnn.evaluate(loss.variance_args_tuple, input_values[idcs[batch_slice]], param, param_op),
+                            ground_truth=ground_truth[idcs[batch_slice]],
+                            weights=weights_values[idcs[batch_slice]],
+                            iteration=epoch,)
+
+                        shot_control.set_shots_for_grad(value=batch_loss, variance=batch_loss_variance)
+                    else:
+                        raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
             diff_values = qnn.evaluate(
                 loss.gradient_args_tuple, input_values[idcs[batch_slice]], param, param_op
@@ -719,7 +755,7 @@ def regression(
     minimize: OptimizerBase,
     weights=None,
     opt_param_op=True,
-    shot_adjusting: ShotAdjustingBase = None,
+    shot_adjusting: ShotControlBase = None,
 ):
     """Function for a simple regression of the given reference values
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import train_mini_batch, train
+from .training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -108,6 +108,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
+        shot_control: ShotControlBase = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
         pretrained: bool = False,
@@ -127,6 +128,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             shuffle,
             opt_param_op,
             variance,
+            shot_control,
             parameter_seed=parameter_seed,
             caching=caching,
             pretrained=pretrained,
@@ -173,6 +175,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -188,6 +191,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -205,8 +209,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss,
                     self.optimizer,
+                    self.shot_control,
                     weights,
                     True,
+
                 )
             else:
                 self._param = train(
@@ -217,6 +223,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss,
                     self.optimizer,
+                    self.shot_control,
                     weights,
                     False,
                 )
