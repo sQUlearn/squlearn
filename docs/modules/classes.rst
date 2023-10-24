@@ -204,7 +204,7 @@ Tools for training QNNs
    :template: class.rst
 
    qnn.get_variance_fac
-   qnn.get_annealed_lr
+   qnn.get_lr_decay
    qnn.ShotsFromRSTD
    qnn.training.train
    qnn.training.train_mini_batch

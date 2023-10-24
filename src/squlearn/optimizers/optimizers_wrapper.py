@@ -6,6 +6,7 @@ from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, default_callback
 
+
 class WrappedOptimizerBase(OptimizerBase, IterativeMixin):
     """Base class for wrapped optimizers.
 

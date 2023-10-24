@@ -28,9 +28,8 @@ def get_variance_fac(v: float, a: float, b: float, offset: int = 0):
         Returns function with iteration as input for adjusting the variance factor
 
     References:
-        [1] Kreplin, D., & Roth, M., "Reduction of finite sampling noise in
-        quantum neural networks", `arXiv preprint arXiv:2306.01639 (2023).
-        <https://arxiv.org/abs/2306.01639v2>`_
+        [1] D. A. Kreplin and M. Roth "Reduction of finite sampling noise in quantum neural networks".
+        `arXiv:2306.01639 <https://arxiv.org/abs/2306.01639>`_ (2023).
     """
 
     def get_variance_fac_func(iteration: int):
@@ -42,30 +41,30 @@ def get_variance_fac(v: float, a: float, b: float, offset: int = 0):
     return get_variance_fac_func
 
 
-def get_annealed_lr(lr_start: float, lr_end: float, iter_plateau: int, iter_decay: float):
+def get_lr_decay(lr_start: float, lr_end: float, iter_decay: float, iter_plateau: int = 0):
     """
-    Function for running an annealed Adam optimization.
+    Function for running an Adam optimization with a decay in the learning rate.
 
     Can be inputted to the learning rate of the Adam optimization.
 
     Args:
         lr_start (float): start value of the learning rate
         lr_end (float): final value of the learning rate
-        iter_plateau (float): length of the plateau of the start value
         iter_decay (float): decay of the learning rate
+        iter_plateau (int): length of the plateau of the start value (default: 0)
 
     Returns:
-        Return function with iteration as input for adjusting the learning rate
+        Returns function with iteration as input for adjusting the learning rate
     """
     a = (np.log(lr_end) - np.log(lr_start)) / (iter_decay)
 
-    def get_annealed_lr_(iteration: int):
+    def lr_decay(iteration: int):
         """Function that return the learning rate for a given iteration."""
         val = lr_start * np.exp(a * float(iteration - iter_plateau))
         val = np.clip(val, lr_end, lr_start)
         return val
 
-    return get_annealed_lr_
+    return lr_decay
 
 
 class ShotControlBase:
@@ -130,9 +129,8 @@ class ShotsFromRSTD(ShotControlBase):
         max_shots (int): Maximal number of shots (default: 5000)
 
     References:
-        [1] Kreplin, D., & Roth, M., "Reduction of finite sampling noise in
-        quantum neural networks", `arXiv preprint arXiv:2306.01639 (2023).
-        <https://arxiv.org/abs/2306.01639v2>`_
+        [1] D. A. Kreplin and M. Roth "Reduction of finite sampling noise in quantum neural networks".
+        `arXiv:2306.01639 <https://arxiv.org/abs/2306.01639>`_ (2023).
     """
 
     def __init__(
