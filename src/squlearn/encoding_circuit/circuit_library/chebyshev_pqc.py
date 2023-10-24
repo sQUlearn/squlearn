@@ -7,7 +7,7 @@ from qiskit import QuantumCircuit
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
-class ChebPQC(EncodingCircuitBase):
+class ChebyshevPQC(EncodingCircuitBase):
     """
     Chebyshev Encoding Circuit from Reference https://arxiv.org/abs/2306.01639
 
@@ -26,8 +26,8 @@ class ChebPQC(EncodingCircuitBase):
 
     .. plot::
 
-        from squlearn.encoding_circuit import ChebPQC
-        pqc = ChebPQC(4, 2, 2)
+        from squlearn.encoding_circuit import ChebyshevPQC
+        pqc = ChebyshevPQC(4, 2, 2)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -37,7 +37,7 @@ class ChebPQC(EncodingCircuitBase):
     the ``closed`` parameter to avoid swap gates.
 
     Args:
-        num_qubits (int): Number of qubits of the ChebPQC encoding circuit
+        num_qubits (int): Number of qubits of the ChebyshevPQC encoding circuit
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers of the Chebyshev encoding and the two qubit
                           manipulation (default: 1)
@@ -65,7 +65,7 @@ class ChebPQC(EncodingCircuitBase):
 
     @property
     def num_parameters(self) -> int:
-        """The number of trainable parameters of the ChebPQC encoding circuit."""
+        """The number of trainable parameters of the ChebyshevPQC encoding circuit."""
         num_param = 2 * self.num_qubits + self.num_qubits * self.num_layers
         if self.num_qubits > 2 and self.closed:
             num_param += self.num_qubits * self.num_layers
@@ -75,7 +75,7 @@ class ChebPQC(EncodingCircuitBase):
 
     @property
     def parameter_bounds(self) -> np.ndarray:
-        """The bounds of the trainable parameters of the ChebPQC encoding circuit."""
+        """The bounds of the trainable parameters of the ChebyshevPQC encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
 
         ioff = 0
@@ -111,7 +111,7 @@ class ChebPQC(EncodingCircuitBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebPQC encoding circuit
+        Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -131,7 +131,7 @@ class ChebPQC(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the ChebPQC encoding circuit."""
+        """The bounds of the features of the ChebyshevPQC encoding circuit."""
         bounds = np.zeros((self.num_features, 2))
         bounds[:, 0] = -1.0
         bounds[:, 1] = 1.0
@@ -139,7 +139,7 @@ class ChebPQC(EncodingCircuitBase):
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the ChebPQC encoding circuit
+        Returns hyper-parameters and their values of the ChebyshevPQC encoding circuit
 
         Args:
             deep (bool): If True, also the parameters for
@@ -160,7 +160,7 @@ class ChebPQC(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Returns the circuit of the ChebPQC encoding circuit
+        Returns the circuit of the ChebyshevPQC encoding circuit
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features

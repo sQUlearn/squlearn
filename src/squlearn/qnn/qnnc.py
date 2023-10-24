@@ -66,7 +66,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import ChebRx
+        from squlearn.encoding_circuit import ChebyshevRx
         from squlearn.observables import SummedPaulis
         from squlearn.qnn import QNNClassifier, SquaredLoss
         from squlearn.optimizers import SLSQP
@@ -80,7 +80,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             X, y, test_size=0.33, random_state=42
         )
         clf = QNNClassifier(
-            ChebRx(4, 2, 2),
+            ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
             Executor("statevector_simulator"),
             SquaredLoss(),

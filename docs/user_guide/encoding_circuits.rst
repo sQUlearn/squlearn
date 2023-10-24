@@ -33,9 +33,9 @@ There are several Quantum Encoding Circuits implemented in sQUlearn:
    HighDimEncodingCircuit
    HubregtsenEncodingCircuit
    ChebyshevTower
-   ChebPQC
+   ChebyshevPQC
    MultiControlEncodingCircuit
-   ChebRx
+   ChebyshevRx
    ParamZFeatureMap
    QiskitEncodingCircuit
 
@@ -66,9 +66,9 @@ equal to the sum of the parameters in the two original encoding circuits.
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import HubregtsenEncodingCircuit, ChebPQC
+   from squlearn.encoding_circuit import HubregtsenEncodingCircuit, ChebyshevPQC
    fm1 = HubregtsenEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
-   fm2 = ChebPQC(num_qubits=4, num_features=3, num_layers=1)
+   fm2 = ChebyshevPQC(num_qubits=4, num_features=3, num_layers=1)
    # Combining both encoding circuits
    fm3 = fm1 + fm2
    fm3.draw(output="mpl")
@@ -209,9 +209,9 @@ where it is employed internally.
 
 .. jupyter-execute::
 
-   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebRx
+   from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebyshevRx
    from qiskit.providers.fake_provider import FakeManilaV2
 
-   fm = TranspiledEncodingCircuit(ChebRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl")
 

@@ -60,9 +60,9 @@ Encoding Circuits
    encoding_circuit.HighDimEncodingCircuit
    encoding_circuit.HubregtsenEncodingCircuit
    encoding_circuit.ChebyshevTower
-   encoding_circuit.ChebPQC
+   encoding_circuit.ChebyshevPQC
    encoding_circuit.MultiControlEncodingCircuit
-   encoding_circuit.ChebRx
+   encoding_circuit.ChebyshevRx
    encoding_circuit.ParamZFeatureMap
    encoding_circuit.QiskitEncodingCircuit
 
