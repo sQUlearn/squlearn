@@ -37,7 +37,7 @@ class TestQSVC:
             regularization="thresholding",
             mit_depol_noise="msplit",
         )
-        return QSVC(quantum_kernel=kernel)
+        return QSVC(kernel)
 
     @pytest.fixture(scope="module")
     def qsvc_pqk(self) -> QSVC:
@@ -48,11 +48,11 @@ class TestQSVC:
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )
-        return QSVC(quantum_kernel=kernel)
+        return QSVC(kernel)
 
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
-        qsvc_instance = QSVC(quantum_kernel=MagicMock())
+        qsvc_instance = QSVC(MagicMock())
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             "C",
             "break_ties",
