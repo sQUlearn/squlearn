@@ -73,6 +73,7 @@ class Executor:
         max_jobs_retries (int): The maximum number of retries for a job
             until the execution is aborted.
         wait_restart (int): The time to wait before restarting a job in seconds.
+        shots (Union[int, None]): The number of initial shots that is used for the execution.
 
     Attributes:
     -----------
@@ -169,6 +170,7 @@ class Executor:
         max_session_time: str = "8h",
         max_jobs_retries: int = 10,
         wait_restart: int = 1,
+        shots: Union[int, None] = None,
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -307,7 +309,11 @@ class Executor:
         else:
             self._remote = False
 
-        self._inital_num_shots = self.get_shots()
+        if shots is None:
+            self._inital_num_shots = self.get_shots()
+        else:
+            self._inital_num_shots = shots
+            self.set_shots(shots)
 
         if self._caching is None:
             self._caching = self._remote
