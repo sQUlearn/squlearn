@@ -46,8 +46,9 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
     References
     ----------
-    [1]: T. Hubregtsen et al., "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
-    `arXiv:2105.02276v1 (2021). <https://arxiv.org/abs/2105.02276>`_
+    [1]: Peters, Evan, et al. "Machine learning of high dimensional data on a noisy quantum
+    processor." `npj Quantum Information 7.1 (2021): 161.
+    <https://www.nature.com/articles/s41534-021-00498-9>`_
     """
 
     def __init__(
