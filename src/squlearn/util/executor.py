@@ -859,7 +859,7 @@ class Executor:
         else:
             return None  # No shots available
 
-        if shots==0:
+        if shots == 0:
             shots = None
         return shots
 
