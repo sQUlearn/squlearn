@@ -389,7 +389,7 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             else:
-                if str(self._backend) == "statevector_simulator":
+                if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = qiskit_primitives_Estimator(options=self._options_estimator)
                 else:
@@ -397,6 +397,7 @@ class Executor:
                     self._estimator = qiskit_primitives_BackendEstimator(
                         backend=self._backend, options=self._options_estimator
                     )
+
             if not self._options_estimator:
                 self.set_shots(shots)
             estimator = self._estimator
@@ -820,7 +821,9 @@ class Executor:
         """Getter for the number of shots.
 
         Returns:
-            Returns the number of shots that are used for the current evaluation."""
+            Returns the number of shots that are used for the current evaluation.
+        """
+        shots = None
         if self._estimator is not None or self._sampler is not None:
             shots_estimator = 0
             shots_sampler = 0
@@ -849,14 +852,15 @@ class Executor:
                         "The number of shots of the given \
                                       Estimator and Sampler is not equal!"
                     )
-
-            shots = max(shots_estimator, shots_sampler)
-
         elif self._backend is not None:
             shots = self._backend.options.shots
+            if "statevector_simulator" in str(self._backend):
+                shots = 0
         else:
             return None  # No shots available
 
+        if shots==0:
+            shots = None
         return shots
 
     def reset_shots(self) -> None:
