@@ -494,13 +494,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
-
-        print("set_params:",params)
-
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
+        outer_kernel_input_backup = self._outer_kernel_input
 
-        """Sets the hyper parameters of the outer kernel"""
         valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
@@ -527,10 +524,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._parameter_seed,
                 self._regularization,
             )
-
-        if "outer_kernel" in params:
-            self._outer_kernel_input = params["outer_kernel"]
-            self._set_outer_kernel(self._outer_kernel_input)
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
@@ -564,6 +557,13 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if len(dict_qnn) > 0:
             self._qnn.set_params(**dict_qnn)
 
+        # Set outer kernel
+        if "outer_kernel" in params:
+            self._outer_kernel_input = params["outer_kernel"]
+            self._set_outer_kernel(self._outer_kernel_input)
+        else:
+            self._outer_kernel_input = outer_kernel_input_backup
+
         # Set outer kernel parameters
         dict_outer_kernel = {}
         valid_keys_outer_kernel = self._outer_kernel.get_params().keys()
@@ -591,7 +591,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
     def _set_outer_kernel(self, outer_kernel: Union[str, OuterKernelBase], **kwargs):
-        # Set-up of the outer kernel
+        """ Private function for set-up the outer kernel
+
+        Input can be a string for the sklearn outer kernels
+
+        Args:
+            outer_kernel (Union[str, OuterKernelBase]): OuterKernel that is applied to the
+                                                        expectation values
+            **kwargs: Keyword arguments for the outer kernel
+        """
         if isinstance(outer_kernel, str):
             kwargs.pop("num_qubits", None)
             if outer_kernel.lower() == "gaussian":
