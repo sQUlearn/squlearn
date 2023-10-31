@@ -352,6 +352,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         )
 
         self._measurement_input = measurement
+        self._outer_kernel_input = outer_kernel
 
         # Set-up measurement operator
         if isinstance(measurement, str):
@@ -370,28 +371,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         self._qnn = QNN(self._encoding_circuit, self._measurement, executor)
 
         # Set-up of the outer kernel
-        if isinstance(outer_kernel, str):
-            kwargs.pop("num_qubits", None)
-            if outer_kernel.lower() == "gaussian":
-                self._outer_kernel = GaussianOuterKernel(**kwargs)
-            elif outer_kernel.lower() == "matern":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(Matern, **kwargs)
-            elif outer_kernel.lower() == "expsinesquared":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(ExpSineSquared, **kwargs)
-            elif outer_kernel.lower() == "rationalquadratic":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(
-                    RationalQuadratic, **kwargs
-                )
-            elif outer_kernel.lower() == "dotproduct":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(DotProduct, **kwargs)
-            elif outer_kernel.lower() == "pairwisekernel":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(PairwiseKernel, **kwargs)
-            else:
-                raise ValueError("Unknown outer kernel: {}".format(outer_kernel))
-        elif isinstance(outer_kernel, OuterKernelBase):
-            self._outer_kernel = outer_kernel
-        else:
-            raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
+        self._set_outer_kernel(outer_kernel, **kwargs)
 
         # Generate default parameters of the measurement operators
         if initial_parameters is None:
@@ -501,6 +481,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         params["measurement"] = self._measurement_input
         params["num_qubits"] = self.num_qubits
         params["regularization"] = self._regularization
+        params["outer_kernel"] = self._outer_kernel_input
+
         if deep:
             params.update(self._qnn.get_params())
         return params
@@ -512,6 +494,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
+
+        print("set_params:",params)
+
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
 
@@ -542,6 +527,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._parameter_seed,
                 self._regularization,
             )
+
+        if "outer_kernel" in params:
+            self._outer_kernel_input = params["outer_kernel"]
+            self._set_outer_kernel(self._outer_kernel_input)
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
@@ -600,6 +589,31 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """The names of the hyper-parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
 
+
+    def _set_outer_kernel(self, outer_kernel: Union[str, OuterKernelBase], **kwargs):
+        # Set-up of the outer kernel
+        if isinstance(outer_kernel, str):
+            kwargs.pop("num_qubits", None)
+            if outer_kernel.lower() == "gaussian":
+                self._outer_kernel = GaussianOuterKernel(**kwargs)
+            elif outer_kernel.lower() == "matern":
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(Matern, **kwargs)
+            elif outer_kernel.lower() == "expsinesquared":
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(ExpSineSquared, **kwargs)
+            elif outer_kernel.lower() == "rationalquadratic":
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(
+                    RationalQuadratic, **kwargs
+                )
+            elif outer_kernel.lower() == "dotproduct":
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(DotProduct, **kwargs)
+            elif outer_kernel.lower() == "pairwisekernel":
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(PairwiseKernel, **kwargs)
+            else:
+                raise ValueError("Unknown outer kernel: {}".format(outer_kernel))
+        elif isinstance(outer_kernel, OuterKernelBase):
+            self._outer_kernel = outer_kernel
+        else:
+            raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
 class GaussianOuterKernel(OuterKernelBase):
     """
