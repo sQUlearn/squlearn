@@ -305,6 +305,8 @@ class QNN:
 
         """
 
+        print("set QNN params:",params)
+
         # Check if all parameters are valid
         valid_params = self.get_params()
         for key, value in params.items():

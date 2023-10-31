@@ -97,6 +97,7 @@ class EncodingCircuitDerivatives:
         self._p = ParameterVector("p", self.encoding_circuit.num_parameters)
 
         self._circuit = encoding_circuit.get_circuit(self._x, self._p)
+        print("self._circuit",self._circuit)
 
         self._instruction_set = list(set(self._circuit.count_ops()))
         self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit)
