@@ -875,7 +875,7 @@ class LayeredPQC:
             # increases or decreases how often variable groups are used depending on the entangling strategy:
             if key == "num_qubits":
                 if value == self.num_qubits:
-                    print("The old number of qubits equals the new number of qubits.")
+                    pass
                 else:
                     for operation in self.operation_list:
                         if isinstance(operation, _operation_layer):
@@ -2058,10 +2058,19 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         return self._layered_pqc.get_number_of_variables(self._p)
 
     def get_params(self, deep: bool = True) -> dict:
-        return self._layered_pqc.get_params(deep)
+        params = self._layered_pqc.get_params(deep)
+        params["num_features"] = self._num_features
+        return params
 
     def set_params(self, **params) -> None:
-        self._layered_pqc.set_params(**params)
+
+        if "num_features" in params:
+            self._num_features = params["num_features"]
+            self._x.size = params["num_features"]
+        else:
+            self._layered_pqc.set_params(**params)
+
+        return self
 
     def get_circuit(
         self,
