@@ -203,9 +203,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         Args:
             params: Hyperparameters and their values, e.g. ``num_qubits=2``.
         """
-
-        print("qkrr params", params)
-
         valid_params = self.get_params()
         for key in params.keys():
             if key not in valid_params:
