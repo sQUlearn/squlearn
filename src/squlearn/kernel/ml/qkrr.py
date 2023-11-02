@@ -92,7 +92,7 @@ class QKRR(BaseEstimator, RegressorMixin):
     ) -> None:
         self._quantum_kernel = quantum_kernel
         self.alpha = alpha
-        self.x_train = None
+        self.X_train = None
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
@@ -102,7 +102,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, x_train: np.ndarray, y_train: np.ndarray):
+    def fit(self, X: np.ndarray, y: np.ndarray):
         """
         Fit the Quantum Kernel Ridge regression model.
 
@@ -112,24 +112,24 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            x_train (np.ndarray) : Training data of shape (n_samples, n_features). If
+            X (np.ndarray) : Training data of shape (n_samples, n_features). If
                 quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples).
-            y_train (np.ndarray) : Target values or labels of shape (n_samples,)
+            y (np.ndarray) : Target values or labels of shape (n_samples,)
 
         Returns:
             self :
                 Returns the instance itself.
         """
-        self.x_train = x_train
+        self.X_train = X
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
-                self.k_train = x_train
+                self.k_train = X
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
-            self.k_train = self._quantum_kernel.evaluate(x=self.x_train)  # set up kernel matrix
+            self.k_train = self._quantum_kernel.evaluate(x=self.X_train)  # set up kernel matrix
         else:
             raise ValueError(
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
@@ -140,34 +140,34 @@ class QKRR(BaseEstimator, RegressorMixin):
         # Cholesky decomposition for providing numerical stability
         try:
             L = scipy.linalg.cholesky(self.k_train, lower=True)
-            self.dual_coeff_ = scipy.linalg.cho_solve((L, True), y_train)
+            self.dual_coeff_ = scipy.linalg.cho_solve((L, True), y)
         except np.linalg.LinAlgError:
             print("Increase regularization parameter alpha")
 
         return self
 
-    def predict(self, x_test: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predict using the Quantum Kernel Ridge model.
 
         Args:
-            x_test (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
+            X (np.ndarray) : Samples of data of shape (n_samples, n_features) on which QKRR
                 model makes predictions. If quantum_kernel == "precomputed" this is instead a
                 precomputed (test-train) kernel matrix of shape (n_samples, n_samples_fitted),
                 where n_samples_fitted is the number of samples used in the fitting.
 
         Returns:
             np.ndarray :
-                Returns predicted labels (at x_test) of shape (n_samples,)
+                Returns predicted labels (at X) of shape (n_samples,)
         """
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
-                self.k_testtrain = x_test
+                self.k_testtrain = X
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
-            self.k_testtrain = self._quantum_kernel.evaluate(x_test, self.x_train)
+            self.k_testtrain = self._quantum_kernel.evaluate(X, self.X_train)
         else:
             raise ValueError(
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))

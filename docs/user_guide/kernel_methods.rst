@@ -252,7 +252,7 @@ training and test data and shows how to optimize kernels.
         # define KTA loss function
         kta_loss = TargetAlignment(quantum_kernel=pqk_instance)
         kta_optimizer = KernelOptimizer(loss=kta_loss, optimizer=adam_opt)
-        opt_kta_result = kta_optimizer.run_optimization(x=x_train, y=y_train)
+        opt_kta_result = kta_optimizer.run_optimization(X=x_train, y=y_train)
         # retrieve optimized parameters
         opt_kta_params = opt_kta_result.x
         # assign optimal kta parameters to kernel
@@ -284,7 +284,7 @@ training and test data and shows how to optimize kernels.
     # define NLL loss function (note that noise_val needs to bet set)
     nll_loss = NLL(quantum_kernel=pqk_instance, sigma=noise_val)
     nll_optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam_opt)
-    opt_nll_result = nll_optimizer.run_optimization(x=x_train, y=y_train)
+    opt_nll_result = nll_optimizer.run_optimization(X=x_train, y=y_train)
     # retrieve optimized parameters
     opt_nll_params = opt_nll_params.x
     # assign optimal nll parameters to kernel

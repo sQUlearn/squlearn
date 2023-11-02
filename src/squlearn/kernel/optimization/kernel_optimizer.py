@@ -34,7 +34,7 @@ class KernelOptimizer(KernelOptimizerBase):
         nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)
         optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam,
             initial_parameters=np.random.rand(enc_circ.num_parameters))
-        opt_result = optimizer.run_optimization(x=X_train, y=Y_train)
+        opt_result = optimizer.run_optimization(X=X_train, y=Y_train)
         optimal_parameters = opt_result.x
         q_kernel.assign_parameters(optimal_parameters)
 
@@ -58,11 +58,11 @@ class KernelOptimizer(KernelOptimizerBase):
         if self._initial_parameters is None:
             self._initial_parameters = self._quantum_kernel.parameters
 
-    def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
+    def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
         """Run the optimization and return the result.
 
         Args:
-            x (np.ndarray): The input data.
+            X (np.ndarray): The input data.
             y (np.ndarray): The labels.
 
         Returns:
@@ -75,7 +75,7 @@ class KernelOptimizer(KernelOptimizerBase):
             )
 
         # Perform kernel optimization
-        loss_function = partial(self._loss.compute, data=x, labels=y)
+        loss_function = partial(self._loss.compute, data=X, labels=y)
         opt_result = self._optimizer.minimize(fun=loss_function, x0=self._initial_parameters)
         self._optimal_value = opt_result.fun
         self._optimal_point = opt_result.x
