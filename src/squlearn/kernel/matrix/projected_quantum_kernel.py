@@ -589,9 +589,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """The names of the hyper-parameters of the outer kernel"""
         return self._outer_kernel.name_hyper_parameters
 
-
     def _set_outer_kernel(self, outer_kernel: Union[str, OuterKernelBase], **kwargs):
-        """ Private function for set-up the outer kernel
+        """Private function for set-up the outer kernel
 
         Input can be a string for the sklearn outer kernels
 
@@ -622,6 +621,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._outer_kernel = outer_kernel
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
+
 
 class GaussianOuterKernel(OuterKernelBase):
     """

@@ -52,7 +52,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
 
         self._circuit = self._encoding_circuit.get_circuit(self._x, self._p)
 
-        print("self._circuit",self._circuit)
+        print("self._circuit", self._circuit)
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
@@ -131,7 +131,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
-        print("transpiled params",params)
+        print("transpiled params", params)
         self._encoding_circuit.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
         self.__init__(self._encoding_circuit, self._backend, self._transpile_func, **self._kwargs)
@@ -158,7 +158,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         exchange_dict_p = dict(zip(self._p, parameters))
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
-        print("exchange_both",exchange_both)
+        print("exchange_both", exchange_both)
         return self._transpiled_circuit.assign_parameters(exchange_both)
 
 
