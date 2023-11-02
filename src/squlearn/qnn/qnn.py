@@ -933,8 +933,6 @@ class QNN:
                 )
             else:
                 raise ValueError("No execution is set!")
-            
-            print("val",val)
 
             # Swapp results into the following order:
             # 1. different observables (op_list)
@@ -968,15 +966,15 @@ class QNN:
 
             val = np.transpose(val, axes=swapp_list)
 
-            print("val",val)
-
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                # to list neccessary otherwise np.array is hanging
-                print("val[iexpec].tolist()",val[iexpec].tolist())
-                val_final = np.array(val[iexpec].tolist(), dtype=float)
+                if isinstance(val[iexpec], object):
+                    # tolist() is needed, since numpy array conversion is otherwise hanging
+                    val_final = np.array(val[iexpec].tolist(), dtype=float)
+                else:
+                    val_final = val[iexpec]
                 reshape_list = []
                 shape = val_final.shape
                 if multi_x:

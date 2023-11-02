@@ -24,10 +24,30 @@ from .optree import (
     OpTreeMeasuredOperator,
 )
 
-def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
+
+def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
+    """
+    Function for checking if an OpTree structure requires nested lists with different dimensions
+
+    Necessary to check if data can be stored in a numpy float array or in a numpy object array.
+
+    Args:
+        element (Union[OpTreeNodeBase, OpTreeLeafContainer]): The OpTree to be checked.
+
+    Returns:
+        True if the OpTree structure is compatible with a numpy float array, False otherwise.
+    """
 
     def _get_dimensions(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
+        """
+        Helper function for checking the dimensions of the OpTree structure.
 
+        Args:
+            element (Union[OpTreeNodeBase, OpTreeLeafContainer]): The OpTree to be checked.
+
+        Returns:
+            Outer dimension of the root of the OpTree structure.
+        """
         if isinstance(element, OpTreeList):
             dim_list = [_get_dimensions(child) for child in element.children]
             if not all(dim == dim_list[0] for dim in dim_list):
@@ -38,13 +58,13 @@ def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLea
             if not all(dim == dim_list[0] for dim in dim_list):
                 raise ValueError("All leafs must have the same dimension")
             return dim_list[0]
-        elif isinstance(element,OpTreeLeafBase):
+        elif isinstance(element, OpTreeLeafBase):
             return 1
         else:
             raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
     try:
-        print(_get_dimensions(element))
+        _get_dimensions(element)
         return True
     except ValueError:
         return False
@@ -53,7 +73,7 @@ def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLea
 def _evaluate_index_tree(
     element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue],
     result_array: np.ndarray,
-    datatype: str = "auto"
+    datatype: str = "auto",
 ) -> Union[np.ndarray, float]:
     """
     Function for evaluating an OpTree structure that has been indexed with a given result array.
@@ -66,6 +86,10 @@ def _evaluate_index_tree(
                                                               and all factors have to be numeric.
         result_array (np.ndarray): The result array that contains the results to be placed in
                                    the leafs of the OpTree.
+        datatype (str): The datatype of the result array. Can be ``'float'``,``'object'``,
+                        or ``'auto'``. If 'auto', the function will check if the OpTree structure
+                        is compatible with a numpy float array, and if not, it will use a numpy
+                        object array. Defaults to ``'auto'``.
 
     Returns:
         The evaluated OpTree structure as a numpy array or a float.
@@ -74,25 +98,31 @@ def _evaluate_index_tree(
     def _evaluate_index_tree_recursive(
         element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue],
         result_array: np.ndarray,
-        datatype: str = "float"
+        datatype: str = "float",
     ) -> Union[np.ndarray, float]:
-
         if isinstance(element, OpTreeNodeBase):
             if any(not isinstance(fac, float) for fac in element.factor):
                 raise ValueError("All factors must be numeric for evaluation")
 
             # Recursive construction of the data array
-            value_array = [
-                    element.factor[i] * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
-                    for i, child in enumerate(element.children)
-                ],
-            
-            print("value_array", value_array)
-
             if datatype == "float":
-                temp = np.array(value_array,dtype=float)
+                temp = np.array(
+                    [
+                        element.factor[i]
+                        * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
+                        for i, child in enumerate(element.children)
+                    ],
+                    dtype=float,
+                )
             elif datatype == "object":
-                temp = np.array(value_array,dtype=object)
+                temp = np.array(
+                    [
+                        element.factor[i]
+                        * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
+                        for i, child in enumerate(element.children)
+                    ],
+                    dtype=object,
+                )
             else:
                 raise ValueError("datatype must be 'float' or 'object'")
 
@@ -114,12 +144,11 @@ def _evaluate_index_tree(
             raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
     if datatype == "auto":
-        if check_tree_for_matrix_compatibility(element):
+        if _check_tree_for_matrix_compatibility(element):
             datatype = "float"
         else:
             datatype = "object"
 
-    print("datatype", datatype)
     return _evaluate_index_tree_recursive(element, result_array, datatype=datatype)
 
 
