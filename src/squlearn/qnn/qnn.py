@@ -971,7 +971,7 @@ class QNN:
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
                 # to list neccessary otherwise np.array is hanging
-                val_final = np.array(val[iexpec].tolist(),dtype=float)
+                val_final = np.array(val[iexpec].tolist(), dtype=float)
                 reshape_list = []
                 shape = val_final.shape
                 if multi_x:

@@ -53,7 +53,8 @@ def _evaluate_index_tree(
             [
                 element.factor[i] * _evaluate_index_tree(child, result_array)
                 for i, child in enumerate(element.children)
-            ], dtype=object
+            ],
+            dtype=object,
         )
         if isinstance(element, OpTreeSum):
             # OpTreeNodeSum -> sum over the array
