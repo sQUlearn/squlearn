@@ -2064,11 +2064,23 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     def set_params(self, **params) -> None:
 
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        dict_layered_pqc = {}
+        for key in params.keys():
+            if key in self._layered_pqc.get_params().keys():
+                dict_layered_pqc[key] = params[key]
+        self._layered_pqc.set_params(**dict_layered_pqc)
+
         if "num_features" in params:
             self._num_features = params["num_features"]
             self._x.size = params["num_features"]
-        else:
-            self._layered_pqc.set_params(**params)
 
         return self
 
