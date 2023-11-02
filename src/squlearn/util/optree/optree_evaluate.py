@@ -52,7 +52,7 @@ def _evaluate_index_tree(
             [
                 element.factor[i] * _evaluate_index_tree(child, result_array)
                 for i, child in enumerate(element.children)
-            ]
+            ], dtype=object
         )
         if isinstance(element, OpTreeSum):
             # OpTreeNodeSum -> sum over the array
@@ -64,6 +64,7 @@ def _evaluate_index_tree(
             raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
     elif isinstance(element, OpTreeContainer):
         # Return value from the result array
+        print("type(result_array[element.item])",type(result_array[element.item]))
         return result_array[element.item]
     elif isinstance(element, OpTreeValue):
         # Return the value

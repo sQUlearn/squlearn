@@ -934,6 +934,9 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
+            print("val",val)
+            print("val",val.shape)
+
             # Swapp results into the following order:
             # 1. different observables (op_list)
             # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
@@ -966,11 +969,25 @@ class QNN:
 
             val = np.transpose(val, axes=swapp_list)
 
+            print("val after transpose",val)
+
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                val_final = val[iexpec]
+                print("val[iexpec].shape",val[iexpec].shape)
+                print("val[iexpec]",val[iexpec])
+                print("type(val[iexpec])",type(val[iexpec]))
+                print("val[iexpec].dtype",val[iexpec].dtype)
+                print("val[iexpec][0].dtype",val[iexpec][0].dtype)
+                print("val[iexpec][0][0].dtype",val[iexpec][0][0].dtype)
+                print("val[iexpec][0][0]",val[iexpec][0][0])
+                print("val[iexpec][0][0]",np.array(val[iexpec][0][0],dtype=float))
+                #val_final = np.asfarray(val[iexpec])
+                val_final = np.array(val[iexpec],dtype=float)
+                print("after final np.array",val_final)
+                #print("type(val[iexpec])",type(val[iexpec]))
+                #val_final = val[iexpec]
                 reshape_list = []
                 shape = val_final.shape
                 if multi_x:
