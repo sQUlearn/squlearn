@@ -2059,7 +2059,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     def get_params(self, deep: bool = True) -> dict:
         return self._layered_pqc.get_params(deep)
-    
+
     def set_params(self, **params) -> None:
         self._layered_pqc.set_params(**params)
 
