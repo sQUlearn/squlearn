@@ -32,8 +32,7 @@ def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLea
             dim_list = [_get_dimensions(child) for child in element.children]
             if not all(dim == dim_list[0] for dim in dim_list):
                 raise ValueError("All leafs must have the same dimension")
-            return dim_list[0]
-
+            return len(dim_list)
         elif isinstance(element, OpTreeSum):
             dim_list = [_get_dimensions(child) for child in element.children]
             if not all(dim == dim_list[0] for dim in dim_list):
@@ -45,7 +44,7 @@ def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLea
             raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
 
     try:
-        a = _get_dimensions(element)
+        print(_get_dimensions(element))
         return True
     except ValueError:
         return False
@@ -83,10 +82,12 @@ def _evaluate_index_tree(
                 raise ValueError("All factors must be numeric for evaluation")
 
             # Recursive construction of the data array
-            value_array =             [
-                    element.factor[i] * _evaluate_index_tree(child, result_array, datatype=datatype)
+            value_array = [
+                    element.factor[i] * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
                     for i, child in enumerate(element.children)
                 ],
+            
+            print("value_array", value_array)
 
             if datatype == "float":
                 temp = np.array(value_array,dtype=float)
