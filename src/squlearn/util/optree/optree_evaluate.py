@@ -24,9 +24,37 @@ from .optree import (
     OpTreeMeasuredOperator,
 )
 
+def check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
+
+    def _get_dimensions(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
+
+        if isinstance(element, OpTreeList):
+            dim_list = [_get_dimensions(child) for child in element.children]
+            if not all(dim == dim_list[0] for dim in dim_list):
+                raise ValueError("All leafs must have the same dimension")
+            return dim_list[0]
+
+        elif isinstance(element, OpTreeSum):
+            dim_list = [_get_dimensions(child) for child in element.children]
+            if not all(dim == dim_list[0] for dim in dim_list):
+                raise ValueError("All leafs must have the same dimension")
+            return dim_list[0]
+        elif isinstance(element,OpTreeLeafBase):
+            return 1
+        else:
+            raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
+
+    try:
+        a = _get_dimensions(element)
+        return True
+    except ValueError:
+        return False
+
 
 def _evaluate_index_tree(
-    element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue], result_array
+    element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue],
+    result_array: np.ndarray,
+    datatype: str = "auto"
 ) -> Union[np.ndarray, float]:
     """
     Function for evaluating an OpTree structure that has been indexed with a given result array.
@@ -43,35 +71,55 @@ def _evaluate_index_tree(
     Returns:
         The evaluated OpTree structure as a numpy array or a float.
     """
-    if isinstance(element, OpTreeNodeBase):
-        if any(not isinstance(fac, float) for fac in element.factor):
-            raise ValueError("All factors must be numeric for evaluation")
 
-        # Recursive construction of the data array
-        #  object class since the shape is not necessary the same for all objects (makes it slower)
-        temp = np.array(
-            [
-                element.factor[i] * _evaluate_index_tree(child, result_array)
-                for i, child in enumerate(element.children)
-            ],
-            dtype=object,
-        )
-        if isinstance(element, OpTreeSum):
-            # OpTreeNodeSum -> sum over the array
-            return np.sum(temp, axis=0)
-        elif isinstance(element, OpTreeList):
-            # OpTreeNodeList -> return just the array
-            return temp
+    def _evaluate_index_tree_recursive(
+        element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue],
+        result_array: np.ndarray,
+        datatype: str = "float"
+    ) -> Union[np.ndarray, float]:
+
+        if isinstance(element, OpTreeNodeBase):
+            if any(not isinstance(fac, float) for fac in element.factor):
+                raise ValueError("All factors must be numeric for evaluation")
+
+            # Recursive construction of the data array
+            value_array =             [
+                    element.factor[i] * _evaluate_index_tree(child, result_array, datatype=datatype)
+                    for i, child in enumerate(element.children)
+                ],
+
+            if datatype == "float":
+                temp = np.array(value_array,dtype=float)
+            elif datatype == "object":
+                temp = np.array(value_array,dtype=object)
+            else:
+                raise ValueError("datatype must be 'float' or 'object'")
+
+            if isinstance(element, OpTreeSum):
+                # OpTreeNodeSum -> sum over the array
+                return np.sum(temp, axis=0)
+            elif isinstance(element, OpTreeList):
+                # OpTreeNodeList -> return just the array
+                return temp
+            else:
+                raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
+        elif isinstance(element, OpTreeContainer):
+            # Return value from the result array
+            return result_array[element.item]
+        elif isinstance(element, OpTreeValue):
+            # Return the value
+            return element.value
         else:
-            raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
-    elif isinstance(element, OpTreeContainer):
-        # Return value from the result array
-        return result_array[element.item]
-    elif isinstance(element, OpTreeValue):
-        # Return the value
-        return element.value
-    else:
-        raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
+            raise ValueError("element must be a OpTreeNode or a OpTreeLeafContainer")
+
+    if datatype == "auto":
+        if check_tree_for_matrix_compatibility(element):
+            datatype = "float"
+        else:
+            datatype = "object"
+
+    print("datatype", datatype)
+    return _evaluate_index_tree_recursive(element, result_array, datatype=datatype)
 
 
 def _build_circuit_list(
