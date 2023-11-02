@@ -95,9 +95,13 @@ class FidelityKernel(KernelMatrixBase):
         else:
             self._parameter_vector = None
 
+        print("Evaluate circuite num param ini before get_circuit",self._encoding_circuit.num_parameters)
+
         self._enc_circ = self._encoding_circuit.get_circuit(
             self._feature_vector, self._parameter_vector
         )
+        print("self._enc_circ ini",self._enc_circ)
+        print("Evaluate circuite num param ini",self._encoding_circuit.num_parameters)
 
         if self._executor.execution == "Sampler" or isinstance(self._executor.backend, IBMBackend):
             fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
@@ -151,6 +155,7 @@ class FidelityKernel(KernelMatrixBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
+
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
 
@@ -190,6 +195,11 @@ class FidelityKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
+
+        print("test")
+        print("Evaluate circuite",self._enc_circ)
+        print("Evaluate circuite num param",self._enc_circ.num_parameters)
+
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -199,7 +209,10 @@ class FidelityKernel(KernelMatrixBase):
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
 
+            print("self._parameters",self._parameters)
             self._quantum_kernel.assign_training_parameters(self._parameters)
+
+
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
         if self._mit_depol_noise is not None:

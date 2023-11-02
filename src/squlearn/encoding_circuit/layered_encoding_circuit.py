@@ -855,6 +855,9 @@ class LayeredPQC:
         if layer_counter == 1:
             param.pop("num_layers_{}".format(num_layer_name))
             param["num_layers"] = number_of_applications
+        elif layer_counter == 0:
+            param["num_layers"] = 1
+
         return param
 
     def set_params(self, **params):
@@ -914,10 +917,20 @@ class LayeredPQC:
                 on_right_layer = False
                 while not on_right_layer and op_iter < len(self.operation_list):
                     op_iter += 1
+                    if op_iter >= len(self.operation_list):
+                        break
                     if isinstance(self.operation_list[op_iter], _operation_layer):
                         if self.operation_list[op_iter].layer_number == layer_number:
                             on_right_layer = True
                             self.operation_list[op_iter].change_num_layers(value)
+
+                if not on_right_layer:
+                    # no layer found, take the whole circuit as the initial layer
+                    self_layer = LayerPQC(self)
+                    self_layer.operation_list = copy.copy(self.operation_list)
+                    self.operation_list=[]
+                    self.add_layer(self_layer, value)
+
 
     def get_number_of_variables(self, variablegroup: VariableGroup):
         """get how often the variable group was used (required for building parameter vectors by qiskit)"""
@@ -2044,6 +2057,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         num_features: int,
         feature_str: str = "x",
         parameter_str: str = "p",
+        **kwargs,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self._feature_str = feature_str
@@ -2051,6 +2065,10 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         self._x = VariableGroup(self._feature_str, size=num_features)
         self._p = VariableGroup(self._parameter_str)
         self._layered_pqc = LayeredPQC(num_qubits=num_qubits, variable_groups=(self._x, self._p))
+        self._encoding_circuit_str = ""
+
+        if kwargs:
+            self.set_params(**kwargs)
 
     @property
     def num_parameters(self) -> int:
@@ -2060,9 +2078,19 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     def get_params(self, deep: bool = True) -> dict:
         params = self._layered_pqc.get_params(deep)
         params["num_features"] = self._num_features
+        params["feature_str"] = self._feature_str
+        params["encoding_circuit_str"] = self._encoding_circuit_str
         return params
 
     def set_params(self, **params) -> None:
+
+        if "encoding_circuit_str" in params:
+            self._encoding_circuit_str = params["encoding_circuit_str"]
+            self._layered_pqc = LayeredPQC.from_string(
+                self._num_qubits,
+                self._encoding_circuit_str,
+                (self._x, self._p),
+            )
 
         valid_params = self.get_params()
         for key, value in params.items():
@@ -2072,15 +2100,18 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
+        if "num_features" in params:
+            self._num_features = params["num_features"]
+            self._x.size = params["num_features"]
+
+        if "num_qubits" in params:
+            self._num_qubits = params["num_qubits"]
+
         dict_layered_pqc = {}
         for key in params.keys():
             if key in self._layered_pqc.get_params().keys():
                 dict_layered_pqc[key] = params[key]
         self._layered_pqc.set_params(**dict_layered_pqc)
-
-        if "num_features" in params:
-            self._num_features = params["num_features"]
-            self._x.size = params["num_features"]
 
         return self
 
@@ -2136,6 +2167,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding_circuit_str,
             (layered_encoding_circuit._x, layered_encoding_circuit._p),
         )
+        layered_encoding_circuit._encoding_circuit_str = encoding_circuit_str
         return layered_encoding_circuit
 
     def add_layer(self, layer, num_layers=1) -> None:
