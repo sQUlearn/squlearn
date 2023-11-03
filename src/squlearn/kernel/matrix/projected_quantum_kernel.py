@@ -542,7 +542,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             if key in self._encoding_circuit.get_params():
                 dict_ec[key] = value
         for key, value in dict_ec.items():
-                params.pop(key)
+            params.pop(key)
         if len(dict_ec) > 0:
             self._encoding_circuit.set_params(**dict_ec)
             self.__init__(
