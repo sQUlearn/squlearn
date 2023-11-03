@@ -868,6 +868,7 @@ class LayeredPQC:
         num_layers (if there is only one layer)
         num_layers_{i} (but {i} represents the i-th layer and this is only possible, if there are two or more layers)
         """
+
         valid_params = self.get_params()
         for key, value in params.items():
             if key not in valid_params:
@@ -929,6 +930,11 @@ class LayeredPQC:
                     self_layer = LayerPQC(self)
                     self_layer.operation_list = copy.copy(self.operation_list)
                     self.operation_list=[]
+
+                    for var in self.variable_groups:
+                        if var.size == None:
+                            var.total_variables_used = 0
+
                     self.add_layer(self_layer, value)
 
 
@@ -1763,6 +1769,7 @@ def math_function({var}):
         )
 
 
+
 class LayerPQC(LayeredPQC):
     """
     default class for a layer: the user is able to build his one list of operations and this list can be added to the main class LayeredEncodingCircuit
@@ -2086,6 +2093,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         if "encoding_circuit_str" in params:
             self._encoding_circuit_str = params["encoding_circuit_str"]
+            self._p.total_variables_used = 0
             self._layered_pqc = LayeredPQC.from_string(
                 self._num_qubits,
                 self._encoding_circuit_str,
@@ -2160,13 +2168,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         """
 
-        encoding_circuit_str *= num_layers
         layered_encoding_circuit = cls(num_qubits, num_features, feature_str, parameter_str)
         layered_encoding_circuit._layered_pqc = LayeredPQC.from_string(
             num_qubits,
             encoding_circuit_str,
             (layered_encoding_circuit._x, layered_encoding_circuit._p),
         )
+        if num_layers > 1:
+            layered_encoding_circuit.set_params(num_layers=num_layers)
         layered_encoding_circuit._encoding_circuit_str = encoding_circuit_str
         return layered_encoding_circuit
 

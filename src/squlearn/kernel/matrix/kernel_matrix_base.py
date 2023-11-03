@@ -41,8 +41,6 @@ class KernelMatrixBase:
         self._parameter_seed = parameter_seed
         self._regularization = regularization
 
-        print("self._encoding_circuit.num_parameters ini",self._encoding_circuit.num_parameters)
-
         if self._parameters is None:
             self._parameters = self._encoding_circuit.generate_initial_parameters(
                 self._parameter_seed
