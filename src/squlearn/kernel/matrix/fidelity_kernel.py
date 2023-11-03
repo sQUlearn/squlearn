@@ -151,7 +151,6 @@ class FidelityKernel(KernelMatrixBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
-
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
 
@@ -168,6 +167,7 @@ class FidelityKernel(KernelMatrixBase):
         for key in params.keys():
             if key in self._encoding_circuit.get_params().keys():
                 dict_encoding_circuit[key] = params[key]
+
         self._encoding_circuit.set_params(**dict_encoding_circuit)
 
         if "evaluate_duplicates" in params.keys():
@@ -191,7 +191,6 @@ class FidelityKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
-
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))

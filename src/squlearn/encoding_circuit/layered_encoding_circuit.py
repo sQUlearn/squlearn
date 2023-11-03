@@ -929,14 +929,13 @@ class LayeredPQC:
                     # no layer found, take the whole circuit as the initial layer
                     self_layer = LayerPQC(self)
                     self_layer.operation_list = copy.copy(self.operation_list)
-                    self.operation_list=[]
+                    self.operation_list = []
 
                     for var in self.variable_groups:
                         if var.size == None:
                             var.total_variables_used = 0
 
                     self.add_layer(self_layer, value)
-
 
     def get_number_of_variables(self, variablegroup: VariableGroup):
         """get how often the variable group was used (required for building parameter vectors by qiskit)"""
@@ -1769,7 +1768,6 @@ def math_function({var}):
         )
 
 
-
 class LayerPQC(LayeredPQC):
     """
     default class for a layer: the user is able to build his one list of operations and this list can be added to the main class LayeredEncodingCircuit
@@ -2090,7 +2088,6 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         return params
 
     def set_params(self, **params) -> None:
-
         if "encoding_circuit_str" in params:
             self._encoding_circuit_str = params["encoding_circuit_str"]
             self._p.total_variables_used = 0
