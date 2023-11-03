@@ -506,8 +506,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-        dict_qnn = {}
-
         if "num_qubits" in params:
             self._encoding_circuit.set_params(num_qubits=params["num_qubits"])
             if isinstance(self._measurement_input, list):
@@ -524,6 +522,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._parameter_seed,
                 self._regularization,
             )
+            params.pop("num_qubits")
 
         if "measurement" in params:
             self._measurement_input = params["measurement"]
@@ -537,8 +536,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._regularization,
             )
 
-        if "num_layers" in params:
-            self._encoding_circuit.set_params(num_layers=params["num_layers"])
+        # Set parameters of the encoding circuit
+        dict_ec = {}
+        for key, value in params.items():
+            if key in self._encoding_circuit.get_params():
+                dict_ec[key] = value
+        for key, value in dict_ec.items():
+                params.pop(key)
+        if len(dict_ec) > 0:
+            self._encoding_circuit.set_params(**dict_ec)
             self.__init__(
                 self._encoding_circuit,
                 self._executor,
@@ -549,11 +555,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._regularization,
             )
 
-        # Set QNN parameters
+        # Set Remaining QNN parameters
+        dict_qnn = {}
         for key, value in params.items():
             if key in self._qnn.get_params():
-                if key != "num_qubits":
-                    dict_qnn[key] = value
+                dict_qnn[key] = value
         if len(dict_qnn) > 0:
             self._qnn.set_params(**dict_qnn)
 
