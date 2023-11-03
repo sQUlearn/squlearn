@@ -973,35 +973,47 @@ class LayeredPQC:
         return QC
 
     def H(self):
+        """Adds a Hadamard gate layer"""
         self.add_operation(_H_operation(self.num_qubits, None))
 
     def X(self):
+        """Adds a Pauli X gate layer"""
         self.add_operation(_X_operation(self.num_qubits, None))
 
     def Y(self):
+        """Adds a Pauli Y gate layer"""
         self.add_operation(_Y_operation(self.num_qubits, None))
 
     def Z(self):
+        """Adds a Pauli Z gate layer"""
         self.add_operation(_Z_operation(self.num_qubits, None))
 
     def I(self):
+        """Adds a identity gate layer"""
         self.add_operation(_Id_operation(self.num_qubits, None))
 
     def S(self):
+        """Adds a S gate layer"""
         self.add_operation(_S_operation(self.num_qubits, None))
 
     def S_conjugate(self):
+        """Adds a S conjugate gate layer"""
         self.add_operation(_S_conjugate_operation(self.num_qubits, None))
 
     def T(self):
+        """Adds a T gate layer"""
         self.add_operation(_T_operation(self.num_qubits, None))
 
     def T_conjugate(self):
+        """Adds a T conjugate gate layer"""
         self.add_operation(_T_conjugate_operation(self.num_qubits, None))
 
     def Rx(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Rx gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
             self.add_operation(_Rx_operation(self.num_qubits, variablegroup_tuple))
@@ -1010,7 +1022,10 @@ class LayeredPQC:
 
     def Ry(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Ry gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
             self.add_operation(_Ry_operation(self.num_qubits, variablegroup_tuple))
@@ -1019,7 +1034,10 @@ class LayeredPQC:
 
     def Rz(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Rz gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
             self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple))
@@ -1027,6 +1045,12 @@ class LayeredPQC:
             self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple, map))
 
     def P(self, *variablegroup_tuple, map=None):
+        """
+        Adds a P gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
+        """
         if map == None:
             if len(variablegroup_tuple) != 1:
                 raise ValueError("There must be one variable group for a P gate.")
@@ -1035,6 +1059,12 @@ class LayeredPQC:
             self.add_operation(_P_operation(self.num_qubits, variablegroup_tuple, map))
 
     def U(self, *variablegroup_tuple):
+        """
+        Adds a U gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
+        """
         map = None
         if isinstance(variablegroup_tuple[0], tuple):
             variablegroup_tuple = variablegroup_tuple[0]
@@ -1048,7 +1078,7 @@ class LayeredPQC:
     def ch_entangling(self, ent_strategy="NN"):
         """
         Adds a controlled x entangling layer.
-        args:
+        Args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
                     Default ("NN"): Adds a controlled x nearest neighbor entangling operation
@@ -2564,7 +2594,7 @@ class _operation_layer:
     class for the operation_list in LayeredPQC. Stores layers of operations, which are created by the Layer class.
     """
 
-    def __init__(self, layer: Layer, num_layers: int = 1, layer_number: int = 1) -> None:
+    def __init__(self, layer: LayerPQC, num_layers: int = 1, layer_number: int = 1) -> None:
         self.layer = layer
         self.num_layers = num_layers
         self.layer_number = layer_number

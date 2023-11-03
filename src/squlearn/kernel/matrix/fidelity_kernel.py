@@ -191,6 +191,18 @@ class FidelityKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
+        """
+        Evaluates the fidelity kernel matrix.
+
+        Args:
+            x (np.ndarray) :
+                Vector of training or test data for which the kernel matrix is evaluated
+            y (np.ndarray, default=None) :
+                Vector of training or test data for which the kernel matrix is evaluated
+        Returns:
+            Returns the quantum kernel matrix as 2D numpy array.
+        """
+
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
