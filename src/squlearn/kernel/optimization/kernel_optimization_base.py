@@ -28,12 +28,12 @@ class KernelOptimizerBase:
         self._optimizer = optimizer
         self._initial_parameters = initial_parameters
 
-    def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
+    def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
         """
         Empty function to start running the actual optimization.
 
         Args:
-            x (np.ndarray) :
+            X (np.ndarray) :
                 Data set features
             y (np.ndarray) :
                 Data set labels

@@ -8,6 +8,8 @@ jobs:
     publish-pages:
       name: Publish to GH Pages
       runs-on: ubuntu-latest
+      env:
+        QISKIT_SETTINGS: ${{github.workspace}}/docs/qiskit_settings.conf
       steps:
           - name: Checkout Source Code
             uses: actions/checkout@v2
