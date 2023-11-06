@@ -5,6 +5,7 @@ from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
 from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
 from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
 from typing import Union, Callable
+import copy
 
 # is needed for making encoding circuits with numpy functions using strings:
 import numpy as np
@@ -55,6 +56,7 @@ class VariableGroup:
     def increase_used_number_of_variables(self, number_of_used_variables: int):
         """Increases total number of variables , if size not given
         (this is important for initializing the parameter vectors of qiskit with get_number_of_variables)
+        Note that it's possible to substract numbers (with negative integers) too.
         """
         if self.size == None:
             self.total_variables_used += number_of_used_variables
@@ -82,11 +84,13 @@ class _operation:
         Attributes:
             num_qubits: The number of all qubits
             variablegroup_tuple: A tuple with every variable group used in this operation
+            ent_strategy: the entangling strategy: if None, than the program knows, that this is not an entangling layer
             map: A default map, that is used, if the operation has exactly 2 variable groups and no given map (by user)
             default_map: A boolean, that checks, if the user initializes his own map
         """
         self.num_qubits = num_qubits
         self.variablegroup_tuple = variablegroup_tuple
+        self.ent_strategy = None
         if map == None:
             # Default: Set map to x*y (if two arguments given, if there are more than two arguments for one operation without any given map, an error will be raised)
             self.map = lambda x, y: x * y
@@ -737,13 +741,14 @@ class LayeredPQC:
 
         Attributes:
             num_qubits (int): Number of qubits in this encoding circuit
-            operation_list [list]: List of objects of the class operation with the tuple of the variablegroups used for each operation and the number of variables used in that operation, e.g. [[_H_operation,None], [Rx_operation, (x_var,x_var2), [5,5],...]
+            operation_list [list]: List of objects of the class operation or/and of the class _operation_layer, e.g. [H_operation, Rx_operation, layer1, Ry_operation, layer2,...]
             variable_groups [tuple]: Tuple of all variable groups used in this encoding circuit; ATTENTION: If there is only one variable group, be sure to type in "(x,)" and not "(x)" initializing the encoding circuit
             Only if variable_groups is not None:
             variable_name_tuple [tuple]: Tuple of variable names of each variablegroup e.g. variablegroup x_var, x_var2, p_var; variable_name_tuple = (x,x2,p);
                 this is only used to create encoding circuits with Strings
             variable_groups_string_tuple [tuple]: Tuple of the hash values for each variable group, with that, you can search the position of each variable_group,
                 e.g. variable_groups = (x_var, x_var2,...) with type(x_var) = variable_group and variable_string_list = (hash(x_var),hash(x_var2),...)
+            layer_counter [int]: counts the number of different layers of the layer class used
         """
         self._num_qubits = num_qubits
         self.operation_list = []
@@ -756,48 +761,181 @@ class LayeredPQC:
                 variable_groups_string_list.append(hash(variable_groups[i]))
             self.variable_name_tuple = tuple(variable_name_list)
             self.variable_groups_string_tuple = tuple(variable_groups_string_list)
+        self.layer_counter = 0
 
     @property
     def num_qubits(self):
         return self._num_qubits
 
-    def add_operation(
-        self, operation: _operation, variablegroup_tuple: tuple, variable_num_list=None
-    ):
+    def add_operation(self, operation):
+        # TODO: we need an other name for operation because operation could be a layer too. Also the name "Layer" is a bit confusing,
+        # because the file is already named layered encoding circuit but in that sense it means blocks of gates,
+        # which are applied to every qubit (if it's a single qubit gate). But in the sense of the class LayerPQC it means a horizontal layer of vertical layers(in the file name sense).
         """
         adds an operation to the operation_list
         Args:
-            operation [operation]: an operation of the class operation
-            variablegroup_tuple [tuple]: a tuple of variablegroups
-            variable_num_list [list or None type]: gives information about how often a parameter is used in each operation;
-                for example in a 5 qubit system with R_x-Layers: There are 5 (number of qubits) R_x-Gates used,
-                whereas in nearest neighbor entangling there are only 4 (number of qubits - 1) variables per group used.
+            operation [_operation, _operation_layer]: an operation of the operation class or a layer of operations of the operation_layer class
         """
-        if variablegroup_tuple == None:
-            self.operation_list.append([operation, None])
+        if isinstance(operation, _operation_layer):
+            self.operation_list.append(operation)
+            for layer_operation in operation.layer.operation_list:
+                variablegroup_tuple = layer_operation.variablegroup_tuple
+                if variablegroup_tuple != None:
+                    if layer_operation.ent_strategy == None:
+                        number_of_variables = self.num_qubits
+                    elif layer_operation.ent_strategy == "NN":
+                        number_of_variables = self.num_qubits - 1
+                    else:  # This should be the "AA" case:
+                        number_of_variables = sum(x for x in range(1, self.num_qubits))
+                    variable_num_list = [
+                        operation.num_layers * number_of_variables
+                        for i in range(len(variablegroup_tuple))
+                    ]
+                    iteration_counter = 0
+                    for variablegroup in variablegroup_tuple:
+                        variablegroup.increase_used_number_of_variables(
+                            variable_num_list[iteration_counter]
+                        )
+                        iteration_counter += 1
         else:
-            # For the case that there are variables given but without an information about how often they are used, set variable_dif_list to [number of qubits] on default
-            if variable_num_list == None:
-                variable_num_list = [self.num_qubits for i in range(len(variablegroup_tuple))]
-            # adds the operation with the tuple of the variable groups used for this operation and the number of variables used per group:
-            self.operation_list.append([operation, variablegroup_tuple, variable_num_list])
-            # counter of the variables: if size not given, that means there is no finite dimension, than increase the counter of this variablegroup by number of the qubits
-            # otherwise use the size
-            iteration_counter = 0
-            for variablegroup in variablegroup_tuple:
-                variablegroup.increase_used_number_of_variables(
-                    variable_num_list[iteration_counter]
-                )
-                iteration_counter += 1
+            self.operation_list.append(operation)
+            variablegroup_tuple = operation.variablegroup_tuple
+            if variablegroup_tuple != None:
+                # creates the variable_num_list, which gives information about how often a parameter (the variable group) is used in each operation;
+                #   for example in a 5 qubit system with R_x-Layers: There are 5 (number of qubits) R_x-Gates used,
+                #   whereas in nearest neighbour entangling there are only 4 (number of qubits - 1) variables per group used.
+                if operation.ent_strategy == None:
+                    number_of_variables = self.num_qubits
+                elif operation.ent_strategy == "NN":
+                    number_of_variables = self.num_qubits - 1
+                else:  # This should be the "AA" case:
+                    number_of_variables = sum(x for x in range(1, self.num_qubits))
+                variable_num_list = [
+                    number_of_variables for i in range(len(variablegroup_tuple))
+                ]  # TODO: it doesn't need to be such complicated,
+                # cause every entry in the list is the same, but maybe in the future,
+                # if there are some new entangling strategies it could be important.
+                # increases how often one variable group is used:
+                iteration_counter = 0
+                for variablegroup in variablegroup_tuple:
+                    variablegroup.increase_used_number_of_variables(
+                        variable_num_list[iteration_counter]
+                    )
+                    iteration_counter += 1
 
     def add_layer(self, layer, num_layers=1):
         """adds a layer of gates to the given encoding circuit"""
-        for i in range(num_layers):
-            for operation_iter in layer.operation_list:
-                if len(operation_iter) == 3:
-                    self.add_operation(operation_iter[0], operation_iter[1], operation_iter[2])
+        new_layer = copy.copy(
+            layer
+        )  # normal copy of the layer, otherwise in the case of two or more equal layers set_params would increase (or decrease) the variable_groups only once;
+        # but deepcopy is wrong, because we need the same variable_groups objects
+        self.layer_counter += 1  # counting of layers should begin with 1
+        operation_layer = _operation_layer(new_layer, num_layers, self.layer_counter)
+        self.add_operation(operation_layer)
+
+    def get_params(self, deep: bool = True) -> dict:
+        """
+        Returns a dictonary of the number of qubits and the number of layers.
+        E.g.: There are four qubits and two layers one with 2 applications and the other one with 4. The output looks like that:
+        {'num_qubits': 4,'num_layers_1': 2, 'num_layers_2': 4}.
+        If there is only one layer, there is no enumeration in num_layers:
+        E.g.: 4 qubits, one layer with 3 applications:
+        {'num_qubits': 4,'num_layers': 3}.
+        """
+        param = {}
+        param["num_qubits"] = self._num_qubits
+        layer_counter = 0
+        for iter_layer in self.operation_list:
+            if isinstance(iter_layer, _operation_layer):
+                layer_counter += 1
+                param["num_layers_{}".format(iter_layer.layer_number)] = iter_layer.num_layers
+                # only important, if there is only one layer:
+                number_of_applications = iter_layer.num_layers
+                num_layer_name = iter_layer.layer_number
+        if layer_counter == 1:
+            param.pop("num_layers_{}".format(num_layer_name))
+            param["num_layers"] = number_of_applications
+        elif layer_counter == 0:
+            param["num_layers"] = 1
+
+        return param
+
+    def set_params(self, **params):
+        """
+        Sets the number of qubits or/and number of application of one or more layers:
+        Possible params:
+        num_qubits
+        num_layers (if there is only one layer)
+        num_layers_{i} (but {i} represents the i-th layer and this is only possible, if there are two or more layers)
+        """
+
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+            # increases or decreases how often variable groups are used depending on the entangling strategy:
+            if key == "num_qubits":
+                if value == self.num_qubits:
+                    pass
                 else:
-                    self.add_operation(operation_iter[0], operation_iter[1], None)
+                    for operation in self.operation_list:
+                        if isinstance(operation, _operation_layer):
+                            operation.change_qubits(value)
+                        else:
+                            var_group_tuple = operation.variablegroup_tuple
+                            operation.num_qubits = value
+                            if var_group_tuple != None:
+                                if operation.ent_strategy == None:
+                                    for var_group in var_group_tuple:
+                                        var_group.increase_used_number_of_variables(
+                                            value - self.num_qubits
+                                        )
+                                elif operation.ent_strategy == "NN":
+                                    for var_group in var_group_tuple:
+                                        var_group.increase_used_number_of_variables(
+                                            value - self.num_qubits
+                                        )
+                                else:  # That should be the "AA" case:
+                                    for var_group in var_group_tuple:
+                                        old_num_of_variables = sum(
+                                            x for x in range(1, self.num_qubits)
+                                        )
+                                        new_num_of_variables = sum(x for x in range(1, value))
+                                        var_group.increase_used_number_of_variables(
+                                            new_num_of_variables - old_num_of_variables
+                                        )
+                    self._num_qubits = value
+
+            else:  # This is the case, if the user wants to change the number of applications of one layer (num_layers, num_layers_1, num_layers_2 etc.)
+                if key == "num_layers":
+                    layer_number = 1
+                else:
+                    layer_number = int(key[11])
+                op_iter = -1
+                on_right_layer = False
+                while not on_right_layer and op_iter < len(self.operation_list):
+                    op_iter += 1
+                    if op_iter >= len(self.operation_list):
+                        break
+                    if isinstance(self.operation_list[op_iter], _operation_layer):
+                        if self.operation_list[op_iter].layer_number == layer_number:
+                            on_right_layer = True
+                            self.operation_list[op_iter].change_num_layers(value)
+
+                if not on_right_layer:
+                    # no layer found, take the whole circuit as the initial layer
+                    self_layer = LayerPQC(self)
+                    self_layer.operation_list = copy.copy(self.operation_list)
+                    self.operation_list = []
+
+                    for var in self.variable_groups:
+                        if var.size == None:
+                            var.total_variables_used = 0
+
+                    self.add_layer(self_layer, value)
 
     def get_number_of_variables(self, variablegroup: VariableGroup):
         """get how often the variable group was used (required for building parameter vectors by qiskit)"""
@@ -818,126 +956,136 @@ class LayeredPQC:
         # Create assignment between variable groups and parameter vectors, e.g. {hash(x_var1):paramvec(x_var1),hash(x_var2):paramvec(x_var2),...}
         var_param_assignment = {hash(self.variable_groups[i]): args[i] for i in range(len(args))}
         QC = QuantumCircuit(self.num_qubits)
-        for operation_variablegroup_iter in self.operation_list:
-            operation_iter = operation_variablegroup_iter[0]
-            variablegroup_tuple_iter = operation_variablegroup_iter[1]
-            if variablegroup_tuple_iter == None:
-                QC = QC.compose(operation_iter.get_circuit())
+        for operation in self.operation_list:
+            if isinstance(operation, _operation_layer):
+                operation_layer = operation
+                for i in range(operation_layer.num_layers):
+                    for op in operation_layer.layer.operation_list:
+                        if op.variablegroup_tuple == None:
+                            QC = QC.compose(op.get_circuit())
+                        else:
+                            QC = QC.compose(op.get_circuit(var_param_assignment))
             else:
-                QC = QC.compose(operation_iter.get_circuit(var_param_assignment))
+                if operation.variablegroup_tuple == None:
+                    QC = QC.compose(operation.get_circuit())
+                else:
+                    QC = QC.compose(operation.get_circuit(var_param_assignment))
         return QC
 
     def H(self):
-        self.add_operation(_H_operation(self.num_qubits, None), None)
+        """Adds a Hadamard gate layer"""
+        self.add_operation(_H_operation(self.num_qubits, None))
 
     def X(self):
-        self.add_operation(_X_operation(self.num_qubits, None), None)
+        """Adds a Pauli X gate layer"""
+        self.add_operation(_X_operation(self.num_qubits, None))
 
     def Y(self):
-        self.add_operation(_Y_operation(self.num_qubits, None), None)
+        """Adds a Pauli Y gate layer"""
+        self.add_operation(_Y_operation(self.num_qubits, None))
 
     def Z(self):
-        self.add_operation(_Z_operation(self.num_qubits, None), None)
+        """Adds a Pauli Z gate layer"""
+        self.add_operation(_Z_operation(self.num_qubits, None))
 
     def I(self):
-        self.add_operation(_Id_operation(self.num_qubits, None), None)
+        """Adds a identity gate layer"""
+        self.add_operation(_Id_operation(self.num_qubits, None))
 
     def S(self):
-        self.add_operation(_S_operation(self.num_qubits, None), None)
+        """Adds a S gate layer"""
+        self.add_operation(_S_operation(self.num_qubits, None))
 
     def S_conjugate(self):
-        self.add_operation(_S_conjugate_operation(self.num_qubits, None), None)
+        """Adds a S conjugate gate layer"""
+        self.add_operation(_S_conjugate_operation(self.num_qubits, None))
 
     def T(self):
-        self.add_operation(_T_operation(self.num_qubits, None), None)
+        """Adds a T gate layer"""
+        self.add_operation(_T_operation(self.num_qubits, None))
 
     def T_conjugate(self):
-        self.add_operation(_T_conjugate_operation(self.num_qubits, None), None)
+        """Adds a T conjugate gate layer"""
+        self.add_operation(_T_conjugate_operation(self.num_qubits, None))
 
     def Rx(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Rx gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
-            self.add_operation(
-                _Rx_operation(self.num_qubits, variablegroup_tuple), variablegroup_tuple
-            )
+            self.add_operation(_Rx_operation(self.num_qubits, variablegroup_tuple))
         else:
-            self.add_operation(
-                _Rx_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
-            )
+            self.add_operation(_Rx_operation(self.num_qubits, variablegroup_tuple, map))
 
     def Ry(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Ry gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
-            self.add_operation(
-                _Ry_operation(self.num_qubits, variablegroup_tuple), variablegroup_tuple
-            )
+            self.add_operation(_Ry_operation(self.num_qubits, variablegroup_tuple))
         else:
-            self.add_operation(
-                _Ry_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
-            )
+            self.add_operation(_Ry_operation(self.num_qubits, variablegroup_tuple, map))
 
     def Rz(self, *variablegroup_tuple, map=None):
         """
-        variablegroup_tuple is a tuple of variable types (x1,x2 etc.)
+        Adds a Rz gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
         if map == None:
-            self.add_operation(
-                _Rz_operation(self.num_qubits, variablegroup_tuple), variablegroup_tuple
-            )
+            self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple))
         else:
-            self.add_operation(
-                _Rz_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
-            )
+            self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple, map))
 
     def P(self, *variablegroup_tuple, map=None):
+        """
+        Adds a P gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
+        """
         if map == None:
             if len(variablegroup_tuple) != 1:
                 raise ValueError("There must be one variable group for a P gate.")
-            self.add_operation(
-                _P_operation(self.num_qubits, variablegroup_tuple), variablegroup_tuple
-            )
+            self.add_operation(_P_operation(self.num_qubits, variablegroup_tuple))
         else:
-            self.add_operation(
-                _P_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
-            )
+            self.add_operation(_P_operation(self.num_qubits, variablegroup_tuple, map))
 
     def U(self, *variablegroup_tuple):
+        """
+        Adds a U gate layer.
+
+        Args:
+            variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
+        """
         map = None
         if isinstance(variablegroup_tuple[0], tuple):
             variablegroup_tuple = variablegroup_tuple[0]
         if map == None:
             if len(variablegroup_tuple) != 3:
                 raise ValueError("There must be three variable groups for a U gate.")
-            self.add_operation(
-                _U_operation(self.num_qubits, variablegroup_tuple), variablegroup_tuple
-            )
+            self.add_operation(_U_operation(self.num_qubits, variablegroup_tuple))
         else:
-            self.add_operation(
-                _U_operation(self.num_qubits, variablegroup_tuple, map),
-                variablegroup_tuple,
-            )
+            self.add_operation(_U_operation(self.num_qubits, variablegroup_tuple, map))
 
     def ch_entangling(self, ent_strategy="NN"):
         """
         Adds a controlled x entangling layer.
-        args:
+        Args:
             Optional:
                 ent_strategy: the entangling strategy (NN or AA)
                     Default ("NN"): Adds a controlled x nearest neighbor entangling operation
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        self.add_operation(
-            _CH_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None
-        )
+        self.add_operation(_CH_entangle_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def cx_entangling(self, ent_strategy="NN"):
         """
@@ -949,9 +1097,8 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        self.add_operation(
-            _CX_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None
-        )
+        # self.add_operation(_CX_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None)
+        self.add_operation(_CX_entangle_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def cy_entangling(self, ent_strategy="NN"):
         """
@@ -963,9 +1110,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        self.add_operation(
-            _CY_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None
-        )
+        self.add_operation(_CY_entangle_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def cz_entangling(self, ent_strategy="NN"):
         """
@@ -977,9 +1122,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        self.add_operation(
-            _CZ_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None
-        )
+        self.add_operation(_CZ_entangle_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def swap(self, ent_strategy="NN"):
         """
@@ -991,7 +1134,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        self.add_operation(_SWAP_operation(self.num_qubits, None, ent_strategy, map=None), None)
+        self.add_operation(_SWAP_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def cp_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1004,16 +1147,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _CP_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_CP_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def crx_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1026,16 +1160,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _CRX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_CRX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def cry_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1048,16 +1173,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _CRY_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_CRY_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def crz_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1070,16 +1186,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _CRZ_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_CRZ_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def rxx_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1092,16 +1199,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _RXX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_RXX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def ryy_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1114,16 +1212,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _RYY_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_RYY_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def rzx_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1136,16 +1225,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _RZX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_RZX_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def rzz_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1158,16 +1238,7 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _RZZ_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_RZZ_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     def cu_entangling(self, *variablegroup_tuple, ent_strategy="NN", map=None):
         """
@@ -1184,16 +1255,7 @@ class LayeredPQC:
             variablegroup_tuple = variablegroup_tuple[0]
         if map != None:
             raise AttributeError("There must be no map for a cu entangling layer.")
-        if ent_strategy == "NN":
-            number_of_variables = self.num_qubits - 1
-        else:
-            number_of_variables = sum(x for x in range(1, self.num_qubits))
-        variable_num_list = [number_of_variables for i in range(len(variablegroup_tuple))]
-        self.add_operation(
-            _CU_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map),
-            variablegroup_tuple,
-            variable_num_list,
-        )
+        self.add_operation(_CU_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
     @classmethod
     def from_string(cls, num_qubits: int, gate_layers: str, variable_groups=None):
@@ -1744,20 +1806,11 @@ class LayerPQC(LayeredPQC):
     def __init__(self, encoding_circuit: LayeredPQC):
         super().__init__(encoding_circuit.num_qubits, encoding_circuit.variable_groups)
 
-    def add_operation(
-        self, operation: _operation, variablegroup_tuple: tuple, variable_num_list=None
-    ):
+    def add_operation(self, operation: _operation):
         """
         like the parent add_operation method with the exception, that we mustn't count the variable groups up, otherwise it would count once too much
         """
-        if variablegroup_tuple == None:
-            self.operation_list.append([operation, None])
-        else:
-            # For the case that there are variables given but without an information about how often they are used, set variable_dif_list to [number of qubits] on default
-            if variable_num_list == None:
-                variable_num_list = [self.num_qubits for i in range(len(variablegroup_tuple))]
-            # adds the operation with the tuple of the variable groups used for this operation and the number of variables used per group:
-            self.operation_list.append([operation, variablegroup_tuple, variable_num_list])
+        self.operation_list.append(operation)
 
 
 class ConvertedLayeredEncodingCircuit(EncodingCircuitBase):
@@ -2039,6 +2092,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         num_features: int,
         feature_str: str = "x",
         parameter_str: str = "p",
+        **kwargs,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self._feature_str = feature_str
@@ -2046,11 +2100,55 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         self._x = VariableGroup(self._feature_str, size=num_features)
         self._p = VariableGroup(self._parameter_str)
         self._layered_pqc = LayeredPQC(num_qubits=num_qubits, variable_groups=(self._x, self._p))
+        self._encoding_circuit_str = ""
+
+        if kwargs:
+            self.set_params(**kwargs)
 
     @property
     def num_parameters(self) -> int:
         """Returns number of parameters of the Layered Encoding Circuit"""
         return self._layered_pqc.get_number_of_variables(self._p)
+
+    def get_params(self, deep: bool = True) -> dict:
+        params = self._layered_pqc.get_params(deep)
+        params["num_features"] = self._num_features
+        params["feature_str"] = self._feature_str
+        params["encoding_circuit_str"] = self._encoding_circuit_str
+        return params
+
+    def set_params(self, **params) -> None:
+        if "encoding_circuit_str" in params:
+            self._encoding_circuit_str = params["encoding_circuit_str"]
+            self._p.total_variables_used = 0
+            self._layered_pqc = LayeredPQC.from_string(
+                self._num_qubits,
+                self._encoding_circuit_str,
+                (self._x, self._p),
+            )
+
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        if "num_features" in params:
+            self._num_features = params["num_features"]
+            self._x.size = params["num_features"]
+
+        if "num_qubits" in params:
+            self._num_qubits = params["num_qubits"]
+
+        dict_layered_pqc = {}
+        for key in params.keys():
+            if key in self._layered_pqc.get_params().keys():
+                dict_layered_pqc[key] = params[key]
+        self._layered_pqc.set_params(**dict_layered_pqc)
+
+        return self
 
     def get_circuit(
         self,
@@ -2097,13 +2195,15 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         """
 
-        encoding_circuit_str *= num_layers
         layered_encoding_circuit = cls(num_qubits, num_features, feature_str, parameter_str)
         layered_encoding_circuit._layered_pqc = LayeredPQC.from_string(
             num_qubits,
             encoding_circuit_str,
             (layered_encoding_circuit._x, layered_encoding_circuit._p),
         )
+        if num_layers > 1:
+            layered_encoding_circuit.set_params(num_layers=num_layers)
+        layered_encoding_circuit._encoding_circuit_str = encoding_circuit_str
         return layered_encoding_circuit
 
     def add_layer(self, layer, num_layers=1) -> None:
@@ -2487,3 +2587,71 @@ class Layer(LayeredEncodingCircuit):
     def layered_pqc(self):
         """Returns the LayerPQC object of the Layered Encoding Circuit"""
         return self._layered_pqc
+
+
+class _operation_layer:
+    """
+    class for the operation_list in LayeredPQC. Stores layers of operations, which are created by the Layer class.
+    """
+
+    def __init__(self, layer: LayerPQC, num_layers: int = 1, layer_number: int = 1) -> None:
+        self.layer = layer
+        self.num_layers = num_layers
+        self.layer_number = layer_number
+
+    def change_qubits(self, value):
+        """
+        This method is called by the set_params method, if the user changes the number of qubits of the whole encoding circuit.
+        """
+        # increases or decreases how often variable groups are used depending on the entangling strategy:
+        # for i in range(self.num_layers):
+        for operation in self.layer.operation_list:
+            var_group_tuple = operation.variablegroup_tuple
+            operation.num_qubits = value
+            if var_group_tuple != None:
+                if operation.ent_strategy == None:
+                    for var_group in var_group_tuple:
+                        var_group.increase_used_number_of_variables(
+                            self.num_layers * (value - self.layer.num_qubits)
+                        )
+                elif operation.ent_strategy == "NN":
+                    for var_group in var_group_tuple:
+                        var_group.increase_used_number_of_variables(
+                            self.num_layers * (value - self.layer.num_qubits)
+                        )
+                else:  # That should be the "AA" case:
+                    for var_group in var_group_tuple:
+                        old_num_of_variables = sum(x for x in range(1, self.layer.num_qubits))
+                        new_num_of_variables = sum(x for x in range(1, value))
+                        var_group.increase_used_number_of_variables(
+                            self.num_layers * (new_num_of_variables - old_num_of_variables)
+                        )
+        self.layer._num_qubits = value
+
+    def change_num_layers(self, value):
+        """
+        This method is called by the set_params method, if the user changes the number of layers of the layer attribute of this operation_layer object (self).
+        """
+        # It's simliar to the algorithm in add_operation but with the exception that we multiply the number of variables with the difference between the new and the old number of layers:
+        num_layers_difference = value - self.num_layers
+        num_qubits = self.layer.num_qubits
+        for layer_operation in self.layer.operation_list:
+            variablegroup_tuple = layer_operation.variablegroup_tuple
+            if variablegroup_tuple != None:
+                if layer_operation.ent_strategy == None:
+                    number_of_variables = num_qubits
+                elif layer_operation.ent_strategy == "NN":
+                    number_of_variables = num_qubits - 1
+                else:  # This should be the "AA" case:
+                    number_of_variables = sum(x for x in range(1, num_qubits))
+                variable_num_list = [
+                    num_layers_difference * number_of_variables
+                    for i in range(len(variablegroup_tuple))
+                ]
+                iteration_counter = 0
+                for variablegroup in variablegroup_tuple:
+                    variablegroup.increase_used_number_of_variables(
+                        variable_num_list[iteration_counter]
+                    )
+                    iteration_counter += 1
+        self.num_layers = value

@@ -175,13 +175,13 @@ class ShotsFromRSTD(ShotControlBase):
         shots = int(np.divide(variance, np.square(value) * np.square(self.rstd_bound)))
         num_shots = min(max(shots, self.min_shots), self.max_shots)
         self._executor.set_shots(num_shots)
-        print(
-            "Set shots for gradient evaluation to: ",
-            num_shots,
-            " ( RSTD: ",
-            "%0.3f" % np.divide(np.sqrt(variance / num_shots), value),
-            ")",
-        )
+        # print(
+        #     "Set shots for gradient evaluation to: ",
+        #     num_shots,
+        #     " ( RSTD: ",
+        #     "%0.3f" % np.divide(np.sqrt(variance / num_shots), value),
+        #     ")",
+        # )
 
 
 def train(

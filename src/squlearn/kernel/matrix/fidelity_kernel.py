@@ -167,6 +167,7 @@ class FidelityKernel(KernelMatrixBase):
         for key in params.keys():
             if key in self._encoding_circuit.get_params().keys():
                 dict_encoding_circuit[key] = params[key]
+
         self._encoding_circuit.set_params(**dict_encoding_circuit)
 
         if "evaluate_duplicates" in params.keys():
@@ -190,6 +191,18 @@ class FidelityKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
+        """
+        Evaluates the fidelity kernel matrix.
+
+        Args:
+            x (np.ndarray) :
+                Vector of training or test data for which the kernel matrix is evaluated
+            y (np.ndarray, default=None) :
+                Vector of training or test data for which the kernel matrix is evaluated
+        Returns:
+            Returns the quantum kernel matrix as 2D numpy array.
+        """
+
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -198,7 +211,6 @@ class FidelityKernel(KernelMatrixBase):
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-
             self._quantum_kernel.assign_training_parameters(self._parameters)
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
