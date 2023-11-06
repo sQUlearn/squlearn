@@ -5,6 +5,8 @@ on:
 jobs:
   doc_checks:
     runs-on: ubuntu-latest
+    env:
+      QISKIT_SETTINGS: ${{github.workspace}}/docs/qiskit_settings.conf
 
     steps:
         - name: Cancel Workflow Action
