@@ -970,7 +970,11 @@ class QNN:
             # if get rid of unncessary arrays to fit the input vector nesting
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                val_final = val[iexpec]
+                if isinstance(val[iexpec], object):
+                    # tolist() is needed, since numpy array conversion is otherwise hanging
+                    val_final = np.array(val[iexpec].tolist(), dtype=float)
+                else:
+                    val_final = val[iexpec]
                 reshape_list = []
                 shape = val_final.shape
                 if multi_x:
