@@ -15,7 +15,7 @@ class KernelOptimizerBase:
             Optimizer from squlearn.optimizers used for finding the minimum of the respective
             loss function.
         initial_parameters (Optional[Sequence[float]]) :
-            Initial guess for the feature map's trainable parameters which are to be optimized
+            Initial guess for the encoding circuit's trainable parameters which are to be optimized
     """
 
     def __init__(
@@ -28,12 +28,12 @@ class KernelOptimizerBase:
         self._optimizer = optimizer
         self._initial_parameters = initial_parameters
 
-    def run_optimization(self, x: np.ndarray, y: np.ndarray = None):
+    def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
         """
         Empty function to start running the actual optimization.
 
         Args:
-            x (np.ndarray) :
+            X (np.ndarray) :
                 Data set features
             y (np.ndarray) :
                 Data set labels

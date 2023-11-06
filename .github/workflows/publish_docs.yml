@@ -2,11 +2,14 @@ name: Publish to GH Pages
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
     publish-pages:
       name: Publish to GH Pages
       runs-on: ubuntu-latest
+      env:
+        QISKIT_SETTINGS: ${{github.workspace}}/docs/qiskit_settings.conf
       steps:
           - name: Checkout Source Code
             uses: actions/checkout@v2
@@ -14,8 +17,9 @@ jobs:
             uses: actions/checkout@v2
             with:
               repository: sQUlearn/squlearn.github.io
+              fetch-depth: 0
               path: "docs/_build"
-              token: ${{ secrets.GITHUB_TOKEN }}
+              token: ${{ secrets.PUSH_DOCS_TOKEN }}
           - name: Build Docs
             uses: sQUlearn/sphinx-action@master
             with:
@@ -29,9 +33,14 @@ jobs:
               git config --global user.name "github-actions[bot]"
               git add .
               git commit -m "update documentation ${{ github.event.release.tag_name }}"
+          - name: Tag
+            run: |
               git tag -a "${{ github.event.release.tag_name }}" -m "${{ github.event.release.name}}"
+            if: github.event_name == 'release'
           - name: Push Changes
             uses: ad-m/github-push-action@master
             with:
+              github_token: ${{ secrets.PUSH_DOCS_TOKEN }}
               directory: docs/_build
               repository: sQUlearn/squlearn.github.io
+              force: true

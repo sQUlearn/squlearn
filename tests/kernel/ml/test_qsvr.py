@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.feature_map import HZCRxCRyCRz
+from squlearn.encoding_circuit import MultiControlEncodingCircuit
 from squlearn.kernel import QSVR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,9 +30,12 @@ class TestQSVR:
         """QSVR module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
-            feature_map, executor=executor, regularization="thresholding", mit_depol_noise="msplit"
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
         )
         return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
 
@@ -41,9 +44,9 @@ class TestQSVR:
         """QSVR module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        feature_map = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
-            feature_map, executor=executor, regularization="thresholding"
+            encoding_circuit, executor=executor, regularization="thresholding"
         )
         return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
 
@@ -112,8 +115,10 @@ class TestQSVR:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
-    def test_feature_map_params_can_be_changed_after_initialization(self, qsvr, request, data):
-        """Tests concerning the feature map parameter changes."""
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qsvr, request, data
+    ):
+        """Tests concerning the encoding circuit parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
         assert qsvr_instance.get_params()["num_layers"] == 2
         qsvr_instance.set_params(num_layers=4)
@@ -124,7 +129,7 @@ class TestQSVR:
         try:
             qsvr_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qsvr_pqk, data):
         """Tests concerning the PQK parameter changes."""
@@ -143,7 +148,7 @@ class TestQSVR:
         try:
             qsvr_pqk.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map parameters"
+            assert False, f"fitting not possible after changes to encoding circuit parameters"
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qsvr, request):

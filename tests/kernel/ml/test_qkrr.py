@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.feature_map import ParamZFeatureMap
+from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.kernel import QKRR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,9 +30,11 @@ class TestQKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        feature_map = ParamZFeatureMap(num_qubits=3, num_features=2, num_layers=2, entangling=True)
+        encoding_circuit = ParamZFeatureMap(
+            num_qubits=3, num_features=2, num_layers=2, entangling=True
+        )
         kernel = FidelityKernel(
-            feature_map=feature_map,
+            encoding_circuit=encoding_circuit,
             executor=executor,
             regularization="thresholding",
             mit_depol_noise="msplit",
@@ -44,9 +46,11 @@ class TestQKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)  # why?
         executor = Executor("statevector_simulator")
-        feature_map = ParamZFeatureMap(num_qubits=3, num_features=2, num_layers=2, entangling=True)
+        encoding_circuit = ParamZFeatureMap(
+            num_qubits=3, num_features=2, num_layers=2, entangling=True
+        )
         kernel = ProjectedQuantumKernel(
-            feature_map=feature_map, executor=executor, regularization="thresholding"
+            encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )
         return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
 
@@ -94,8 +98,10 @@ class TestQKRR:
             assert False, f"fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
-    def test_feature_map_params_can_be_changed_after_initialization(self, qkrr, request, data):
-        """Tests concerning the feature map parameter changes."""
+    def test_encoding_circuit_params_can_be_changed_after_initialization(
+        self, qkrr, request, data
+    ):
+        """Tests concerning the encoding circuit parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
         assert qkrr_instance.get_params()["num_layers"] == 2
         qkrr_instance.set_params(num_layers=4)
@@ -106,7 +112,7 @@ class TestQKRR:
         try:
             qkrr_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to feature map paramaeters"
+            assert False, f"fitting not possible after changes to encoding circuit paramaeters"
 
     def test_pqk_params_can_be_changes_after_initialization(self, qkrr_pqk, data):
         """Tests concerning changes if PQK parameters."""

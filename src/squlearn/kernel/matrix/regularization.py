@@ -5,7 +5,7 @@ import scipy
 def thresholding_regularization(gram_matrix):
     """
     Thresholding regularization method of a Gram matrix (full or training kernel matrix)
-    according to this `paper <https://arxiv.org/pdf/2105.02276.pdf>`_ to recover positive
+    according to this `paper <https://arxiv.org/abs/2105.02276>`_ to recover positive
     semi-definiteness. This method only changes the negative eigenvalues of the matrix by
     setting them to zero. This is done via a full eigenvalue decomposition, adjustment of
     the negative eigenvalues and composition of the adjusted spectrum and the original
