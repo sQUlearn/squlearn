@@ -55,6 +55,7 @@ dev = [
 examples = [
     "jupyter",
     "matplotlib>=3.5",
+    "mlflow",
     "pandas",
     "pylatexenc>=2.10",
     "seaborn",
