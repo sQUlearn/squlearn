@@ -793,16 +793,9 @@ class QNN:
 
         """
 
-        print("values",values)
-        print("x",x)
-        print("param",param)
-        print("param_op",param_op)
-
         def generate_real_todo_dic(values, value_dict):
             """Converts the input values into a sorted dictionary
             of of Expec items"""
-
-            values = tuple(sorted(values))
 
             # helper function for adding elemets to the real todo dict
             def add_to_real_todo_dic(item: Expec, real_todo_dic, value_dict):
@@ -919,8 +912,6 @@ class QNN:
         # variance set-up is created here
         real_todo_dic = generate_real_todo_dic(values, value_dict)
 
-        print("real_todo_dic",real_todo_dic)
-        
         for key, op_list in real_todo_dic.items():
             # Obtained the derivative from the operator module
 
@@ -942,8 +933,6 @@ class QNN:
                 )
             else:
                 raise ValueError("No execution is set!")
-
-            print("val",val)
 
             # Swapp results into the following order:
             # 1. different observables (op_list)
@@ -1075,6 +1064,4 @@ class QNN:
         if self._result_caching:
             self.result_container[caching_tuple] = value_dict
 
-        print("value_dict",value_dict)
-        
         return value_dict
