@@ -899,6 +899,10 @@ class QNN:
         if not isinstance(values, tuple):
             values = (values,)
 
+        # Sort the values, more complicated because values can be tuples of ParameterVectors
+        indices = np.argsort([str(t) for t in values])
+        values = tuple([values[i] for i in indices])
+
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
         if self._result_caching == True:

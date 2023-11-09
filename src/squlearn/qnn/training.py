@@ -303,7 +303,6 @@ def train(
             weights=weights_values,
             iteration=iteration,
         )
-        print("loss_value",loss_value)
         return loss_value
 
     def _grad(theta):
@@ -354,7 +353,6 @@ def train(
             ),
             axis=None,
         )
-        print("grad",grad)
         return grad
 
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
