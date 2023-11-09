@@ -151,8 +151,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        print("shots in evaluate:",self._qnn._executor.get_shots())
-
         return self._qnn.evaluate_f(X, self._param, self._param_op)
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
