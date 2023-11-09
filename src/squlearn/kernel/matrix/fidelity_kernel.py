@@ -157,7 +157,7 @@ class FidelityKernel(KernelMatrixBase):
 
         # Check if all parameters are valid
         valid_params = self.get_params()
-        for key, value in params.items():
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
@@ -216,8 +216,6 @@ class FidelityKernel(KernelMatrixBase):
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
-
-        print("self._enc_circ",self._enc_circ)
 
         if y is None:
             y = x

@@ -72,6 +72,7 @@ class ShotControlBase:
 
     def __init__(self) -> None:
         self._executor = None
+        self._initial_shots = None
 
     def set_executor(self, executor: Executor) -> None:
         """Function for setting the executor that is used for the shot control.
@@ -80,11 +81,26 @@ class ShotControlBase:
             executor (Executor): Executor instance
         """
         self._executor = executor
+        self._initial_shots = self._executor.shots
 
     @property
     def executor(self) -> Executor:
         """Executor of that is used for shot control"""
         return self._executor
+
+    @property
+    def shots(self) -> int:
+        """Current number of shots"""
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+        return self._executor.shots
+
+    def reset_shots(self) -> None:
+        """Reset the shots to the initial value."""
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+        if self._initial_shots is not None:
+            self._executor.set_shots(self._initial_shots)
 
     def set_shots_for_loss(self, **kwargs):
         """Function for setting the shots for the loss function evaluation.
@@ -94,9 +110,7 @@ class ShotControlBase:
         Args:
             kwargs: Keyword arguments for the loss function evaluation
         """
-        if self._executor is None:
-            raise ValueError("Executor not set, call set_executor() first")
-        self._executor.reset_shots()
+        self.reset_shots()
 
     def set_shots_for_grad(self, **kwargs):
         """Function for setting the shots for the gradient evaluation.
@@ -108,7 +122,7 @@ class ShotControlBase:
         """
         if self._executor is None:
             raise ValueError("Executor not set, call set_executor() first")
-        self._executor.reset_shots()
+        self.reset_shots()
 
 
 class ShotsFromRSTD(ShotControlBase):

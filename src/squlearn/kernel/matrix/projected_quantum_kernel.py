@@ -495,8 +495,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
 
-        print("params", params)
-
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
         outer_kernel_input_backup = self._outer_kernel_input
@@ -574,10 +572,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set Remaining QNN parameters
         dict_qnn = {}
-        for key, value in params.keys():
+        for key, value in params.items():
             if key in self._qnn.get_params():
                 dict_qnn[key] = value
-        for key, value in dict_qnn.keys():
+        for key in dict_qnn.keys():
             params.pop(key)
         if len(dict_qnn) > 0:
             self._qnn.set_params(**dict_qnn)
@@ -601,11 +599,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
 
-        if self.num_parameters == num_parameters_backup:
-            self._parameters = parameters_backup
-
         if "regularization" in params.keys():
             self._regularization = params["regularization"]
+            params.pop("regularization")
+
+        if self.num_parameters == num_parameters_backup:
+            self._parameters = parameters_backup
 
         if len(params) > 0:
             raise ValueError("The following parameters could not be assigned:",params)
