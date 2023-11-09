@@ -607,7 +607,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
         if len(params) > 0:
-            raise ValueError("The following parameters could not be assigned:",params)
+            raise ValueError("The following parameters could not be assigned:", params)
 
     @property
     def num_hyper_parameters(self) -> int:

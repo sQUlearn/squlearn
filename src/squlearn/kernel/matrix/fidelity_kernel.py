@@ -168,7 +168,6 @@ class FidelityKernel(KernelMatrixBase):
             self._encoding_circuit = params["encoding_circuit"]
             params.pop("encoding_circuit")
 
-
         dict_encoding_circuit = {}
         for key in params.keys():
             if key in self._encoding_circuit.get_params().keys():
@@ -202,7 +201,7 @@ class FidelityKernel(KernelMatrixBase):
             self._parameters = parameters_backup
 
         if len(params) > 0:
-            raise ValueError("The following parameters could not be assigned:",params)
+            raise ValueError("The following parameters could not be assigned:", params)
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
         """
