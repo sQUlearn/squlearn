@@ -10,6 +10,7 @@ if "%SPHINXBUILD%" == "" (
 set SOURCEDIR=.
 set MODDIR=.\modules\generated
 set BUILDDIR=_build
+set QISKIT_SETTINGS=%CD%\qiskit_settings.conf
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (

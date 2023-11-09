@@ -70,7 +70,6 @@ class QSVR(SVR):
 
     def __init__(
         self,
-        *,
         quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
