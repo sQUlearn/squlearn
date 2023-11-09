@@ -297,12 +297,14 @@ def train(
 
         loss_values = qnn.evaluate(loss.loss_args_tuple, input_values, param, param_op)
 
-        return loss.value(
+        loss_value = loss.value(
             loss_values,
             ground_truth=ground_truth,
             weights=weights_values,
             iteration=iteration,
         )
+        print("loss_value",loss_value)
+        return loss_value
 
     def _grad(theta):
         nonlocal iteration
@@ -341,7 +343,7 @@ def train(
                     raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
         grad_values = qnn.evaluate(loss.gradient_args_tuple, input_values, param, param_op)
-        return np.concatenate(
+        grad = np.concatenate(
             loss.gradient(
                 grad_values,
                 ground_truth=ground_truth,
@@ -352,6 +354,8 @@ def train(
             ),
             axis=None,
         )
+        print("grad",grad)
+        return grad
 
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
 

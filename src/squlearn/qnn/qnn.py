@@ -802,6 +802,8 @@ class QNN:
             """Converts the input values into a sorted dictionary
             of of Expec items"""
 
+            values = tuple(sorted(values))
+
             # helper function for adding elemets to the real todo dict
             def add_to_real_todo_dic(item: Expec, real_todo_dic, value_dict):
                 if item not in value_dict:
@@ -917,6 +919,8 @@ class QNN:
         # variance set-up is created here
         real_todo_dic = generate_real_todo_dic(values, value_dict)
 
+        print("real_todo_dic",real_todo_dic)
+        
         for key, op_list in real_todo_dic.items():
             # Obtained the derivative from the operator module
 
