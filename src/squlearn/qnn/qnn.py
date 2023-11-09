@@ -793,6 +793,11 @@ class QNN:
 
         """
 
+        print("values",values)
+        print("x",x)
+        print("param",param)
+        print("param_op",param_op)
+
         def generate_real_todo_dic(values, value_dict):
             """Converts the input values into a sorted dictionary
             of of Expec items"""
@@ -934,6 +939,8 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
+            print("val",val)
+
             # Swapp results into the following order:
             # 1. different observables (op_list)
             # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
@@ -1064,4 +1071,6 @@ class QNN:
         if self._result_caching:
             self.result_container[caching_tuple] = value_dict
 
+        print("value_dict",value_dict)
+        
         return value_dict

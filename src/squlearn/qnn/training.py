@@ -140,7 +140,8 @@ class ShotsFromRSTD(ShotControlBase):
     Args:
         rstd_bound (float): Bound for the RSTD of the loss (default: 0.1)
         min_shots (int): Minimal number of shots (default: 100)
-        max_shots (int): Maximal number of shots (default: 5000)
+        max_shots (int): Maximal number of shots, is also used for function evaluation
+                         (default: 5000)
 
     References:
         [1] D. A. Kreplin and M. Roth "Reduction of finite sampling noise in quantum neural networks".
@@ -154,6 +155,15 @@ class ShotsFromRSTD(ShotControlBase):
         self.rstd_bound = rstd_bound
         self.min_shots = min_shots
         self.max_shots = max_shots
+        self._initial_shots = max_shots
+
+    def set_executor(self, executor: Executor) -> None:
+        """Function for setting the executor that is used for the shot control.
+
+        Args:
+            executor (Executor): Executor instance
+        """
+        self._executor = executor
 
     def set_shots_for_loss(self, **kwargs):
         """Function for setting the shots for the loss function evaluation.

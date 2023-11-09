@@ -149,7 +149,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             warn("The model is not fitted.")
 
         if self.shot_control is not None:
-            self.shot_control.reset()
+            self.shot_control.reset_shots()
+
+        print("shots in evaluate:",self._qnn._executor.get_shots())
 
         return self._qnn.evaluate_f(X, self._param, self._param_op)
 

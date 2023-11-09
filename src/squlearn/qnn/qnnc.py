@@ -151,7 +151,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             raise RuntimeError("The model is not fitted.")
 
         if self.shot_control is not None:
-            self.shot_control.reset()
+            self.shot_control.reset_shots()
 
         pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         return self._label_binarizer.inverse_transform(pred)
