@@ -151,6 +151,15 @@ class BaseQNN(BaseEstimator, ABC):
 
         self._is_fitted = self.pretrained
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_pbar"]
+        return state
+
+    def __setstate__(self, state) -> None:
+        state.update({"_pbar": None})
+        return super().__setstate__(state)
+
     @property
     def param(self) -> np.ndarray:
         """Parameters of the PQC."""
