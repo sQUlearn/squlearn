@@ -677,7 +677,7 @@ class Executor:
 
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
-                kwargs["seed"] = self._set_seed_for_primitive
+                kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
 
         def run():
