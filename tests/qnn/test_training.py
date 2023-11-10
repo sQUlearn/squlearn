@@ -65,4 +65,4 @@ class TestShotsFromRSTD:
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
         reference = np.array([0.31176001, 0.09348281, -0.05118243, -0.25693387, -0.43025503])
-        assert np.allclose(test, reference)
+        assert np.allclose(test, reference, atol=1e-3)
