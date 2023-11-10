@@ -218,13 +218,15 @@ class Executor:
         if execution is None and backend is not None:
             # Only backend is given
             execution = backend
-
         if isinstance(execution, str):
             # Execution is a string -> get backend
             if execution == "statevector_simulator":
                 self._backend = Aer.get_backend(execution)
             elif execution == "qasm_simulator":
                 self._backend = Aer.get_backend(execution)
+                shots_backend = self._backend.options.shots
+                if shots is None:
+                    shots = shots_backend
             elif "ibm" in execution:
                 raise ValueError(
                     "IBM backend are not supported by string input, since credentials are missing "
@@ -239,6 +241,10 @@ class Executor:
                 self._service = execution.service
             self._backend = execution
             self._execution_origin = "Backend"
+            if shots is None:
+                shots = self._backend.options.shots
+                if "statevector_simulator" in str(self._backend):
+                    shots = None
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
             if isinstance(backend, str):
@@ -249,6 +255,10 @@ class Executor:
                 raise ValueError("Backend has to be specified for QiskitRuntimeService")
             else:
                 raise ValueError("Unknown backend type: " + backend)
+            if shots is None:
+                shots = self._backend.options.shots
+                if "statevector_simulator" in str(self._backend):
+                    shots = None
             self._execution_origin = "QiskitRuntimeService"
         elif isinstance(execution, Session):
             # Execution is a active? session
@@ -257,6 +267,10 @@ class Executor:
             self._backend = self._session.service.get_backend(self._session.backend())
             self._session_active = True
             self._execution_origin = "Session"
+            if shots is None:
+                shots = self._backend.options.shots
+                if "statevector_simulator" in str(self._backend):
+                    shots = None
         elif isinstance(execution, BaseEstimator):
             self._estimator = execution
             if isinstance(self._estimator, qiskit_primitives_Estimator):
@@ -266,7 +280,11 @@ class Executor:
                 self._backend = self._estimator._backend
                 shots_estimator = self._estimator.options.get("shots",0)
                 if shots_estimator == 0:
-                    self._estimator.set_options(shots=1024)
+                    if shots is None:
+                        shots = 1024
+                    self._estimator.set_options(shots=shots)
+                else:
+                    shots = shots_estimator
             # Real Backend
             elif hasattr(self._estimator, "session"):
                 self._session = self._estimator.session
@@ -291,9 +309,13 @@ class Executor:
                 self._backend = Aer.get_backend("statevector_simulator")
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._backend = self._sampler._backend
-                shots_backend = self._sampler.options.get("shots",0)
-                if shots_backend == 0:
-                    self._sampler.set_options(shots=1024)
+                shots_sampler = self._sampler.options.get("shots",0)
+                if shots_sampler == 0:
+                    if shots is None:
+                        shots = 1024
+                    self._sampler.set_options(shots=shots)
+                else:
+                    shots = shots_sampler
             elif hasattr(self._sampler, "session"):
                 self._session = self._sampler.session
                 self._service = self._sampler.session.service
@@ -322,7 +344,7 @@ class Executor:
         self.set_shots(shots)
         self._inital_num_shots = self.get_shots()
         # if shots is None:
-            
+
         # else:
         #     self._inital_num_shots = shots
         #     self.set_shots(shots)
@@ -801,7 +823,6 @@ class Executor:
         """
 
         self._shots = num_shots
-        print("self._shots",self._shots)
 
         if num_shots is None:
             self._logger.info("Set shots to {}".format(num_shots))
@@ -906,6 +927,11 @@ class Executor:
                         "The number of shots of the given \
                                       Estimator and Sampler is not equal!"
                     )
+            if shots_estimator is None:
+                shots_estimator = 0
+            if shots_sampler is None:
+                shots_sampler = 0
+
             shots = max(shots_estimator, shots_sampler)
         elif self._backend is not None:
             if "statevector_simulator" not in str(self._backend):
