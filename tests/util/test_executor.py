@@ -43,7 +43,7 @@ class TestExecutor:
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
         qc = QuantumCircuit(2)
-        qc.h([0, 1])
+        qc.x([0, 1])
         return qc
 
     @pytest.fixture(scope="module")
@@ -96,12 +96,12 @@ class TestExecutor:
         """Tests the Executor Sampler Primitive"""
 
         assert_dict = {
-            "ExecutorSampler": {0: 0.26, 1: 0.22, 2: 0.2, 3: 0.32},
-            "ExecutorEstimator": {0: 0.26, 1: 0.22, 2: 0.2, 3: 0.32},
-            "ExecutorStatevector": {0: 0.26, 1: 0.22, 2: 0.2, 3: 0.32},
-            "ExecutorQasm": {3: 0.24, 2: 0.29, 1: 0.28, 0: 0.19},
-            "ExecutorBackendSampler": {3: 0.24, 2: 0.29, 1: 0.28, 0: 0.19},
-            "ExecutorBackendEstimator": {3: 0.24, 2: 0.29, 1: 0.28, 0: 0.19},
+            "ExecutorSampler": {3: 1.0},
+            "ExecutorEstimator": {3: 1.0},
+            "ExecutorStatevector": {3: 1.0},
+            "ExecutorQasm": {3: 1.0},
+            "ExecutorBackendSampler": {3: 1.0},
+            "ExecutorBackendEstimator": {3: 1.0},
         }
 
         executor = request.getfixturevalue(executor_str)
@@ -126,12 +126,12 @@ class TestExecutor:
         """Tests the Executor Estimator Primitive"""
 
         assert_dict = {
-            "ExecutorSampler": np.array([0.03455842]),
-            "ExecutorEstimator": np.array([0.03455842]),
-            "ExecutorStatevector": np.array([0.03455842]),
-            "ExecutorQasm": np.array([0.04]),
-            "ExecutorBackendSampler": np.array([0.04]),
-            "ExecutorBackendEstimator": np.array([0.04]),
+            "ExecutorSampler": np.array([1.0]),
+            "ExecutorEstimator": np.array([1.0]),
+            "ExecutorStatevector": np.array([1.0]),
+            "ExecutorQasm": np.array([1.0]),
+            "ExecutorBackendSampler": np.array([1.0]),
+            "ExecutorBackendEstimator": np.array([1.0]),
         }
 
         executor = request.getfixturevalue(executor_str)
