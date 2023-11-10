@@ -40,3 +40,10 @@ class TestSolvemini_batch:
                 batch_size=10,
                 epochs=30,
             )
+
+
+class TestShotsFromRSTD:
+
+    pqc = ChebyshevPQC(2, 1, 3, False)
+    cost_op = SummedPaulis(2)
+    qnn = QNN(pqc, cost_op, executor)
