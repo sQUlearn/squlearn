@@ -340,14 +340,10 @@ class Executor:
         else:
             self._remote = False
 
+        # set initial shots
         self._shots = shots
         self.set_shots(shots)
         self._inital_num_shots = self.get_shots()
-        # if shots is None:
-
-        # else:
-        #     self._inital_num_shots = shots
-        #     self.set_shots(shots)
 
         if self._caching is None:
             self._caching = self._remote
@@ -492,7 +488,7 @@ class Executor:
                     options=self._options_sampler,
                 )
             else:
-                if str(self._backend) == "statevector_simulator":
+                if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Sampler
                     self._sampler = qiskit_primitives_Sampler(options=self._options_sampler)
                     self._sampler.set_options(shots=self._shots)
@@ -745,8 +741,6 @@ class Executor:
         Returns:
             A qiskit job containing the results of the run.
         """
-
-        print(type(self.sampler),self.sampler)
 
         if isinstance(self.sampler, qiskit_primitives_BackendSampler):
             if self._set_seed_for_primitive is not None:
