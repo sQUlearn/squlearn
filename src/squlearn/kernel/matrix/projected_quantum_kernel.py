@@ -371,7 +371,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
         # Set-up of the QNN
-        self._qnn = QNN(self._encoding_circuit, self._measurement, executor, result_caching=self._caching)
+        self._qnn = QNN(
+            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+        )
 
         # Set-up of the outer kernel
         self._set_outer_kernel(outer_kernel, **kwargs)

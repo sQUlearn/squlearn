@@ -278,7 +278,7 @@ class Executor:
                 self._backend = Aer.get_backend("statevector_simulator")
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._backend = self._estimator._backend
-                shots_estimator = self._estimator.options.get("shots",0)
+                shots_estimator = self._estimator.options.get("shots", 0)
                 if shots_estimator == 0:
                     if shots is None:
                         shots = 1024
@@ -309,7 +309,7 @@ class Executor:
                 self._backend = Aer.get_backend("statevector_simulator")
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._backend = self._sampler._backend
-                shots_sampler = self._sampler.options.get("shots",0)
+                shots_sampler = self._sampler.options.get("shots", 0)
                 if shots_sampler == 0:
                     if shots is None:
                         shots = 1024
@@ -429,7 +429,7 @@ class Executor:
                         backend=self._backend, options=self._options_estimator
                     )
                     if shots is None:
-                        shots=1024
+                        shots = 1024
 
             if not self._options_estimator:
                 self.set_shots(shots)
@@ -498,7 +498,7 @@ class Executor:
                         backend=self._backend, options=self._options_sampler
                     )
                     if shots is None:
-                        shots=1024
+                        shots = 1024
 
             if not self._options_sampler:
                 self.set_shots(shots)
@@ -704,7 +704,7 @@ class Executor:
                 self._set_seed_for_primitive += 1
         elif isinstance(self.estimator, qiskit_primitives_Estimator):
             if self._set_seed_for_primitive is not None:
-                self.estimator.set_options(seed = self._set_seed_for_primitive)
+                self.estimator.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
@@ -748,7 +748,7 @@ class Executor:
                 self._set_seed_for_primitive += 1
         elif isinstance(self.sampler, qiskit_primitives_Sampler):
             if self._set_seed_for_primitive is not None:
-                self.sampler.set_options(seed = self._set_seed_for_primitive)
+                self.sampler.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
@@ -837,13 +837,13 @@ class Executor:
                 try:
                     self._options_estimator["shots"] = num_shots
                 except:
-                    pass # no option available
+                    pass  # no option available
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._estimator.set_options(shots=num_shots)
                 try:
                     self._options_estimator["shots"] = num_shots
                 except:
-                    pass # no option available
+                    pass  # no option available
             elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
@@ -851,7 +851,7 @@ class Executor:
                 try:
                     self._options_estimator["execution"]["shots"] = num_shots
                 except:
-                    pass # no options_estimator or no execution in options_estimator
+                    pass  # no options_estimator or no execution in options_estimator
             else:
                 raise RuntimeError("Unknown estimator type!")
 
@@ -865,13 +865,13 @@ class Executor:
                 try:
                     self._options_sampler["shots"] = num_shots
                 except:
-                    pass # no option available
+                    pass  # no option available
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._sampler.set_options(shots=num_shots)
                 try:
                     self._options_sampler["shots"] = num_shots
                 except:
-                    pass # no option available
+                    pass  # no option available
             elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
                 execution = self._sampler.options.get("execution")
                 execution["shots"] = num_shots
@@ -879,7 +879,7 @@ class Executor:
                 try:
                     self._options_sampler["execution"]["shots"] = num_shots
                 except:
-                    pass # no options_sampler or no execution in options_sampler
+                    pass  # no options_sampler or no execution in options_sampler
             else:
                 raise RuntimeError("Unknown sampler type!")
 
@@ -895,9 +895,9 @@ class Executor:
             shots_sampler = 0
             if self._estimator is not None:
                 if isinstance(self._estimator, qiskit_primitives_Estimator):
-                    shots_estimator = self._estimator.options.get("shots",0)
+                    shots_estimator = self._estimator.options.get("shots", 0)
                 elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                    shots_estimator = self._estimator.options.get("shots",0)
+                    shots_estimator = self._estimator.options.get("shots", 0)
                 elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
                     execution = self._estimator.options.get("execution")
                     shots_estimator = execution["shots"]
@@ -906,9 +906,9 @@ class Executor:
 
             if self._sampler is not None:
                 if isinstance(self._sampler, qiskit_primitives_Sampler):
-                    shots_sampler = self._sampler.options.get("shots",0)
+                    shots_sampler = self._sampler.options.get("shots", 0)
                 elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
-                    shots_sampler = self._sampler.options.get("shots",0)
+                    shots_sampler = self._sampler.options.get("shots", 0)
                 elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
                     execution = self._sampler.options.get("execution")
                     shots_sampler = execution["shots"]
@@ -1024,7 +1024,7 @@ class Executor:
             self.sampler._run_options = Options()
             self.sampler._run_options.update_options(**options)
 
-    def set_seed_for_primitive(self, seed:int=0):
+    def set_seed_for_primitive(self, seed: int = 0):
         """Set options values for the estimator run.
 
         Args:
@@ -1032,6 +1032,7 @@ class Executor:
         """
 
         self._set_seed_for_primitive = seed
+
 
 class ExecutorEstimator(BaseEstimator):
     """
