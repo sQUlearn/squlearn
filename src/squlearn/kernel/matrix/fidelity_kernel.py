@@ -99,19 +99,28 @@ class FidelityKernel(KernelMatrixBase):
             self._feature_vector, self._parameter_vector
         )
 
-        fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
-        if self._parameter_vector is None:
-            # Fidelity Quantum Kernel without any parameters
-            self._quantum_kernel = FidelityQuantumKernel(
-                feature_map=self._enc_circ,
-                fidelity=fidelity,
-                evaluate_duplicates=self._evaluate_duplicates,
-            )
+        if self._executor.execution == "Sampler" or isinstance(self._executor.backend, IBMBackend):
+            fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+            if self._parameter_vector is None:
+                # Fidelity Quantum Kernel without any parameters
+                self._quantum_kernel = FidelityQuantumKernel(
+                    feature_map=self._enc_circ,
+                    fidelity=fidelity,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                )
+            else:
+                # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
+                self._quantum_kernel = TrainableFidelityQuantumKernel(
+                    feature_map=self._enc_circ,
+                    fidelity=fidelity,
+                    training_parameters=self._parameter_vector,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                )
         else:
-            # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
-            self._quantum_kernel = TrainableFidelityQuantumKernel(
+            # Will be soon deprecated!
+            self._quantum_kernel = QuantumKernel(
                 feature_map=self._enc_circ,
-                fidelity=fidelity,
+                quantum_instance=self._executor.backend,
                 training_parameters=self._parameter_vector,
                 evaluate_duplicates=self._evaluate_duplicates,
             )
