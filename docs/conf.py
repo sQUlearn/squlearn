@@ -10,9 +10,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath("."))
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath('..'))
+
+from squlearn import __version__ as squlearn_version
 
 # -- Project information -----------------------------------------------------
 
@@ -21,7 +24,8 @@ copyright = "2023, Fraunhofer IPA"
 author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = "0.4.0"
+release = squlearn_version
+version = squlearn_version
 
 # -- General configuration ---------------------------------------------------
 
@@ -85,6 +89,7 @@ html_static_path = ["_static"]
 html_logo = "_static/logo.png"
 html_theme_options = {
     'logo_only': True,
+    'display_version': True,
 }
 
 latex_engine = "xelatex"
@@ -101,3 +106,5 @@ intersphinx_mapping = {
     "scipy": ('https://docs.scipy.org/doc/scipy/', None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
 }
+
+suppress_warnings = ["myst.header"]
