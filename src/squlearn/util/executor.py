@@ -752,6 +752,7 @@ class Executor:
                 self._set_seed_for_primitive += 1
 
         def run():
+            print(self._sampler.options)
             return self.sampler.run(circuits, parameter_values, **kwargs)
 
         if self._caching:
@@ -994,6 +995,15 @@ class Executor:
         self.sampler.set_options(**fields)
         self._options_sampler = self.sampler.options
 
+    def set_primitive_options(self, **fields):
+        """Set options values for the estimator and sampler primitive.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self.set_options_estimator(**fields)
+        self.set_options_sampler(**fields)
+
     def reset_options_estimator(self, options: Union[Options, qiskit_ibm_runtime_Options]):
         """
         Overwrites the options for the estimator primitive.
@@ -1024,6 +1034,16 @@ class Executor:
             self.sampler._run_options = Options()
             self.sampler._run_options.update_options(**options)
 
+    def reset_options(self, options: Union[Options, qiskit_ibm_runtime_Options]):
+        """
+        Overwrites the options for the sampler and estimator primitive.
+
+        Args:
+            options: Options for the sampler and estimator
+        """
+        self.reset_options_estimator(options)
+        self.reset_options_sampler(options)
+
     def set_seed_for_primitive(self, seed: int = 0):
         """Set options values for the estimator run.
 
@@ -1049,7 +1069,10 @@ class ExecutorEstimator(BaseEstimator):
 
     def __init__(self, executor: Executor, options=None):
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
-            options_ini = asdict(copy.deepcopy(options))
+            try:
+                options_ini = copy.deepcopy(options).__dict__
+            except:
+                options_ini = asdict(copy.deepcopy(options))
         else:
             options_ini = options
 
@@ -1173,7 +1196,10 @@ class ExecutorSampler(BaseSampler):
 
     def __init__(self, executor: Executor, options=None):
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
-            options_ini = asdict(copy.deepcopy(options))
+            try:
+                options_ini = copy.deepcopy(options).__dict__
+            except:
+                options_ini = asdict(copy.deepcopy(options))
         else:
             options_ini = options
 
