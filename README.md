@@ -1,18 +1,10 @@
-# sQUlearn 0.4.0
+<p align="center">
+  <img src="docs/_static/logo.png" />
+</p>
 
-sQUlearn is a novel Python package introducing Quantum Machine Learning (QML) capabilities to 
-traditional machine learning pipelines via a *high-level / low-level* design approach. The package
-features an array of algorithms including Quantum Support Vector Machines, Quantum Gaussian Processes,
-Quantum Kernel Ridge Regression and Quantum Neural Networks (QNN), all designed to
-seamlessly integrate with scikit-learn. The QNN engine facilitates efficient gradient computation and
-automated training with non-linear parametrized circuits. Users can further customize their QNN
-models, enhancing flexibility and potential outcomes. sQUlearn's kernel engines are designed to
-meet various needs, with fidelity kernels and projected quantum kernels, the latter leveraging
-the QNN engine for optimization. A encoding circuit tool allows for efficient layer-wise design
-based on strings, encouraging innovation beyond standard implementations. Lastly, backend integration 
-with IBM quantum computers is handled with a custom execution engine that optimizes session management
-on quantum backends and simulators, ensuring optimal use
-of quantum resources and creating an accessible environment for QML experimentation.
+---
+
+sQUlearn introduces a user-friendly, NISQ-ready Python library for quantum machine learning (QML), designed for seamless integration with classical machine learning tools like scikit-learn. The library's dual-layer architecture serves both QML researchers and practitioners, enabling efficient prototyping, experimentation, and pipelining. sQUlearn provides a comprehensive toolset that includes both quantum kernel methods and quantum neural networks, along with features like customizable data encoding strategies, automated execution handling, and specialized kernel regularization techniques. By focusing on NISQ-compatibility and end-to-end automation, sQUlearn aims to bridge the gap between current quantum computing capabilities and practical machine learning applications.
 
 ## Prerequisites
 
@@ -49,9 +41,11 @@ Thanks for considering to contribute to sQUlearn! Please read our [contribution 
 
 [Apache License 2.0](https://github.com/sQUlearn/squlearn/blob/main/LICENSE.txt)
 
-## Imprint
-This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA. It started as a collection of implementations of quantum machine learning methods.
+## Contact
+This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA.
 
 [http://www.ipa.fraunhofer.de/quantum](http://www.ipa.fraunhofer.de/quantum)
+
+For general questions regarding sQUlearn, feel free to contact [sQUlearn@gmail.com](mailto:sQUlearn@gmail.com).
 
 ---

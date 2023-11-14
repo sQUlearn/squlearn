@@ -10,9 +10,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath("."))
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(".."))
+
+from squlearn import __version__ as squlearn_version
 
 # -- Project information -----------------------------------------------------
 
@@ -21,7 +24,8 @@ copyright = "2023, Fraunhofer IPA"
 author = "Fraunhofer IPA"
 
 # The full version, including alpha/beta/rc tags
-release = "0.4.0"
+release = squlearn_version
+version = squlearn_version
 
 # -- General configuration ---------------------------------------------------
 
@@ -82,6 +86,15 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_logo = "_static/logo.png"
+html_favicon = "_static/favicon.png"
+html_theme_options = {
+    "logo_only": True,
+    "display_version": True,
+}
+html_css_files = [
+    "css/custom.css",
+]
 
 latex_engine = "xelatex"
 latex_elements = {
@@ -94,6 +107,8 @@ latex_elements = {
 intersphinx_mapping = {
     "qiskit": ("https://qiskit.org/documentation/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
-    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
 }
+
+suppress_warnings = ["myst.header"]

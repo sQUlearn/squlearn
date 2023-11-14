@@ -1,0 +1,22 @@
+@import 'theme.css';
+
+
+a {
+    color: #0fb6c7;
+}
+
+.wy-nav-side {
+    background: #293133;
+}
+
+.wy-side-nav-search {
+    background: #0fb6c7;
+}
+
+.wy-side-nav-search > div.version {
+    color: hsla(0, 0%, 100%, 0.7);
+}
+
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+    color: #0fb6c7;
+}
