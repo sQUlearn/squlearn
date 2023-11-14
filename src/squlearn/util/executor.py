@@ -752,7 +752,6 @@ class Executor:
                 self._set_seed_for_primitive += 1
 
         def run():
-            print(self._sampler.options)
             return self.sampler.run(circuits, parameter_values, **kwargs)
 
         if self._caching:
