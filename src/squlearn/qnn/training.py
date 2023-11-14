@@ -72,6 +72,7 @@ class ShotControlBase:
 
     def __init__(self) -> None:
         self._executor = None
+        self._initial_shots = None
 
     def set_executor(self, executor: Executor) -> None:
         """Function for setting the executor that is used for the shot control.
@@ -80,11 +81,26 @@ class ShotControlBase:
             executor (Executor): Executor instance
         """
         self._executor = executor
+        self._initial_shots = self._executor.shots
 
     @property
     def executor(self) -> Executor:
         """Executor of that is used for shot control"""
         return self._executor
+
+    @property
+    def shots(self) -> int:
+        """Current number of shots"""
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+        return self._executor.shots
+
+    def reset_shots(self) -> None:
+        """Reset the shots to the initial value."""
+        if self._executor is None:
+            raise ValueError("Executor not set, call set_executor() first")
+        if self._initial_shots is not None:
+            self._executor.set_shots(self._initial_shots)
 
     def set_shots_for_loss(self, **kwargs):
         """Function for setting the shots for the loss function evaluation.
@@ -94,9 +110,7 @@ class ShotControlBase:
         Args:
             kwargs: Keyword arguments for the loss function evaluation
         """
-        if self._executor is None:
-            raise ValueError("Executor not set, call set_executor() first")
-        self._executor.reset_shots()
+        self.reset_shots()
 
     def set_shots_for_grad(self, **kwargs):
         """Function for setting the shots for the gradient evaluation.
@@ -108,7 +122,7 @@ class ShotControlBase:
         """
         if self._executor is None:
             raise ValueError("Executor not set, call set_executor() first")
-        self._executor.reset_shots()
+        self.reset_shots()
 
 
 class ShotsFromRSTD(ShotControlBase):
@@ -126,7 +140,8 @@ class ShotsFromRSTD(ShotControlBase):
     Args:
         rstd_bound (float): Bound for the RSTD of the loss (default: 0.1)
         min_shots (int): Minimal number of shots (default: 100)
-        max_shots (int): Maximal number of shots (default: 5000)
+        max_shots (int): Maximal number of shots, is also used for function evaluation
+                         (default: 5000)
 
     References:
         [1] D. A. Kreplin and M. Roth "Reduction of finite sampling noise in quantum neural networks".
@@ -140,6 +155,15 @@ class ShotsFromRSTD(ShotControlBase):
         self.rstd_bound = rstd_bound
         self.min_shots = min_shots
         self.max_shots = max_shots
+        self._initial_shots = max_shots
+
+    def set_executor(self, executor: Executor) -> None:
+        """Function for setting the executor that is used for the shot control.
+
+        Args:
+            executor (Executor): Executor instance
+        """
+        self._executor = executor
 
     def set_shots_for_loss(self, **kwargs):
         """Function for setting the shots for the loss function evaluation.
@@ -273,12 +297,13 @@ def train(
 
         loss_values = qnn.evaluate(loss.loss_args_tuple, input_values, param, param_op)
 
-        return loss.value(
+        loss_value = loss.value(
             loss_values,
             ground_truth=ground_truth,
             weights=weights_values,
             iteration=iteration,
         )
+        return loss_value
 
     def _grad(theta):
         nonlocal iteration
@@ -317,7 +342,7 @@ def train(
                     raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
         grad_values = qnn.evaluate(loss.gradient_args_tuple, input_values, param, param_op)
-        return np.concatenate(
+        grad = np.concatenate(
             loss.gradient(
                 grad_values,
                 ground_truth=ground_truth,
@@ -328,6 +353,7 @@ def train(
             ),
             axis=None,
         )
+        return grad
 
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
 

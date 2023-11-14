@@ -2078,6 +2078,36 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         )
         encoding_circuit.draw("mpl")
 
+    ** Hyperparameter optimization  **
+
+    If layers are introduced in the construction of the LayeredEncodingCircuit, the number of
+    layers can be adjusted afterwards by the :meth:`set_params` method. This is also possible
+    for multiple layers, for which the parameters are additionally number, e.g. ``num_layer_1`` .
+    The number of layers as well as the number of qubits and the construction string are available
+    as hyper-parameters that can be optimized in a hyper-parameter search.
+
+    .. jupyter-execute::
+
+       from sklearn.datasets import make_regression
+       from sklearn.model_selection import GridSearchCV
+       from squlearn.encoding_circuit import LayeredEncodingCircuit
+       from squlearn.kernel import ProjectedQuantumKernel, QKRR
+       from squlearn.util import Executor
+
+       X, y = make_regression(n_samples=40, n_features=1, noise=0.1, random_state=42)
+
+       lec = LayeredEncodingCircuit.from_string("Ry(x)-Rz(x)-cx",1,1)
+       pqk = ProjectedQuantumKernel(lec,Executor())
+       qkrr = QKRR(quantum_kernel=pqk)
+       param_grid ={
+           "encoding_circuit_str": ["Ry(x)-Rz(x)-cx", "Ry(x)-cx-Rx(x)"],
+           "num_qubits" : [1,2],
+           "num_layers" : [1,2]
+       }
+       grid_search = GridSearchCV(qkrr, param_grid, cv=2)
+       grid_search.fit(X, y)
+       print("\nBest solution: ", grid_search.best_params_)
+
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit

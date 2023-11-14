@@ -190,6 +190,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             Option for choosing different regularization techniques (``"thresholding"`` or
             ``"tikhonov"``) after Ref. [2] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.
+        caching (bool, default=True): If True, the results of the low-level QNN are cached.
 
 
     Attributes:
@@ -345,6 +346,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         regularization: Union[str, None] = None,
+        caching: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -353,6 +355,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         self._measurement_input = measurement
         self._outer_kernel_input = outer_kernel
+        self._caching = caching
 
         # Set-up measurement operator
         if isinstance(measurement, str):
@@ -368,7 +371,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
         # Set-up of the QNN
-        self._qnn = QNN(self._encoding_circuit, self._measurement, executor)
+        self._qnn = QNN(
+            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+        )
 
         # Set-up of the outer kernel
         self._set_outer_kernel(outer_kernel, **kwargs)
@@ -494,12 +499,13 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
         """
+
         num_parameters_backup = self.num_parameters
         parameters_backup = self._parameters
         outer_kernel_input_backup = self._outer_kernel_input
 
         valid_params = self.get_params()
-        for key, value in params.items():
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
@@ -521,6 +527,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 None,
                 self._parameter_seed,
                 self._regularization,
+                self._caching,
             )
             params.pop("num_qubits")
 
@@ -534,14 +541,30 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 None,
                 self._parameter_seed,
                 self._regularization,
+                self._caching,
             )
+            params.pop("measurement")
+
+        if "encoding_circuit" in params:
+            self._encoding_circuit = params["encoding_circuit"]
+            self.__init__(
+                self._encoding_circuit,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel,
+                None,
+                self._parameter_seed,
+                self._regularization,
+                self._caching,
+            )
+            params.pop("encoding_circuit")
 
         # Set parameters of the encoding circuit
         dict_ec = {}
         for key, value in params.items():
             if key in self._encoding_circuit.get_params():
                 dict_ec[key] = value
-        for key, value in dict_ec.items():
+        for key in dict_ec.keys():
             params.pop(key)
         if len(dict_ec) > 0:
             self._encoding_circuit.set_params(**dict_ec)
@@ -553,6 +576,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 None,
                 self._parameter_seed,
                 self._regularization,
+                self._caching,
             )
 
         # Set Remaining QNN parameters
@@ -560,6 +584,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         for key, value in params.items():
             if key in self._qnn.get_params():
                 dict_qnn[key] = value
+        for key in dict_qnn.keys():
+            params.pop(key)
         if len(dict_qnn) > 0:
             self._qnn.set_params(**dict_qnn)
 
@@ -567,23 +593,30 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if "outer_kernel" in params:
             self._outer_kernel_input = params["outer_kernel"]
             self._set_outer_kernel(self._outer_kernel_input)
+            params.pop("outer_kernel")
         else:
             self._outer_kernel_input = outer_kernel_input_backup
 
         # Set outer kernel parameters
         dict_outer_kernel = {}
         valid_keys_outer_kernel = self._outer_kernel.get_params().keys()
-        for key, value in params.items():
+        for key in params.keys():
             if key in valid_keys_outer_kernel:
                 dict_outer_kernel[key] = value
+        for key in dict_outer_kernel.keys():
+            params.pop(key)
         if len(dict_outer_kernel) > 0:
             self._outer_kernel.set_params(**dict_outer_kernel)
+
+        if "regularization" in params.keys():
+            self._regularization = params["regularization"]
+            params.pop("regularization")
 
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
-        if "regularization" in params.keys():
-            self._regularization = params["regularization"]
+        if len(params) > 0:
+            raise ValueError("The following parameters could not be assigned:", params)
 
     @property
     def num_hyper_parameters(self) -> int:
