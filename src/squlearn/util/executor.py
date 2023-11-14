@@ -752,6 +752,7 @@ class Executor:
                 self._set_seed_for_primitive += 1
 
         def run():
+            print(self._sampler.options)
             return self.sampler.run(circuits, parameter_values, **kwargs)
 
         if self._caching:
@@ -1068,7 +1069,10 @@ class ExecutorEstimator(BaseEstimator):
 
     def __init__(self, executor: Executor, options=None):
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
-            options_ini = asdict(copy.deepcopy(options))
+            try:
+                options_ini = copy.deepcopy(options).__dict__
+            except:
+                options_ini = asdict(copy.deepcopy(options))
         else:
             options_ini = options
 
@@ -1192,7 +1196,10 @@ class ExecutorSampler(BaseSampler):
 
     def __init__(self, executor: Executor, options=None):
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
-            options_ini = asdict(copy.deepcopy(options))
+            try:
+                options_ini = copy.deepcopy(options).__dict__
+            except:
+                options_ini = asdict(copy.deepcopy(options))
         else:
             options_ini = options
 
