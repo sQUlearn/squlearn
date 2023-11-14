@@ -994,6 +994,15 @@ class Executor:
         self.sampler.set_options(**fields)
         self._options_sampler = self.sampler.options
 
+    def set_primitive_options(self, **fields):
+        """Set options values for the estimator and sampler primitive.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self.set_options_estimator(**fields)
+        self.set_options_sampler(**fields)
+
     def reset_options_estimator(self, options: Union[Options, qiskit_ibm_runtime_Options]):
         """
         Overwrites the options for the estimator primitive.
@@ -1023,6 +1032,16 @@ class Executor:
         else:
             self.sampler._run_options = Options()
             self.sampler._run_options.update_options(**options)
+
+    def reset_options(self, options: Union[Options, qiskit_ibm_runtime_Options]):
+        """
+        Overwrites the options for the sampler and estimator primitive.
+
+        Args:
+            options: Options for the sampler and estimator
+        """
+        self.reset_options_estimator(options)
+        self.reset_options_sampler(options)
 
     def set_seed_for_primitive(self, seed: int = 0):
         """Set options values for the estimator run.
