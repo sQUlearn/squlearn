@@ -43,7 +43,7 @@ def tikhonov_regularization(gram_matrix):
     evals = scipy.linalg.eigvals(gram_matrix)
     shift = np.min(np.real(evals))
     if shift < 0:
-        gram_matrix -= (shift-1e-14) * np.identity(gram_matrix.shape[0])
+        gram_matrix -= (shift - 1e-14) * np.identity(gram_matrix.shape[0])
     return gram_matrix
 
 
