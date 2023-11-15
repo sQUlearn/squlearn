@@ -35,6 +35,7 @@ jobs:
               git commit -m "update documentation ${{ github.event.release.tag_name }}"
           - name: Tag
             run: |
+              cd docs/_build
               git tag -a "${{ github.event.release.tag_name }}" -m "${{ github.event.release.name}}"
             if: github.event_name == 'release'
           - name: Push Changes
@@ -44,3 +45,4 @@ jobs:
               directory: docs/_build
               repository: sQUlearn/squlearn.github.io
               force: true
+              tags: true
