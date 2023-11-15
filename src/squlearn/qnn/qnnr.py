@@ -1,6 +1,7 @@
 """QNNRegressor Implemenation"""
 from typing import Callable, Union
 from warnings import warn
+import sys
 
 import numpy as np
 from sklearn.base import RegressorMixin
@@ -8,7 +9,7 @@ from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_mini_batch, regression
+from .training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -49,6 +50,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
             parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
+        caching (bool, default=True): If True, the results of the QNN are cached.
+        pretrained (bool, default=False): Set to true if the supplied parameters are already
+                                          trained.
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
@@ -63,7 +67,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         import numpy as np
         from squlearn import Executor
-        from squlearn.encoding_circuit import ChebRx
+        from squlearn.encoding_circuit import ChebyshevRx
         from squlearn.observables import IsingHamiltonian
         from squlearn.qnn import QNNRegressor, SquaredLoss
         from squlearn.optimizers import SLSQP
@@ -74,7 +78,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             X, y, test_size=0.33, random_state=42
         )
         reg = QNNRegressor(
-            ChebRx(4, 1, 2),
+            ChebyshevRx(4, 1, 2),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
             Executor("statevector_simulator"),
             SquaredLoss(),
@@ -104,7 +108,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
+        shot_control: ShotControlBase = None,
         parameter_seed: Union[int, None] = 0,
+        caching: bool = True,
+        pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
         **kwargs,
     ) -> None:
@@ -121,7 +128,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             shuffle,
             opt_param_op,
             variance,
+            shot_control,
             parameter_seed=parameter_seed,
+            caching=caching,
+            pretrained=pretrained,
             callback=callback,
             **kwargs,
         )
@@ -135,8 +145,12 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        if not self._is_fitted:
+        if not self._is_fitted and not self.pretrained:
             warn("The model is not fitted.")
+
+        if self.shot_control is not None:
+            self.shot_control.reset_shots()
+
         return self._qnn.evaluate_f(X, self._param, self._param_op)
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
@@ -157,7 +171,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self._param, self._param_op = solve_mini_batch(
+                self._param, self._param_op = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -165,6 +179,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -172,7 +187,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     opt_param_op=True,
                 )
             else:
-                self._param = solve_mini_batch(
+                self._param = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -180,6 +195,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -189,26 +205,28 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         else:
             if self.opt_param_op:
-                self._param, self._param_op = regression(
+                self._param, self._param_op = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
+                    self.shot_control,
                     weights,
                     True,
                 )
             else:
-                self._param = regression(
+                self._param = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
+                    self.shot_control,
                     weights,
                     False,
                 )
@@ -217,5 +235,5 @@ class QNNRegressor(BaseQNN, RegressorMixin):
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Internal fit function."""
         if self.callback == "pbar":
-            self._pbar = tqdm(total=self.optimizer.options.get("maxiter", 100), desc="fit")
+            self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)

@@ -3,7 +3,7 @@ from sklearn.linear_model import LinearRegression
 
 from .qnn import QNN
 
-from ..util.data_preprocessing import adjust_input
+from ..util.data_preprocessing import adjust_parameters
 
 
 def calc_var_dg(
@@ -47,7 +47,7 @@ def calc_var_dg(
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_input(p_val, qnn.num_parameters)
+        p_val, multi = adjust_parameters(p_val, qnn.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:

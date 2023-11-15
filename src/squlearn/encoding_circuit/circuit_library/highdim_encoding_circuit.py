@@ -9,7 +9,7 @@ from ..encoding_circuit_base import EncodingCircuitBase
 
 class HighDimEncodingCircuit(EncodingCircuitBase):
     r"""
-    The high-dimensional encoding circuit from Reference https://doi.org/10.1103/PhysRevA.106.042431
+    The high-dimensional encoding circuit from reference [1].
 
     A encoding circuit that can be used for the classification of high-dimensional data.
 
@@ -43,6 +43,12 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                           ``rows``: iteration in rows.
         entangling_gate (str): Entangling gates that are used in the entangling layer.
                                Either ``iswap`` or ``cx`` (default: ``iswap``)
+
+    References
+    ----------
+    [1]: Peters, Evan, et al. "Machine learning of high dimensional data on a noisy quantum
+    processor." `npj Quantum Information 7.1 (2021): 161.
+    <https://www.nature.com/articles/s41534-021-00498-9>`_
     """
 
     def __init__(

@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import QEKEncodingCircuit
+from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.kernel import QSVC
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,29 +30,29 @@ class TestQSVC:
         """QSVC module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
             executor=executor,
             regularization="thresholding",
             mit_depol_noise="msplit",
         )
-        return QSVC(quantum_kernel=kernel)
+        return QSVC(kernel)
 
     @pytest.fixture(scope="module")
     def qsvc_pqk(self) -> QSVC:
         """QSVC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = QEKEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )
-        return QSVC(quantum_kernel=kernel)
+        return QSVC(kernel)
 
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
-        qsvc_instance = QSVC(quantum_kernel=MagicMock())
+        qsvc_instance = QSVC(MagicMock())
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             "C",
             "break_ties",

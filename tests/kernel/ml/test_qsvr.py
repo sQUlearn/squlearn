@@ -8,7 +8,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import HZCRxCRyCRz
+from squlearn.encoding_circuit import MultiControlEncodingCircuit
 from squlearn.kernel import QSVR
 from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
 
@@ -30,29 +30,29 @@ class TestQSVR:
         """QSVR module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
             executor=executor,
             regularization="thresholding",
             mit_depol_noise="msplit",
         )
-        return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
+        return QSVR(kernel, C=1, epsilon=0.1)
 
     @pytest.fixture(scope="module")
     def qsvr_pqk(self) -> QSVR:
         """QSVR module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        encoding_circuit = HZCRxCRyCRz(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )
-        return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
+        return QSVR(kernel, C=1, epsilon=0.1)
 
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
-        qsvr_instance = QSVR(quantum_kernel=MagicMock())
+        qsvr_instance = QSVR(MagicMock())
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             "C",
             "cache_size",

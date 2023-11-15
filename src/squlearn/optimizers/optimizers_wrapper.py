@@ -4,10 +4,27 @@ import numpy as np
 import qiskit.algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
-from .optimizer_base import OptimizerBase, OptimizerResult, default_callback
+from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, default_callback
 
 
-class SLSQP(OptimizerBase):
+class WrappedOptimizerBase(OptimizerBase, IterativeMixin):
+    """Base class for wrapped optimizers.
+
+    Overwrites the set_callback function to additionally increase the iteration counter.
+    """
+
+    def set_callback(self, callback):
+        """Set the callback function with additional iteration counter increasing."""
+
+        def callback_wrapper(*args):
+            nonlocal self
+            self.iteration += 1
+            callback(*args)
+
+        super().set_callback(callback_wrapper)
+
+
+class SLSQP(WrappedOptimizerBase):
     """Wrapper class for scipy's SLSQP implementation.
 
     Args:
@@ -16,6 +33,8 @@ class SLSQP(OptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
+        super().__init__()
+
         if options is None:
             options = {}
 
@@ -23,7 +42,7 @@ class SLSQP(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
-        self.callback = callback
+        self.set_callback(callback)
 
     def minimize(
         self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
@@ -58,7 +77,7 @@ class SLSQP(OptimizerBase):
         return result
 
 
-class LBFGSB(OptimizerBase):
+class LBFGSB(WrappedOptimizerBase):
     """Wrapper class for scipy's L-BFGS-B implementation.
 
     Args:
@@ -67,6 +86,8 @@ class LBFGSB(OptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
+        super().__init__()
+
         if options is None:
             options = {}
 
@@ -74,7 +95,7 @@ class LBFGSB(OptimizerBase):
         if "tol" in options:
             options.pop("tol")
         self.options = options
-        self.callback = callback
+        self.set_callback(callback)
 
     def minimize(
         self, fun: callable, x0: np.ndarray, grad: callable = None, bounds=None
@@ -108,7 +129,7 @@ class LBFGSB(OptimizerBase):
         return result
 
 
-class SPSA(OptimizerBase):
+class SPSA(WrappedOptimizerBase):
     """Wrapper class for Qiskit's SPSA implementation.
 
     Args:
@@ -117,6 +138,9 @@ class SPSA(OptimizerBase):
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
+        super().__init__()
+        self.set_callback(callback)
+
         if options is None:
             options = {}
 

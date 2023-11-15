@@ -46,18 +46,22 @@ class OptimizerBase(abc.ABC):
         self.callback = callback
 
 
-class IterativeOptimizerMixin:
-    """Mixin for iterative optimizers."""
+class IterativeMixin:
+    """Mixin for iteration based optimizers."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.iteration = 0
+
+
+class StepwiseMixin(IterativeMixin):
+    """Mixin for optimizer for which we can execute single steps."""
 
     def step(self, **kwargs):
         """Perform one update step."""
         raise NotImplementedError()
 
 
-class SGDMixin(IterativeOptimizerMixin, abc.ABC):
+class SGDMixin(StepwiseMixin, abc.ABC):
     """Mixin for stochastic gradient descent based optimizers."""
 
     def step(self, **kwargs):

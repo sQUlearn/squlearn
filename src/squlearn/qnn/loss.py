@@ -20,8 +20,18 @@ class LossBase(abc.ABC):
         self._opt_param_op = opt_param_op
 
     @property
+    def loss_variance_available(self) -> bool:
+        """Returns True if the loss function has a variance function."""
+        return False
+
+    @property
     @abc.abstractmethod
     def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation."""
+        raise NotImplementedError()
+
+    @property
+    def variance_args_tuple(self) -> tuple:
         """Returns evaluation tuple for loss calculation."""
         raise NotImplementedError()
 
@@ -34,6 +44,10 @@ class LossBase(abc.ABC):
     @abc.abstractmethod
     def value(self, value_dict: dict, **kwargs) -> float:
         """Calculates and returns the loss value."""
+        raise NotImplementedError()
+
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        """Calculates and returns the variance of the loss value."""
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -148,9 +162,24 @@ class _ComposedLoss(LossBase):
         self._l2.set_opt_param_op(opt_param_op)
 
     @property
+    def loss_variance_available(self) -> bool:
+        if self._composition in ("*", "/"):
+            return False
+        else:
+            return self._l1.loss_variance_available and self._l2.loss_variance_available
+
+    @property
     def loss_args_tuple(self) -> tuple:
         """Returns evaluation tuple for composed loss calculation."""
         return tuple(set(self._l1.loss_args_tuple + self._l2.loss_args_tuple))
+
+    @property
+    def variance_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for composed variance calculation."""
+        if self._composition in ("*", "/"):
+            raise ValueError("Variance not available for composition: ", self._composition)
+        else:
+            return tuple(set(self._l1.variance_args_tuple + self._l2.variance_args_tuple))
 
     @property
     def gradient_args_tuple(self) -> tuple:
@@ -178,6 +207,29 @@ class _ComposedLoss(LossBase):
             return value_l1 + value_l2
         elif self._composition == "-":
             return value_l1 - value_l2
+        else:
+            raise ValueError("Unknown composition: ", self._composition)
+
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        """Calculates and returns the composed variance value.
+
+        Args:
+            value_dict (dict): Dictionary with values for the evaluation of the loss function
+
+        Returns:
+            float: Composed variance value
+        """
+
+        if self._composition in ("*", "/"):
+            raise ValueError("Variance not available for composition: ", self._composition)
+
+        var_l1 = self._l1.variance(value_dict, **kwargs)
+        var_l2 = self._l2.variance(value_dict, **kwargs)
+
+        if self._composition == "+":
+            return var_l1 + var_l2
+        elif self._composition == "-":
+            return var_l1 + var_l2
         else:
             raise ValueError("Unknown composition: ", self._composition)
 
@@ -259,8 +311,18 @@ class ConstantLoss(LossBase):
             self._value = float(value)
 
     @property
+    def loss_variance_available(self) -> bool:
+        """Returns True if the loss function has a variance function."""
+        return True
+
+    @property
     def loss_args_tuple(self) -> tuple:
         """Returns empty evaluation tuple for loss calculation."""
+        return tuple()
+
+    @property
+    def variance_args_tuple(self) -> tuple:
+        """Returns empty evaluation tuple for variance calculation."""
         return tuple()
 
     @property
@@ -281,6 +343,10 @@ class ConstantLoss(LossBase):
             return self._value(kwargs["iteration"])
         return self._value
 
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        """Returns zero variance of the constant loss function."""
+        return 0.0
+
     def gradient(
         self, value_dict: dict, **kwargs
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
@@ -300,9 +366,19 @@ class SquaredLoss(LossBase):
     """Squared loss for regression."""
 
     @property
+    def loss_variance_available(self) -> bool:
+        """Returns True since the squared loss function has a variance function."""
+        return True
+
+    @property
     def loss_args_tuple(self) -> tuple:
         """Returns evaluation tuple for the squared loss calculation."""
         return ("f",)
+
+    @property
+    def variance_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for the squared loss variance calculation."""
+        return ("f", "var")
 
     @property
     def gradient_args_tuple(self) -> tuple:
@@ -336,6 +412,33 @@ class SquaredLoss(LossBase):
         else:
             weights = np.ones_like(ground_truth)
         return np.sum(np.multiply(np.square(value_dict["f"] - ground_truth), weights))
+
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        r"""Calculates the approximated variance of the squared loss.
+
+        This function calculates the approximated variance of the squared loss
+
+        .. math::
+            4\sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|^2 \sigma_f^2(x_i)
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+
+        Returns:
+            Loss value
+        """
+        if "ground_truth" not in kwargs:
+            raise AttributeError("SquaredLoss requires ground_truth.")
+        ground_truth = kwargs["ground_truth"]
+        if "weights" in kwargs and kwargs["weights"] is not None:
+            weights = kwargs["weights"]
+        else:
+            weights = np.ones_like(ground_truth)
+
+        diff_square = np.multiply(weights, np.square(value_dict["f"] - ground_truth))
+        return np.sum(4 * np.multiply(diff_square, value_dict["var"]))
 
     def gradient(
         self, value_dict: dict, **kwargs
@@ -397,9 +500,19 @@ class VarianceLoss(LossBase):
         self._alpha = alpha
 
     @property
+    def loss_variance_available(self) -> bool:
+        """Returns True since we neglect the variance of the variance."""
+        return True
+
+    @property
     def loss_args_tuple(self) -> tuple:
         """Returns evaluation tuple for loss calculation."""
         return ("var",)
+
+    @property
+    def variance_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for variance calculation."""
+        return tuple()
 
     @property
     def gradient_args_tuple(self) -> tuple:
@@ -432,6 +545,10 @@ class VarianceLoss(LossBase):
             alpha = self._alpha
 
         return alpha * np.sum(value_dict["var"])
+
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        """Returns 0 since we neglect the variance of the variance."""
+        return 0.0
 
     def gradient(
         self, value_dict: dict, **kwargs
@@ -507,7 +624,17 @@ class ParameterRegularizationLoss(LossBase):
         self._parameter_operator_list = parameter_operator_list
 
     @property
+    def loss_variance_available(self) -> bool:
+        """Returns True since variance is zero (and available)."""
+        return True
+
+    @property
     def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for loss calculation."""
+        return tuple()
+
+    @property
+    def variance_args_tuple(self) -> tuple:
         """Returns evaluation tuple for loss calculation."""
         return tuple()
 
@@ -574,6 +701,10 @@ class ParameterRegularizationLoss(LossBase):
                     raise ValueError("Type must be L1 or L2!")
 
         return alpha * loss
+
+    def variance(self, value_dict: dict, **kwargs) -> float:
+        """Returns 0 since the variance is equal to zero."""
+        return 0.0
 
     def gradient(
         self, value_dict: dict, **kwargs

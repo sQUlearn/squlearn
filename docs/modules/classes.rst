@@ -58,12 +58,12 @@ Encoding Circuits
 
    encoding_circuit.YZ_CX_EncodingCircuit
    encoding_circuit.HighDimEncodingCircuit
-   encoding_circuit.QEKEncodingCircuit
+   encoding_circuit.HubregtsenEncodingCircuit
    encoding_circuit.ChebyshevTower
-   encoding_circuit.ChebPQC
-   encoding_circuit.HZCRxCRyCRz
-   encoding_circuit.ChebRx
-   encoding_circuit.ParamZEncodingCircuit
+   encoding_circuit.ChebyshevPQC
+   encoding_circuit.MultiControlEncodingCircuit
+   encoding_circuit.ChebyshevRx
+   encoding_circuit.ParamZFeatureMap
    encoding_circuit.QiskitEncodingCircuit
 
 Encoding Circuit Tools
@@ -173,7 +173,7 @@ Quantum Kernel Core
    :template: class.rst
 
    kernel.optimization.kernel_optimizer.KernelOptimizer
-   kernel.optimization.negative_log_likelihood.NLL 
+   kernel.optimization.negative_log_likelihood.NLL
    kernel.optimization.target_alignment.TargetAlignment
 
 QNN Core
@@ -195,6 +195,20 @@ QNN Core
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
+
+Tools for training QNNs
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   qnn.get_variance_fac
+   qnn.get_lr_decay
+   qnn.ShotsFromRSTD
+   qnn.training.train
+   qnn.training.train_mini_batch
+
 
 Implemented optimizers
 ------------------------------------

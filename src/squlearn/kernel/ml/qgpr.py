@@ -57,7 +57,7 @@ class QGPR(BaseEstimator, RegressorMixin):
        MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
 
        [2]: F.Rapp, M.Roth "Quantum Gaussian Process Regression for Bayesian Optimization",
-       `<https://arxiv.org/pdf/2304.12923.pdf>`_.
+       `<https://arxiv.org/abs/2304.12923>`_.
 
 
     **Example**
@@ -65,10 +65,10 @@ class QGPR(BaseEstimator, RegressorMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import QEKEncodingCircuit
+        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.matrix import FidelityKernel
         from squlearn.kernel.ml import QGPR
-        enc_circ = QEKEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpr_ansatz = QGPR(quantum_kernel=q_kernel)
@@ -105,26 +105,26 @@ class QGPR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray):
+    def fit(self, X: np.ndarray, y: np.ndarray):
         """Fit Quantum Gaussian process regression model.
         The fit method of the QGPR class just calculates the training kernel matrix.
         Depending on the choice of normalize_y the target values are normalized.
 
         Args:
-            X_train: The training data of shape (n_samples, n_features). If
+            X: The training data of shape (n_samples, n_features). If
                 quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples)
-            y_train: Target values in training data of shape (n_samples,)
+            y: Target values of shape (n_samples,)
 
         Returns:
             self: object
             QuantumGaussianProcessRegressor class instance.
         """
-        self.X_train = X_train
+        self.X_train = X
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
-                self.K_train = X_train
+                self.K_train = X
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
@@ -145,14 +145,14 @@ class QGPR(BaseEstimator, RegressorMixin):
             )
 
         if self.normalize_y:
-            self._y_train_mean = np.mean(y_train, axis=0)
-            self._y_train_std = _handle_zeros_in_scale(np.std(y_train, axis=0), copy=False)
-            self.y_train = (y_train - self._y_train_mean) / self._y_train_std
+            self._y_train_mean = np.mean(y, axis=0)
+            self._y_train_std = _handle_zeros_in_scale(np.std(y, axis=0), copy=False)
+            self.y_train = (y - self._y_train_mean) / self._y_train_std
         else:
-            self.y_train = y_train
+            self.y_train = y
         return self
 
-    def predict(self, X_test, return_std=False, return_cov=False):
+    def predict(self, X: np.ndarray, return_std=False, return_cov=False):
         """
         Predict using the  Quantum Gaussian process regression model.
         Depending on the choice of regularization the quantum kernel matrix is regularized.
@@ -164,7 +164,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         (`return_cov=True`). Note that at most one of the two can be requested.
 
         Args:
-            X_test: The test data of shape (n_samples, n_features). If
+            X: The test data of shape (n_samples, n_features). If
                 quantum_kernel == "precomputed", this is the precomputed
                 Gram matrix instead, which has to be of shape
                 np.block[[K_train, K_testtrain.T], [K_testtrain, K_test]]
@@ -199,14 +199,14 @@ class QGPR(BaseEstimator, RegressorMixin):
                 )
                 # obtain train and test dimensions
                 n_train = self.y_train.shape[0]
-                n_test = X_test.shape[0] - n_train
-                self.K_test = X_test[-n_test:, -n_test:]
-                self.K_testtrain = X_test[n_train:, :n_train]
+                n_test = X.shape[0] - n_train
+                self.K_test = X[-n_test:, -n_test:]
+                self.K_testtrain = X[n_train:, :n_train]
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
-            self.K_test = self._quantum_kernel.evaluate(x=X_test)
-            self.K_testtrain = self._quantum_kernel.evaluate(x=X_test, y=self.X_train)
+            self.K_test = self._quantum_kernel.evaluate(x=X)
+            self.K_testtrain = self._quantum_kernel.evaluate(x=X, y=self.X_train)
         else:
             raise ValueError(
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))

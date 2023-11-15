@@ -89,20 +89,12 @@ and :class:`CostOperator`, both of which we will utilize in the upcoming example
 In the following cell, we will build an encoding circuit based on the Chebyshev input encoding
 method:
 
-.. code-block:: python
+.. jupyter-execute::
 
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
 
-    pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
+    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     pqc.draw("mpl")
-
-.. plot::
-
-    from squlearn.encoding_circuit import ChebPQC
-    pqc = ChebPQC(4, 2, 2)
-    pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-    plt.tight_layout()
-
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
 explore in the user guide located at :ref:`quantum_encoding_circuits`.
@@ -111,11 +103,12 @@ The second ingredient is to specify an observable for computing the QNN's output
 particular example, we employ a summation over a Pauli Z observable for each qubit,
 along with a constant offset:
 
-.. code-block:: python
+.. jupyter-execute::
 
     from squlearn.observables import SummedPaulis
 
     op = SummedPaulis(num_qubits=4)
+    print(op)
 
 Other expectation operators can be found in the user guide on :ref:`user_guide_observables`.
 
@@ -137,13 +130,13 @@ and the Adam optimizer for optimization.
 .. code-block:: python
 
     from squlearn.observables import SummedPaulis
-    from squlearn.encoding_circuit import ChebPQC
+    from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import Adam
     from squlearn import Executor
 
     op = SummedPaulis(num_qubits = 4)
-    pqc = ChebPQC(num_qubits = 4, num_features = 2, num_layers = 2)
+    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
     qnn = QNNRegressor(pqc, op, Executor("statevector_simulator"), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
@@ -237,6 +230,56 @@ to specify further hyper parameters such as ``batch_size``, ``epochs`` and ``shu
 The parameters ``batch_size`` and ``epochs`` are positive numbers of type :class:`int` and
 ``shuffle`` is a :class:`bool` which specifies, whether data points are shuffled before each epoch.
 
+Schedule of the learning rate of Adam
+-------------------------------------
+
+Sometimes it can be beneficial to adjust the learning rate of the optimizer during the training.
+This is possible by providing a :class:`List` or a :class:`Callable` to the learning rate option
+``lr`` of the :class:`Adam <squlearn.optimizers.adam.Adam>` optimizer.
+Then a learning rate is chosen from the list or calculated by the callable at the beginning of
+each iteration or epoch.
+A suitable function for generating a callable with an exponential decay of the learning rate is
+provided by :meth:`get_lr_decay`. The following example will generate an Adam optimization
+with an exponential decay in the learning rate from 0.01 to 0.001 over 100 iterations.
+
+.. jupyter-execute::
+
+    from squlearn.optimizers import Adam
+    from squlearn.qnn import get_lr_decay
+    adam = Adam({'lr':get_lr_decay(0.01, 0.001, 100)})
+
+
+Dynamically adjustments of the shots
+-------------------------------------
+
+It is possible to adjust the number of shots for the gradient evaluation. The number of
+shots are calculated from the relative standard deviation (RSTD) of the Loss function :math:`L`.
+Objective is that the RSTD should be smaller than a given threshold :math:`\beta`.
+
+.. math::
+    \text{RSTD}(L) = \frac{\sqrt{\frac{\sigma_L^2}{N_\text{shots}}}}{L} < \beta
+
+The high-level implementations of QNNs, :class:`QNNRegressor` and :class:`QNNClassifier`,
+can be initialized with a shot controller that takes care to automatically adjust the number of
+shots. The following example will generate a :class:`QNNRegressor`
+with a RSTD threshold of 0.1 and a minimum and maximum number of shots of 100 and 10000.
+It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.ShotsFromRSTD>` shot controller.
+
+.. code-block:: python
+
+    from squlearn.qnn import QNNRegressor, ShotsFromRSTD
+    reg = QNNRegressor(
+        ...
+        shot_controller = ShotsFromRSTD(rstd_bound=0.1,min_shots=100,max_shots=10000),
+        ...
+    )
+
+
+Together with the variance reduction described in the next section, this allows to reduce the
+number of shots in the early stages of the optimization significantly and
+increase them in the later stages when a higher accuracy is required.
+
+
 Variance reduction
 ==================
 
@@ -264,13 +307,13 @@ yields a high variance in the model output.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.encoding_circuit import ChebRx
+    from squlearn.encoding_circuit import ChebyshevRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
     qasm = Executor("qasm_simulator")
     qasm.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
@@ -278,7 +321,7 @@ yields a high variance in the model output.
     1.64968778, -0.81903595,  0.4867727,   0.38505193,  1.10635672,  0.72867129,
     -1.74881862, -0.64411871,  0.86344117, -0.91471452])
     param_op = np.array([-0.47157523,  5.10755673,  2.63075629])
-    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, pretrained=True)
     x = np.arange(np.min(0.1), np.max(0.8), 0.005)
     y = qnn_qasm.predict(x)
     plt.plot(x, np.log(x))
@@ -328,13 +371,13 @@ in the model, as depicted in `figure 3`_.
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
-    from squlearn.encoding_circuit import ChebRx
+    from squlearn.encoding_circuit import ChebyshevRx
     from squlearn.observables import IsingHamiltonian
     from squlearn.qnn import QNNRegressor, SquaredLoss
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
     qasm = Executor("qasm_simulator")
     qasm.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
@@ -342,7 +385,7 @@ in the model, as depicted in `figure 3`_.
     -4.22612537, -0.19520602,  0.21838745,  0.78754811,  3.05189136,  0.59189901,
     -0.52783347, -1.55477309, -2.08338942, -0.29088459])
     param_op = np.array([-1.57350653,  0.87778247, -0.26884315])
-    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, precomputed=True)
+    qnn_qasm = QNNRegressor(pqc, ising_op, qasm, SquaredLoss, SLSQP(), param, param_op, pretrained=True)
     x = np.arange(np.min(0.1), np.max(0.8), 0.005)
     y = qnn_qasm.predict(x)
     plt.plot(x, np.log(x))
@@ -350,6 +393,28 @@ in the model, as depicted in `figure 3`_.
     plt.title("QNN inference with variance regularization")
     plt.legend([r"$\log(x)$", r"$f(\theta, x)$"])
     plt
+
+Variance reduction with dynamic adjustment of the regularization factor
+-----------------------------------------------------------------------
+
+Furthermore it is possible to adjust the variance regularization factor dynamically during the
+optimization. This allows for example to prioritize the minimization of the variance in the early
+stages of the optimization and then focus on the minimization of the loss function in the later
+stages (see Ref. [1]). This can be achieved by passing a :class:`List` or a :class:`Callable`
+to the keyword argument ``variance`` of the :class:`QNNRegressor` (or :class:`QNNClassifier`).
+The following example will generate a :class:`QNNRegressor` with a variance
+regularization factor that is adjusted dynamically during the optimization by utilizing the
+function :meth:`get_variance_fac`. The set-up features a final regularization factor of 0.005,
+a decay factor of 0.08 and a plateau at :math:`\alpha=1` of 20 iterations at the beginning.
+
+.. code-block:: python
+
+    from squlearn.qnn import QNNRegressor,get_variance_fac
+    reg = QNNRegressor(
+        ...
+        variance = get_variance_fac(0.005,0.08,20),
+        ...
+    )
 
 
 .. rubric:: References

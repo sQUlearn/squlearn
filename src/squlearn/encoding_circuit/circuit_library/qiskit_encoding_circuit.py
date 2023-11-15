@@ -14,28 +14,22 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
 
     **Example: create a encoding circuit from Qiskit TwoLocal map**
 
-    .. code-block:: python
-
-        from qiskit.circuit.library import TwoLocal
-        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        QiskitEncodingCircuit(local).draw()
-
-    .. plot::
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import QiskitEncodingCircuit
         from qiskit.circuit.library import TwoLocal
         local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        pqc = QiskitEncodingCircuit(local)
-        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
-        plt.tight_layout()
+        QiskitEncodingCircuit(local).draw("mpl")
+
 
     An alternative call can be made by passing the circuit library function and its arguments:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from squlearn.encoding_circuit import QiskitEncodingCircuit
-        from qiskit.circuit.library import ZZEncodingCircuit
-        QiskitEncodingCircuit(ZZEncodingCircuit,feature_dimension=4)
+        from qiskit.circuit.library import ZZFeatureMap
+        QiskitEncodingCircuit(ZZFeatureMap,feature_dimension=4).draw("mpl")
+
 
     Args:
         qiskit_circuit (Union[BlueprintCircuit, Callable,QuantumCircuit]): A Qiskit circuit or a
@@ -58,7 +52,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         self,
         qiskit_circuit: Union[BlueprintCircuit, Callable, QuantumCircuit],
         mode: str = "auto",
-        decompose: bool = True,
+        decompose: bool = False,
         feature_label: str = "x",
         parameter_label: str = "θp",
         **kwargs,
@@ -158,7 +152,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        params = {}
+        params = {"qiskit_circuit": self._qiskit_circuit}
         return params
 
     def get_circuit(

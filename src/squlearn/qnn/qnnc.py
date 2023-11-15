@@ -1,5 +1,6 @@
 """QNNClassifier Implemenation"""
 from typing import Callable, Union
+import sys
 
 import numpy as np
 from sklearn.base import ClassifierMixin
@@ -8,7 +9,7 @@ from tqdm import tqdm
 
 from .base_qnn import BaseQNN
 from .loss import LossBase, VarianceLoss
-from .training import solve_mini_batch, regression
+from .training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -49,6 +50,9 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             of the variance regularization.
         parameter_seed (Union[int, None], default=0): Seed for the random number generator for the
             parameter initialization, if `param_ini` or `param_op_ini` is ``None``.
+        caching (bool, default=True): If True, the results of the QNN are cached.
+        pretrained (bool, default=False): Set to true if the supplied parameters are already
+                                          trained.
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
@@ -62,7 +66,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     .. code-block::
 
         from squlearn import Executor
-        from squlearn.encoding_circuit import ChebRx
+        from squlearn.encoding_circuit import ChebyshevRx
         from squlearn.observables import SummedPaulis
         from squlearn.qnn import QNNClassifier, SquaredLoss
         from squlearn.optimizers import SLSQP
@@ -76,7 +80,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             X, y, test_size=0.33, random_state=42
         )
         clf = QNNClassifier(
-            ChebRx(4, 2, 2),
+            ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
             Executor("statevector_simulator"),
             SquaredLoss(),
@@ -105,7 +109,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         shuffle: bool = None,
         opt_param_op: bool = True,
         variance: Union[float, Callable] = None,
+        shot_control: ShotControlBase = None,
         parameter_seed: Union[int, None] = 0,
+        caching: bool = True,
+        pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
         **kwargs,
     ) -> None:
@@ -122,7 +129,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             shuffle,
             opt_param_op,
             variance,
+            shot_control,
             parameter_seed=parameter_seed,
+            caching=caching,
+            pretrained=pretrained,
             callback=callback,
             **kwargs,
         )
@@ -137,8 +147,12 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        if not self._is_fitted:
+        if not self._is_fitted and not self.pretrained:
             raise RuntimeError("The model is not fitted.")
+
+        if self.shot_control is not None:
+            self.shot_control.reset_shots()
+
         pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         return self._label_binarizer.inverse_transform(pred)
 
@@ -151,6 +165,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The probabilities
         """
+
+        if self.shot_control is not None:
+            self.shot_control.reset()
+
         pred = self._qnn.evaluate_f(X, self._param, self._param_op)
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
@@ -183,7 +201,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         if isinstance(self.optimizer, SGDMixin) and self.batch_size:
             if self.opt_param_op:
-                self._param, self._param_op = solve_mini_batch(
+                self._param, self._param_op = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -191,6 +209,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -198,7 +217,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     opt_param_op=True,
                 )
             else:
-                self._param = solve_mini_batch(
+                self._param = train_mini_batch(
                     self._qnn,
                     X,
                     y,
@@ -206,6 +225,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                     self._param_op,
                     loss=loss,
                     optimizer=self.optimizer,
+                    shot_control=self.shot_control,
                     batch_size=self.batch_size,
                     epochs=self.epochs,
                     shuffle=self.shuffle,
@@ -215,26 +235,28 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         else:
             if self.opt_param_op:
-                self._param, self._param_op = regression(
+                self._param, self._param_op = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
+                    self.shot_control,
                     weights,
                     True,
                 )
             else:
-                self._param = regression(
+                self._param = train(
                     self._qnn,
                     X,
                     y,
                     self._param,
                     self._param_op,
                     loss,
-                    self.optimizer.minimize,
+                    self.optimizer,
+                    self.shot_control,
                     weights,
                     False,
                 )
@@ -243,5 +265,5 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Internal fit function."""
         if self.callback == "pbar":
-            self._pbar = tqdm(total=self.optimizer.options.get("maxiter", 100), desc="fit")
+            self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)

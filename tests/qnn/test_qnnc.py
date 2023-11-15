@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelBinarizer, MinMaxScaler
 
 from squlearn import Executor
 from squlearn.observables import SummedPaulis
-from squlearn.encoding_circuit import ChebPQC
+from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn import QNNClassifier, SquaredLoss
 
@@ -29,7 +29,7 @@ class TestQNNClassifier:
         """QNNClassifier module."""
         np.random.seed(42)
         executor = Executor("statevector_simulator")
-        pqc = ChebPQC(num_qubits=2, num_features=2, num_layers=1)
+        pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})

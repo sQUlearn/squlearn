@@ -26,10 +26,10 @@ keywords = ["quantum", "machine learning", "qml"]
 dependencies = [
     "dill>=0.3",
     "numpy>=1.17",
-    "qiskit>=0.42.1",
+    "qiskit>=0.43.0",
     "qiskit-aer>=0.12.0",
     "qiskit-ibm-runtime>=0.9",
-    "qiskit-machine-learning>=0.6.0",
+    "qiskit-machine-learning>=0.6,<0.7",
     "scipy>=1.5",
     "scikit-learn>=1.0",
     "tqdm>=4.0",
@@ -42,6 +42,7 @@ dev = [
     "black",
     "flit",
     "myst-parser",
+    "nbmake",
     "nbsphinx",
     "nbsphinx_link",
     "pylint",
@@ -49,8 +50,17 @@ dev = [
     "sphinx",
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme",
+    "jupyter-sphinx",
 ]
-examples = ["jupyter", "matplotlib>=3.5", "pylatexenc>=2.10"]
+examples = [
+    "jupyter",
+    "matplotlib>=3.5",
+    "mlflow",
+    "pandas",
+    "pylatexenc>=2.10",
+    "seaborn",
+    "scikit-optimize",
+]
 
 [project.urls]
 Homepage = "https://github.com/sQUlearn/squlearn"
@@ -70,4 +80,5 @@ extension-pkg-allow-list = [
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
+    "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
 ]
