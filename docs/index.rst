@@ -8,7 +8,7 @@ Welcome to sQUlearn's documentation!
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
-   :start-line: 6
+   :start-line: 4
 
 .. toctree::
    :maxdepth: 2
