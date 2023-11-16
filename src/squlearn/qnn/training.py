@@ -284,11 +284,8 @@ def train(
             iteration = None
 
         # Splitting theta in the arrays
-        if opt_param_op:
-            param = theta[: len(param_ini)]
-            param_op = theta[len(param_ini) :]
-        else:
-            param = theta
+        param = theta[: len(param_ini)]
+        param_op = theta[len(param_ini) :]
 
         # Shot controlling
         if shot_control is not None:
@@ -315,11 +312,8 @@ def train(
             iteration = None
 
         # Splitting theta in the arrays
-        if opt_param_op:
-            param = theta[: len(param_ini)]
-            param_op = theta[len(param_ini) :]
-        else:
-            param = theta
+        param = theta[: len(param_ini)]
+        param_op = theta[len(param_ini) :]
 
         # Shot controlling
         if shot_control is not None:
