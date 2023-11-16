@@ -9,7 +9,7 @@ sQUlearn introduces a user-friendly, NISQ-ready Python library for quantum machi
 ## Prerequisites
 
 The package requires **at least Python 3.9**.
-## Installation
+## Install sQUlearn
 
 ### Stable Release
 
@@ -32,7 +32,7 @@ To install the required packages, run
 pip install .[examples]
 ```
 
-## Contribution
+## Contribute to sQUlearn
 Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](https://github.com/sQUlearn/squlearn/blob/main/.github/CONTRIBUTING.md) before you submit a pull request.
 
 ---
@@ -40,7 +40,7 @@ Thanks for considering to contribute to sQUlearn! Please read our [contribution 
 
 sQUlearn is released under the [Apache License 2.0](https://github.com/sQUlearn/squlearn/blob/main/LICENSE.txt)
 
-## Citation
+## Cite sQUlearn
 If you use sQUlearn in your work, please cite our paper:
 
 > Kreplin, D. A., Willmann, M., Schnabel, J., Rapp, F., & Roth, M. (2023). sQUlearn - A Python Library for Quantum Machine Learning. [https://doi.org/10.48550/arXiv.2311.08990](https://doi.org/10.48550/arXiv.2311.08990)
