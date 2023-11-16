@@ -39,6 +39,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinxcontrib.spelling",
+    "sphinx_sitemap",
     "matplotlib.sphinxext.plot_directive",
     "myst_parser",
     "nbsphinx",
@@ -112,3 +113,7 @@ intersphinx_mapping = {
 }
 
 suppress_warnings = ["myst.header"]
+
+# base URL for sphinx_sitemap
+html_baseurl = "https://squlearn.github.io/"
+sitemap_url_scheme = "{link}"
