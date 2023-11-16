@@ -36,16 +36,20 @@ pip install .[examples]
 Thanks for considering to contribute to sQUlearn! Please read our [contribution guidelines](https://github.com/sQUlearn/squlearn/blob/main/.github/CONTRIBUTING.md) before you submit a pull request.
 
 ---
-
 ## License
 
-[Apache License 2.0](https://github.com/sQUlearn/squlearn/blob/main/LICENSE.txt)
+sQUlearn is released under the [Apache License 2.0](https://github.com/sQUlearn/squlearn/blob/main/LICENSE.txt)
+
+## Citation
+If you use sQUlearn in your work, please cite our paper:
+
+> Kreplin, D. A., Willmann, M., Schnabel, J., Rapp, F., & Roth, M. (2023). sQUlearn - A Python Library for Quantum Machine Learning. [https://doi.org/10.48550/arXiv.2311.08990](https://doi.org/10.48550/arXiv.2311.08990)
 
 ## Contact
 This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA.
 
 [http://www.ipa.fraunhofer.de/quantum](http://www.ipa.fraunhofer.de/quantum)
 
-For general questions regarding sQUlearn, feel free to contact [sQUlearn@gmail.com](mailto:sQUlearn@gmail.com).
+For general questions regarding sQUlearn, use the [GitHub Discussions](https://github.com/sQUlearn/squlearn/discussions) or feel free to contact [sQUlearn@gmail.com](mailto:sQUlearn@gmail.com).
 
 ---
