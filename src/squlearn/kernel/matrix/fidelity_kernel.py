@@ -30,9 +30,8 @@ class FidelityKernel(KernelMatrixBase):
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
-    Depending on the choice of the Qiskit Primitive or Quantum Instance,
-    and dependent on the choice of trainable parameters, the
-    appropriate Quantum Kernel implementation is chosen.
+    Depending on the choice of the backend and the choice of trainable parameters, the appropriate
+    Quantum Kernel implementation is chosen.
 
     Args:
         encoding_circuit (EncodingCircuitBase): PQC encoding circuit.
