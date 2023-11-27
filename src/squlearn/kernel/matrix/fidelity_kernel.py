@@ -1,16 +1,19 @@
 """ Fidelity Quantum Kernel class"""
-import numpy as np
 from typing import Union
+import numpy as np
+
+from qiskit_machine_learning.kernels import (
+    FidelityQuantumKernel,
+    FidelityStatevectorKernel,
+    TrainableFidelityQuantumKernel,
+    TrainableFidelityStatevectorKernel,
+)
+from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.circuit import ParameterVector
+
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
-
-from qiskit_machine_learning.kernels import QuantumKernel
-from qiskit_machine_learning.kernels.fidelity_quantum_kernel import FidelityQuantumKernel
-from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
-from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.circuit import ParameterVector
-from qiskit_ibm_runtime import IBMBackend
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -27,9 +30,8 @@ class FidelityKernel(KernelMatrixBase):
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
-    Depending on the choice of the Qiskit Primitive or Quantum Instance,
-    and dependent on the choice of trainable parameters, the
-    appropriate Quantum Kernel implementation is chosen.
+    Depending on the choice of the backend and the choice of trainable parameters, the appropriate
+    Quantum Kernel implementation is chosen.
 
     Args:
         encoding_circuit (EncodingCircuitBase): PQC encoding circuit.
@@ -99,31 +101,29 @@ class FidelityKernel(KernelMatrixBase):
             self._feature_vector, self._parameter_vector
         )
 
-        if self._executor.execution == "Sampler" or isinstance(self._executor.backend, IBMBackend):
+        if "statevector_simulator" in str(self._executor._backend):
+            if self._parameter_vector is None:
+                self._quantum_kernel = FidelityStatevectorKernel(feature_map=self._enc_circ)
+            else:
+                self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                    feature_map=self._enc_circ,
+                    training_parameters=self._parameter_vector,
+                )
+        else:
             fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
             if self._parameter_vector is None:
-                # Fidelity Quantum Kernel without any parameters
                 self._quantum_kernel = FidelityQuantumKernel(
                     feature_map=self._enc_circ,
                     fidelity=fidelity,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
             else:
-                # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
                 self._quantum_kernel = TrainableFidelityQuantumKernel(
                     feature_map=self._enc_circ,
                     fidelity=fidelity,
                     training_parameters=self._parameter_vector,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
-        else:
-            # Will be soon deprecated!
-            self._quantum_kernel = QuantumKernel(
-                feature_map=self._enc_circ,
-                quantum_instance=self._executor.backend,
-                training_parameters=self._parameter_vector,
-                evaluate_duplicates=self._evaluate_duplicates,
-            )
 
     def get_params(self, deep: bool = True) -> dict:
         """
