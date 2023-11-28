@@ -111,6 +111,8 @@ class BaseQNN(BaseEstimator, ABC):
         self.shuffle = shuffle
 
         self.opt_param_op = opt_param_op
+        if len(self._param_op) == 0:
+            self.opt_param_op = False
 
         self.caching = caching
         self.pretrained = pretrained

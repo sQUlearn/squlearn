@@ -423,7 +423,7 @@ class QNN:
         return self.operator_derivatives.num_operators
 
     @property
-    def num_parameters_operator(self) -> int:
+    def num_parameters_observable(self) -> int:
         """Return the number of trainable parameters of the expectation value operator"""
         return self.operator_derivatives.num_parameters
 
@@ -881,7 +881,7 @@ class QNN:
         # input adjustments for x, param, param_op to get correct stacking of values
         x_inp, multi_x = adjust_features(x, self.num_features)
         param_inp, multi_param = adjust_parameters(param, self.num_parameters)
-        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_operator)
+        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_observable)
 
         # build dictionary for later use
         dict_encoding_circuit = []

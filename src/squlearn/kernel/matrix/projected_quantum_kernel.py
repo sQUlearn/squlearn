@@ -417,7 +417,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the encoding circuit"""
-        return self._qnn.num_parameters + self._qnn.num_parameters_operator
+        return self._qnn.num_parameters + self._qnn.num_parameters_observable
 
     @property
     def measurement(self):
