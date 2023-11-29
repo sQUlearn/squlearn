@@ -278,6 +278,7 @@ def train(
     def _fun(theta):
         nonlocal iteration
         nonlocal optimizer
+        nonlocal param_op
         if isinstance(optimizer, IterativeMixin):
             iteration = optimizer.iteration
         else:
@@ -285,17 +286,18 @@ def train(
 
         # Splitting theta in the arrays
         if opt_param_op:
-            param = theta[: len(param_ini)]
-            param_op = theta[len(param_ini) :]
+            param_ = theta[: len(param_ini)]
+            param_op_ = theta[len(param_ini) :]
         else:
-            param = theta
+            param_ = theta
+            param_op_ = param_op
 
         # Shot controlling
         if shot_control is not None:
             if isinstance(shot_control, ShotsFromRSTD):
                 shot_control.set_shots_for_loss()
 
-        loss_values = qnn.evaluate(loss.loss_args_tuple, input_values, param, param_op)
+        loss_values = qnn.evaluate(loss.loss_args_tuple, input_values, param_, param_op_)
 
         loss_value = loss.value(
             loss_values,
@@ -308,7 +310,7 @@ def train(
     def _grad(theta):
         nonlocal iteration
         nonlocal optimizer
-
+        nonlocal param_op
         if isinstance(optimizer, IterativeMixin):
             iteration = optimizer.iteration
         else:
@@ -316,23 +318,24 @@ def train(
 
         # Splitting theta in the arrays
         if opt_param_op:
-            param = theta[: len(param_ini)]
-            param_op = theta[len(param_ini) :]
+            param_ = theta[: len(param_ini)]
+            param_op_ = theta[len(param_ini) :]
         else:
-            param = theta
+            param_ = theta
+            param_op_ = param_op
 
         # Shot controlling
         if shot_control is not None:
             if isinstance(shot_control, ShotsFromRSTD):
                 if loss.loss_variance_available:
                     loss_variance = loss.variance(
-                        qnn.evaluate(loss.variance_args_tuple, input_values, param, param_op),
+                        qnn.evaluate(loss.variance_args_tuple, input_values, param_, param_op_),
                         ground_truth=ground_truth,
                         weights=weights_values,
                         iteration=iteration,
                     )
                     loss_values = loss.value(
-                        qnn.evaluate(loss.loss_args_tuple, input_values, param, param_op),
+                        qnn.evaluate(loss.loss_args_tuple, input_values, param_, param_op_),
                         ground_truth=ground_truth,
                         weights=weights_values,
                         iteration=iteration,
@@ -341,7 +344,7 @@ def train(
                 else:
                     raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
-        grad_values = qnn.evaluate(loss.gradient_args_tuple, input_values, param, param_op)
+        grad_values = qnn.evaluate(loss.gradient_args_tuple, input_values, param_, param_op_)
         grad = np.concatenate(
             loss.gradient(
                 grad_values,
