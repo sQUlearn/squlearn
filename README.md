@@ -7,7 +7,7 @@ sQUlearn is a user-friendly, NISQ-ready Python library for quantum machine learn
 sQUlearn offers scikit-learn compatible high-level interfaces for various kernel methods and QNNs. They build on top of the low-level interfaces of the QNN engine and the quantum kernel engine. The executor is used to run experiments on simulated and real backends in the Qiskit environment.
 
 <p align="center">
-  <img alt="sQUlearn schematic" src="docs/_static/schematic.png" />
+  <img width=500px alt="sQUlearn schematic" src="docs/_static/schematic.png" />
 </p>
 
 ---
