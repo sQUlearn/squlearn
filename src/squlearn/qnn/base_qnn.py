@@ -170,6 +170,16 @@ class BaseQNN(BaseEstimator, ABC):
         """Parameters of the cost operator."""
         return self._param_op
 
+    @property
+    def num_parameters(self) -> int:
+        """Number of parameters of the PQC."""
+        return self._qnn.num_parameters
+
+    @property
+    def num_parameters_observable(self) -> int:
+        """Number of parameters of the observable."""
+        return self._qnn.num_parameters_observable
+
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 

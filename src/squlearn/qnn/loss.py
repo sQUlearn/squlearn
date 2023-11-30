@@ -473,7 +473,7 @@ class SquaredLoss(LossBase):
 
         weighted_diff = np.multiply((value_dict["f"] - ground_truth), weights)
 
-        if value_dict["dfdp"].shape[0]==0:
+        if value_dict["dfdp"].shape[0] == 0:
             d_p = np.array([])
         else:
             if multiple_output:
@@ -485,7 +485,7 @@ class SquaredLoss(LossBase):
         if not self._opt_param_op:
             return d_p
 
-        if value_dict["dfdop"].shape[0]==0:
+        if value_dict["dfdop"].shape[0] == 0:
             d_op = np.array([])
         else:
             if multiple_output:
@@ -580,7 +580,7 @@ class VarianceLoss(LossBase):
             alpha = self._alpha
 
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
-        if value_dict["dfdp"].shape[0]==0:
+        if value_dict["dfdp"].shape[0] == 0:
             d_p = np.array([])
         else:
             if multiple_output:
@@ -592,7 +592,7 @@ class VarianceLoss(LossBase):
         if not self._opt_param_op:
             return d_p
 
-        if value_dict["dfdop"].shape[0]==0:
+        if value_dict["dfdop"].shape[0] == 0:
             d_op = np.array([])
         else:
             if multiple_output:

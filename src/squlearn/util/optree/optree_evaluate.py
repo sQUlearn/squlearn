@@ -660,7 +660,9 @@ def _build_expectation_list(
     return circuit_list, operator_list, parameter_list, circuit_operator_list, index_tree
 
 
-def _add_offset_to_tree(optree_element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue], offset: int):
+def _add_offset_to_tree(
+    optree_element: Union[OpTreeNodeBase, OpTreeContainer, OpTreeValue], offset: int
+):
     """
     Helper function for adding a constant offset to all leafs of the OpTree structure.
 
@@ -1005,7 +1007,7 @@ class OpTreeEvaluate:
         start = time.time()
         # print("Number of circuits for sampler: ", len(total_circuit_list))
 
-        if len(total_circuit_list)==0:
+        if len(total_circuit_list) == 0:
             return np.array([])
 
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
@@ -1213,7 +1215,7 @@ class OpTreeEvaluate:
         # Evaluation via the estimator
         start = time.time()
         # print("Number of circuits for estimator: ", len(total_circuit_list))
-        if len(total_circuit_list)==0:
+        if len(total_circuit_list) == 0:
             return np.array([])
 
         estimator_result = (
@@ -1303,7 +1305,7 @@ class OpTreeEvaluate:
         # Evaluation via the estimator
         start = time.time()
         # print("Number of circuits for estimator: ", len(total_circuit_list))
-        if len(total_circuit_list)==0:
+        if len(total_circuit_list) == 0:
             return np.array([])
 
         estimator_result = (
@@ -1400,7 +1402,7 @@ class OpTreeEvaluate:
         # Evaluation via the sampler
         start = time.time()
         # print("Number of circuits for sampler: ", len(total_circuit_list))
-        if len(total_circuit_list)==0:
+        if len(total_circuit_list) == 0:
             return np.array([])
 
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
