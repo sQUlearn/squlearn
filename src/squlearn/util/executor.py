@@ -578,73 +578,78 @@ class Executor:
                 self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
 
             # Wait for the job to complete
-            if not cached:
-                status = JobStatus.QUEUED
-                last_status = None
+            if job is None:
+                if "simulator" in str(self._backend):
+                    critical_error = True
+                    critical_error_message = RuntimeError("Failed to execute job on simulator!")
             else:
-                status = JobStatus.DONE
-            while status not in JOB_FINAL_STATES:
-                try:
-                    status = job.status()
-                    if status != last_status:
-                        self._logger.info(f"Job status: {{}}".format(status))
-                    last_status = status
-                except Exception as e:
-                    self._logger.info(
-                        f"Executor failed to get job status because of unknown error!"
-                    )
-                    self._logger.info(f"Error message: {{}}".format(e))
-                    self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-                    break
-
-                if self._remote:
-                    time.sleep(1)
+                if not cached:
+                    status = JobStatus.QUEUED
+                    last_status = None
                 else:
-                    time.sleep(0.01)
-
-            # Job is completed, check if it was successful
-            if status == JobStatus.ERROR:
-                self._logger.info(f"Failed executation of the job!")
-                try:
-                    self._logger.info(f"Error message: {{}}".format(job.error_message()))
-                except Exception as e:
+                    status = JobStatus.DONE
+                while status not in JOB_FINAL_STATES:
                     try:
-                        job.result()
-                    except Exception as e2:
-                        pass
-                        critical_error = True
-                        critical_error_message = e2
-            elif status == JobStatus.CANCELLED:
-                self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
-                self._logger.info(
-                    f"To stop resubmitting the job, cancel the execution script first."
-                )
-            else:
-                success = True
-                result_success = False
-                for retry_result in range(3):
-                    # check if result is available
-                    try:
-                        result = job.result()
-                        result_success = True
-                    except RuntimeJobFailureError as e:
-                        self._logger.info(f"Executor unable to retriev job result!")
-                        self._logger.info(f"Error message: {{}}".format(e))
+                        status = job.status()
+                        if status != last_status:
+                            self._logger.info(f"Job status: {{}}".format(status))
+                        last_status = status
                     except Exception as e:
                         self._logger.info(
-                            f"Executor failed to get job result because of unknown error!"
+                            f"Executor failed to get job status because of unknown error!"
                         )
                         self._logger.info(f"Error message: {{}}".format(e))
                         self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-                    if result_success:
                         break
+
+                    if self._remote:
+                        time.sleep(1)
                     else:
-                        self._logger.info(f"Retrying to get job result")
-                        time.sleep(self._wait_restart)
+                        time.sleep(0.01)
+
+                # Job is completed, check if it was successful
+                if status == JobStatus.ERROR:
+                    self._logger.info(f"Failed executation of the job!")
+                    try:
+                        self._logger.info(f"Error message: {{}}".format(job.error_message()))
+                    except Exception as e:
+                        try:
+                            job.result()
+                        except Exception as e2:
+                            pass
+                            critical_error = True
+                            critical_error_message = e2
+                elif status == JobStatus.CANCELLED:
+                    self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
+                    self._logger.info(
+                        f"To stop resubmitting the job, cancel the execution script first."
+                    )
+                else:
+                    success = True
+                    result_success = False
+                    for retry_result in range(3):
+                        # check if result is available
+                        try:
+                            result = job.result()
+                            result_success = True
+                        except RuntimeJobFailureError as e:
+                            self._logger.info(f"Executor unable to retriev job result!")
+                            self._logger.info(f"Error message: {{}}".format(e))
+                        except Exception as e:
+                            self._logger.info(
+                                f"Executor failed to get job result because of unknown error!"
+                            )
+                            self._logger.info(f"Error message: {{}}".format(e))
+                            self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                        if result_success:
+                            break
+                        else:
+                            self._logger.info(f"Retrying to get job result")
+                            time.sleep(self._wait_restart)
 
             if success and result_success:
                 break
-            else:
+            elif critical_error is False:
                 self._logger.info(f"Restarting " + label + f" run")
                 success = False
                 result_success = False
