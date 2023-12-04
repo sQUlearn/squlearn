@@ -9,7 +9,7 @@ from squlearn.encoding_circuit.circuit_library.param_z_feature_map import ParamZ
 from squlearn.observables import CustomObservable
 
 
-class qcnn_encoding_circuit(EncodingCircuitBase):
+class QcnnEncodingCircuit(EncodingCircuitBase):
 
     """
     Instantiate the object for building a qcnn.
