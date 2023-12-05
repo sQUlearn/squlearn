@@ -69,12 +69,12 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     self.default_circuit()
                 else:
                     for operation in self.operations_list:
-                        if operation[0] == "C":
-                            self.Conv(*operation[1:], new_operation=False)
-                        elif operation[0] == "P":
-                            self.Pool(*operation[1:], new_operation=False)
-                        elif operation[0] == "F":
-                            self.FC(*operation[1:], new_operation=False)
+                        if operation[0] == "Conv":
+                            self.convolution(*operation[1:], new_operation=False)
+                        elif operation[0] == "Pool":
+                            self.pooling(*operation[1:], new_operation=False)
+                        elif operation[0] == "FC":
+                            self.fully_connected(*operation[1:], new_operation=False)
                             break
 
     def set_num_features(self, n: int = 0):
@@ -82,10 +82,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if n > 0:
             self._num_features = n
 
-    def Conv(
+    def convolution(
         self,
         quantum_circuit=None,
-        label: str = "C",
+        label: str = "Conv",
         alternating: bool = True,
         diff_params: bool = True,
         new_operation: bool = True,
@@ -118,7 +118,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if self.num_qubits == 0:
             if new_operation:
                 self._operations_list.append(
-                    ["C", quantum_circuit, label, alternating, diff_params]
+                    ["Conv", quantum_circuit, label, alternating, diff_params]
                 )
         else:
             if quantum_circuit.num_qubits > len(self.left_qubits):
@@ -145,13 +145,13 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     self._num_parameters += quantum_circuit.num_parameters
                 if new_operation:
                     self._operations_list.append(
-                        ["C", quantum_circuit, label, alternating, diff_params]
+                        ["Conv", quantum_circuit, label, alternating, diff_params]
                     )
 
-    def Pool(
+    def pooling(
         self,
         quantum_circuit=None,
-        label: str = "P",
+        label: str = "Pool",
         measurement: bool = False,
         input_list: list = [],
         output_list: list = [],
@@ -218,7 +218,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             if len(output_list) + len(input_list) == 0:
                 if new_operation:
                     self._operations_list.append(
-                        ["P", quantum_circuit, label, measurement, input_list, output_list]
+                        ["Pool", quantum_circuit, label, measurement, input_list, output_list]
                     )
                 if self.num_qubits > 0:
                     number_of_gates = int(len(self.left_qubits) / quantum_circuit.num_qubits)
@@ -278,7 +278,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             if not Found_error:
                 if new_operation:
                     self._operations_list.append(
-                        ["P", quantum_circuit, label, measurement, input_list, output_list]
+                        ["Pool", quantum_circuit, label, measurement, input_list, output_list]
                     )
                 if self.num_qubits > 0:
                     self._num_parameters += quantum_circuit.num_parameters * len(input_list)
@@ -291,7 +291,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                                 left_qubits.remove(j)
                     self._left_qubits = left_qubits
 
-    def FC(self, quantum_circuit=None, label: str = "F", new_operation: bool = True):
+    def fully_connected(self, quantum_circuit=None, label: str = "FC", new_operation: bool = True):
         """
         Final layer which is added right before measurement. It operates on all qubits remaining in the circuit.
 
@@ -303,11 +303,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if (
             (not quantum_circuit) and (self.num_qubits > 0) and (not new_operation)
         ):  # overwrite with the correct gate
-            self._operations_list.remove(["F", quantum_circuit, label])
+            self._operations_list.remove(["FC", quantum_circuit, label])
             new_operation = True
         if self.num_qubits == 0:
             if new_operation:
-                self._operations_list.append(["F", quantum_circuit, label])
+                self._operations_list.append(["FC", quantum_circuit, label])
         else:
             # define default circuit
             if not quantum_circuit:
@@ -332,7 +332,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             else:
                 self._num_parameters += quantum_circuit.num_parameters
                 if new_operation:
-                    self._operations_list.append(["F", quantum_circuit, label])
+                    self._operations_list.append(["FC", quantum_circuit, label])
 
     def get_circuit(
         self,
@@ -377,7 +377,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             quantum_circuit = gate[1]  # get the circuit which is to apply
             quantum_circuit.name = gate[2] + "_" + str(i_layer)  # set name of the operation
 
-            if gate[0] == "C":
+            if gate[0] == "Conv":
                 # define number of gates applied
                 number_of_gates_1 = int(len(left_qubits) / quantum_circuit.num_qubits)
                 number_of_gates_2 = 0
@@ -420,7 +420,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 if not gate[4]:
                     i_param += quantum_circuit.num_parameters
 
-            elif gate[0] == "P":
+            elif gate[0] == "Pool":
                 ###continue
                 input_list = gate[4]
                 output_list = gate[5]
@@ -483,7 +483,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                             left_qubits_1.remove(i)
                 left_qubits = left_qubits_1
 
-            elif gate[0] == "F":
+            elif gate[0] == "FC":
                 # assign parameter and add gates to circuit
                 quantum_circuit.assign_parameters(
                     parameters[i_param : i_param + quantum_circuit.num_parameters], True
@@ -492,7 +492,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 total_qc = total_qc.compose(
                     circuit_to_gate(quantum_circuit), qubits=[i for i in left_qubits]
                 )
-                break  # after the "F" gate the circuit construction ends and measurement has to follow
+                break  # after the "FC" gate the circuit construction ends and measurement has to follow
         return total_qc
 
     def repeat_layers(self, n_times: int = 0):
@@ -519,10 +519,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     False  # so that it will not continue forever adding convolution operations
                 )
                 for operation in operations_list:
-                    if operation[0] == "C":
-                        self.Conv(*operation[1:])
-                    elif operation[0] == "P":
-                        self.Pool(*operation[1:])
+                    if operation[0] == "Conv":
+                        self.convolution(*operation[1:])
+                    elif operation[0] == "Pool":
+                        self.pooling(*operation[1:])
                         pooled = True
                 if len(self.left_qubits) <= 3 or not pooled:
                     break
@@ -532,10 +532,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     print("The circuit has too few qubits to continue")
                     break
                 for operation in operations_list:
-                    if operation[0] == "C":
-                        self.Conv(*operation[1:])
-                    elif operation[0] == "P":
-                        self.Pool(*operation[1:])
+                    if operation[0] == "Conv":
+                        self.convolution(*operation[1:])
+                    elif operation[0] == "Pool":
+                        self.pooling(*operation[1:])
 
     def default_circuit(self):
         """
@@ -544,11 +544,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if len(self.left_qubits) <= 1:
             print("The circuit has too few qubits")
             return
-        self.Conv()
-        self.Pool()
+        self.convolution()
+        self.pooling()
         if len(self.left_qubits) > 1:
             self.repeat_layers()
-        self.FC()
+        self.fully_connected()
 
     def QCNNObservable(self, pauli: str = "Z"):
         """
@@ -596,7 +596,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         final_num_qubits (int): The number of qubits which should be left after applying the supplied gates.
         """
         for operation in self.operations_list[::-1]:
-            if operation[0] == "P":  # only pooling layers matter for the number of qubits
+            if operation[0] == "Pool":  # only pooling layers matter for the number of qubits
                 output_list = operation[5]
                 quantum_circuit = operation[1]
                 if len(output_list) == 0:
