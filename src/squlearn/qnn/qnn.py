@@ -423,7 +423,7 @@ class QNN:
         return self.operator_derivatives.num_operators
 
     @property
-    def num_parameters_operator(self) -> int:
+    def num_parameters_observable(self) -> int:
         """Return the number of trainable parameters of the expectation value operator"""
         return self.operator_derivatives.num_parameters
 
@@ -881,7 +881,7 @@ class QNN:
         # input adjustments for x, param, param_op to get correct stacking of values
         x_inp, multi_x = adjust_features(x, self.num_features)
         param_inp, multi_param = adjust_parameters(param, self.num_parameters)
-        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_operator)
+        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_observable)
 
         # build dictionary for later use
         dict_encoding_circuit = []
@@ -938,6 +938,10 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
+            set_empty = False
+            if val.shape[0] == 0:
+                set_empty = True
+
             # Swapp results into the following order:
             # 1. different observables (op_list)
             # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
@@ -946,61 +950,65 @@ class QNN:
             # 5. If there, lists of the operators (e.g. operator derivatives)
             # 6. if there, lists of the circuits (e.g. array for gradient)
 
-            ilist = list(range(len(val.shape)))
+            if set_empty is False:
+                ilist = list(range(len(val.shape)))
 
-            #             # Op_list index       # fm dict   # op dict
-            swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
+                #             # Op_list index       # fm dict   # op dict
+                swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
 
-            length = 3 + num_nested
-            # Add multiple output data next
-            if self.multiple_output:
-                length += 1
-                swapp_list = swapp_list + [ilist[-1]]
-
-            # If there are lists in the operators, add them next (e.g. dfdop)
-            if len(ilist) > length:
+                length = 3 + num_nested
+                # Add multiple output data next
                 if self.multiple_output:
-                    swapp_list = swapp_list + ilist[3 + num_nested : -1]
-                else:
-                    swapp_list = swapp_list + ilist[3 + num_nested :]
+                    length += 1
+                    swapp_list = swapp_list + [ilist[-1]]
 
-            # If there are lists in the circuits, add them here (e.g. dfdp)
-            if num_nested > 0:
-                swapp_list = swapp_list + ilist[2 : 2 + num_nested]
+                # If there are lists in the operators, add them next (e.g. dfdop)
+                if len(ilist) > length:
+                    if self.multiple_output:
+                        swapp_list = swapp_list + ilist[3 + num_nested : -1]
+                    else:
+                        swapp_list = swapp_list + ilist[3 + num_nested :]
 
-            val = np.transpose(val, axes=swapp_list)
+                # If there are lists in the circuits, add them here (e.g. dfdp)
+                if num_nested > 0:
+                    swapp_list = swapp_list + ilist[2 : 2 + num_nested]
+
+                val = np.transpose(val, axes=swapp_list)
 
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
             ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                if isinstance(val[iexpec], object):
-                    # tolist() is needed, since numpy array conversion is otherwise hanging
-                    val_final = np.array(val[iexpec].tolist(), dtype=float)
+                if set_empty:
+                    value_dict[expec_] = np.array([])
                 else:
-                    val_final = val[iexpec]
-                reshape_list = []
-                shape = val_final.shape
-                if multi_x:
-                    reshape_list.append(len(x))
-                if multi_param:
-                    reshape_list.append(len(param))
-                if multi_param_op:
-                    reshape_list.append(shape[1])
-                if self.multiple_output:
-                    reshape_list.append(shape[2])
-                if self.multiple_output:
-                    if len(shape) > 3:
-                        reshape_list += list(shape[3:])
-                else:
-                    if len(shape) > 2:
-                        reshape_list += list(shape[2:])
+                    if isinstance(val[iexpec], object):
+                        # tolist() is needed, since numpy array conversion is otherwise hanging
+                        val_final = np.array(val[iexpec].tolist(), dtype=float)
+                    else:
+                        val_final = val[iexpec]
+                    reshape_list = []
+                    shape = val_final.shape
+                    if multi_x:
+                        reshape_list.append(len(x))
+                    if multi_param:
+                        reshape_list.append(len(param))
+                    if multi_param_op:
+                        reshape_list.append(shape[1])
+                    if self.multiple_output:
+                        reshape_list.append(shape[2])
+                    if self.multiple_output:
+                        if len(shape) > 3:
+                            reshape_list += list(shape[3:])
+                    else:
+                        if len(shape) > 2:
+                            reshape_list += list(shape[2:])
 
-                if len(reshape_list) == 0:
-                    value_dict[expec_] = val_final.reshape(-1)[0]
-                else:
-                    value_dict[expec_] = val_final.reshape(reshape_list)
-                ioff = ioff + 1
+                    if len(reshape_list) == 0:
+                        value_dict[expec_] = val_final.reshape(-1)[0]
+                    else:
+                        value_dict[expec_] = val_final.reshape(reshape_list)
+                    ioff = ioff + 1
 
         # Set-up lables from the input list
         for todo in values:
