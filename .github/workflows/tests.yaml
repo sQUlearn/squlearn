@@ -1,6 +1,12 @@
 name: Testing
 on:
-- pull_request
+  pull_request:
+    types: 
+      - review_requested
+    branches:
+      - develop
+  schedule:
+    - cron: '23 1 * * *'
 
 jobs:
   pytest:
