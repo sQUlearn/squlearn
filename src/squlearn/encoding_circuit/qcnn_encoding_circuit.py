@@ -77,11 +77,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 else:
                     for operation in self.operations_list:
                         if operation[0] == "Conv":
-                            self.convolution(*operation[1:], _new_operation=False)
+                            self.__convolution(*operation[1:], _new_operation=False)
                         elif operation[0] == "Pool":
-                            self.pooling(*operation[1:], _new_operation=False)
+                            self.__pooling(*operation[1:], _new_operation=False)
                         elif operation[0] == "FC":
-                            self.fully_connected(*operation[1:], _new_operation=False)
+                            self.__fully_connected(*operation[1:], _new_operation=False)
                             break  # since FC should be at the end of the circuit
 
     def set_num_features(self, n: int = 0):
@@ -101,7 +101,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         label: str = "Conv",
         alternating: bool = True,
         diff_params: bool = True,
-        _new_operation: bool = True,
     ):
         """
         Add a convolution layer to the encoding circuit.
@@ -112,9 +111,21 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             label (str): The name of the layer.
             alternating (bool): The gate is applied on every qubit modulo qubits of this circuit
                 beginning at 0. If True it applies the gate on every qubit beginning at 1 again.
-            diff_params (bool): If True, different parameters are used for the gates in this layer.
-            _new_operation: If False, the operation
+            diff_params (bool): If True,
+                different parameters are used for the gates in this layer.
         """
+        self.__convolution(quantum_circuit, label, alternating, diff_params)
+
+    def __convolution(
+        self,
+        quantum_circuit: Union[QuantumCircuit, EncodingCircuitBase, None] = None,
+        label: str = "Conv",
+        alternating: bool = True,
+        diff_params: bool = True,
+        _new_operation: bool = True,
+    ):
+        """Internal function to allow internal _new_operation argument."""
+
         # Define default circuit
         if not quantum_circuit:
             param = ParameterVector("a", 3)
@@ -128,7 +139,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             quantum_circuit.cx(1, 0)
             quantum_circuit.rz(np.pi / 2, 0)
 
-        quantum_circuit = self._convert_encoding_circuit(quantum_circuit)
+        quantum_circuit = self.__convert_encoding_circuit(quantum_circuit)
         if self.num_qubits == 0:
             if _new_operation:
                 self._operations_list.append(
@@ -170,7 +181,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         measurement: bool = False,
         input_list: list = [],
         output_list: list = [],
-        _new_operation: bool = True,
     ):
         """
         Add a pooling layer to the encoding circuit.
@@ -203,6 +213,19 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 while beeing at least one element less.
             THE QUBIT NUMBERS IN THE LISTS REFER TO THE INITIAL QUBIT NUMBERS!
         """
+        self.__pooling(quantum_circuit, label, measurement, input_list, output_list)
+
+    def __pooling(
+        self,
+        quantum_circuit: Union[QuantumCircuit, EncodingCircuitBase, None] = None,
+        label: str = "Pool",
+        measurement: bool = False,
+        input_list: list = [],
+        output_list: list = [],
+        _new_operation: bool = True,
+    ):
+        """Internal function to allow internal _new_operation argument."""
+
         # define default circuit
         if not quantum_circuit:
             param = ParameterVector("a", 3)
@@ -221,8 +244,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 quantum_circuit.cx(1, 0)
             quantum_circuit.ry(param[2], 0)
 
-        quantum_circuit = self._convert_encoding_circuit(quantum_circuit)
-        Found_error = False
+        quantum_circuit = self.__convert_encoding_circuit(quantum_circuit)
+        found_error = False
         if (measurement and quantum_circuit.num_clbits != 1) or (
             not measurement and quantum_circuit.num_clbits == 1
         ):
@@ -230,7 +253,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Warning on pooling layer: Eather set measurement to True and provide a ",
                 "circuit with exactly one classical bit or set measurement to False.",
             )
-            Found_error = True
+            found_error = True
 
         if quantum_circuit.num_qubits > len(self.left_qubits) and self.num_qubits > 0:
             print(
@@ -240,9 +263,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 len(self.left_qubits),
                 "qubits on the actual circuit.",
             )
-            Found_error = True
+            found_error = True
 
-        if not Found_error:
+        if not found_error:
             if len(output_list) + len(input_list) == 0:  # if no input and output lists are given
                 if _new_operation:
                     self._operations_list.append(
@@ -259,12 +282,12 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         ]:
                             left_qubits.remove(i)
                     self._left_qubits = left_qubits
-                Found_error = True  # to skip the input list part
+                found_error = True  # to skip the input list part
 
             # in case a predefined order is given, test whether it is in a proper structure
             if len(input_list) != len(output_list):
                 print("The lists do not have the same length.")
-                Found_error = True
+                found_error = True
 
             if self.num_qubits == 0:
                 n_max = 0
@@ -283,10 +306,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                             "The qubits adressed in the output ",
                             "are not in the respective input list.",
                         )
-                        Found_error = True
+                        found_error = True
                         break
 
-                if Found_error == True:  # For early ending
+                if found_error == True:  # For early ending
                     break
 
                 if len(input_list[i]) <= len(output_list[i]):
@@ -294,12 +317,12 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         "The sublists in the input list do not all have at least ",
                         "one qubit more then those in the output list.",
                     )
-                    Found_error = True
+                    found_error = True
                     break
 
                 if len(output_list[i]) == 0:
                     print("At least one qubit must be in the sublists in the output list.")
-                    Found_error = True
+                    found_error = True
                     break
 
                 if len(input_list[i]) != quantum_circuit.num_qubits:
@@ -307,7 +330,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         "Not all sublists in the input list match the ",
                         "number of qubits of the input circuit.",
                     )
-                    Found_error = True
+                    found_error = True
                     break
 
                 for j in input_list[i]:
@@ -318,11 +341,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                             "The sublists in the input list either adress the same ",
                             "qubit or qubits which are not in the current circuit.",
                         )
-                        Found_error = True
+                        found_error = True
                         break
 
             # if the given in- and outputlists are in a proper shape
-            if not Found_error:
+            if not found_error:
                 if _new_operation:
                     self._operations_list.append(
                         ["Pool", quantum_circuit, label, measurement, input_list, output_list]
@@ -342,7 +365,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         self,
         quantum_circuit: Union[QuantumCircuit, EncodingCircuitBase, None] = None,
         label: str = "FC",
-        _new_operation: bool = True,
     ):
         """
         Add a fully connected layer to the encoding circuit.
@@ -355,6 +377,16 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 The quantum circuit, which is applied in this layer.
             label: The name of the layer.
         """
+        self.__fully_connected(quantum_circuit, label)
+
+    def __fully_connected(
+        self,
+        quantum_circuit: Union[QuantumCircuit, EncodingCircuitBase, None] = None,
+        label: str = "FC",
+        _new_operation: bool = True,
+    ):
+        """Internal function to allow internal _new_operation argument."""
+
         if (
             (not quantum_circuit) and (self.num_qubits > 0) and (not _new_operation)
         ):  # overwrite with the correct gate
@@ -374,7 +406,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     for j in range(i + 1, len(self.left_qubits)):
                         quantum_circuit.cx(i, j)
 
-            quantum_circuit = self._convert_encoding_circuit(quantum_circuit)
+            quantum_circuit = self.__convert_encoding_circuit(quantum_circuit)
 
             if quantum_circuit.num_qubits != len(self.left_qubits):
                 print(
@@ -637,7 +669,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             num_qubits=self.num_qubits, operator_string=observable_list, parameterized=True
         )
 
-    def _convert_encoding_circuit(self, quantum_circuit) -> QuantumCircuit:
+    def __convert_encoding_circuit(self, quantum_circuit) -> QuantumCircuit:
         """Internal function to allow also sQUlearn encoding circuits as input."""
         if not isinstance(quantum_circuit, QuantumCircuit):
             param = ParameterVector("p", quantum_circuit.num_parameters)
