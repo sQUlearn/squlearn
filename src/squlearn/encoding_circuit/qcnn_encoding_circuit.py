@@ -14,10 +14,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     """
     Encoding circuit for quantum convolutional neural networks (QCNN).
 
-    The structure is inspired by classical neural networks.
-    Therefore the number of qubits it is operated on is reduced from layer to layer.
-    For more information read:
-    "Quantum convolutional neural networks" by Cong, Iris and Choi, Soonwon and Lukin, Mikhail D.
+    The structure is inspired by classical convolutional neural networks. The number of active
+    qubits reduces with each layer. The design idea was initially proposed in reference [1].
 
     Args:
         num_qubits (int): Number of initial qubits of the QCNN encoding circuit.
@@ -115,6 +113,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             alternating (bool): The gate is applied on every qubit modulo qubits of this circuit
                 beginning at 0. If True it applies the gate on every qubit beginning at 1 again.
             diff_params (bool): If True, different parameters are used for the gates in this layer.
+            _new_operation: If False, the operation
         """
         # Define default circuit
         if not quantum_circuit:
@@ -178,30 +177,31 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
 
         This reduces the number of qubits to operate on from here on in this circuit
         by at least one for each circuit applied.
+        Default circuit: Entangles qubit i and qubit i+1.
+        Only qubit i stays in the circuit for further operations.
 
         Args:
-        quantum_circuit Union[EncodingCircuitBase,QuantumCircuit, None]:
-            The quantum circuit, which is applied in this layer.
-            Must be an entangling layer, which entangles qubits.
-        label (str): The name of the layer.
-        measurement (bool): Sets whether the qubits,
-            which are not used anymore after this layer, are measured.
-            If True, quantum_circuit must consist of exactly one classical bit
-            additionally to the quantum bits.
-        input_list (list): Optionally one can pass the structure of the gates operating.
-            The input list defines the qubits the input circuit acts on.
-            The list should be structured as: [[qubit1,qubit2,..],[qubit3,qubit4,..],..].
-            Every qubit can only be adressed once and the number of qubits in each list
-            within the list must be equal to the number of qubits of input circuit.
-        output_list (list): Exactly if an input list is entered, an output list must be entered.
-            The output list defines the qubits which are left in the circuit to operate on.
-            The list should be structured as: [[qubit1,qubit2,..],[qubit3,qubit4,..],..].
-            It must have the same length as the input list and in each sublist
-            its elements must be in the corresponding input sublist
-            while beeing at least one element less.
-        THE QUBIT NUMBERS IN THE LISTS REFER TO THE INITIAL QUBIT NUMBERS!
-        Default circuit: Entangles qubit i and qubit i+1.
-            Only qubit i stays in the circuit for further operations.
+            quantum_circuit Union[EncodingCircuitBase,QuantumCircuit, None]:
+                The quantum circuit, which is applied in this layer.
+                Must be an entangling layer, which entangles qubits.
+            label (str): The name of the layer.
+            measurement (bool): Sets whether the qubits,
+                which are not used anymore after this layer, are measured.
+                If True, quantum_circuit must consist of exactly one classical bit
+                additionally to the quantum bits.
+            input_list (list): Optionally one can pass the structure of the gates operating.
+                The input list defines the qubits the input circuit acts on.
+                The list should be structured as: [[qubit1,qubit2,..],[qubit3,qubit4,..],..].
+                Every qubit can only be adressed once and the number of qubits in each list
+                within the list must be equal to the number of qubits of input circuit.
+            output_list (list):
+                Exactly if an input list is entered, an output list must be entered.
+                The output list defines the qubits which are left in the circuit to operate on.
+                The list should be structured as: [[qubit1,qubit2,..],[qubit3,qubit4,..],..].
+                It must have the same length as the input list and in each sublist
+                its elements must be in the corresponding input sublist
+                while beeing at least one element less.
+            THE QUBIT NUMBERS IN THE LISTS REFER TO THE INITIAL QUBIT NUMBERS!
         """
         # define default circuit
         if not quantum_circuit:
@@ -351,9 +351,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         and operates on all qubits remaining in the circuit.
 
         Args:
-        quantum_circuit Union[EncodingCircuitBase,QuantumCircuit, None]:
-            The quantum circuit, which is applied in this layer.
-        label: The name of the layer.
+            quantum_circuit Union[EncodingCircuitBase,QuantumCircuit, None]:
+                The quantum circuit, which is applied in this layer.
+            label: The name of the layer.
         """
         if (
             (not quantum_circuit) and (self.num_qubits > 0) and (not _new_operation)
@@ -558,9 +558,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         This does not work with a pooling layer with supplied in- and output lists.
 
         Args:
-        n_times (int): The number of times the already applied gates are repeatedly applied.
-        default configuration: At least once applied and until less then 4 qubits are left
-            and only once if there is no pooling gate applied.
+            n_times (int): The number of times the already applied gates are repeatedly applied.
+            default configuration: At least once applied and until less then 4 qubits are left
+                and only once if there is no pooling gate applied.
         """
         if n_times == 0 and self.num_qubits == 0:
             n_times = 1
@@ -616,7 +616,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         It only contains single qubit measurements.
 
         Args:
-        pauli (str): Its the used pauli gate so either X,Y or Z.
+            pauli (str): Its the used pauli gate so either X,Y or Z.
 
         Return:
             Returns the fitting observable.
@@ -657,8 +657,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         of initial qubits and applies the supplied gates.
 
         Args:
-        final_num_qubits (int):
-            The number of qubits which should be left after applying the supplied gates.
+            final_num_qubits (int):
+                The number of qubits which should be left after applying the supplied gates.
         """
         for operation in self.operations_list[::-1]:
             qubits_fit = True
