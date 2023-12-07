@@ -96,7 +96,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         Args:
             n (int): The new number of features.
         """
-
         if n > 0:
             self._num_features = n
 
@@ -231,7 +230,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         _new_operation: bool = True,
     ):
         """Internal function to allow internal _new_operation argument."""
-
         # define default circuit
         if not quantum_circuit:
             param = ParameterVector("a", 3)
@@ -392,7 +390,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         _new_operation: bool = True,
     ):
         """Internal function to allow internal _new_operation argument."""
-
         if (
             (not quantum_circuit) and (self.num_qubits > 0) and (not _new_operation)
         ):  # overwrite with the correct gate
@@ -445,6 +442,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format.
         """
+
         if self.num_qubits == 0:
             print(
                 "Firstly, a number of qubits must be provided. ",
@@ -600,6 +598,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             default configuration: At least once applied and until less then 4 qubits are left
                 and only once if there is no pooling gate applied.
         """
+
         if n_times == 0 and self.num_qubits == 0:
             n_times = 1
         operations_list = [i for i in self.operations_list]
@@ -634,9 +633,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         self.pooling(*operation[1:])
 
     def default_circuit(self):
-        """
-        A default circuit for quickly building a QCNN.
-        """
+        """A default circuit for quickly building a QCNN."""
         if len(self.left_qubits) <= 1:
             print("The circuit has too few qubits.")
         else:
@@ -662,7 +659,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if pauli not in ["X", "Y", "Z"]:
             pauli = "Z"
 
-        observable_list = []
+        observable_list = ["I" * self.num_qubits]
         for i in self.left_qubits:
             observable = ""
             for j in range(self.num_qubits):
@@ -671,6 +668,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 else:
                     observable = "I" + observable
             observable_list.append(observable)
+        print(observable_list)
         return CustomObservable(
             num_qubits=self.num_qubits, operator_string=observable_list, parameterized=True
         )
