@@ -24,6 +24,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             If the number of features is bigger then 0,
             then in the get_circuit function a ZFeatureMap is built to encode the features.
         default (bool): If True, the default circuit is built.
+
+    References
+    -----------
+    [1]: `Cong, I., Choi, S. & Lukin, M.D. Quantum convolutional neural networks. Nat. Phys. 15,
+    1273–1278 (2019). <https://doi.org/10.1038/s41567-019-0648-8>`_
     """
 
     def __init__(self, num_qubits: int = 0, num_features: int = 0, default: bool = False) -> None:
@@ -204,6 +209,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 The list should be structured as: [[qubit1,qubit2,..],[qubit3,qubit4,..],..].
                 Every qubit can only be adressed once and the number of qubits in each list
                 within the list must be equal to the number of qubits of input circuit.
+                THE QUBIT NUMBERS IN THE SUBLISTS REFER TO THE INITIAL QUBIT NUMBERS!
             output_list (list):
                 Exactly if an input list is entered, an output list must be entered.
                 The output list defines the qubits which are left in the circuit to operate on.
@@ -211,7 +217,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 It must have the same length as the input list and in each sublist
                 its elements must be in the corresponding input sublist
                 while beeing at least one element less.
-            THE QUBIT NUMBERS IN THE LISTS REFER TO THE INITIAL QUBIT NUMBERS!
+                THE QUBIT NUMBERS IN THE SUBLISTS REFER TO THE INITIAL QUBIT NUMBERS!
         """
         self.__pooling(quantum_circuit, label, measurement, input_list, output_list)
 
