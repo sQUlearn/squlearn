@@ -668,7 +668,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 else:
                     observable = "I" + observable
             observable_list.append(observable)
-        print(observable_list)
         return CustomObservable(
             num_qubits=self.num_qubits, operator_string=observable_list, parameterized=True
         )
