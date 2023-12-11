@@ -70,7 +70,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 and their values, e.g. ``num_qubits=2``.
         """
         super().set_params(**params)
-        if "num_qubits" in  params:
+        if "num_qubits" in params:
             self._left_qubits = [i for i in range(self.num_qubits)]
             self._num_parameters = 0
             if self._default:
@@ -705,4 +705,4 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         final_num_qubits / len(output_list)
                     ) + final_num_qubits % len(output_list)
         if qubits_fit:
-            self.set_params(num_qubits = final_num_qubits)
+            self.set_params(num_qubits=final_num_qubits)
