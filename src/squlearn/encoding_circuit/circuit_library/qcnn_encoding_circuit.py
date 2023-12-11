@@ -58,46 +58,33 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         """Returns the list of operators currently acting on the encoding circuit."""
         return self._operations_list
 
-    def set_num_qubits(self, n: int = 0):
+    def set_params(self, **params):
         """
-        Set the number of qubits of the circuit.
+        Sets value of the encoding circuit hyper-parameters.
 
         If the number of qubits is reduced and the supplied pooling gates do not fit to this,
         this will throw a error in the troubling layer.
 
         Args:
-            n (int): The number of qubits in the new circuit.
+            params: Hyper-parameters (num_qubits or num_features)
+                and their values, e.g. ``num_qubits=2``.
         """
-
-        if n > 0:
-            if self.num_qubits == n:
-                print("The number of qubits did not change.")
+        super().set_params(**params)
+        if "num_qubits" in  params:
+            self._left_qubits = [i for i in range(self.num_qubits)]
+            self._num_parameters = 0
+            if self._default:
+                self._operations_list = []
+                self.default_circuit()
             else:
-                self._num_qubits = n
-                self._left_qubits = [i for i in range(n)]
-                self._num_parameters = 0
-                if self._default:
-                    self._operations_list = []
-                    self.default_circuit()
-                else:
-                    for operation in self.operations_list:
-                        if operation[0] == "Conv":
-                            self.__convolution(*operation[1:], _new_operation=False)
-                        elif operation[0] == "Pool":
-                            self.__pooling(*operation[1:], _new_operation=False)
-                        elif operation[0] == "FC":
-                            self.__fully_connected(*operation[1:], _new_operation=False)
-                            break  # since FC should be at the end of the circuit
-
-    def set_num_features(self, n: int = 0):
-        """
-        Change the number of features in the feature map of the circuit.
-
-        Args:
-            n (int): The new number of features.
-        """
-        if n > 0:
-            self._num_features = n
+                for operation in self.operations_list:
+                    if operation[0] == "Conv":
+                        self.__convolution(*operation[1:], _new_operation=False)
+                    elif operation[0] == "Pool":
+                        self.__pooling(*operation[1:], _new_operation=False)
+                    elif operation[0] == "FC":
+                        self.__fully_connected(*operation[1:], _new_operation=False)
+                        break  # since FC should be at the end of the circuit
 
     def convolution(
         self,
@@ -446,7 +433,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if self.num_qubits == 0:
             print(
                 "Firstly, a number of qubits must be provided. ",
-                "Either with 'set_num_qubits', or with 'build_circuit'.",
+                "Either with 'set_params', or with 'build_circuit'.",
             )
             return QuantumCircuit(0, 1)
 
@@ -718,4 +705,4 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         final_num_qubits / len(output_list)
                     ) + final_num_qubits % len(output_list)
         if qubits_fit:
-            self.set_num_qubits(final_num_qubits)
+            self.set_params(num_qubits = final_num_qubits)
