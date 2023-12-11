@@ -5,7 +5,7 @@ from typing import Dict, Optional, List
 
 class heuristic:
     """A heuristic-based algorithm for solving a problem involving noise and traffic graphs."""
-    
+
     def __init__(self, noise: Graph, traffic: Graph, verbose: bool = False):
         """
         Initialize the heuristic instance with noise and traffic graphs.
@@ -58,17 +58,21 @@ class heuristic:
             List[Dict[int, int]]: A list of mappings representing looping paths.
         """
         all_mappings = []
-        source_points = [n for n, deg in self.noise.in_degree() if deg == 0 and self.noise.out_degree(n) > 0]
+        source_points = [
+            n for n, deg in self.noise.in_degree() if deg == 0 and self.noise.out_degree(n) > 0
+        ]
         convergence_points = [n for n, deg in self.noise.in_degree() if deg > 1]
-        
+
         # Pre-calculate paths from source points to convergence points and vice versa
         paths_from_source_to_cp = {}
         paths_from_cp_to_source = {}
         for sp in source_points:
             for cp in convergence_points:
                 paths_from_source_to_cp[(sp, cp)] = list(nx.all_simple_paths(self.noise, sp, cp))
-                paths_from_cp_to_source[(cp, sp)] = list(nx.all_simple_paths(self.noise.reverse(), cp, sp))
-                
+                paths_from_cp_to_source[(cp, sp)] = list(
+                    nx.all_simple_paths(self.noise.reverse(), cp, sp)
+                )
+
         # Recursive function to find looping paths
         def recursive_search(current_path, visited_nodes):
             if len(current_path) > num_qubits + 1:
@@ -78,9 +82,18 @@ class heuristic:
                 return
 
             last_node = current_path[-1]
-            next_paths = [p for key, paths in paths_from_source_to_cp.items() if key[0] == last_node for p in paths] + \
-                         [p for key, paths in paths_from_cp_to_source.items() if key[0] == last_node for p in paths]
-            
+            next_paths = [
+                p
+                for key, paths in paths_from_source_to_cp.items()
+                if key[0] == last_node
+                for p in paths
+            ] + [
+                p
+                for key, paths in paths_from_cp_to_source.items()
+                if key[0] == last_node
+                for p in paths
+            ]
+
             for path in next_paths:
                 new_nodes = set(path[1:])
                 if not new_nodes.intersection(visited_nodes):
@@ -89,19 +102,19 @@ class heuristic:
         # Run the recursive function starting from each source point
         for sp in source_points:
             recursive_search([sp], set())
-            
+
         return all_mappings
 
     def create_node_and_edge_dicts(self):
         """Create dictionaries to map nodes and edges to their respective attributes."""
-        self.edges = {k: v['weight'] for k, v in self.noise.edges().items()}
-        self.inv_edges = {v['weight']: k for k, v in self.noise.edges().items()}
-        self.nodes = dict(self.noise.nodes(data='weight', default=1))
+        self.edges = {k: v["weight"] for k, v in self.noise.edges().items()}
+        self.inv_edges = {v["weight"]: k for k, v in self.noise.edges().items()}
+        self.nodes = dict(self.noise.nodes(data="weight", default=1))
         self.inv_nodes = {v: k for k, v in self.nodes.items()}
-    
+
     def calculate_normalized_traf_coefs(self):
         """Calculate and return normalized traffic coefficients based on frequencies."""
-        frequencies = [self.traffic.nodes[i]['single'] for i in range(len(self.traffic))]
+        frequencies = [self.traffic.nodes[i]["single"] for i in range(len(self.traffic))]
         # Other calculations for frequencies
         traf_coefs = [1 - (1 / r) for r in frequencies]
         normalization = 1 / sum(traf_coefs)
@@ -117,12 +130,12 @@ class heuristic:
             else:
                 self.traf_qubits_and_coefs_inverse[value].append(key)
 
-    # calculate the traffic coefficient and allocate the first 2 qubits     
+    # calculate the traffic coefficient and allocate the first 2 qubits
     def allocate(self):
         """Perform the allocation of qubits using the heuristic method."""
         MAX_TRIALS = 1000
         self.calculate_normalized_traf_coefs()
-        
+
         qubit_key_list = list(range(len(self.normalized_traf_coefs)))
         excluded_initial_nodes = []
 
@@ -140,7 +153,7 @@ class heuristic:
                 if len(self.final_mapping) == 0:
                     self.get_best_initial_node(qubit, exclude_nodes=excluded_initial_nodes)
                     # self.print('Starting from ', best_initial_node)
-                    
+
                     last_qubit = qubit
                 else:
                     next_node = self.find_next_node(qubit, qubit_key_list)
@@ -176,16 +189,18 @@ class heuristic:
         prev_qubit = qubit_key_list[current_qubit - 1]
         prev_node = self.final_mapping[prev_qubit]
         # self.print(f"{prev_node=}", f"{self.final_mapping=}")
-        cutoff = 10         
+        cutoff = 10
         path_physical = nx.single_source_dijkstra_path_length(self.noise, prev_node, cutoff=cutoff)
         path_physical = {k: v for k, v in sorted(path_physical.items(), key=lambda item: item[1])}
-        available_nodes = [node for node in path_physical.keys() if node not in self.final_mapping.values()]
+        available_nodes = [
+            node for node in path_physical.keys() if node not in self.final_mapping.values()
+        ]
         if available_nodes:
             next_node = available_nodes[0]
             return next_node
         else:
             return self.find_next_node(prev_qubit, qubit_key_list)
-    
+
     def get_best_initial_node(self, qubit: int, exclude_nodes: List[int] = []):
         """
         Find the best initial node to be allocated for the first qubit.
@@ -197,9 +212,14 @@ class heuristic:
         Returns:
             int: Identifier of the best initial node.
         """
-        degrees_noise = {k: v for k, v in sorted(self.noise.out_degree(), key=lambda item: item[1], reverse=True)}
+        degrees_noise = {
+            k: v
+            for k, v in sorted(self.noise.out_degree(), key=lambda item: item[1], reverse=True)
+        }
         # self.print(f"{degrees_noise=}")
-        best_nodes = [k for k, v in degrees_noise.items() if v >= max(degrees_noise.values())]  # this can be changed
+        best_nodes = [
+            k for k, v in degrees_noise.items() if v >= max(degrees_noise.values())
+        ]  # this can be changed
         best_nodes = [node for node in best_nodes if node not in exclude_nodes]
         # self.print(f"{best_nodes=}")
         if not best_nodes:
@@ -207,12 +227,12 @@ class heuristic:
             return None
 
         error_edges = list(self.noise.edges(best_nodes))
-        min_edge_rate = min(self.noise[edge[0]][edge[1]]['weight'] for edge in error_edges)
+        min_edge_rate = min(self.noise[edge[0]][edge[1]]["weight"] for edge in error_edges)
         mapp_noise_qubit = self.inv_edges[min_edge_rate]
 
-        target_node = mapp_noise_qubit[0] if mapp_noise_qubit[0] in best_nodes else mapp_noise_qubit[1]
+        target_node = (
+            mapp_noise_qubit[0] if mapp_noise_qubit[0] in best_nodes else mapp_noise_qubit[1]
+        )
         self.final_mapping.update({qubit: target_node})
-        
+
         exclude_nodes.append(target_node)
-
-

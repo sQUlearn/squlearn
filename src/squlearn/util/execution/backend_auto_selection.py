@@ -18,18 +18,20 @@ class NoSuitableBackendError(Exception):
 
 
 class AutoSelectionBackend:
-    """ Class for automatically selecting an IBM backend and layout from the available backends, given a circuit."""
-    def __init__(self,
-                 service: Optional[QiskitRuntimeService] = None,
-                 min_num_qubits: Optional[int] = None, 
-                 max_num_qubits: Optional[int] = None,
-                 backends_to_use: Optional[Union[Backend, List[Backend]]] = None,
-                 cost_function: Optional[Callable] = None,
-                 optimization_level: int = 3,
-                 n_trials_transpile=1,
-                 call_limit: Optional[int] = int(30000000),
-                 verbose: bool = False
-                 ):
+    """Class for automatically selecting an IBM backend and layout from the available backends, given a circuit."""
+
+    def __init__(
+        self,
+        service: Optional[QiskitRuntimeService] = None,
+        min_num_qubits: Optional[int] = None,
+        max_num_qubits: Optional[int] = None,
+        backends_to_use: Optional[Union[Backend, List[Backend]]] = None,
+        cost_function: Optional[Callable] = None,
+        optimization_level: int = 3,
+        n_trials_transpile=1,
+        call_limit: Optional[int] = int(30000000),
+        verbose: bool = False,
+    ):
         """Initialize AutoSelectionBackend with service.
 
         Args:
@@ -43,9 +45,9 @@ class AutoSelectionBackend:
             call_limit(int, optional): Maximum number of calls to VF2 mapper (Mapomatic). Defaults to 30000000.
             verbose (bool, optional): Whether to print information. Defaults to False.
         """
-        
+
         self.service = service
-        
+
         self.min_num_qubits = min_num_qubits if min_num_qubits is not None else 0
         self.max_num_qubits = max_num_qubits
         self.cost_function = cost_function
@@ -70,13 +72,13 @@ class AutoSelectionBackend:
             self.print(f"Number of backends available with given parameters:{len(self.backends)}")
         else:
             raise NoSuitableBackendError("No suitable backend found with given parameters")
-        
+
     def print(self, message: str):
         if self.verbose:
             print(message)
 
     def _filters(self, backend: Backend) -> bool:
-        """ Filter for selecting backends."""
+        """Filter for selecting backends."""
 
         # Check minimum number of qubits
         min_qubits_condition = True
@@ -94,7 +96,7 @@ class AutoSelectionBackend:
             backend_condition = backend in self.backends_to_use
 
         # Filter out simulators (if present)
-        if 'simulator' in backend.name:
+        if "simulator" in backend.name:
             return False
 
         # Return True only if both conditions are met
@@ -107,19 +109,21 @@ class AutoSelectionBackend:
             list: A list of backends.
         """
         if self.service is not None:
-            return self.service.backends(min_num_qubits=self.min_num_qubits,
-                                         simulator=False,
-                                         operational=True,
-                                         filters=self._filters)
+            return self.service.backends(
+                min_num_qubits=self.min_num_qubits,
+                simulator=False,
+                operational=True,
+                filters=self._filters,
+            )
         else:
             return [backend for backend in self.backends_to_use if self._filters(backend)]
-        
+
     def _get_specific_backend(self, backend_name: str) -> Optional[Backend]:
-        """ Return a specific backend by name.
-        
+        """Return a specific backend by name.
+
         Args:
             backend_name (str): Name of the backend.
-            
+
         Returns
             Backend: The specific backend object.
         """
@@ -130,11 +134,15 @@ class AutoSelectionBackend:
 
     def _find_least_busy_backend(self, circuit: QuantumCircuit) -> Backend:
         """Find a least busy backend for a given circuit size or min qubits specified by the user."""
-        least_busy_backend = self.service.least_busy(min_num_qubits=max([self.min_num_qubits, circuit.num_qubits]),
-                                                     simulator=False,
-                                                     operational=True,
-                                                     filters=self._filters)
-        self.print(f"Least busy backend: {least_busy_backend.name} with {least_busy_backend.configuration().n_qubits} qubits")
+        least_busy_backend = self.service.least_busy(
+            min_num_qubits=max([self.min_num_qubits, circuit.num_qubits]),
+            simulator=False,
+            operational=True,
+            filters=self._filters,
+        )
+        self.print(
+            f"Least busy backend: {least_busy_backend.name} with {least_busy_backend.configuration().n_qubits} qubits"
+        )
         return least_busy_backend
 
     def _find_compatible_backends(self, circuit: QuantumCircuit) -> dict:
@@ -151,17 +159,17 @@ class AutoSelectionBackend:
 
         for backend in self.backends:
             backend_qubits = backend.configuration().n_qubits
-            backend_processor_family = backend.processor_type['family']
+            backend_processor_family = backend.processor_type["family"]
             if backend_qubits >= circuit.num_qubits:
                 # Add one backend per family of processor.
                 backend_by_family[backend_processor_family] = backend
-        
+
         if len(backend_by_family) == 0:
             raise NoSuitableBackendError("No suitable backend found with given parameters")
         else:
             return backend_by_family
 
-    def tensor_circuits(self, circuit_list:  List[QuantumCircuit]) -> QuantumCircuit:
+    def tensor_circuits(self, circuit_list: List[QuantumCircuit]) -> QuantumCircuit:
         """Tensor all circuits in the list to create a combined circuit.
 
         Args:
@@ -172,19 +180,21 @@ class AutoSelectionBackend:
         """
         # Initialize an empty Quantum Circuit
         combined_qc = QuantumCircuit(0)
-        
+
         # Tensor all circuits in the list
         for circuit in circuit_list:
             combined_qc = combined_qc.tensor(circuit)
-        
+
         return combined_qc
-    
-    def _evaluate_quality_mode(self, circuit: QuantumCircuit, compatible_backends: dict) -> Tuple[Tuple, QuantumCircuit, Backend]:
-        """ Evaluate the best layout for a given circuit across all compatible backends.
+
+    def _evaluate_quality_mode(
+        self, circuit: QuantumCircuit, compatible_backends: dict
+    ) -> Tuple[Tuple, QuantumCircuit, Backend]:
+        """Evaluate the best layout for a given circuit across all compatible backends.
         Because the SWAP mappers in Qiskit are stochastic, the number of inserted SWAP gates can vary with each run.
-        The spread in this number can be quite large, and can impact the performance of your circuit. 
+        The spread in this number can be quite large, and can impact the performance of your circuit.
         It is thus beneficial to transpile many instances of a circuit and take the best one. This can be set at init via 'n_trials_transpile'.
-        
+
         Args:
             circuit (QuantumCircuit): Circuit to evaluate.
             compatible_backends (dict): Dictionary of compatible backends.
@@ -193,22 +203,32 @@ class AutoSelectionBackend:
         """
 
         # transpile the circuit to the compatible backend.
-        self.print(f"Transpiling circuit {self.n_trials_transpile} times for {len(compatible_backends)} compatible backends...")
-        
+        self.print(
+            f"Transpiling circuit {self.n_trials_transpile} times for {len(compatible_backends)} compatible backends..."
+        )
+
         trans_qc_list = []
         for backend in compatible_backends.values():
-            trans_qc = transpile([circuit]*self.n_trials_transpile,
-                                 backend, 
-                                 optimization_level=self.optimization_level)
+            trans_qc = transpile(
+                [circuit] * self.n_trials_transpile,
+                backend,
+                optimization_level=self.optimization_level,
+            )
             trans_qc_list.extend(trans_qc)
 
-        best_two_q_gates_count = [circ.count_ops().get('cx', 0) if 'cx' in circ.count_ops() else
-                                  circ.count_ops().get('ecr', 0) for circ in trans_qc_list]
+        best_two_q_gates_count = [
+            circ.count_ops().get("cx", 0)
+            if "cx" in circ.count_ops()
+            else circ.count_ops().get("ecr", 0)
+            for circ in trans_qc_list
+        ]
 
         self.print(f"Two-qubit gate count: {best_two_q_gates_count}")
         best_idx = np.argmin(best_two_q_gates_count)
         best_qc = trans_qc_list[best_idx]
-        self.print(f"Best Two-qubit gate count (ID:{best_idx}): {best_two_q_gates_count[best_idx]} ")
+        self.print(
+            f"Best Two-qubit gate count (ID:{best_idx}): {best_two_q_gates_count[best_idx]} "
+        )
         # deflate the transpiled circuit,i.e. remove unused qubits
         small_qc = mm.deflate_circuit(best_qc)
         self.print(f"Transpiled circuit needs {small_qc.num_qubits} qubits")
@@ -220,71 +240,85 @@ class AutoSelectionBackend:
                 possible_backends.append(backend)
 
         if self.useHQAA:
-            best_qc, best_backend, score, layout = self.evaluate_via_HQAA(possible_backends, small_qc)
+            best_qc, best_backend, score, layout = self.evaluate_via_HQAA(
+                possible_backends, small_qc
+            )
             self.print(f"Best sub-layout: {layout}. Error_rate: {score}")
 
         else:
             # find the best layout for the circuit
             self.print(f"Searching best sub-layout on {len(possible_backends)} backends...")
-            best_layout = mm.best_overall_layout(small_qc,
-                                                 possible_backends,
-                                                 call_limit=self.call_limit,
-                                                 cost_function=self.cost_function)
+            best_layout = mm.best_overall_layout(
+                small_qc,
+                possible_backends,
+                call_limit=self.call_limit,
+                cost_function=self.cost_function,
+            )
             # retrieve the backend from result of best_overall_layout
             best_backend = self._get_specific_backend(best_layout[1])
-            self.print(f"Best sub-layout: {best_layout[0]} on backend: {best_backend.name}. Error_rate: {best_layout[2]}")
+            self.print(
+                f"Best sub-layout: {best_layout[0]} on backend: {best_backend.name}. Error_rate: {best_layout[2]}"
+            )
             # retranspile the circuit to the best backend using best_layout
-            best_qc = transpile(small_qc,
-                                best_backend,
-                                initial_layout=best_layout[0],
-                                optimization_level=self.optimization_level)
+            best_qc = transpile(
+                small_qc,
+                best_backend,
+                initial_layout=best_layout[0],
+                optimization_level=self.optimization_level,
+            )
             score = best_layout[2]
 
         # check if transpilation changed layout.
         if best_qc.layout.final_layout:
-            self.print("Last transpilation: sub-layout has been changed")  # from {best_qc.layout.initial_layout} to {best_qc.layout.final_layout}")
+            self.print(
+                "Last transpilation: sub-layout has been changed"
+            )  # from {best_qc.layout.initial_layout} to {best_qc.layout.final_layout}")
             return (best_qc.layout.final_layout, score), best_qc, best_backend
         else:
             return (best_qc.layout.initial_layout, score), best_qc, best_backend
 
-    def _evaluate_speed_mode(self, circuit: QuantumCircuit, least_busy_backend: Backend) -> Tuple[Tuple, QuantumCircuit, Backend]:
-        """ Evaluate the layout on the least busy backend for a given circuit.
+    def _evaluate_speed_mode(
+        self, circuit: QuantumCircuit, least_busy_backend: Backend
+    ) -> Tuple[Tuple, QuantumCircuit, Backend]:
+        """Evaluate the layout on the least busy backend for a given circuit.
          Args:
             circuit (QuantumCircuit): Circuit to evaluate.
             least_busy_backend (Backend): Least busy backend.
         Returns:
             Tuple[Tuple, QuantumCircuit, Backend]: A tuple containing the best layout, the transpiled circuit, and the least busybackend.
-        
+
         """
         # find the best layouts for the given backend (least busy)
-        trans_qc = transpile(circuit, 
-                             least_busy_backend,
-                             optimization_level=self.optimization_level)
+        trans_qc = transpile(
+            circuit, least_busy_backend, optimization_level=self.optimization_level
+        )
         small_qc = mm.deflate_circuit(trans_qc)
-        self.print(f"Transpiled circuit needs {small_qc.num_qubits} qubits on {least_busy_backend.name}")
+        self.print(
+            f"Transpiled circuit needs {small_qc.num_qubits} qubits on {least_busy_backend.name}"
+        )
         if self.useHQAA:
-            final_circuit, least_busy_backend, score, layout = self.evaluate_via_HQAA(least_busy_backend, small_qc)
+            final_circuit, least_busy_backend, score, layout = self.evaluate_via_HQAA(
+                least_busy_backend, small_qc
+            )
             self.print(f"Best sub-layout: {layout}. Error_rate: {score}")
         else:
-
-            layouts = mm.matching_layouts(small_qc, 
-                                          least_busy_backend, 
-                                          call_limit=self.call_limit)
+            layouts = mm.matching_layouts(small_qc, least_busy_backend, call_limit=self.call_limit)
 
             # if layouts: #if there is a sub-layout
-            scores = mm.evaluate_layouts(small_qc, 
-                                         layouts, 
-                                         least_busy_backend, 
-                                         cost_function=self.cost_function)
+            scores = mm.evaluate_layouts(
+                small_qc, layouts, least_busy_backend, cost_function=self.cost_function
+            )
             # run on the best sub-layout
             score = scores[0][1]
             layout = scores[0][0]
             self.print(f"Best sub-layout: {layout}. Error_rate: {score}")
             # transpile the circuit to the least busy backend, using best sub-layout
-            final_circuit = transpile(small_qc, 
-                                      least_busy_backend,
-                                      initial_layout=layout, 
-                                      optimization_level=self.optimization_level)
+            final_circuit = transpile(
+                small_qc,
+                least_busy_backend,
+                initial_layout=layout,
+                optimization_level=self.optimization_level,
+            )
 
         if final_circuit.layout.final_layout:
             self.print("Last transpilation: sub-layout has been changed")
@@ -292,7 +326,9 @@ class AutoSelectionBackend:
         else:
             return (final_circuit.layout.initial_layout, score), final_circuit, least_busy_backend
 
-    def evaluate_via_HQAA(self, backends: list[Backend], small_qc: QuantumCircuit) -> Tuple[QuantumCircuit, Backend, float, List]:
+    def evaluate_via_HQAA(
+        self, backends: list[Backend], small_qc: QuantumCircuit
+    ) -> Tuple[QuantumCircuit, Backend, float, List]:
         """
         Evaluate the best sub-layout for a given circuit on a list of backends using the HQAA algorithm.
 
@@ -316,41 +352,52 @@ class AutoSelectionBackend:
             props = backend.properties()
             basis_gates = backend.configuration().basis_gates
             # Check for two-qubit gates
-            two_qubit_gate = 'cx' if 'cx' in basis_gates else 'ecr' if 'ecr' in basis_gates else None
+            two_qubit_gate = (
+                "cx" if "cx" in basis_gates else "ecr" if "ecr" in basis_gates else None
+            )
             if two_qubit_gate is None:
                 raise Exception("Supported two-qubit gate not found in basis gates.")
-            
+
             for qubit in qubits:
-                Gnx.add_node(qubit, weight=props.gate_error('sx', qubit), read_out=props.readout_error(qubit))
+                Gnx.add_node(
+                    qubit,
+                    weight=props.gate_error("sx", qubit),
+                    read_out=props.readout_error(qubit),
+                )
 
             for src, dst in edges:
                 avg_gate_error = props.gate_error(two_qubit_gate, [src, dst])
                 Gnx.add_edge(src, dst, weight=avg_gate_error)
-            
+
             hue = heuristic(Gnx, circuit_parsed)
             this_layout = list(hue.final_mapping.values())
-            final_circuit = transpile(small_qc,
-                                      backend,
-                                      initial_layout=this_layout,
-                                      optimization_level=self.optimization_level)
-            this_score = mm.evaluate_layouts(final_circuit,
-                                             range(backend.configuration().n_qubits),
-                                             backend,
-                                             cost_function=self.cost_function)
+            final_circuit = transpile(
+                small_qc,
+                backend,
+                initial_layout=this_layout,
+                optimization_level=self.optimization_level,
+            )
+            this_score = mm.evaluate_layouts(
+                final_circuit,
+                range(backend.configuration().n_qubits),
+                backend,
+                cost_function=self.cost_function,
+            )
             self.print(f"{this_score=}")
             if this_score[0][1] < best_score:
                 best_qc = final_circuit
                 best_backend = backend
                 best_score = this_score[0][1]
                 best_layout = this_layout
-       
+
         return best_qc, best_backend, best_score, best_layout
 
-    def evaluate(self,
-                 circuit: QuantumCircuit,
-                 mode: Optional[str] = 'quality',
-                 useHQAA: Optional[bool] = False
-                 ) -> Tuple[Tuple, QuantumCircuit, Backend]:
+    def evaluate(
+        self,
+        circuit: QuantumCircuit,
+        mode: Optional[str] = "quality",
+        useHQAA: Optional[bool] = False,
+    ) -> Tuple[Tuple, QuantumCircuit, Backend]:
         """Evaluate the best backend for a given circuit and mode.
         Modes can be 'quality' or'speed'. Speed mode is available only if the service is set.
 
@@ -363,17 +410,17 @@ class AutoSelectionBackend:
         """
         self.useHQAA = useHQAA
         self.print(f"Mode: {mode}" + (" using HQAA" if self.useHQAA else " using Mapomatic"))
-        
+
         # If the input is a list of circuits, tensor them together
         if isinstance(circuit, list):
             self.print(f"Combining {len(circuit)} circuits into one")
             circuit = self.tensor_circuits(circuit)
 
         self.print(f"Input circuit needs {circuit.num_qubits} qubits")
-        if mode == 'quality':
+        if mode == "quality":
             compatible_backends = self._find_compatible_backends(circuit)
             return self._evaluate_quality_mode(circuit, compatible_backends)
-        elif mode == 'speed':
+        elif mode == "speed":
             if self.service is None:
                 raise ValueError("Service not set. Only 'quality' mode available")
             least_busy_backend = self._find_least_busy_backend(circuit)

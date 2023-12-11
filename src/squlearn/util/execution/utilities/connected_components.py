@@ -81,8 +81,7 @@ def extract_coupling_map_from_circ(circuit: QuantumCircuit) -> List[Tuple[int, i
     for node in dag.op_nodes(include_directives=False):
         len_args = len(node.qargs)
         if len_args == 2:
-            interactions.append((qubit_indices[node.qargs[0]],
-                                 qubit_indices[node.qargs[1]]))
+            interactions.append((qubit_indices[node.qargs[0]], qubit_indices[node.qargs[1]]))
 
     coupling_map = [tup for tup in set(interactions)]
     return coupling_map

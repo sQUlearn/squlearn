@@ -7,10 +7,9 @@ from .qubit_coordinates import qubit_coordinates_map
 from typing import Union, Optional
 
 
-def plot_map_circuit_on_backend(circuit: QuantumCircuit,
-                                backend: Backend,
-                                return_fig: bool = False
-                                ) -> Optional[Union[plt.Figure, plt.Axes]]:
+def plot_map_circuit_on_backend(
+    circuit: QuantumCircuit, backend: Backend, return_fig: bool = False
+) -> Optional[Union[plt.Figure, plt.Axes]]:
     """Visualize the gate map of a backend and the qubits used by a circuit on the same plot.
 
     Args:
@@ -24,18 +23,24 @@ def plot_map_circuit_on_backend(circuit: QuantumCircuit,
         None: If `return_fig` is False.
     """
     fig, ax = plt.subplots()
-    ax.axis('off')  # using axis('off')
-    plot_gate_map(backend, ax=ax)  # this is needed to visualize the connection unused by the circuit map, could be removed if not needed
-    coup_map, qubit_cord, qubit_involved = coupling_map_and_qubit_coordinates_from_circ(circuit, backend)
-    coloring = ['#648fff'] * backend.configuration().n_qubits
+    ax.axis("off")  # using axis('off')
+    plot_gate_map(
+        backend, ax=ax
+    )  # this is needed to visualize the connection unused by the circuit map, could be removed if not needed
+    coup_map, qubit_cord, qubit_involved = coupling_map_and_qubit_coordinates_from_circ(
+        circuit, backend
+    )
+    coloring = ["#648fff"] * backend.configuration().n_qubits
     for ii in qubit_involved:
-        coloring[ii] = 'red'
-    plot_coupling_map(backend.configuration().n_qubits,
-                      qubit_cord,
-                      coup_map,
-                      qubit_color=coloring,
-                      line_color=['red'] * len(coup_map),
-                      ax=ax)
+        coloring[ii] = "red"
+    plot_coupling_map(
+        backend.configuration().n_qubits,
+        qubit_cord,
+        coup_map,
+        qubit_color=coloring,
+        line_color=["red"] * len(coup_map),
+        ax=ax,
+    )
     if return_fig:
         return fig, ax
     else:

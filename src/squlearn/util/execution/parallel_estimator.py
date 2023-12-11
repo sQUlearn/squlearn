@@ -32,11 +32,9 @@ class ParallelEstimator(BaseEstimator):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 transpiler: Optional[Callable] = None,
-                 options=None
-                 ) -> None:
+    def __init__(
+        self, estimator: BaseEstimator, transpiler: Optional[Callable] = None, options=None
+    ) -> None:
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             try:
                 options_ini = copy.deepcopy(options).__dict__
@@ -55,10 +53,10 @@ class ParallelEstimator(BaseEstimator):
         self._cache = {}
 
     def check_estimator(self) -> None:
-        """ Configures the backend and shot settings based on the properties of the provided estimator object."""
+        """Configures the backend and shot settings based on the properties of the provided estimator object."""
         self.shots = None
-        if hasattr(self._estimator.options, 'execution'):
-            self.shots = self._estimator.options.get('execution').get('shots', None)
+        if hasattr(self._estimator.options, "execution"):
+            self.shots = self._estimator.options.get("execution").get("shots", None)
         if isinstance(self._estimator, qiskit_primitives_Estimator):
             # this is only a hack, there is no real backend in the Primitive Estimator class
             self._backend = Aer.get_backend("statevector_simulator")
@@ -132,21 +130,23 @@ class ParallelEstimator(BaseEstimator):
     def _call(
         self,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str],
+        observables: Union[
+            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
+        ],
         parameter_values: Union[List[float], List[List[float]]] = None,
         **run_options,
     ) -> EstimatorResult:
         """Has to be passed through, otherwise python will complain about the abstract method.
         Input arguments are the same as in Qiskit's estimator.call()
         """
-        return self._estimator._call(
-            circuits, observables, parameter_values, **run_options
-        )
+        return self._estimator._call(circuits, observables, parameter_values, **run_options)
 
     def _run(
         self,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str],
+        observables: Union[
+            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
+        ],
         parameter_values: Union[List[float], List[List[float]]] = None,
         **run_options,
     ) -> Job:
@@ -163,7 +163,9 @@ class ParallelEstimator(BaseEstimator):
     def run(
         self,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str],
+        observables: Union[
+            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
+        ],
         parameter_values: Union[List[float], List[List[float]]] = None,
         n_duplications=None,
         **run_options,
@@ -182,9 +184,9 @@ class ParallelEstimator(BaseEstimator):
             observables = [observables]
 
         for circ, obs in zip(circuits, observables):
-            duplicated_circ, duplicated_obs = self.create_mapped_circuit(circ,
-                                                                         observable=obs,
-                                                                         n_duplications=n_duplications)
+            duplicated_circ, duplicated_obs = self.create_mapped_circuit(
+                circ, observable=obs, n_duplications=n_duplications
+            )
             dupl_circuits.append(duplicated_circ)
             dupl_observables.append(duplicated_obs)
 
@@ -196,7 +198,7 @@ class ParallelEstimator(BaseEstimator):
         )
         result = result_job.result()
         for meta in result.metadata:
-            meta['shots'] = self.shots
+            meta["shots"] = self.shots
         result_job._result = result
         result_job.result = custom_result_method.__get__(result_job, type(result_job))
         return result_job
@@ -250,17 +252,21 @@ class ParallelEstimator(BaseEstimator):
         self._estimator.set_options(**fields)
         self._estimator._options_estimator = self._estimator.options
 
-    def create_mapped_circuit(self,
-                              circuit: QuantumCircuit,
-                              observable: Optional[Union[BaseOperator, PauliSumOp]] = None,
-                              n_duplications: Optional[int] = None,
-                              return_duplications: Optional[bool] = False,
-                              max_qubits:  Optional[int] = None
-                              ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, Optional[Union[BaseOperator, PauliSumOp]], Optional[int]]]:
+    def create_mapped_circuit(
+        self,
+        circuit: QuantumCircuit,
+        observable: Optional[Union[BaseOperator, PauliSumOp]] = None,
+        n_duplications: Optional[int] = None,
+        return_duplications: Optional[bool] = False,
+        max_qubits: Optional[int] = None,
+    ) -> Union[
+        QuantumCircuit,
+        Tuple[QuantumCircuit, Optional[Union[BaseOperator, PauliSumOp]], Optional[int]],
+    ]:
         """
         Maps a given quantum circuit, optionally duplicating it to fill the backend capacity.
 
-        This method maps the provided quantum circuit, potentially duplicating it to utilize as much of the backend's capacity as possible. 
+        This method maps the provided quantum circuit, potentially duplicating it to utilize as much of the backend's capacity as possible.
         The duplication is controlled by the 'n_duplications' or 'max_qubits' Args.
 
         Args:
@@ -301,12 +307,14 @@ class ParallelEstimator(BaseEstimator):
         mapped_circuit = circuit.copy()
 
         # duplicate the circuit
-        for _ in range(n_duplications-1):
+        for _ in range(n_duplications - 1):
             mapped_circuit.tensor(circuit, inplace=True)
 
-        print(f"Circuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
-              f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
-              f"\nBackend has {max_qubits} qubits.\n")
+        print(
+            f"Circuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
+            f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
+            f"\nBackend has {max_qubits} qubits.\n"
+        )
 
         # Set the shots=shots/n_duplications
         self.set_shots(int(self.shots / n_duplications))
@@ -324,14 +332,13 @@ class ParallelEstimator(BaseEstimator):
         else:
             return mapped_circuit
 
-    def duplicate_observable(self,
-                             observable: Union[BaseOperator, PauliSumOp],
-                             n_duplications: int
-                             ) -> SparsePauliOp:
+    def duplicate_observable(
+        self, observable: Union[BaseOperator, PauliSumOp], n_duplications: int
+    ) -> SparsePauliOp:
         """
         Duplicates a given quantum observable multiple times and combines them into a single SparsePauliOp.
 
-        This function takes a quantum observable and creates 'n_duplications' copies of it, with each duplicate padded with identity operators ('I') to align with the qubits' positions. 
+        This function takes a quantum observable and creates 'n_duplications' copies of it, with each duplicate padded with identity operators ('I') to align with the qubits' positions.
         The duplicates are then combined into one SparsePauliOp. The coefficients of the combined observable are adjusted to account for the number of duplications.
 
         Args:
@@ -355,17 +362,23 @@ class ParallelEstimator(BaseEstimator):
         # Duplicate the observable with appropriate padding
         for i in range(n_duplications):
             # Padding on the left and right for each duplication
-            padding_left = 'I' * (n_qubits * i)
-            padding_right = 'I' * (total_qubits - n_qubits * (i + 1))
-            padded_observable = SparsePauliOp.from_list([(padding_left + pauli_str + padding_right, coeff)
-                                                        for pauli_str, coeff in zip(observable.paulis.to_labels(), observable.coeffs)])
+            padding_left = "I" * (n_qubits * i)
+            padding_right = "I" * (total_qubits - n_qubits * (i + 1))
+            padded_observable = SparsePauliOp.from_list(
+                [
+                    (padding_left + pauli_str + padding_right, coeff)
+                    for pauli_str, coeff in zip(observable.paulis.to_labels(), observable.coeffs)
+                ]
+            )
             duplicated_observables.append(padded_observable)
 
         # Combine all the observables into one SparsePauliOp
         combined_observable = sum(duplicated_observables)
 
         # Adjust the coefficients by dividing by the number of duplications
-        combined_observable = SparsePauliOp(combined_observable.paulis, combined_observable.coeffs / n_duplications).simplify()
+        combined_observable = SparsePauliOp(
+            combined_observable.paulis, combined_observable.coeffs / n_duplications
+        ).simplify()
 
         return combined_observable
 
@@ -374,7 +387,7 @@ class ParallelEstimator(BaseEstimator):
         Transpiles a given quantum circuit, using cached results if available.
 
         This method checks if the provided circuit has already been transpiled by looking it up in a cache.
-        If it's in the cache, the cached transpiled circuit is returned. 
+        If it's in the cache, the cached transpiled circuit is returned.
         Otherwise, the circuit is transpiled using the provided transpiler function, and the result is cached for future use.
 
         Args:

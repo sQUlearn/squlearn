@@ -32,11 +32,12 @@ class ParallelSampler(BaseSampler):
 
     """
 
-    def __init__(self,
-                 sampler: BaseSampler,
-                 transpiler: Optional[Callable] = None,
-                 options: Optional[Union[Options, qiskit_ibm_runtime_Options, Any]] = None
-                 ) -> None:
+    def __init__(
+        self,
+        sampler: BaseSampler,
+        transpiler: Optional[Callable] = None,
+        options: Optional[Union[Options, qiskit_ibm_runtime_Options, Any]] = None,
+    ) -> None:
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             try:
                 options_ini = copy.deepcopy(options).__dict__
@@ -55,10 +56,10 @@ class ParallelSampler(BaseSampler):
         self._cache = {}
 
     def check_sampler(self) -> None:
-        """ Configures the backend and shot settings based on the properties of the provided sampler object."""
+        """Configures the backend and shot settings based on the properties of the provided sampler object."""
         self.shots = None
-        if hasattr(self._sampler.options, 'execution'):
-            self.shots = self._sampler.options.get('execution').get('shots', None)
+        if hasattr(self._sampler.options, "execution"):
+            self.shots = self._sampler.options.get("execution").get("shots", None)
 
         if isinstance(self._sampler, qiskit_primitives_Sampler):
             # this is only a hack, there is no real backend in the Primitive Sampler class
@@ -127,12 +128,13 @@ class ParallelSampler(BaseSampler):
             else:
                 raise RuntimeError("Unknown sampler type!")
 
-    def recover_original_distribution(self,
-                                      duplicated_result: Dict,
-                                      total_qubits: int,
-                                      original_qubits: int,
-                                      qubit_mapping: Optional[Dict] = None
-                                      ) -> Dict:
+    def recover_original_distribution(
+        self,
+        duplicated_result: Dict,
+        total_qubits: int,
+        original_qubits: int,
+        qubit_mapping: Optional[Dict] = None,
+    ) -> Dict:
         """
         Recover the original probability distribution from the results of a duplicated quantum circuit.
 
@@ -163,28 +165,30 @@ class ParallelSampler(BaseSampler):
         n_duplications = len(qubit_mapping) // original_qubits
 
         # Initialize the original distribution dictionary
-        original_distribution = {i: 0 for i in range(2 ** original_qubits)}
+        original_distribution = {i: 0 for i in range(2**original_qubits)}
 
         # Process each outcome in the duplicated results
         for outcome, probability in duplicated_result.items():
             # Convert to binary and reverse for LSB convention
-            binary_outcome = format(outcome, f'0{total_qubits}b')[::-1]
+            binary_outcome = format(outcome, f"0{total_qubits}b")[::-1]
 
             # Initialize a list for the reordered outcome
-            reordered_outcome = ['0'] * total_qubits
+            reordered_outcome = ["0"] * total_qubits
 
             # Reorder based on qubit mapping
             for qubit_index in qubit_mapping:
                 reordered_outcome[qubit_index] = binary_outcome[qubit_mapping.index(qubit_index)]
 
             # Join reordered outcome to a string
-            reordered_outcome_str = ''.join(reordered_outcome)[:n_duplications * original_qubits]
+            reordered_outcome_str = "".join(reordered_outcome)[: n_duplications * original_qubits]
 
             # Split and aggregate probabilities for each duplicated circuit
             for i in range(n_duplications):
                 part_start = i * original_qubits
                 part_end = part_start + original_qubits
-                part_outcome = int(reordered_outcome_str[part_start:part_end][::-1], 2)  # Reverse back to original order
+                part_outcome = int(
+                    reordered_outcome_str[part_start:part_end][::-1], 2
+                )  # Reverse back to original order
                 original_distribution[part_outcome] += probability / n_duplications
 
         # Normalize the distribution
@@ -224,9 +228,9 @@ class ParallelSampler(BaseSampler):
             circuits = [circuits]
 
         for circ in circuits:
-            duplicated_circ, n_duplications = self.create_mapped_circuit(circ,
-                                                                         n_duplications=n_duplications,
-                                                                         return_duplications=True)
+            duplicated_circ, n_duplications = self.create_mapped_circuit(
+                circ, n_duplications=n_duplications, return_duplications=True
+            )
             dupl_circuits.append(duplicated_circ)
             self.n_dupl_list.append(n_duplications)
 
@@ -238,8 +242,8 @@ class ParallelSampler(BaseSampler):
 
         result = result_job.result()
         for meta in result.metadata:
-            meta['shots'] = self.shots
-    
+            meta["shots"] = self.shots
+
         if process_result:
             result = self.process_result(result, circuits, duplicated_circ.num_qubits)
 
@@ -247,13 +251,14 @@ class ParallelSampler(BaseSampler):
         result_job.result = custom_result_method.__get__(result_job, type(result_job))
         return result_job
 
-    def process_result(self,
-                       result_job: Union[RuntimeJob, PrimitiveJob, Job],
-                       original_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-                       total_qubits: int,
-                       qubit_mapping: Optional[List] = None
-                       ) -> Job:
-        """ 
+    def process_result(
+        self,
+        result_job: Union[RuntimeJob, PrimitiveJob, Job],
+        original_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+        total_qubits: int,
+        qubit_mapping: Optional[List] = None,
+    ) -> Job:
+        """
         Processes the result of a quantum job to map it to the distribution of the original circuits.
 
         This method takes the result from a quantum job and adjusts it to correspond with the qubit distribution of the original circuits.
@@ -265,7 +270,7 @@ class ParallelSampler(BaseSampler):
             qubit_mapping (Optional[List], optional): A list that maps the modified qubits back to the original qubits. Defaults to None.
 
         Returns:
-            Job: The modified job object with the result now reflecting the original circuit distribution. 
+            Job: The modified job object with the result now reflecting the original circuit distribution.
             If the input was not a Job instance, the processed result is returned directly.
         """
         wrap_result = False
@@ -280,10 +285,9 @@ class ParallelSampler(BaseSampler):
 
         for ii, circ in enumerate(original_circuits):
             num_qubits = circ.num_qubits
-            original_dist = self.recover_original_distribution(result.quasi_dists[ii],
-                                                               total_qubits,
-                                                               num_qubits,
-                                                               qubit_mapping)
+            original_dist = self.recover_original_distribution(
+                result.quasi_dists[ii], total_qubits, num_qubits, qubit_mapping
+            )
             result.quasi_dists[ii] = original_dist
 
         if wrap_result:
@@ -355,16 +359,17 @@ class ParallelSampler(BaseSampler):
         self._sampler.set_options(**fields)
         self._sampler._options_sampler = self._sampler.options
 
-    def create_mapped_circuit(self,
-                              circuit: QuantumCircuit,
-                              n_duplications: Optional[int] = None,
-                              return_duplications: Optional[bool] = False,
-                              max_qubits:  Optional[int] = None
-                              ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, int]]:
+    def create_mapped_circuit(
+        self,
+        circuit: QuantumCircuit,
+        n_duplications: Optional[int] = None,
+        return_duplications: Optional[bool] = False,
+        max_qubits: Optional[int] = None,
+    ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, int]]:
         """
         Maps a given quantum circuit, optionally duplicating it to fill the backend capacity.
 
-        This method maps the provided quantum circuit, potentially duplicating it to utilize as much of the backend's capacity as possible. 
+        This method maps the provided quantum circuit, potentially duplicating it to utilize as much of the backend's capacity as possible.
         The duplication is controlled by the 'n_duplications' or 'max_qubits' Args.
 
         Args:
@@ -374,7 +379,7 @@ class ParallelSampler(BaseSampler):
             max_qubits (Optional[int], optional): The maximum number of qubits to use from the backend. Defaults to the number of qubits in the backend if None.
 
         Returns:
-            Union[QuantumCircuit, Tuple[QuantumCircuit, int]]: The mapped quantum circuit. 
+            Union[QuantumCircuit, Tuple[QuantumCircuit, int]]: The mapped quantum circuit.
             If 'return_duplications' is True, returns a tuple containing the mapped circuit and the number of duplications.
 
         Raises:
@@ -401,12 +406,14 @@ class ParallelSampler(BaseSampler):
         mapped_circuit = circuit.copy()
 
         # duplicate the circuit
-        for _ in range(n_duplications-1):
+        for _ in range(n_duplications - 1):
             mapped_circuit.tensor(circuit, inplace=True)
 
-        print(f"\nCircuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
-              f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
-              f"\nBackend has {max_qubits} qubits.")
+        print(
+            f"\nCircuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
+            f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
+            f"\nBackend has {max_qubits} qubits."
+        )
 
         self.set_shots(int(self.shots / n_duplications))
         if return_duplications:
@@ -419,7 +426,7 @@ class ParallelSampler(BaseSampler):
         Transpiles a given quantum circuit, using cached results if available.
 
         This method checks if the provided circuit has already been transpiled by looking it up in a cache.
-        If it's in the cache, the cached transpiled circuit is returned. 
+        If it's in the cache, the cached transpiled circuit is returned.
         Otherwise, the circuit is transpiled using the provided transpiler function, and the result is cached for future use.
 
         Args:
