@@ -1,6 +1,8 @@
-name: Testing
+name: Tests
 on:
-- pull_request
+  pull_request:
+  schedule:
+    - cron: '23 1 * * *'
 
 jobs:
   pytest:
