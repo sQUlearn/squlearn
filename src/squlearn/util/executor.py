@@ -5,12 +5,14 @@ from logging import handlers
 import copy
 from pathlib import Path
 from hashlib import blake2b
-from typing import Any, Union
+from typing import Any, Union, List
 import traceback
 from dataclasses import asdict
 import time
 import dill as pickle
 
+from qiskit import QuantumCircuit
+from qiskit.circuit import ParameterVector
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
 from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
 from qiskit.primitives import Sampler as qiskit_primitives_Sampler
@@ -29,7 +31,9 @@ from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureErro
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
-
+from .execution import AutoSelectionBackend
+from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -53,6 +57,7 @@ class Executor:
                                                                                                                        backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
                                                                                                                      * A Qiskit backend, to run the jobs on IBM Quantum
                                                                                                                        systems or simulators
+                                                                                                                     * A list of backends for automatic backend selection later on
                                                                                                                      * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
                                                                                                                        In this case the backend has to be provided separately via ``backend=``
                                                                                                                      * A Session, to run the jobs on the Qiskit Runtime service
@@ -160,8 +165,9 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
+            List[Backend]
         ] = "statevector_simulator",
-        backend: Union[Backend, str, None] = None,
+        backend: Union[Backend, str,List[Backend],None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
         log_file: str = "",
@@ -201,6 +207,8 @@ class Executor:
         self._max_session_time = max_session_time
         self._max_jobs_retries = max_jobs_retries
         self._wait_restart = wait_restart
+
+        self._backend_list = None
 
         if self._log_file != "":
             fh = handlers.RotatingFileHandler(
@@ -245,14 +253,26 @@ class Executor:
                 shots = self._backend.options.shots
                 if "statevector_simulator" in str(self._backend):
                     shots = None
+        elif isinstance(execution, list):
+            # Execution is a list of backends -> backands will be automatically selected
+            if all(isinstance(exec, Backend) for exec in execution):
+                self._backend = None
+                self._backend_list = execution
+                self._execution_origin = "BackendList"
+            else:
+                raise ValueError("Only list of backends are supported!")
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
             if isinstance(backend, str):
                 self._backend = self._service.get_backend(backend)
             elif isinstance(backend, Backend):
                 self._backend = backend
+            elif isinstance(backend, list):
+                self._backend_list = backend
+                self._backend = None
             elif backend is None:
-                raise ValueError("Backend has to be specified for QiskitRuntimeService")
+                self._backend = None
+                self._backend_list = self._service.backends()
             else:
                 raise ValueError("Unknown backend type: " + backend)
             if shots is None:
@@ -334,8 +354,11 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
+        if self._backend_list is None:
+            self._backend_list = [self._backend]
+
         # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend):
+        if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
             self._remote = True
         else:
             self._remote = False
@@ -352,6 +375,7 @@ class Executor:
             self._cache = ExecutorCache(self._logger, cache_dir)
 
         self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
+        self._logger.info(f"Executor initialized with list of backends: {{}}".format(self._backend_list))
         self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:
             self._logger.info(
@@ -372,6 +396,10 @@ class Executor:
     def backend(self) -> Backend:
         """Returns the backend that is used in the executor."""
         return self._backend
+
+    def backend_list(self) -> List[Backend]:
+        """Returns the backend list that is used in the executor."""
+        return self._backend_list
 
     @property
     def session(self) -> Session:
@@ -419,10 +447,13 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             else:
+
                 if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = qiskit_primitives_Estimator(options=self._options_estimator)
                     self._estimator.set_options(shots=self._shots)
+                elif self._backend is None:
+                    raise RuntimeError("Backend missing for Estimator initialization!")
                 else:
                     # No session, no service and no state_vector simulator -> BackendEstimator
                     self._estimator = qiskit_primitives_BackendEstimator(
@@ -460,7 +491,7 @@ class Executor:
         does not support caching, session handing, etc.
         For this use :meth:`sampler_run` or :meth:`get_sampler`.
 
-        The estimator that is created depends on the backend that is used for the execution.
+        The sampler that is created depends on the backend that is used for the execution.
         """
         if self._sampler is not None:
             if self._session is not None and self._session_active is False:
@@ -488,10 +519,13 @@ class Executor:
                     options=self._options_sampler,
                 )
             else:
+
                 if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Sampler
                     self._sampler = qiskit_primitives_Sampler(options=self._options_sampler)
                     self._sampler.set_options(shots=self._shots)
+                elif self._backend is None:
+                    raise RuntimeError("Backend missing for Sampler initialization!")
                 else:
                     # No session, no service and no state_vector simulator -> BackendSampler
                     self._sampler = qiskit_primitives_BackendSampler(
@@ -935,7 +969,7 @@ class Executor:
         elif self._backend is not None:
             if "statevector_simulator" not in str(self._backend):
                 shots = self._backend.options.shots
-        else:
+        elif self._backend_list is None:
             return None  # No shots available
 
         if shots == 0:
@@ -956,9 +990,12 @@ class Executor:
     def create_session(self):
         """Creates a new session, is called automatically."""
         if self._service is not None:
-            self._session = Session(
-                self._service, backend=self._backend, max_time=self._max_session_time
-            )
+            if self._backend is not None:
+                self._session = Session(
+                    self._service, backend=self._backend, max_time=self._max_session_time
+                )
+            else:
+                raise RuntimeError("Session can not started because of missing backend!")
             self._session_active = True
             self._logger.info(f"Executor created a new session.")
         else:
@@ -1056,6 +1093,42 @@ class Executor:
         """
 
         self._set_seed_for_primitive = seed
+
+    def select_backend(self, circuit: QuantumCircuit = None, encoding_circuit: EncodingCircuitBase = None, **options):
+
+
+        if circuit is not None and encoding_circuit is not None:
+            raise ValueError("Only one of circuit or encoding_circuit should be given!")
+
+        AutoSelBack = AutoSelectionBackend(backends_to_use=self._backend_list)
+        if circuit is not None:
+            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+
+        if encoding_circuit is not None:
+
+            x = ParameterVector("x", encoding_circuit.num_features)
+            p = ParameterVector("p", encoding_circuit.num_parameters)
+            circuit = encoding_circuit.get_circuit(x, p)
+            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+
+            def helper_function(circuit,backend):
+                return transpiled_circuit
+
+            TranspiledEncodingCircuit(encoding_circuit, backend, helper_function)
+
+
+
+
+
+
+
+
+
+
+        #TranspiledEncodingCircuit(circuit, encoding_circuit, )
+
+
+
 
 
 class ExecutorEstimator(BaseEstimator):
