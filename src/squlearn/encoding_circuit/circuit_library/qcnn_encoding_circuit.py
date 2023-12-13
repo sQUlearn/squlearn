@@ -151,10 +151,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 if diff_params:
                     number_of_gates_1 = int(len(self.left_qubits) / quantum_circuit.num_qubits)
                     number_of_gates_2 = 0
-                    if alternating:
-                        number_of_gates_2 = int(
-                            (len(self.left_qubits) - 1) / quantum_circuit.num_qubits
-                        )
+                    if alternating and len(self.left_qubits) > quantum_circuit.num_qubits:
+                        number_of_gates_2 = int(len(self.left_qubits) / quantum_circuit.num_qubits)
                     self._num_parameters += quantum_circuit.num_parameters * (
                         number_of_gates_1 + number_of_gates_2
                     )
@@ -461,8 +459,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 # define number of gates applied
                 number_of_gates_1 = int(len(left_qubits) / quantum_circuit.num_qubits)
                 number_of_gates_2 = 0
-                if gate[3]:
-                    number_of_gates_2 = int((len(left_qubits) - 1) / quantum_circuit.num_qubits)
+                if gate[3] and len(left_qubits) > quantum_circuit.num_qubits:
+                    number_of_gates_2 = int(len(left_qubits) / quantum_circuit.num_qubits)
 
                 # assign parameter and add gates to circuit
                 for j in range(number_of_gates_1):
@@ -487,15 +485,18 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     )
                     if gate[4]:
                         i_param += quantum_circuit.num_parameters
+                    adressed_qubits = []
+                    for i in range(
+                        j * quantum_circuit.num_qubits + 1,
+                        (j + 1) * quantum_circuit.num_qubits + 1,
+                    ):
+                        i_1 = i
+                        if i == len(left_qubits):  # sothat the last wraps with the first qubit
+                            i_1 = 0
+                        adressed_qubits.append(left_qubits[i_1])
                     total_qc = total_qc.compose(
                         circuit_to_gate(quantum_circuit),
-                        qubits=[
-                            left_qubits[i]
-                            for i in range(
-                                j * quantum_circuit.num_qubits + 1,
-                                (j + 1) * quantum_circuit.num_qubits + 1,
-                            )
-                        ],
+                        qubits=adressed_qubits,
                     )
                 if not gate[4]:
                     i_param += quantum_circuit.num_parameters
