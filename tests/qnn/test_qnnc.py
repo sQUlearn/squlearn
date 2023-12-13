@@ -37,6 +37,16 @@ class TestQNNClassifier:
         param_op_ini = np.random.rand(operator.num_parameters)
         return QNNClassifier(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
+    @pytest.fixture(scope="module")
+    def qnn_classifier_2out(self) -> QNNClassifier:
+        """QNNClassifier module."""
+        executor = Executor("statevector_simulator")
+        pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
+        operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
+        loss = SquaredLoss()
+        optimizer = SLSQP(options={"maxiter": 2})
+        return QNNClassifier(pqc, operator, executor, loss, optimizer, parameter_seed=0)
+
     def test_predict_unfitted(self, qnn_classifier, data):
         """Tests concerning the unfitted QNNClassifier.
 
@@ -60,8 +70,23 @@ class TestQNNClassifier:
         X, y = data
         qnn_classifier.fit(X, y)
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)
+        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
+
+    def test_fit_2out(self, qnn_classifier_2out, data):
+        """Tests concerning the fit function of the QNNClassifier with 2 outputs.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        y = np.array([y, y]).T
+        qnn_classifier_2out.fit(X, y)
+        assert qnn_classifier_2out._is_fitted
+        assert not np.allclose(qnn_classifier_2out.param, qnn_classifier_2out.param_ini)
+        assert not np.allclose(qnn_classifier_2out.param_op, qnn_classifier_2out.param_op_ini)
 
     def test_partial_fit(self, qnn_classifier, data):
         """Tests concerning the partial_fit function of the QNNClassifier.
@@ -73,11 +98,11 @@ class TestQNNClassifier:
         X, y = data
 
         qnn_classifier.fit(X, y)
-        param_1 = qnn_classifier._param
+        param_1 = qnn_classifier.param
         qnn_classifier.partial_fit(X, y)
-        param_2 = qnn_classifier._param
+        param_2 = qnn_classifier.param
         qnn_classifier.fit(X, y)
-        param_3 = qnn_classifier._param
+        param_3 = qnn_classifier.param
 
         assert np.allclose(param_1, param_3)
         assert not np.allclose(param_2, param_3)
@@ -101,8 +126,31 @@ class TestQNNClassifier:
         qnn_classifier.fit(X, y)
 
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)
+        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
+
+    def test_fit_minibtach_2out(self, qnn_classifier_2out, data):
+        """Tests concerning fit with mini-batch GD with 2 outputs.
+
+        Tests include
+            - whether `_is_fitted` is True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        y = np.array([y, y]).T
+
+        qnn_classifier_2out._optimizer = Adam({"maxiter_total": 10, "maxiter": 2, "lr": 0.1})
+        qnn_classifier_2out.set_params(
+            batch_size=2,
+            epochs=2,
+            shuffle=True,
+        )
+        qnn_classifier_2out.fit(X, y)
+
+        assert qnn_classifier_2out._is_fitted
+        assert not np.allclose(qnn_classifier_2out.param, qnn_classifier_2out.param_ini)
+        assert not np.allclose(qnn_classifier_2out.param_op, qnn_classifier_2out.param_op_ini)
 
     def test_predict(self, qnn_classifier, data):
         """Tests concerning the predict function of the QNNClassifier.
@@ -136,5 +184,5 @@ class TestQNNClassifier:
         qnn_classifier.fit(X, y)
 
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier._param, qnn_classifier.param_ini)
-        assert not np.allclose(qnn_classifier._param_op, qnn_classifier.param_op_ini)
+        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)

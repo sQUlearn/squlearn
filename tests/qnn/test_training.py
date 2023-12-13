@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 
 from squlearn import Executor
-from squlearn.observables import SummedPaulis
-from squlearn.encoding_circuit import ChebyshevPQC
+from squlearn.observables import SummedPaulis, SinglePauli
+from squlearn.encoding_circuit import ChebyshevPQC, HighDimEncodingCircuit
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.qnn import QNN
-from squlearn.qnn import QNNRegressor
+from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
 
 executor = Executor("statevector_simulator")
@@ -44,6 +44,8 @@ class TestSolvemini_batch:
 
 
 class TestShotsFromRSTD:
+    """Tests for ShotsFromRSTD."""
+
     def test_qnn_training(self):
         """Test a optimization with variance reduction and shots from RSTD."""
 
@@ -66,3 +68,127 @@ class TestShotsFromRSTD:
         test = qnn.predict(x_train)
         reference = np.array([0.31176001, 0.09348281, -0.05118243, -0.25693387, -0.43025503])
         assert np.allclose(test, reference, atol=1e-3)
+
+    def test_qnn_training_two_outputs(self):
+        """Test a optimization with variance reduction and shots from RSTD with two outputs."""
+
+        pqc = ChebyshevPQC(2, 1, 3, False)
+        ob = [SummedPaulis(2), SummedPaulis(2)]
+        executor = Executor("qasm_simulator", primitive_seed=0)
+        qnn = QNNRegressor(
+            pqc,
+            ob,
+            executor,
+            SquaredLoss(),
+            Adam(options={"lr": 0.3, "maxiter": 3}),
+            variance=0.005,
+            shot_control=ShotsFromRSTD(),
+            parameter_seed=0,
+        )
+        x_train = np.arange(-0.2, 0.3, 0.1)
+        y_train = np.array([np.abs(x_train), np.square(x_train)]).T
+        qnn.fit(x_train, y_train)
+        test = qnn.predict(x_train)
+        reference = np.array(
+            [
+                [0.09296101, 0.08074864],
+                [0.12179584, 0.08045381],
+                [0.06871516, 0.06971483],
+                [0.08291836, 0.05942195],
+                [0.09998995, 0.05452198],
+            ]
+        )
+        assert np.allclose(test, reference, atol=1e-3)
+
+
+class TestZeroParam:
+    """Tests for zero number of parameters in both observable and encoding circuit."""
+
+    def _build_qnn_setup(self, pqc, ob, test_case: str):
+        """Helper function to build the qnn setup.
+
+        Args:
+            pqc (PQC): encoding circuit
+            ob (Observable): observable
+            test_case (str): test case type
+
+        """
+        executor = Executor("statevector_simulator")
+
+        if test_case == "QNNRegressor":
+            qnn = QNNRegressor(
+                pqc,
+                ob,
+                executor,
+                SquaredLoss(),
+                SLSQP({"maxiter": 10}),
+                variance=0.005,
+                parameter_seed=0,
+            )
+            x_train = np.arange(-0.2, 0.3, 0.1)
+            y_train = np.abs(x_train)
+        else:
+            qnn = QNNClassifier(
+                pqc,
+                ob,
+                executor,
+                SquaredLoss(),
+                SLSQP({"maxiter": 10}),
+                variance=0.005,
+                parameter_seed=0,
+            )
+            x_train = np.arange(-0.2, 0.3, 0.1)
+            y_train = np.array([0, 1, 1, 0, 0])
+
+        return qnn, x_train, y_train
+
+    @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
+    def test_zero_param_ob(self, test_case):
+        """Test for zero number of parameters in observable."""
+
+        assert_dict = {
+            "QNNRegressor": np.array([0.11503425, 0.10989764, 0.11377155, 0.12618358, 0.14544058]),
+            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
+        }
+        pqc = ChebyshevPQC(2, 1, 1)
+        ob = SinglePauli(2, 0, "Z")
+
+        qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
+        assert qnn.num_parameters_observable == 0
+        qnn.fit(x_train, y_train)
+        assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
+
+    @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
+    def test_zero_param(self, test_case):
+        """Test for zero number of parameters in encoding circuit."""
+
+        assert_dict = {
+            "QNNRegressor": np.array([0.12, 0.12, 0.12, 0.12, 0.12]),
+            "QNNClassifier": np.array([1, 0, 0, 0, 0]),
+        }
+
+        pqc = HighDimEncodingCircuit(2, 1)
+        ob = SummedPaulis(2)
+
+        qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
+        assert qnn.num_parameters == 0
+        qnn.fit(x_train, y_train)
+        assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
+
+    @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
+    def test_all_zero(self, test_case):
+        """Test for zero number of parameters in both observable and encoding circuit."""
+
+        assert_dict = {
+            "QNNRegressor": np.array([0.19470917, 0.09933467, 0.0, -0.09933467, -0.19470917]),
+            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
+        }
+
+        pqc = HighDimEncodingCircuit(2, 1)
+        ob = SinglePauli(2, 0, "Z")
+
+        qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
+        assert qnn.num_parameters_observable == 0
+        assert qnn.num_parameters == 0
+        qnn.fit(x_train, y_train)
+        assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)

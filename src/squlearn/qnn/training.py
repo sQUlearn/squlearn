@@ -358,6 +358,12 @@ def train(
         )
         return grad
 
+    if len(val_ini) == 0:
+        if opt_param_op:
+            return np.array([]), np.array([])
+        else:
+            return np.array([])
+
     result = optimizer.minimize(_fun, val_ini, _grad, bounds=None)
 
     if hasattr(result, "x"):
@@ -451,6 +457,13 @@ def train_mini_batch(
         param_op = np.array([param_op_ini])
     else:
         param_op = param_op_ini
+
+    if len(param_ini) == 0:
+        if opt_param_op:
+            if len(param_op_ini) == 0:
+                return np.array([]), np.array([])
+        else:
+            return np.array([])
 
     for epoch in range(epochs):
         accumulated_loss = 0.0
