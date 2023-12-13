@@ -485,18 +485,15 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     )
                     if gate[4]:
                         i_param += quantum_circuit.num_parameters
-                    adressed_qubits = []
-                    for i in range(
-                        j * quantum_circuit.num_qubits + 1,
-                        (j + 1) * quantum_circuit.num_qubits + 1,
-                    ):
-                        i_1 = i
-                        if i == len(left_qubits):  # sothat the last wraps with the first qubit
-                            i_1 = 0
-                        adressed_qubits.append(left_qubits[i_1])
                     total_qc = total_qc.compose(
                         circuit_to_gate(quantum_circuit),
-                        qubits=adressed_qubits,
+                        qubits=[
+                            left_qubits[i % len(left_qubits)]
+                            for i in range(
+                                j * quantum_circuit.num_qubits + 1,
+                                (j + 1) * quantum_circuit.num_qubits + 1,
+                            )
+                        ],
                     )
                 if not gate[4]:
                     i_param += quantum_circuit.num_parameters
