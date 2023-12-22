@@ -27,6 +27,7 @@ class ParallelSampler(BaseSampler):
 
     Args:
         sampler (BaseSampler): The sampler instance to use
+        num_parallel (int, optional): The number of times the circuit is duplicated. Defaults to None, which means automatic determination.
         transpiler (callable, optional): A function for transpiling quantum circuits. Defaults to a standard transpile function if not provided.
         options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for the instance.
 
@@ -35,6 +36,7 @@ class ParallelSampler(BaseSampler):
     def __init__(
         self,
         sampler: BaseSampler,
+        num_parallel: Optional[int] = None,
         transpiler: Optional[Callable] = None,
         options: Optional[Union[Options, qiskit_ibm_runtime_Options, Any]] = None,
     ) -> None:
@@ -48,6 +50,7 @@ class ParallelSampler(BaseSampler):
 
         super().__init__(options=options_ini)
         self._sampler = sampler
+        self._num_parallel = num_parallel
         if transpiler is None:
             self._transpiler = transpile
         else:
@@ -73,9 +76,8 @@ class ParallelSampler(BaseSampler):
                 self._sampler.set_options(shots=self.shots)
             else:
                 self.shots = shots_sampler
+        # Real Backend
         elif hasattr(self._sampler, "session"):
-            self._session = self._sampler.session
-            self._service = self._sampler.session.service
             self._backend = self._sampler.session.service.get_backend(
                 self._sampler.session.backend()
             )
@@ -202,8 +204,7 @@ class ParallelSampler(BaseSampler):
         self,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         parameter_values: Union[List[float], List[List[float]]] = None,
-        n_duplications: Optional[int] = None,
-        process_result: Optional[bool] = False,
+        process_result: Optional[bool] = True,
         **run_options,
     ) -> Job:
         """
@@ -215,7 +216,7 @@ class ParallelSampler(BaseSampler):
             circuits (Union[QuantumCircuit, List[QuantumCircuit]]): A single QuantumCircuit or a list of QuantumCircuits to be executed.
             parameter_values (Optional[Union[List[float], List[List[float]]]], optional): Values for parameterized circuits. Can be a single list of values or a list of lists for multiple circuits. Defaults to None.
             n_duplications (Optional[int], optional): The number of times the circuit execution is to be duplicated. Useful for certain types of quantum simulations. Defaults to None.
-            process_result (Optional[bool], optional): If True, the results will be processed in a specific manner as defined within the method. Defaults to False.
+            process_result (Optional[bool], optional): If True, the results will be processed in a specific manner as defined within the method. Defaults to True.
             **run_options: Additional keyword arguments that are passed to the execution method. These options are specific to the implementation and execution environment.
 
         Returns:
@@ -227,12 +228,16 @@ class ParallelSampler(BaseSampler):
         if not isinstance(circuits, list):
             circuits = [circuits]
 
+        if "shots" in run_options:
+            self.shots = run_options["shots"]
+            run_options.pop("shots")
+
         for circ in circuits:
-            duplicated_circ, n_duplications = self.create_mapped_circuit(
-                circ, n_duplications=n_duplications, return_duplications=True
+            duplicated_circ, self._num_parallel = self.create_mapped_circuit(
+                circ, num_parallel=self._num_parallel, return_duplications=True
             )
             dupl_circuits.append(duplicated_circ)
-            self.n_dupl_list.append(n_duplications)
+            self.n_dupl_list.append(self._num_parallel)
 
         result_job = self._sampler.run(
             circuits=dupl_circuits,
@@ -362,7 +367,7 @@ class ParallelSampler(BaseSampler):
     def create_mapped_circuit(
         self,
         circuit: QuantumCircuit,
-        n_duplications: Optional[int] = None,
+        num_parallel: Optional[int] = None,
         return_duplications: Optional[bool] = False,
         max_qubits: Optional[int] = None,
     ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, int]]:
@@ -392,13 +397,15 @@ class ParallelSampler(BaseSampler):
             if max_qubits is None:
                 raise Warning("No number of qubits found in the given Sampler Primitive!")
 
-        # check that n_duplication is None, i.e. not provided.
-        if n_duplications is None:
-            n_duplications = int(max_qubits // circuit.num_qubits)
+        print("max_qubits",max_qubits)
 
-        if n_duplications * circuit.num_qubits > max_qubits:
+        # check that n_duplication is None, i.e. not provided.
+        if num_parallel is None:
+            num_parallel = int(max_qubits // circuit.num_qubits)
+
+        if num_parallel * circuit.num_qubits > max_qubits:
             raise ValueError(
-                f"The number of qubits in the circuit ({circuit.num_qubits}) * n_duplications ({n_duplications}) "
+                f"The number of qubits in the circuit ({circuit.num_qubits}) * n_duplications ({num_parallel}) "
                 f"is greater than the total number of qubits in the backend ({max_qubits})"
             )
 
@@ -406,18 +413,22 @@ class ParallelSampler(BaseSampler):
         mapped_circuit = circuit.copy()
 
         # duplicate the circuit
-        for _ in range(n_duplications - 1):
+        for _ in range(num_parallel - 1):
             mapped_circuit.tensor(circuit, inplace=True)
 
+        shots = self.shots
+        if shots is None:
+            shots = 0
         print(
-            f"\nCircuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
-            f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
+            f"\nCircuit with {circuit.num_qubits} qubits has been duplicated {num_parallel} times."
+            f"\nReducing shots from {shots} to {int(shots/num_parallel)}"
             f"\nBackend has {max_qubits} qubits."
         )
 
-        self.set_shots(int(self.shots / n_duplications))
+        if self.shots is not None:
+            self.set_shots(int(self.shots / num_parallel))
         if return_duplications:
-            return mapped_circuit, n_duplications
+            return mapped_circuit, num_parallel
         else:
             return mapped_circuit
 

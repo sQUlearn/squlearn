@@ -27,13 +27,14 @@ class ParallelEstimator(BaseEstimator):
 
     Args:
         estimator (BaseEstimator): The estimator instance to use
+        num_parallel (int, optional): The number of times the circuit is duplicated. Defaults to None, which means automatic determination.
         transpiler (callable, optional): A function for transpiling quantum circuits. Defaults to a standard transpile function if not provided.
         options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for the instance.
 
     """
 
     def __init__(
-        self, estimator: BaseEstimator, transpiler: Optional[Callable] = None, options=None
+        self, estimator: BaseEstimator, num_parallel: Optional[int] = None, transpiler: Optional[Callable] = None, options=None
     ) -> None:
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             try:
@@ -45,6 +46,7 @@ class ParallelEstimator(BaseEstimator):
 
         super().__init__(options=options_ini)
         self._estimator = estimator
+        self._num_parallel = num_parallel
         if transpiler is None:
             self._transpiler = transpile
         else:
@@ -60,7 +62,6 @@ class ParallelEstimator(BaseEstimator):
         if isinstance(self._estimator, qiskit_primitives_Estimator):
             # this is only a hack, there is no real backend in the Primitive Estimator class
             self._backend = Aer.get_backend("statevector_simulator")
-
         elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
             self._backend = self._estimator._backend
             shots_estimator = self._estimator.options.get("shots", 0)
@@ -72,8 +73,6 @@ class ParallelEstimator(BaseEstimator):
                 self.shots = shots_estimator
         # Real Backend
         elif hasattr(self._estimator, "session"):
-            self._session = self._estimator.session
-            self._service = self._estimator.session.service
             self._backend = self._estimator.session.service.get_backend(
                 self._estimator.session.backend()
             )
@@ -167,7 +166,6 @@ class ParallelEstimator(BaseEstimator):
             List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
         ],
         parameter_values: Union[List[float], List[List[float]]] = None,
-        n_duplications=None,
         **run_options,
     ) -> Job:
         """
@@ -183,9 +181,13 @@ class ParallelEstimator(BaseEstimator):
         if not isinstance(observables, list):
             observables = [observables]
 
+        if "shots" in run_options:
+            self.shots = run_options["shots"]
+            run_options.pop("shots")
+
         for circ, obs in zip(circuits, observables):
             duplicated_circ, duplicated_obs = self.create_mapped_circuit(
-                circ, observable=obs, n_duplications=n_duplications
+                circ, observable=obs, num_parallel=self._num_parallel
             )
             dupl_circuits.append(duplicated_circ)
             dupl_observables.append(duplicated_obs)
@@ -256,7 +258,7 @@ class ParallelEstimator(BaseEstimator):
         self,
         circuit: QuantumCircuit,
         observable: Optional[Union[BaseOperator, PauliSumOp]] = None,
-        n_duplications: Optional[int] = None,
+        num_parallel: Optional[int] = None,
         return_duplications: Optional[bool] = False,
         max_qubits: Optional[int] = None,
     ) -> Union[
@@ -294,12 +296,12 @@ class ParallelEstimator(BaseEstimator):
                 raise Warning("No number of qubits found in the given Estimator Primitive!")
 
         # check that n_duplication is None, i.e. not provided.
-        if n_duplications is None:
-            n_duplications = int(max_qubits // circuit.num_qubits)
+        if num_parallel is None:
+            num_parallel = int(max_qubits // circuit.num_qubits)
 
-        if n_duplications * circuit.num_qubits > max_qubits:
+        if num_parallel * circuit.num_qubits > max_qubits:
             raise ValueError(
-                f"The number of qubits in the circuit ({circuit.num_qubits}) * n_duplications ({n_duplications}) "
+                f"The number of qubits in the circuit ({circuit.num_qubits}) * n_duplications ({num_parallel}) "
                 f"is greater than the total number of qubits in the backend ({max_qubits})"
             )
 
@@ -307,28 +309,32 @@ class ParallelEstimator(BaseEstimator):
         mapped_circuit = circuit.copy()
 
         # duplicate the circuit
-        for _ in range(n_duplications - 1):
+        for _ in range(num_parallel - 1):
             mapped_circuit.tensor(circuit, inplace=True)
 
+        shots = self.shots
+        if shots is None:
+            shots = 0
         print(
-            f"Circuit with {circuit.num_qubits} qubits has been duplicated {n_duplications} times."
-            f"\nReducing shots from {self.shots} to {int(self.shots/n_duplications)}"
+            f"Circuit with {circuit.num_qubits} qubits has been duplicated {num_parallel} times."
+            f"\nReducing shots from {shots} to {int(shots/num_parallel)}"
             f"\nBackend has {max_qubits} qubits.\n"
         )
 
         # Set the shots=shots/n_duplications
-        self.set_shots(int(self.shots / n_duplications))
+        if self.shots is not None:
+            self.set_shots(int(self.shots / num_parallel))
 
         # if observable is provided, duplicate it and return it as well
         if observable is not None:
-            mapped_obs = self.duplicate_observable(observable, n_duplications)
+            mapped_obs = self.duplicate_observable(observable, num_parallel)
             if return_duplications:
-                return mapped_circuit, mapped_obs, n_duplications
+                return mapped_circuit, mapped_obs, num_parallel
             else:
                 return mapped_circuit, mapped_obs
 
         if return_duplications:
-            return mapped_circuit, n_duplications
+            return mapped_circuit, num_parallel
         else:
             return mapped_circuit
 
