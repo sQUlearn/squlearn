@@ -62,10 +62,13 @@ class AutoSelectionBackend:
         self.useHQAA = False
 
         if self.service is None:
+            self._obtain_backends_from_service = False
             if self.backends_to_use is not None:
                 self.service = self.backends_to_use[0].service  # get service from a backend
             else:
                 raise NoSuitableBackendError("Error: Either provide service or backends_to_use.")
+        else:
+            self._obtain_backends_from_service = True
 
         self.backends = self._get_backend_list()
         if self.backends:
@@ -108,7 +111,7 @@ class AutoSelectionBackend:
         Returns:
             list: A list of backends.
         """
-        if self.service is not None:
+        if self._obtain_backends_from_service:
             return self.service.backends(
                 min_num_qubits=self.min_num_qubits,
                 simulator=False,
@@ -159,7 +162,13 @@ class AutoSelectionBackend:
 
         for backend in self.backends:
             backend_qubits = backend.configuration().n_qubits
-            backend_processor_family = backend.processor_type["family"]
+            if hasattr(backend, "processor_type"):
+                if hasattr(backend.processor_type, "family"):
+                    backend_processor_family = backend.processor_type.get("family","unknown")
+                else:
+                    backend_processor_family = "unknown"
+            else:
+                backend_processor_family = "unknown"
             if backend_qubits >= circuit.num_qubits:
                 # Add one backend per family of processor.
                 backend_by_family[backend_processor_family] = backend

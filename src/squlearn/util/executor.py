@@ -32,8 +32,6 @@ from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
 from .execution import AutoSelectionBackend
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -185,7 +183,7 @@ class Executor:
         self._service = None
         self._estimator = None
         self._sampler = None
-        self._remote = False
+        self._IBMQuantum = False
         self._session_active = False
         self._execution_origin = ""
 
@@ -259,6 +257,9 @@ class Executor:
                 self._backend = None
                 self._backend_list = execution
                 self._execution_origin = "BackendList"
+                # Execution is a backend class
+                if hasattr(execution[0], "service"):
+                    self._service = execution[0].service
             else:
                 raise ValueError("Only list of backends are supported!")
         elif isinstance(execution, QiskitRuntimeService):
@@ -275,7 +276,7 @@ class Executor:
                 self._backend_list = self._service.backends()
             else:
                 raise ValueError("Unknown backend type: " + backend)
-            if shots is None:
+            if shots is None and self._backend is not None:
                 shots = self._backend.options.shots
                 if "statevector_simulator" in str(self._backend):
                     shots = None
@@ -359,9 +360,11 @@ class Executor:
 
         # Check if execution is on a remote IBM backend
         if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
-            self._remote = True
+            self._IBMQuantum = True
         else:
-            self._remote = False
+            self._IBMQuantum = False
+
+        print("self._remote",self._IBMQuantum)
 
         # set initial shots
         self._shots = shots
@@ -369,7 +372,7 @@ class Executor:
         self._inital_num_shots = self.get_shots()
 
         if self._caching is None:
-            self._caching = self._remote
+            self._caching = self._IBMQuantum
 
         if self._caching:
             self._cache = ExecutorCache(self._logger, cache_dir)
@@ -397,9 +400,18 @@ class Executor:
         """Returns the backend that is used in the executor."""
         return self._backend
 
+    @property
     def backend_list(self) -> List[Backend]:
         """Returns the backend list that is used in the executor."""
         return self._backend_list
+
+    @property
+    def is_backend_chosen(self) -> bool:
+        """Returns true if the backend has been chosen."""
+        if self.backend is None:
+            return False
+        else:
+            return True
 
     @property
     def session(self) -> Session:
@@ -434,18 +446,21 @@ class Executor:
         else:
             # Create a new Estimator
             shots = self.get_shots()
-            if self._session is not None:
-                if self._session_active is False:
+            if self._IBMQuantum:
+                if self._session is not None:
+                    if self._session_active is False:
+                        self.create_session()
+                    self._estimator = qiskit_ibm_runtime_Estimator(
+                        session=self._session, options=self._options_estimator
+                    )
+                elif self._service is not None:
+                    # No session but service -> create a new session
                     self.create_session()
-                self._estimator = qiskit_ibm_runtime_Estimator(
-                    session=self._session, options=self._options_estimator
-                )
-            elif self._service is not None:
-                # No session but service -> create a new session
-                self.create_session()
-                self._estimator = qiskit_ibm_runtime_Estimator(
-                    session=self._session, options=self._options_estimator
-                )
+                    self._estimator = qiskit_ibm_runtime_Estimator(
+                        session=self._session, options=self._options_estimator
+                    )
+                else:
+                    raise RuntimeError("Missing Qiskit Runtime service for Sampler initialization!")
             else:
 
                 if "statevector_simulator" in str(self._backend):
@@ -504,22 +519,25 @@ class Executor:
         else:
             # Create a new Sampler
             shots = self.get_shots()
-            if self._session is not None:
-                if self._session_active is False:
+
+            if self._IBMQuantum:
+                if self._session is not None:
+                    if self._session_active is False:
+                        self.create_session()
+                    self._sampler = qiskit_ibm_runtime_Sampler(
+                        session=self._session, options=self._options_sampler
+                    )
+
+                elif self._service is not None:
+                    # No session but service -> create a new session
                     self.create_session()
-                self._sampler = qiskit_ibm_runtime_Sampler(
-                    session=self._session, options=self._options_sampler
-                )
-
-            elif self._service is not None:
-                # No session but service -> create a new session
-                self.create_session()
-                self._sampler = qiskit_ibm_runtime_Sampler(
-                    session=self._session,
-                    options=self._options_sampler,
-                )
+                    self._sampler = qiskit_ibm_runtime_Sampler(
+                        session=self._session,
+                        options=self._options_sampler,
+                    )
+                else:
+                    raise RuntimeError("Missing Qiskit Runtime service for Sampler initialization!")
             else:
-
                 if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Sampler
                     self._sampler = qiskit_primitives_Sampler(options=self._options_sampler)
@@ -636,7 +654,7 @@ class Executor:
                         self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
                         break
 
-                    if self._remote:
+                    if self._IBMQuantum:
                         time.sleep(1)
                     else:
                         time.sleep(0.01)
@@ -1094,38 +1112,45 @@ class Executor:
 
         self._set_seed_for_primitive = seed
 
-    def select_backend(self, circuit: QuantumCircuit = None, encoding_circuit: EncodingCircuitBase = None, **options):
-
+    def select_backend(self, circuit: QuantumCircuit = None, encoding_circuit = None, **options):
+        from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+        from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
         if circuit is not None and encoding_circuit is not None:
             raise ValueError("Only one of circuit or encoding_circuit should be given!")
 
-        AutoSelBack = AutoSelectionBackend(backends_to_use=self._backend_list)
+        AutoSelBack = AutoSelectionBackend(backends_to_use=self.backend_list,verbose=True)
+
         if circuit is not None:
             info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+            return_circ = transpiled_circuit
 
         if encoding_circuit is not None:
 
-            x = ParameterVector("x", encoding_circuit.num_features)
-            p = ParameterVector("p", encoding_circuit.num_parameters)
-            circuit = encoding_circuit.get_circuit(x, p)
-            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+            info = None
+            transpiled_circuit = None
+            backend = None
 
-            def helper_function(circuit,backend):
+            def helper_function(circuit,backend_dummy):
+                nonlocal info,transpiled_circuit,backend
+                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
                 return transpiled_circuit
 
-            TranspiledEncodingCircuit(encoding_circuit, backend, helper_function)
+            return_circ = TranspiledEncodingCircuit(encoding_circuit, backend, helper_function)
 
+        self._backend = backend
+        if self._shots is None:
+            self._shots = self._backend.options.shots
+            if "statevector_simulator" in str(self._backend):
+                self._shots = None
 
+        # Check if execution is on a remote IBM backend
+        if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
+            self._IBMQuantum = True
+        else:
+            self._IBMQuantum = False
 
-
-
-
-
-
-
-
-        #TranspiledEncodingCircuit(circuit, encoding_circuit, )
+        return return_circ, info
 
 
 
