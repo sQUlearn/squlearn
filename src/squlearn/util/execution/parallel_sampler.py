@@ -60,6 +60,7 @@ class ParallelSampler(BaseSampler):
 
     def check_sampler(self) -> None:
         """Configures the backend and shot settings based on the properties of the provided sampler object."""
+        from ..executor import ExecutorSampler
         self.shots = None
         if hasattr(self._sampler.options, "execution"):
             self.shots = self._sampler.options.get("execution").get("shots", None)
@@ -82,6 +83,10 @@ class ParallelSampler(BaseSampler):
                 self._sampler.session.backend()
             )
             self._session_active = True
+        elif isinstance(self._sampler,ExecutorSampler):
+            self._backend = self._sampler._executor.backend
+            self.shots = self._sampler._executor.get_shots()
+            self._session_active = self._sampler._executor._session_active
         else:
             raise RuntimeError("No backend found in the given Sampler Primitive!")
 
@@ -91,6 +96,7 @@ class ParallelSampler(BaseSampler):
         Args:
             num_shots (int or None): Number of shots that are set
         """
+        from ..executor import ExecutorSampler
         self._shots = num_shots
 
         if num_shots is None:
@@ -127,6 +133,8 @@ class ParallelSampler(BaseSampler):
                     self._options_sampler["execution"]["shots"] = num_shots
                 except Exception:
                     pass  # no options_sampler or no execution in options_sampler
+            elif isinstance(self._sampler,ExecutorSampler):
+                self._sampler._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown sampler type!")
 

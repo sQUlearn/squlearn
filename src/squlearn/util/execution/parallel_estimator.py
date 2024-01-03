@@ -56,6 +56,7 @@ class ParallelEstimator(BaseEstimator):
 
     def check_estimator(self) -> None:
         """Configures the backend and shot settings based on the properties of the provided estimator object."""
+        from ..executor import ExecutorEstimator
         self.shots = None
         if hasattr(self._estimator.options, "execution"):
             self.shots = self._estimator.options.get("execution").get("shots", None)
@@ -77,6 +78,10 @@ class ParallelEstimator(BaseEstimator):
                 self._estimator.session.backend()
             )
             self._session_active = True
+        elif isinstance(self._estimator,ExecutorEstimator):
+            self._backend = self._estimator._executor.backend
+            self.shots = self._estimator._executor.get_shots()
+            self._session_active = self._estimator._executor._session_active
         else:
             raise RuntimeError("No backend found in the given Estimator Primitive!")
 
@@ -86,8 +91,7 @@ class ParallelEstimator(BaseEstimator):
         Args:
             num_shots (int or None): Number of shots that are set
         """
-
-        self._shots = num_shots
+        from ..executor import ExecutorEstimator
 
         if num_shots is None:
             self._logger.info("Set shots to {}".format(num_shots))
@@ -123,6 +127,8 @@ class ParallelEstimator(BaseEstimator):
                     self._options_estimator["execution"]["shots"] = num_shots
                 except Exception:
                     pass  # no options_estimator or no execution in options_estimator
+            elif isinstance(self._estimator,ExecutorEstimator):
+                self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
 

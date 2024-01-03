@@ -31,7 +31,7 @@ from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureErro
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
-from .execution import AutoSelectionBackend
+from .execution import AutoSelectionBackend, ParallelEstimator, ParallelSampler
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -77,6 +77,8 @@ class Executor:
             until the execution is aborted.
         wait_restart (int): The time to wait before restarting a job in seconds.
         shots (Union[int, None]): The number of initial shots that is used for the execution.
+        primitive_seed (Union[int, None]): The seed that is used for the execution
+                                           of the primitives with simulated sampling.
 
     Attributes:
     -----------
@@ -176,6 +178,7 @@ class Executor:
         wait_restart: int = 1,
         shots: Union[int, None] = None,
         primitive_seed: Union[int, None] = None,
+        qpu_parallelization: Union[int, str, None] = None,
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -205,6 +208,7 @@ class Executor:
         self._max_session_time = max_session_time
         self._max_jobs_retries = max_jobs_retries
         self._wait_restart = wait_restart
+        self._qpu_parallelization = qpu_parallelization
 
         self._backend_list = None
 
@@ -479,6 +483,19 @@ class Executor:
 
             if not self._options_estimator:
                 self.set_shots(shots)
+
+            # Generate a in-QPU parallelized estimator
+            if self._qpu_parallelization is not None:
+                if isinstance(self._qpu_parallelization, str):
+                    if self._qpu_parallelization == "auto":
+                        self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
+                    else:
+                        raise ValueError("Unknown qpu_parallelization value: " + self._qpu_parallelization)
+                elif isinstance(self._qpu_parallelization, int):
+                    self._estimator = ParallelEstimator(self._estimator, num_parallel=self._qpu_parallelization)
+                else:
+                    raise ValueError("Unknown qpu_parallelization type: " + type(self._qpu_parallelization))
+
             estimator = self._estimator
 
         return estimator
@@ -554,6 +571,19 @@ class Executor:
 
             if not self._options_sampler:
                 self.set_shots(shots)
+
+            # Generate a in-QPU parallelized sampler
+            if self._qpu_parallelization is not None:
+                if isinstance(self._qpu_parallelization, str):
+                    if self._qpu_parallelization == "auto":
+                        self._sampler = ParallelSampler(self._sampler, num_parallel=None)
+                    else:
+                        raise ValueError("Unknown qpu_parallelization value: " + self._qpu_parallelization)
+                elif isinstance(self._qpu_parallelization, int):
+                    self._sampler = ParallelEstimator(self._sampler, num_parallel=self._qpu_parallelization)
+                else:
+                    raise ValueError("Unknown qpu_parallelization type: " + type(self._qpu_parallelization))
+
             sampler = self._sampler
 
         return sampler
@@ -884,9 +914,13 @@ class Executor:
             if "statevector_simulator" not in str(self._backend):
                 self._backend.options.shots = num_shots
 
+        print("self._estimator",self._estimator)
+        print("type(self._estimator)",type(self._estimator))
+
         # Update shots in estimator primitive
         if self._estimator is not None:
             if isinstance(self._estimator, qiskit_primitives_Estimator):
+                print("a")
                 if num_shots == 0:
                     self._estimator.set_options(shots=None)
                 else:
@@ -896,12 +930,14 @@ class Executor:
                 except:
                     pass  # no option available
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
+                print("b")
                 self._estimator.set_options(shots=num_shots)
                 try:
                     self._options_estimator["shots"] = num_shots
                 except:
                     pass  # no option available
             elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
+                print("c")
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
