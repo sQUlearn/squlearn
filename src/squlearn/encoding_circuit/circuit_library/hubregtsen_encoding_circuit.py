@@ -70,7 +70,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         bound_array = np.zeros((self.num_parameters, 2))
         # Single theta Ry gates
         index_offset = 0
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             for i in range(self.num_qubits):
                 bound_array[index_offset] = [-np.pi, np.pi]
                 index_offset +=  1
@@ -136,7 +136,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         QC.h(range(self.num_qubits))
 
         # Loops through the layers
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # Loops through the data encoding gates
             n_feature_loop = int(np.ceil(self.num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):

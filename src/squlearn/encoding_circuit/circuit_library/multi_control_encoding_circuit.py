@@ -108,7 +108,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         index_offset = 0
         feature_offset = 0
 
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # First ZZ-encoding circuit
             QC.h(range(self.num_qubits))
             for i in range(self.num_qubits):

@@ -50,7 +50,7 @@ class ChebyshevRx(EncodingCircuitBase):
         """The bounds of the trainable parameters of the ChebyshevRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
         index_offset = 0
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 bounds[index_offset] = [0.0, self.alpha]
@@ -161,7 +161,7 @@ class ChebyshevRx(EncodingCircuitBase):
         """
         cheb_index = []
         index_offset = 0
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
                 cheb_index_layer.append(index_offset)

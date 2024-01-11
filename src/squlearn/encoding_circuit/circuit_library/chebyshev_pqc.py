@@ -89,7 +89,7 @@ class ChebyshevPQC(EncodingCircuitBase):
             bounds[index_offset] = [-np.pi, np.pi]
             index_offset += 1
 
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 bounds[index_offset] = [0.0, self.alpha]
@@ -232,7 +232,7 @@ class ChebyshevPQC(EncodingCircuitBase):
         """
         cheb_index = []
         index_offset = self.num_qubits
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
                 cheb_index_layer.append(index_offset)

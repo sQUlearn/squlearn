@@ -132,7 +132,7 @@ class ChebyshevTower(EncodingCircuitBase):
         if self.hadamard_start:
             QC.h(range(self.num_qubits))
 
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             index_offset = 0
             iqubit = 0
             icheb = 1
@@ -180,7 +180,7 @@ class ChebyshevTower(EncodingCircuitBase):
                     icheb += 1
 
             # Entangling layer
-            if ilayer + 1 < self.num_layers:
+            if layer + 1 < self.num_layers:
                 QC = entangle_layer(QC)
 
         return QC
