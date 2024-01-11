@@ -69,11 +69,11 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
 
         bound_array = np.zeros((self.num_parameters, 2))
         # Single theta Ry gates
-        ioff = 0
+        index_offset = 0
         for ilayer in range(self.num_layers):
             for i in range(self.num_qubits):
-                bound_array[ioff] = [-np.pi, np.pi]
-                ioff = ioff + 1
+                bound_array[index_offset] = [-np.pi, np.pi]
+                index_offset +=  1
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
@@ -83,8 +83,8 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
                     istop = self.num_qubits - 1
 
                 for i in range(istop):
-                    bound_array[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
-                    ioff = ioff + 1
+                    bound_array[index_offset] = [-2.0 * np.pi, 2.0 * np.pi]
+                    index_offset +=  1
         return bound_array
 
     @property
@@ -131,7 +131,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         nparam = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
+        index_offset = 0
 
         QC.h(range(self.num_qubits))
 
@@ -147,8 +147,8 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
 
             # Single theta Ry gates
             for i in range(self.num_qubits):
-                QC.ry(parameters[ioff % nparam], i)
-                ioff = ioff + 1
+                QC.ry(parameters[index_offset % nparam], i)
+                index_offset +=  1
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
@@ -158,8 +158,8 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
                     istop = self.num_qubits - 1
 
                 for i in range(istop):
-                    QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                    ioff = ioff + 1
+                    QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    index_offset +=  1
 
         if self.final_encoding:
             # Repeat encoding finally to make the previous rotations not redundant

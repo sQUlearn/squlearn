@@ -133,7 +133,7 @@ class ChebyshevTower(EncodingCircuitBase):
             QC.h(range(self.num_qubits))
 
         for ilayer in range(self.num_layers):
-            ioff = 0
+            index_offset = 0
             iqubit = 0
             icheb = 1
             # Loops through the data encoding gates
@@ -150,17 +150,17 @@ class ChebyshevTower(EncodingCircuitBase):
                 for inner_ in range(inner):
                     if self.rotation_gate.lower() == "rx":
                         QC.rx(
-                            mapping(features[ioff % nfeature], icheb),
+                            mapping(features[index_offset % nfeature], icheb),
                             iqubit % self.num_qubits,
                         )
                     elif self.rotation_gate.lower() == "ry":
                         QC.ry(
-                            mapping(features[ioff % nfeature], icheb),
+                            mapping(features[index_offset % nfeature], icheb),
                             iqubit % self.num_qubits,
                         )
                     elif self.rotation_gate.lower() == "rz":
                         QC.rz(
-                            mapping(features[ioff % nfeature], icheb),
+                            mapping(features[index_offset % nfeature], icheb),
                             iqubit % self.num_qubits,
                         )
                     else:
@@ -171,10 +171,10 @@ class ChebyshevTower(EncodingCircuitBase):
                     if self.arrangement == "block":
                         icheb += 1
                     elif self.arrangement == "alternating":
-                        ioff += 1
+                        index_offset += 1
 
                 if self.arrangement == "block":
-                    ioff += 1
+                    index_offset += 1
                     icheb = 1
                 elif self.arrangement == "alternating":
                     icheb += 1
