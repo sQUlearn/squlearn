@@ -90,7 +90,8 @@ class ParamZFeatureMap(EncodingCircuitBase):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(
-                    parameters[index_offset % num_param] * features[i % num_features], i % self._num_qubits
+                    parameters[index_offset % num_param] * features[i % num_features],
+                    i % self._num_qubits,
                 )
                 index_offset += 1
 

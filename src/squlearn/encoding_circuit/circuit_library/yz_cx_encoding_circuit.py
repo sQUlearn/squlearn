@@ -104,10 +104,18 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         feature_offset = 0
         for layer in range(self.num_layers):
             for i in range(self.num_qubits):
-                QC.ry(parameters[index_offset % nparam] + self.c * features[feature_offset % nfeature], i)
-                index_offset +=  1
-                QC.rz(parameters[index_offset % nparam] + self.c * features[feature_offset % nfeature], i)
-                index_offset +=  1
+                QC.ry(
+                    parameters[index_offset % nparam]
+                    + self.c * features[feature_offset % nfeature],
+                    i,
+                )
+                index_offset += 1
+                QC.rz(
+                    parameters[index_offset % nparam]
+                    + self.c * features[feature_offset % nfeature],
+                    i,
+                )
+                index_offset += 1
                 feature_offset += 1
             # Entangling layer depends on odd or even layer
             for i in range(layer % 2, self.num_qubits, 2):

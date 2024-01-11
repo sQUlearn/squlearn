@@ -122,11 +122,11 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
 
             for i in range(0, istop, 2):
                 QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                index_offset +=  1
+                index_offset += 1
                 QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                index_offset +=  1
+                index_offset += 1
                 QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                index_offset +=  1
+                index_offset += 1
 
             if self.num_qubits >= 2:
                 if self.closed:
@@ -136,11 +136,11 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
 
                 for i in range(1, istop, 2):
                     QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                    index_offset +=  1
+                    index_offset += 1
                     QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                    index_offset +=  1
+                    index_offset += 1
                     QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                    index_offset +=  1
+                    index_offset += 1
 
         if self.final_encoding:
             for i in range(self.num_qubits):

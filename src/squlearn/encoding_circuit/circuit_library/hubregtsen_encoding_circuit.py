@@ -73,7 +73,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         for layer in range(self.num_layers):
             for i in range(self.num_qubits):
                 bound_array[index_offset] = [-np.pi, np.pi]
-                index_offset +=  1
+                index_offset += 1
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
@@ -84,7 +84,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
 
                 for i in range(istop):
                     bound_array[index_offset] = [-2.0 * np.pi, 2.0 * np.pi]
-                    index_offset +=  1
+                    index_offset += 1
         return bound_array
 
     @property
@@ -148,7 +148,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
             # Single theta Ry gates
             for i in range(self.num_qubits):
                 QC.ry(parameters[index_offset % nparam], i)
-                index_offset +=  1
+                index_offset += 1
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
@@ -159,7 +159,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
 
                 for i in range(istop):
                     QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
-                    index_offset +=  1
+                    index_offset += 1
 
         if self.final_encoding:
             # Repeat encoding finally to make the previous rotations not redundant

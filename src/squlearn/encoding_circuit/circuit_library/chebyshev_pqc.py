@@ -202,7 +202,12 @@ class ChebyshevPQC(EncodingCircuitBase):
         for _ in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                QC.rx(phi_map(parameters[index_offset % nparam], features[feature_offset % nfeature]), i)
+                QC.rx(
+                    phi_map(
+                        parameters[index_offset % nparam], features[feature_offset % nfeature]
+                    ),
+                    i,
+                )
                 index_offset += 1
                 feature_offset += 1
 
