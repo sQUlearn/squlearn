@@ -79,7 +79,15 @@ class Executor:
         shots (Union[int, None]): The number of initial shots that is used for the execution.
         primitive_seed (Union[int, None]): The seed that is used for the execution
                                            of the primitives with simulated sampling.
-
+        qpu_parallelization (Union[int, str, None]): The number of parallel executions on the QPU.
+                                                     If set to ``"auto"``, the number of parallel
+                                                     executions is automatically determined. If set
+                                                     to ``None``, no parallelization is used.
+                                                     Default is ``None``.
+        auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
+                                     * ``"quality"``: Automatically selects the best backend for the
+                                                      provided circuit. This is the default value.
+                                     * ``"speed"``: Automatically selects the backend with the smallest queue.
     Attributes:
     -----------
 
@@ -179,6 +187,7 @@ class Executor:
         shots: Union[int, None] = None,
         primitive_seed: Union[int, None] = None,
         qpu_parallelization: Union[int, str, None] = None,
+        auto_backend_mode: str = "quality", #"speed"
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -209,6 +218,7 @@ class Executor:
         self._max_jobs_retries = max_jobs_retries
         self._wait_restart = wait_restart
         self._qpu_parallelization = qpu_parallelization
+        self._auto_backend_mode = auto_backend_mode
 
         self._backend_list = None
 
@@ -367,8 +377,6 @@ class Executor:
             self._IBMQuantum = True
         else:
             self._IBMQuantum = False
-
-        print("self._remote",self._IBMQuantum)
 
         # set initial shots
         self._shots = shots
@@ -580,7 +588,7 @@ class Executor:
                     else:
                         raise ValueError("Unknown qpu_parallelization value: " + self._qpu_parallelization)
                 elif isinstance(self._qpu_parallelization, int):
-                    self._sampler = ParallelEstimator(self._sampler, num_parallel=self._qpu_parallelization)
+                    self._sampler = ParallelSampler(self._sampler, num_parallel=self._qpu_parallelization)
                 else:
                     raise ValueError("Unknown qpu_parallelization type: " + type(self._qpu_parallelization))
 
@@ -914,13 +922,9 @@ class Executor:
             if "statevector_simulator" not in str(self._backend):
                 self._backend.options.shots = num_shots
 
-        print("self._estimator",self._estimator)
-        print("type(self._estimator)",type(self._estimator))
-
         # Update shots in estimator primitive
         if self._estimator is not None:
             if isinstance(self._estimator, qiskit_primitives_Estimator):
-                print("a")
                 if num_shots == 0:
                     self._estimator.set_options(shots=None)
                 else:
@@ -930,14 +934,12 @@ class Executor:
                 except:
                     pass  # no option available
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                print("b")
                 self._estimator.set_options(shots=num_shots)
                 try:
                     self._options_estimator["shots"] = num_shots
                 except:
                     pass  # no option available
             elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
-                print("c")
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
@@ -945,6 +947,8 @@ class Executor:
                     self._options_estimator["execution"]["shots"] = num_shots
                 except:
                     pass  # no options_estimator or no execution in options_estimator
+            elif isinstance(self._estimator, ParallelEstimator):
+                self._estimator.shots = num_shots
             else:
                 raise RuntimeError("Unknown estimator type!")
 
@@ -973,6 +977,9 @@ class Executor:
                     self._options_sampler["execution"]["shots"] = num_shots
                 except:
                     pass  # no options_sampler or no execution in options_sampler
+            elif isinstance(self._sampler, ParallelSampler):
+                self._sampler.shots = num_shots
+
             else:
                 raise RuntimeError("Unknown sampler type!")
 
@@ -994,6 +1001,8 @@ class Executor:
                 elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
                     execution = self._estimator.options.get("execution")
                     shots_estimator = execution["shots"]
+                elif isinstance(self._estimator, ParallelEstimator):
+                    shots_estimator = self._estimator.shots
                 else:
                     raise RuntimeError("Unknown estimator type!")
 
@@ -1005,6 +1014,8 @@ class Executor:
                 elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
                     execution = self._sampler.options.get("execution")
                     shots_sampler = execution["shots"]
+                elif isinstance(self._sampler, ParallelSampler):
+                    shots_sampler = self._sampler.shots
                 else:
                     raise RuntimeError("Unknown sampler type!")
 
@@ -1148,37 +1159,75 @@ class Executor:
 
         self._set_seed_for_primitive = seed
 
-    def select_backend(self, circuit: QuantumCircuit = None, encoding_circuit = None, **options):
-        from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+    def select_backend(self, circuit, **options):
+        from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase # check why not outside
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-        if circuit is not None and encoding_circuit is not None:
-            raise ValueError("Only one of circuit or encoding_circuit should be given!")
+        # todo implement options:
 
-        AutoSelBack = AutoSelectionBackend(backends_to_use=self.backend_list,verbose=True)
+        min_num_qubits = options.get("min_num_qubits",None)
+        max_num_qubits = options.get("max_num_qubits",None)
+        cost_function = options.get("cost_function",None)
+        optimization_level = options.get("optimization_level",3)
+        n_trials_transpile = options.get("n_trials_transpile",1)
+        call_limit = options.get("call_limit",int(3e7))
+        verbose = options.get("verbose",True)
+        logger = self._logger
 
-        if circuit is not None:
-            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+        AutoSelBack = AutoSelectionBackend(backends_to_use=self.backend_list,
+                                           min_num_qubits=min_num_qubits,
+                                           max_num_qubits=max_num_qubits,
+                                           cost_function=cost_function,
+                                           optimization_level=optimization_level,
+                                           n_trials_transpile=n_trials_transpile,
+                                           call_limit=call_limit,
+                                           verbose=verbose,
+                                           logger=logger
+                                           )
+
+        mode = options.get("mode",self._auto_backend_mode)
+        useHQAA = options.get("useHQAA",False)
+
+        if isinstance(circuit,QuantumCircuit):
+            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
             return_circ = transpiled_circuit
 
-        if encoding_circuit is not None:
+        elif isinstance(circuit,EncodingCircuitBase):
 
             info = None
             transpiled_circuit = None
             backend = None
 
-            def helper_function(circuit,backend_dummy):
+            def helper_function(qiskit_circuit,backend_dummy):
                 nonlocal info,transpiled_circuit,backend
-                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit)
+                info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
                 return transpiled_circuit
 
-            return_circ = TranspiledEncodingCircuit(encoding_circuit, backend, helper_function)
+            return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+
+        else:
+            raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
+
+        self.set_backend(backend)
+
+        return return_circ, info
+
+    def set_backend(self, backend: Backend):
+        """Sets the backend that is used for the execution.
+
+        Args:
+            backend (Backend): Backend that is used for the execution.
+        """
 
         self._backend = backend
+
+        self._logger.info(f"Executor uses the backend: {{}}".format(str(self._backend)))
+
         if self._shots is None:
-            self._shots = self._backend.options.shots
-            if "statevector_simulator" in str(self._backend):
-                self._shots = None
+            if self._backend is not None:
+                self._shots = self._backend.options.shots
+                if "statevector_simulator" in str(self._backend):
+                    self._shots = None
 
         # Check if execution is on a remote IBM backend
         if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
@@ -1186,9 +1235,9 @@ class Executor:
         else:
             self._IBMQuantum = False
 
-        return return_circ, info
-
-
+    def unset_backend(self):
+        """Unsets the backend that is used for the execution."""
+        self._backend = None
 
 
 

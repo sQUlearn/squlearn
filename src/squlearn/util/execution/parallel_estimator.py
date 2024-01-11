@@ -257,6 +257,7 @@ class ParallelEstimator(BaseEstimator):
         Args:
             **fields: The fields to update the options
         """
+        # TODO: Maybe shots??
         self._estimator.set_options(**fields)
         self._estimator._options_estimator = self._estimator.options
 

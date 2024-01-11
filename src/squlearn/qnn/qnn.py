@@ -260,7 +260,12 @@ class QNN:
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
+        if self._executor.is_backend_chosen:
+            self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
+        else:
+            # Automatically select backend (also returns a TranspiledEncodingCircuit)
+            self.pqc = self._executor.select_backend(pqc)[0]
+
         self.operator = operator
 
         # Set-Up Executor

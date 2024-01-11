@@ -97,7 +97,6 @@ class ParallelSampler(BaseSampler):
             num_shots (int or None): Number of shots that are set
         """
         from ..executor import ExecutorSampler
-        self._shots = num_shots
 
         if num_shots is None:
             self._logger.info("Set shots to {}".format(num_shots))
