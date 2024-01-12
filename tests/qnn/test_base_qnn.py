@@ -113,8 +113,8 @@ class TestBaseQNN:
         qnn_single_op.set_params(num_layers=3, closed=True)
         assert qnn_single_op.encoding_circuit.num_layers == 3
         assert qnn_single_op.encoding_circuit.closed
-        assert qnn_single_op._qnn.pqc.get_params()["num_layers"] == 3
-        assert qnn_single_op._qnn.pqc.get_params()["closed"]
+        assert qnn_single_op._qnn._pqc.get_params()["num_layers"] == 3
+        assert qnn_single_op._qnn._pqc.get_params()["closed"]
 
     def test_set_params_single_operator(self, qnn_single_op):
         """
@@ -129,8 +129,8 @@ class TestBaseQNN:
         qnn_single_op.set_params(X="S", Z="N")
         assert qnn_single_op.operator.X == "S"
         assert qnn_single_op.operator.Z == "N"
-        assert qnn_single_op._qnn.operator.X == "S"
-        assert qnn_single_op._qnn.operator.Z == "N"
+        assert qnn_single_op._qnn._observable.X == "S"
+        assert qnn_single_op._qnn._observable.Z == "N"
 
     def test_set_params_multi_operator(self, qnn_multi_op):
         """
@@ -145,5 +145,5 @@ class TestBaseQNN:
         qnn_multi_op.set_params(op0__X="S", op3__Z="N")
         assert qnn_multi_op.operator[0].X == "S"
         assert qnn_multi_op.operator[3].Z == "N"
-        assert qnn_multi_op._qnn.operator[0].X == "S"
-        assert qnn_multi_op._qnn.operator[3].Z == "N"
+        assert qnn_multi_op._qnn._observable[0].X == "S"
+        assert qnn_multi_op._qnn._observable[3].Z == "N"
