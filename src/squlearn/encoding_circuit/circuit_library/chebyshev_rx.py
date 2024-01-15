@@ -76,8 +76,8 @@ class ChebyshevRx(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(True)
-            p = np.linspace(0.01, self.alpha,math.ceil(self.num_qubits/self.num_features))
-            for i,ii in enumerate(index):
+            p = np.linspace(0.01, self.alpha, math.ceil(self.num_qubits / self.num_features))
+            for i, ii in enumerate(index):
                 param[ii] = p[i % self.num_features]
 
         return param
