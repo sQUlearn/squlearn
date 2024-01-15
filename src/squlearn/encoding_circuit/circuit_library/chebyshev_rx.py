@@ -64,7 +64,7 @@ class ChebyshevRx(EncodingCircuitBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebyshevRx encoding circuit.
+        Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -75,10 +75,13 @@ class ChebyshevRx(EncodingCircuitBase):
         param = super().generate_initial_parameters(seed)
 
         if len(param) > 0:
-            index = self.get_cheb_indices(True)
-            p = np.linspace(0.01, self.alpha, math.ceil(self.num_qubits / self.num_features))
-            for i, ii in enumerate(index):
-                param[ii] = p[i % self.num_features]
+            index = self.get_cheb_indices(False)
+            features_per_qubit = math.ceil(self.num_qubits / self.num_features)
+            p = np.linspace(0.01, self.alpha, features_per_qubit)
+
+            for index2 in index:
+                for i, ii in enumerate(index2):
+                    param[ii] = p[i % features_per_qubit]
 
         return param
 
