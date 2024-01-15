@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Union
+import math
 
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
@@ -127,10 +128,10 @@ class ChebyshevPQC(EncodingCircuitBase):
         param = super().generate_initial_parameters(seed)
 
         if len(param) > 0:
-            index = self.get_cheb_indices(False)
-            p = np.linspace(0.01, self.alpha, self.num_qubits)
-            for i in index:
-                param[i] = p
+            index = self.get_cheb_indices(True)
+            p = np.linspace(0.01, self.alpha,math.ceil(self.num_qubits/self.num_features))
+            for i,ii in enumerate(index):
+                param[ii] = p[i % self.num_features]
 
         return param
 
