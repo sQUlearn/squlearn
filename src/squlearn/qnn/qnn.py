@@ -21,13 +21,9 @@ from ..util import Executor
 
 from ..util.optree.optree import (
     OpTree,
-    OpTreeNodeBase,
-    OpTreeLeafBase,
     OpTreeList,
-    OpTreeSum,
     OpTreeCircuit,
-    OpTreeValue,
-) #CHANGED
+)
 
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
@@ -925,55 +921,9 @@ class QNN:
             )
 
             # get the circuits of the PQC derivatives from the encoding circuit module
-            pqc_optree_1 = self.pqc_derivatives.get_derivative(key) #CHANGED start
+            pqc_optree_1 = self.pqc_derivatives.get_derivative(key)
 
-            def _build_start_state_into_tree(
-                optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue]
-            ):
-                """
-                Helper function for unpacking the optree and adding the input circuits in front.
-                """
-
-                if isinstance(optree_element, OpTreeNodeBase):
-                    # Recursive copy of the OpTreeNode structure and binding of the parameters
-                    # in the OpTree structure.
-                    child_list_indexed = [_build_start_state_into_tree(c) for c in optree_element.children]
-                    factor_list_bound = []
-                    for fac in optree_element.factor:
-                        if isinstance(fac, ParameterExpression): #WHEN IS IT CALLED / IS IT NEEDED?
-                            factor_list_bound.append(
-                                float(fac.bind(dictionary, allow_unknown_parameters=True)) 
-                            )
-                        else:
-                            factor_list_bound.append(fac)
-
-                    # Recursive rebuild of the OpTree structure
-                    if isinstance(optree_element, OpTreeSum):
-                        return OpTreeSum(child_list_indexed, factor_list_bound, optree_element.operation)
-                    elif isinstance(optree_element, OpTreeList):
-                        return OpTreeList(child_list_indexed, factor_list_bound, optree_element.operation)
-                    else:
-                        raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
-
-                else:
-                    # Reached a CircuitTreeLeaf
-                    # Get the circuit, and check for duplicates if necessary.
-                    if isinstance(optree_element, QuantumCircuit):
-                        return_list = []
-                        for x_inp_ in x_inp:
-                            return_list.append(OpTreeCircuit(x_inp_.compose(optree_element)))
-                        return OpTreeList(return_list)
-                    elif isinstance(optree_element, OpTreeCircuit):
-                        return_list = []
-                        for x_inp_ in x_inp:
-                            return_list.append(OpTreeCircuit(x_inp_.compose(optree_element.circuit)))
-                        return OpTreeList(return_list)
-                    elif isinstance(optree_element, OpTreeValue):
-                        return optree_element  # Add nothing to the lists
-                    else:
-                        raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
-
-            pqc_optree = _build_start_state_into_tree(pqc_optree_1) #CHANGED end
+            pqc_optree = OpTree.compose_optree_with_circuit(pqc_optree_1,x_inp) #CHANGED
 
             num_nested = OpTree.get_num_nested_lists(pqc_optree)
 

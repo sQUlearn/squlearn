@@ -847,3 +847,62 @@ class OpTree:
             raise ValueError(
                 "element must be a OpTreeNodeBase, OpTreeLeafCircuit or a QuantumCircuit"
             )
+
+    @staticmethod #CHANGED
+    def compose_optree_with_circuit(
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue],
+        circuits: list,
+        pos_front: bool = True
+    ):
+        """
+        Compose the leafs of an optree element with circuits in a list.
+
+        Args:
+            optree_element (Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue]):
+                            The OpTree.
+            circuits (list): The list of circuits.
+            pos_front (bool): Whether the circuits are composed in front or behind the optree element.
+
+        Returns:
+            The OpTree structure composed with the circuits.
+        """
+
+        if isinstance(optree_element, OpTreeNodeBase):
+            # Recursive copy of the OpTreeNode structure and binding of the parameters
+            # in the OpTree structure.
+            child_list_indexed = [OpTree.compose_optree_with_circuit(c) for c in optree_element.children]
+            factor_list_bound = []
+            for fac in optree_element.factor:
+                factor_list_bound.append(fac)
+
+            # Recursive rebuild of the OpTree structure
+            if isinstance(optree_element, OpTreeSum):
+                return OpTreeSum(child_list_indexed, factor_list_bound, optree_element.operation)
+            elif isinstance(optree_element, OpTreeList):
+                return OpTreeList(child_list_indexed, factor_list_bound, optree_element.operation)
+            else:
+                raise ValueError("element must be a OpTreeNodeSum or a OpTreeNodeList")
+
+        else:
+            # Reached a CircuitTreeLeaf
+            # Get the circuit, and check for duplicates if necessary.
+            if isinstance(optree_element, QuantumCircuit):
+                return_list = []
+                for x_inp_ in circuits:
+                    if pos_front:
+                        return_list.append(OpTreeCircuit(x_inp_.compose(optree_element)))
+                    else:
+                        return_list.append(OpTreeCircuit(optree_element.compose(x_inp_)))
+                return OpTreeList(return_list)
+            elif isinstance(optree_element, OpTreeCircuit):
+                return_list = []
+                for x_inp_ in circuits:
+                    if pos_front:
+                        return_list.append(OpTreeCircuit(x_inp_.compose(optree_element.circuit)))
+                    else:
+                        return_list.append(OpTreeCircuit(optree_element.circuit.compose(x_inp_)))
+                return OpTreeList(return_list)
+            elif isinstance(optree_element, OpTreeValue):
+                return optree_element  # Add nothing to the optree
+            else:
+                raise ValueError("element must be a CircuitTreeLeaf or a QuantumCircuit")
