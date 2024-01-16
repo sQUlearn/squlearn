@@ -45,6 +45,8 @@ class ChebyshevPQC(EncodingCircuitBase):
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
         entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
 
     References
     ----------

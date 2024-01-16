@@ -26,6 +26,8 @@ class ChebyshevRx(EncodingCircuitBase):
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
     """
 
     def __init__(
