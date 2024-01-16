@@ -168,7 +168,7 @@ class TestZeroParam:
             "QNNClassifier": np.array([1, 0, 0, 0, 0]),
         }
 
-        pqc = HighDimEncodingCircuit(2, 1,num_layers=1)
+        pqc = HighDimEncodingCircuit(2, 1, num_layers=1)
         ob = SummedPaulis(2)
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
