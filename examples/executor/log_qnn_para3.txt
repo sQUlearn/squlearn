@@ -1,0 +1,13 @@
+2024-01-16 14:44:45,309 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-16 14:44:45,310 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-16 14:44:45,311 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 14:44:45,312 - executor - INFO - Executor initialized with session: None
+2024-01-16 14:44:45,313 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 14:44:45,314 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 14:44:45,315 - executor - INFO - Executor intial shots: 4000
+2024-01-16 14:44:45,450 - executor - INFO - Executor created a new session.
+2024-01-16 14:44:46,725 - executor - INFO - Executor closed session: cpk8g1rf7dt0008vtjjg
+2024-01-16 14:44:47,963 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-16 14:44:47,963 - executor - INFO - Error message: The number of qubits in the circuit (127) * n_duplications (3) is greater than the total number of qubits in the backend (127)
+2024-01-16 14:44:47,967 - executor - INFO - Traceback: None
+2024-01-16 14:44:47,967 - executor - INFO - Critical error detected; abort execution

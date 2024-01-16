@@ -114,6 +114,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
+        primitive: Union[str,None] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -134,6 +135,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             caching=caching,
             pretrained=pretrained,
             callback=callback,
+            primitive=primitive,
             **kwargs,
         )
 

@@ -369,14 +369,18 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
-        if self._backend_list is None:
-            self._backend_list = [self._backend]
-
         # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
+        if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
             self._IBMQuantum = True
         else:
             self._IBMQuantum = False
+
+        if self._backend_list is None:
+            self._backend_list = [self._backend]
+        else:
+            if self._IBMQuantum is False:
+                raise ValueError("Automatic backend selection is only supported" +
+                                 " for IBM Quantum backends!")
 
         # set initial shots
         self._shots = shots

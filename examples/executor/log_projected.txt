@@ -1,0 +1,22 @@
+2024-01-16 10:28:13,941 - executor - INFO - Set shots to None
+2024-01-16 10:28:13,942 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:28:13,943 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_cusco')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_torino')>, <IBMBackend('ibm_cairo')>, <IBMBackend('ibm_hanoi')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>]
+2024-01-16 10:28:13,949 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:28:13,949 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:28:13,949 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:28:13,949 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:28:13,950 - executor - INFO - Executor intial shots: None
+2024-01-16 10:28:13,951 - executor - INFO - Automatic backend selection started
+2024-01-16 10:28:13,952 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:28:13,953 - executor - INFO - Mode: speed using Mapomatic
+2024-01-16 10:28:13,954 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:28:27,535 - executor - INFO - Least busy backend: ibm_osaka with 127 qubits
+2024-01-16 10:28:32,580 - executor - INFO - Transpiled circuit needs 4 qubits on ibm_osaka
+2024-01-16 10:28:32,586 - executor - INFO - Best sub-layout: [75, 90, 94, 95]. Error_rate: 0.014371690573934726
+2024-01-16 10:28:32,627 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_osaka')>
+2024-01-16 10:28:32,689 - executor - INFO - Executor created a new session.
+2024-01-16 10:28:41,590 - executor - INFO - Executor runs estimator with job: cpk4rjaak1m00087efkg
+2024-01-16 10:28:43,432 - executor - INFO - Job status: JobStatus.QUEUED
+2024-01-16 10:28:45,918 - executor - INFO - Job status: JobStatus.RUNNING
+2024-01-16 10:31:44,182 - executor - INFO - Job status: JobStatus.DONE
+2024-01-16 10:31:45,619 - executor - INFO - Stored job in cache with hash value: db6d04d222fb89001a7cd81953021ef1bbe1aadc

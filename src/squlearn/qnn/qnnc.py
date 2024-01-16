@@ -115,6 +115,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
+        primitive: Union[str,None] = None,
         **kwargs,
     ) -> None:
         super().__init__(

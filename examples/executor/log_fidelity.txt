@@ -1,0 +1,98 @@
+2024-01-16 10:12:33,168 - executor - INFO - Set shots to None
+2024-01-16 10:12:33,168 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:12:33,169 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_cairo')>, <IBMBackend('ibm_hanoi')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_cusco')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_torino')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>]
+2024-01-16 10:12:33,175 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:12:33,175 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:12:33,176 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:12:33,176 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:12:33,176 - executor - INFO - Executor intial shots: None
+2024-01-16 10:12:33,180 - executor - INFO - Automatic backend selection started
+2024-01-16 10:12:33,180 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:12:33,181 - executor - INFO - Mode: speed using Mapomatic
+2024-01-16 10:12:33,182 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:12:44,427 - executor - INFO - Least busy backend: ibm_algiers with 27 qubits
+2024-01-16 10:12:48,027 - executor - INFO - Transpiled circuit needs 4 qubits on ibm_algiers
+2024-01-16 10:12:48,033 - executor - INFO - Best sub-layout: [2, 3, 8, 5]. Error_rate: 0.018705475042305242
+2024-01-16 10:12:48,060 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_algiers')>
+2024-01-16 10:12:48,113 - executor - INFO - Executor created a new session.
+2024-01-16 10:12:52,288 - executor - INFO - Executor runs sampler with job: cpk4h4wf7dt0008vt7n0
+2024-01-16 10:12:53,229 - executor - INFO - Job status: JobStatus.QUEUED
+2024-01-16 10:12:55,184 - executor - INFO - Job status: JobStatus.RUNNING
+2024-01-16 10:14:11,501 - executor - INFO - Job status: JobStatus.DONE
+2024-01-16 10:14:13,660 - executor - INFO - Stored job in cache with hash value: 14d995b893a43076ff63869ef00f7c045d62158d
+2024-01-16 10:14:16,190 - executor - INFO - Cached job found with hash value: 14d995b893a43076ff63869ef00f7c045d62158d
+2024-01-16 10:15:37,698 - executor - INFO - Set shots to None
+2024-01-16 10:15:37,698 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:15:37,699 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibmq_kolkata')>, <IBMBackend('ibm_cusco')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_cairo')>, <IBMBackend('ibm_hanoi')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_torino')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>]
+2024-01-16 10:15:37,699 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:15:37,700 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:15:37,700 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:15:37,701 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:15:37,701 - executor - INFO - Executor intial shots: None
+2024-01-16 10:15:37,703 - executor - INFO - Automatic backend selection started
+2024-01-16 10:15:37,703 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:15:37,704 - executor - INFO - Mode: accuracy using Mapomatic
+2024-01-16 10:15:37,705 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:16:13,794 - executor - INFO - Set shots to None
+2024-01-16 10:16:13,794 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:16:13,795 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cairo')>, <IBMBackend('ibm_hanoi')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_cusco')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_torino')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>]
+2024-01-16 10:16:13,795 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:16:13,795 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:16:13,795 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:16:13,796 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:16:13,796 - executor - INFO - Executor intial shots: None
+2024-01-16 10:16:13,798 - executor - INFO - Automatic backend selection started
+2024-01-16 10:16:13,799 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:16:13,800 - executor - INFO - Mode: quality using Mapomatic
+2024-01-16 10:16:13,801 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:16:54,064 - executor - INFO - Transpiling circuit 1 times for 1 compatible backends...
+2024-01-16 10:16:54,146 - executor - INFO - Two-qubit gate count: [0]
+2024-01-16 10:16:54,153 - executor - INFO - Best Two-qubit gate count (ID:0): 0 
+2024-01-16 10:16:54,155 - executor - INFO - Transpiled circuit needs 4 qubits
+2024-01-16 10:16:54,156 - executor - INFO - Searching best sub-layout on 12 backends...
+2024-01-16 10:16:54,189 - executor - INFO - Best sub-layout: [8, 9, 11, 10] on backend: ibm_torino. Error_rate: 0.008457375864439842
+2024-01-16 10:16:54,225 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_torino')>
+2024-01-16 10:16:54,282 - executor - INFO - Executor created a new session.
+2024-01-16 10:20:00,655 - executor - INFO - Set shots to None
+2024-01-16 10:20:00,656 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:20:00,656 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_hanoi')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_torino')>, <IBMBackend('ibm_cairo')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_cusco')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>]
+2024-01-16 10:20:00,656 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:20:00,657 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:20:00,657 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:20:00,658 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:20:00,658 - executor - INFO - Executor intial shots: None
+2024-01-16 10:20:00,660 - executor - INFO - Automatic backend selection started
+2024-01-16 10:20:00,661 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:20:00,662 - executor - INFO - Mode: quality using Mapomatic
+2024-01-16 10:20:00,662 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:20:37,509 - executor - INFO - Transpiling circuit 1 times for 1 compatible backends...
+2024-01-16 10:20:37,656 - executor - INFO - Two-qubit gate count: [3]
+2024-01-16 10:20:37,657 - executor - INFO - Best Two-qubit gate count (ID:0): 3 
+2024-01-16 10:20:37,659 - executor - INFO - Transpiled circuit needs 4 qubits
+2024-01-16 10:20:37,660 - executor - INFO - Searching best sub-layout on 12 backends...
+2024-01-16 10:20:37,697 - executor - INFO - Best sub-layout: [35, 47, 46, 45] on backend: ibm_kyoto. Error_rate: 0.014239847199090327
+2024-01-16 10:20:37,751 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_kyoto')>
+2024-01-16 10:20:37,800 - executor - INFO - Executor created a new session.
+2024-01-16 10:22:43,296 - executor - INFO - Set shots to None
+2024-01-16 10:22:43,297 - executor - INFO - Executor initialized with backend: None
+2024-01-16 10:22:43,297 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cairo')>, <IBMBackend('ibm_hanoi')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_torino')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_cusco')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibmq_qasm_simulator')>]
+2024-01-16 10:22:43,298 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-16 10:22:43,298 - executor - INFO - Executor initialized with session: None
+2024-01-16 10:22:43,299 - executor - INFO - Executor initialized with estimator: None
+2024-01-16 10:22:43,299 - executor - INFO - Executor initialized with sampler: None
+2024-01-16 10:22:43,300 - executor - INFO - Executor intial shots: None
+2024-01-16 10:22:43,301 - executor - INFO - Automatic backend selection started
+2024-01-16 10:22:43,302 - executor - INFO - Number of backends available with given parameters:12
+2024-01-16 10:22:43,303 - executor - INFO - Mode: speed using Mapomatic
+2024-01-16 10:22:43,304 - executor - INFO - Input circuit needs 4 qubits
+2024-01-16 10:22:57,325 - executor - INFO - Least busy backend: ibm_cairo with 27 qubits
+2024-01-16 10:23:01,050 - executor - INFO - Transpiled circuit needs 4 qubits on ibm_cairo
+2024-01-16 10:23:01,057 - executor - INFO - Best sub-layout: [12, 13, 14, 16]. Error_rate: 0.022855278227460918
+2024-01-16 10:23:01,085 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_cairo')>
+2024-01-16 10:23:01,131 - executor - INFO - Executor created a new session.
+2024-01-16 10:23:04,671 - executor - INFO - Executor runs sampler with job: cpk4ny7ak1m00087efeg
+2024-01-16 10:23:05,531 - executor - INFO - Job status: JobStatus.QUEUED
+2024-01-16 10:23:07,399 - executor - INFO - Job status: JobStatus.RUNNING
+2024-01-16 10:24:48,890 - executor - INFO - Job status: JobStatus.DONE
+2024-01-16 10:24:51,333 - executor - INFO - Stored job in cache with hash value: fb17d3b9d76c77184f18d1561ce9fe1335f6c5f9
+2024-01-16 10:24:53,929 - executor - INFO - Cached job found with hash value: fb17d3b9d76c77184f18d1561ce9fe1335f6c5f9
