@@ -925,7 +925,7 @@ class QNN:
 
             pqc_optree = OpTree.compose_optree_with_circuit(pqc_optree_1,x_inp) #CHANGED
 
-            num_nested = OpTree.get_num_nested_lists(pqc_optree)
+            num_nested = OpTree.get_num_nested_lists(pqc_optree_1) #CHANGED
 
             if self._sampler is not None:
                 val = OpTree.evaluate.evaluate_with_sampler(
@@ -937,6 +937,11 @@ class QNN:
                 )
             else:
                 raise ValueError("No execution is set!")
+
+            if Expec("dp","O","dfdp") in op_list: #CHANGED
+                val = np.transpose(val[0], (2, 0, 1, 3))
+            else:
+                val = np.transpose(val[0], (1, 0, 2))
 
             set_empty = False
             if val.shape[0] == 0:
@@ -1004,10 +1009,7 @@ class QNN:
                         if len(shape) > 2:
                             reshape_list += list(shape[2:])
 
-                    if len(reshape_list) == 0:
-                        value_dict[expec_] = val_final.reshape(-1)[0]
-                    else:
-                        value_dict[expec_] = val_final.reshape(reshape_list)
+                    value_dict[expec_] = np.array([i[0] for i in val_final]) #CHANGED
                     ioff = ioff + 1
 
         # Set-up lables from the input list
