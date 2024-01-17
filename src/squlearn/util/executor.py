@@ -430,6 +430,11 @@ class Executor:
             return True
 
     @property
+    def qpu_parallelization(self) -> bool:
+        """Returns true if the backend has been chosen."""
+        return self._qpu_parallelization is not None
+
+    @property
     def session(self) -> Session:
         """Returns the session that is used in the executor."""
         return self._session
@@ -1192,25 +1197,58 @@ class Executor:
         mode = options.get("mode",self._auto_backend_mode)
         useHQAA = options.get("useHQAA",False)
 
-        if isinstance(circuit,QuantumCircuit):
-            info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
-            return_circ = transpiled_circuit
 
-        elif isinstance(circuit,EncodingCircuitBase):
+        if self.qpu_parallelization:
 
-            info = None
-            transpiled_circuit = None
-            backend = None
+            print("test")
 
-            def helper_function(qiskit_circuit,backend_dummy):
-                nonlocal info,transpiled_circuit,backend
-                info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
-                return transpiled_circuit
+            if isinstance(circuit,QuantumCircuit):
+                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
+                return_circ = circuit
 
-            return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+            elif isinstance(circuit,EncodingCircuitBase):
+
+                info = None
+                transpiled_circuit = None
+                backend = None
+
+                def helper_function(qiskit_circuit,backend_dummy):
+                    nonlocal info,transpiled_circuit,backend
+
+                    print("qiskit_circuit",qiskit_circuit)
+                    print("qiskit_circuit._layout",qiskit_circuit._layout)
+                    print("type(qiskit_circuit._layout)",type(qiskit_circuit._layout))
+
+                    info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
+                    return transpiled_circuit
+
+                return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+                return_circ = circuit
+
+            else:
+                raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
 
         else:
-            raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
+
+            if isinstance(circuit,QuantumCircuit):
+                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
+                return_circ = transpiled_circuit
+
+            elif isinstance(circuit,EncodingCircuitBase):
+
+                info = None
+                transpiled_circuit = None
+                backend = None
+
+                def helper_function(qiskit_circuit,backend_dummy):
+                    nonlocal info,transpiled_circuit,backend
+                    info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
+                    return transpiled_circuit
+
+                return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+
+            else:
+                raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
 
         self.set_backend(backend)
 

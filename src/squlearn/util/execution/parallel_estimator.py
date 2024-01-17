@@ -302,22 +302,24 @@ class ParallelEstimator(BaseEstimator):
             if max_qubits is None:
                 raise Warning("No number of qubits found in the given Estimator Primitive!")
 
-        # check that n_duplication is None, i.e. not provided.
-        if num_parallel is None:
-            num_parallel = int(max_qubits // circuit.num_qubits)
-
-        if num_parallel * circuit.num_qubits > max_qubits:
-            raise ValueError(
-                f"The number of qubits in the circuit ({circuit.num_qubits}) * n_duplications ({num_parallel}) "
-                f"is greater than the total number of qubits in the backend ({max_qubits})"
-            )
-
         # create the circuit
         mapped_circuit = circuit.copy()
+
+        # check that n_duplication is None, i.e. not provided.
+        if num_parallel is None:
+            num_parallel = int(max_qubits // mapped_circuit.num_qubits)
+
+        if num_parallel * mapped_circuit.num_qubits > max_qubits:
+            raise ValueError(
+                f"The number of qubits in the circuit ({mapped_circuit.num_qubits}) * n_duplications ({num_parallel}) "
+                f"is greater than the total number of qubits in the backend ({max_qubits})"
+            )
 
         # duplicate the circuit
         for _ in range(num_parallel - 1):
             mapped_circuit.tensor(circuit, inplace=True)
+
+        print("mapped_circuit2",mapped_circuit)
 
         shots = self.shots
         if shots is None:
@@ -344,6 +346,33 @@ class ParallelEstimator(BaseEstimator):
             return mapped_circuit, num_parallel
         else:
             return mapped_circuit
+
+    def remove_unused_qubits(self, circuit: QuantumCircuit, observable) -> QuantumCircuit:
+        """
+        Removes unused qubits from a given quantum circuit.
+
+        This method removes all unused qubits from a given quantum circuit, as well as any gates that act on those qubits.
+        The resulting circuit is equivalent to the original circuit, but with fewer qubits.
+
+        Args:
+            circuit (QuantumCircuit): The quantum circuit to be simplified.
+
+        Returns:
+            QuantumCircuit: The simplified quantum circuit.
+        """
+
+
+        gate_count = { qubit : 0 for qubit in circuit.qubits }
+        for gate in circuit.data:
+            for qubit in gate.qubits:
+                gate_count[qubit] += 1
+        for qubit,count in gate_count.items():
+            if count == 0:
+                circuit.qubits.remove(qubit)
+
+
+
+        return circuit,observable
 
     def duplicate_observable(
         self, observable: Union[BaseOperator, PauliSumOp], n_duplications: int

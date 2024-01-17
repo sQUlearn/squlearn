@@ -263,7 +263,10 @@ class QNN:
 
         if self._executor.is_backend_chosen:
             # todo check for parallel execution
-            self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
+            if self._executor.qpu_parallelization:
+                self.pqc = pqc
+            else:
+                self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         else:
             # Automatically select backend (also returns a TranspiledEncodingCircuit)
             self.pqc = self._executor.select_backend(pqc)[0]
@@ -385,22 +388,32 @@ class QNN:
     def _initilize_derivative(self):
         """Initializes the derivative classes"""
 
+        print("type(self.pqc)",type(self.pqc))
+
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
+                if isinstance(self.pqc, TranspiledEncodingCircuit):
+                    self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
+            if isinstance(self.pqc, TranspiledEncodingCircuit):
+                self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
 
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
+        if isinstance(self.pqc, TranspiledEncodingCircuit):
+            if self.pqc.num_virtual_qubits != num_qubits_operator:
+                raise ValueError("Number of Qubits are not the same!")
+            else:
+                self._num_qubits = self.pqc.num_virtual_qubits
         else:
-            self._num_qubits = self.pqc.num_virtual_qubits
+            if self.pqc.num_qubits != num_qubits_operator:
+                raise ValueError("Number of Qubits are not the same!")
+            else:
+                self._num_qubits = self.pqc.num_qubits
 
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra

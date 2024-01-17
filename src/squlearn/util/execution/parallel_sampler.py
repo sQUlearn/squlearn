@@ -439,6 +439,29 @@ class ParallelSampler(BaseSampler):
         else:
             return mapped_circuit
 
+    def remove_unused_qubits(self, circuit: QuantumCircuit) -> QuantumCircuit:
+        """
+        Removes unused qubits from a given quantum circuit.
+
+        This method removes all unused qubits from a given quantum circuit, as well as any gates that act on those qubits.
+        The resulting circuit is equivalent to the original circuit, but with fewer qubits.
+
+        Args:
+            circuit (QuantumCircuit): The quantum circuit to be simplified.
+
+        Returns:
+            QuantumCircuit: The simplified quantum circuit.
+        """
+
+        gate_count = { qubit: 0 for qubit in circuit.qubits }
+        for gate in circuit.data:
+            for qubit in gate.qubits:
+                gate_count[qubit] += 1
+        for qubit,count in gate_count.items():
+            if count == 0:
+                circuit.qubits.remove(qubit)
+        return circuit
+
     def transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
         """
         Transpiles a given quantum circuit, using cached results if available.

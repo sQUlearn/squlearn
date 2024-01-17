@@ -11,3 +11,263 @@
 2024-01-16 14:44:47,963 - executor - INFO - Error message: The number of qubits in the circuit (127) * n_duplications (3) is greater than the total number of qubits in the backend (127)
 2024-01-16 14:44:47,967 - executor - INFO - Traceback: None
 2024-01-16 14:44:47,967 - executor - INFO - Critical error detected; abort execution
+2024-01-17 13:15:19,302 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 13:15:19,303 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 13:15:19,304 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 13:15:19,305 - executor - INFO - Executor initialized with session: None
+2024-01-17 13:15:19,306 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 13:15:19,307 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 13:15:19,307 - executor - INFO - Executor intial shots: 4000
+2024-01-17 13:15:19,602 - executor - INFO - Executor created a new session.
+2024-01-17 13:15:21,577 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 13:15:21,578 - executor - INFO - Error message: The number of qubits in the circuit (127) * n_duplications (3) is greater than the total number of qubits in the backend (127)
+2024-01-17 13:15:21,579 - executor - INFO - Traceback: None
+2024-01-17 13:15:21,581 - executor - INFO - Critical error detected; abort execution
+2024-01-17 13:15:21,712 - executor - INFO - Executor closed session: None
+2024-01-17 13:17:28,963 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 13:17:28,964 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 13:17:28,965 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 13:17:28,966 - executor - INFO - Executor initialized with session: None
+2024-01-17 13:17:28,967 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 13:17:28,968 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 13:17:28,968 - executor - INFO - Executor intial shots: 4000
+2024-01-17 13:17:29,253 - executor - INFO - Executor created a new session.
+2024-01-17 13:17:31,640 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 13:17:31,641 - executor - INFO - Error message: The number of qubits in the circuit (127) * n_duplications (3) is greater than the total number of qubits in the backend (127)
+2024-01-17 13:17:31,644 - executor - INFO - Traceback: None
+2024-01-17 13:17:31,644 - executor - INFO - Critical error detected; abort execution
+2024-01-17 13:17:31,773 - executor - INFO - Executor closed session: None
+2024-01-17 13:20:51,693 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 13:20:51,694 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 13:20:51,695 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 13:20:51,696 - executor - INFO - Executor initialized with session: None
+2024-01-17 13:20:51,697 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 13:20:51,698 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 13:20:51,699 - executor - INFO - Executor intial shots: 4000
+2024-01-17 13:20:51,777 - executor - INFO - Executor created a new session.
+2024-01-17 13:20:52,334 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 13:20:52,334 - executor - INFO - Error message: The number of qubits in the circuit (4) * n_duplications (3) is greater than the total number of qubits in the backend (27)
+2024-01-17 13:20:52,337 - executor - INFO - Traceback: None
+2024-01-17 13:20:52,338 - executor - INFO - Critical error detected; abort execution
+2024-01-17 13:20:52,525 - executor - INFO - Executor closed session: cpkwbe5sypyg008fcse0
+2024-01-17 13:22:48,284 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 13:22:48,285 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 13:22:48,286 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 13:22:48,286 - executor - INFO - Executor initialized with session: None
+2024-01-17 13:22:48,287 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 13:22:48,288 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 13:22:48,288 - executor - INFO - Executor intial shots: 4000
+2024-01-17 13:22:48,491 - executor - INFO - Executor created a new session.
+2024-01-17 13:22:51,509 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 13:22:51,510 - executor - INFO - Error message: The number of qubits of the 0-th circuit (58) does not match the number of qubits of the 0-th observable (81).
+2024-01-17 13:22:51,513 - executor - INFO - Traceback: None
+2024-01-17 13:22:51,515 - executor - INFO - Critical error detected; abort execution
+2024-01-17 15:21:09,550 - executor - INFO - Executor initialized with backend: <IBMBackend('ibmq_mumbai')>
+2024-01-17 15:21:09,551 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibmq_mumbai')>]
+2024-01-17 15:21:09,552 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:21:09,553 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:21:09,554 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:21:09,555 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:21:09,555 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:26:15,519 - executor - INFO - Executor initialized with backend: <IBMBackend('ibmq_mumbai')>
+2024-01-17 15:26:15,520 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibmq_mumbai')>]
+2024-01-17 15:26:15,520 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:26:15,521 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:26:15,522 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:26:15,522 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:26:15,523 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:30:16,312 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 15:30:16,313 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 15:30:16,314 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:30:16,314 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:30:16,315 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:30:16,316 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:30:16,316 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:34:18,113 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 15:34:18,114 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 15:34:18,115 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:34:18,115 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:34:18,116 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:34:18,117 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:34:18,117 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:40:41,304 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 15:40:41,305 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 15:40:41,306 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:40:41,307 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:40:41,307 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:40:41,308 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:40:41,309 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:42:36,348 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_osaka')>
+2024-01-17 15:42:36,349 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_osaka')>]
+2024-01-17 15:42:36,350 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:42:36,351 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:42:36,352 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:42:36,352 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:42:36,353 - executor - INFO - Executor intial shots: 4000
+2024-01-17 15:42:36,668 - executor - INFO - Executor created a new session.
+2024-01-17 15:51:28,109 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 15:51:28,110 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 15:51:28,111 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:51:28,112 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:51:28,113 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:51:28,113 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:51:28,114 - executor - INFO - Executor intial shots: 5000
+2024-01-17 15:51:28,190 - executor - INFO - Executor created a new session.
+2024-01-17 15:53:16,470 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 15:53:16,470 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 15:53:16,471 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:53:16,471 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:53:16,472 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:53:16,473 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:53:16,473 - executor - INFO - Executor intial shots: 5000
+2024-01-17 15:53:16,572 - executor - INFO - Executor created a new session.
+2024-01-17 15:55:31,955 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 15:55:31,956 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 15:55:31,957 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 15:55:31,957 - executor - INFO - Executor initialized with session: None
+2024-01-17 15:55:31,958 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 15:55:31,959 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 15:55:31,960 - executor - INFO - Executor intial shots: 5000
+2024-01-17 15:55:32,037 - executor - INFO - Executor created a new session.
+2024-01-17 16:21:12,079 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:21:12,079 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:21:12,080 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:21:12,081 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:21:12,081 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:21:12,082 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:21:12,082 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:21:12,162 - executor - INFO - Executor created a new session.
+2024-01-17 16:22:23,551 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:22:23,551 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:22:23,552 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:22:23,552 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:22:23,553 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:22:23,554 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:22:23,555 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:22:23,649 - executor - INFO - Executor created a new session.
+2024-01-17 16:31:13,761 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:31:13,762 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:31:13,763 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:31:13,763 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:31:13,764 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:31:13,764 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:31:13,765 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:31:13,845 - executor - INFO - Executor created a new session.
+2024-01-17 16:35:09,243 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:35:09,244 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:35:09,245 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:35:09,245 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:35:09,246 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:35:09,247 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:35:09,247 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:35:09,327 - executor - INFO - Executor created a new session.
+2024-01-17 16:35:56,266 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:35:56,267 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:35:56,268 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:35:56,268 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:35:56,269 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:35:56,269 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:35:56,270 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:35:56,353 - executor - INFO - Executor created a new session.
+2024-01-17 16:38:12,161 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:38:12,162 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:38:12,163 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:38:12,164 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:38:12,165 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:38:12,166 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:38:12,167 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:38:12,260 - executor - INFO - Executor created a new session.
+2024-01-17 16:42:20,402 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:42:20,403 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:42:20,404 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:42:20,405 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:42:20,406 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:42:20,406 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:42:20,407 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:42:20,500 - executor - INFO - Executor created a new session.
+2024-01-17 16:50:45,666 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 16:50:45,667 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 16:50:45,667 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 16:50:45,668 - executor - INFO - Executor initialized with session: None
+2024-01-17 16:50:45,669 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 16:50:45,669 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 16:50:45,670 - executor - INFO - Executor intial shots: 5000
+2024-01-17 16:50:45,748 - executor - INFO - Executor created a new session.
+2024-01-17 16:50:46,199 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 16:50:46,199 - executor - INFO - Error message: The number of qubits in the circuit (27) * n_duplications (3) is greater than the total number of qubits in the backend (27)
+2024-01-17 16:50:46,201 - executor - INFO - Traceback: None
+2024-01-17 16:50:46,202 - executor - INFO - Critical error detected; abort execution
+2024-01-17 17:01:13,356 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:01:13,358 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:01:13,359 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:01:13,359 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:01:13,361 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:01:13,361 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:01:13,362 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:01:13,474 - executor - INFO - Executor created a new session.
+2024-01-17 17:01:13,997 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 17:01:13,998 - executor - INFO - Error message: The number of qubits in the circuit (27) * n_duplications (3) is greater than the total number of qubits in the backend (27)
+2024-01-17 17:01:14,001 - executor - INFO - Traceback: None
+2024-01-17 17:01:14,002 - executor - INFO - Critical error detected; abort execution
+2024-01-17 17:02:04,683 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:02:04,684 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:02:04,684 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:02:04,685 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:02:04,685 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:02:04,686 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:02:04,687 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:04:16,830 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:04:16,831 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:04:16,831 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:04:16,832 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:04:16,832 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:04:16,833 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:04:16,834 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:05:37,561 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:05:37,561 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:05:37,562 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:05:37,562 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:05:37,563 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:05:37,564 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:05:37,564 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:05:37,581 - executor - INFO - Executor created a new session.
+2024-01-17 17:05:37,887 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 17:05:37,888 - executor - INFO - Error message: The number of qubits of the 0-th circuit (12) does not match the number of qubits of the 0-th observable (81).
+2024-01-17 17:05:37,891 - executor - INFO - Traceback: None
+2024-01-17 17:05:37,893 - executor - INFO - Critical error detected; abort execution
+2024-01-17 17:11:29,832 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:11:29,833 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:11:29,834 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:11:29,835 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:11:29,835 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:11:29,836 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:11:29,837 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:11:29,869 - executor - INFO - Executor created a new session.
+2024-01-17 17:11:30,224 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 17:11:30,225 - executor - INFO - Error message: The number of qubits of the 0-th circuit (12) does not match the number of qubits of the 0-th observable (81).
+2024-01-17 17:11:30,229 - executor - INFO - Traceback: None
+2024-01-17 17:11:30,230 - executor - INFO - Critical error detected; abort execution
+2024-01-17 17:13:29,731 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:13:29,732 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:13:29,732 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:13:29,733 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:13:29,734 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:13:29,734 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:13:29,735 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:13:29,767 - executor - INFO - Executor created a new session.
+2024-01-17 17:13:30,098 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 17:13:30,099 - executor - INFO - Error message: The number of qubits of the 0-th circuit (12) does not match the number of qubits of the 0-th observable (81).
+2024-01-17 17:13:30,103 - executor - INFO - Traceback: None
+2024-01-17 17:13:30,104 - executor - INFO - Critical error detected; abort execution
+2024-01-17 17:14:55,580 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-17 17:14:55,581 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-17 17:14:55,582 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-17 17:14:55,582 - executor - INFO - Executor initialized with session: None
+2024-01-17 17:14:55,582 - executor - INFO - Executor initialized with estimator: None
+2024-01-17 17:14:55,583 - executor - INFO - Executor initialized with sampler: None
+2024-01-17 17:14:55,583 - executor - INFO - Executor intial shots: 5000
+2024-01-17 17:14:55,616 - executor - INFO - Executor created a new session.
+2024-01-17 17:14:55,953 - executor - INFO - Executor failed to run estimator because of unknown error!
+2024-01-17 17:14:55,953 - executor - INFO - Error message: The number of qubits of the 0-th circuit (12) does not match the number of qubits of the 0-th observable (81).
+2024-01-17 17:14:55,956 - executor - INFO - Traceback: None
+2024-01-17 17:14:55,957 - executor - INFO - Critical error detected; abort execution
