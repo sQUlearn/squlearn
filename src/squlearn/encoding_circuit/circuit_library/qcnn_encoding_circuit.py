@@ -37,6 +37,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         self._left_qubits = [i for i in range(num_qubits)]
         self._operations_list = []
         self._default = default
+        self._measurement = False
         if default:
             if num_qubits == 0:
                 print("To generate a default circuit provide a number of qubits > 0.")
@@ -219,6 +220,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         if not quantum_circuit:
             param = ParameterVector("a", 3)
             if measurement:
+                self._measurement = True
                 quantum_circuit = QuantumCircuit(2, 1)
             else:
                 quantum_circuit = QuantumCircuit(2)
@@ -433,9 +435,17 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Firstly, a number of qubits must be provided. ",
                 "Either with 'set_params', or with 'build_circuit'.",
             )
-            return QuantumCircuit(0, 1)
+            if self._measurement:
+                return QuantumCircuit(0, 1)
+            else:
+                return QuantumCircuit(0)
 
-        total_qc = QuantumCircuit(self.num_qubits, 1)  # keeps track of the whole encoding circuit
+        if self._measurement:
+            total_qc = QuantumCircuit(
+                self.num_qubits, 1
+            )  # keeps track of the whole encoding circuit
+        else:
+            total_qc = QuantumCircuit(self.num_qubits)  # keeps track of the whole encoding circuit
 
         # if it is asked for a intrinsic feature map
         num_features = len(features)
