@@ -260,17 +260,6 @@ class QNN:
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        paramx = ParameterVector("x", pqc.num_features)
-        paramt = ParameterVector("θ", pqc.num_parameters)
-        if (
-            pqc.get_circuit(paramx, paramt).num_clbits > 0
-            and str(executor.backend) == "StatevectorSimulator('statevector_simulator')"
-        ):
-            raise ValueError(
-                "The statevector_simulator backend can not be used for the executor, if there ",
-                "are intermediate measurements in the circuit. Use e.g. qasm_simulator instead."
-            )
-
         self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         self.operator = operator
 

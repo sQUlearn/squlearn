@@ -703,6 +703,16 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
+        for circuit in circuits:
+            if (
+                circuit.num_clbits > 0
+                and str(self.backend) == "StatevectorSimulator('statevector_simulator')"
+            ):
+                raise ValueError(
+                    "The statevector_simulator backend can not be used for the executor, if there "
+                    "are intermediate measurements in the circuit. Use e.g. qasm_simulator instead."
+                )
+
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
