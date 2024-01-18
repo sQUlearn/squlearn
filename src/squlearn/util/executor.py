@@ -28,6 +28,7 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
+from qiskit import QuantumCircuit
 
 
 class Executor:
@@ -703,7 +704,7 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
-        for circuit in circuits:
+        def check_circuit_for_measurement(circuit):
             for op in circuit.data:
                 if len(op.clbits) > 0 and "statevector_simulator" in str(self.backend):
                     raise ValueError(
@@ -711,6 +712,12 @@ class Executor:
                         " if there are intermediate measurements in the circuit."
                         " Use e.g. qasm_simulator instead."
                     )
+
+        if isinstance(circuits, QuantumCircuit):
+            check_circuit_for_measurement(circuits)
+        else:
+            for circuit in circuits:
+                check_circuit_for_measurement(circuit)
 
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
