@@ -61,6 +61,7 @@ class ParallelSampler(BaseSampler):
     def check_sampler(self) -> None:
         """Configures the backend and shot settings based on the properties of the provided sampler object."""
         from ..executor import ExecutorSampler
+
         self.shots = None
         if hasattr(self._sampler.options, "execution"):
             self.shots = self._sampler.options.get("execution").get("shots", None)
@@ -83,7 +84,7 @@ class ParallelSampler(BaseSampler):
                 self._sampler.session.backend()
             )
             self._session_active = True
-        elif isinstance(self._sampler,ExecutorSampler):
+        elif isinstance(self._sampler, ExecutorSampler):
             self._backend = self._sampler._executor.backend
             self.shots = self._sampler._executor.get_shots()
             self._session_active = self._sampler._executor._session_active
@@ -119,7 +120,7 @@ class ParallelSampler(BaseSampler):
                 execution = self._sampler.options.get("execution")
                 execution["shots"] = num_shots
                 self._sampler.set_options(execution=execution)
-            elif isinstance(self._sampler,ExecutorSampler):
+            elif isinstance(self._sampler, ExecutorSampler):
                 self._sampler._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown sampler type!")
@@ -433,11 +434,11 @@ class ParallelSampler(BaseSampler):
             QuantumCircuit: The simplified quantum circuit.
         """
 
-        gate_count = { qubit: 0 for qubit in circuit.qubits }
+        gate_count = {qubit: 0 for qubit in circuit.qubits}
         for gate in circuit.data:
             for qubit in gate.qubits:
                 gate_count[qubit] += 1
-        for qubit,count in gate_count.items():
+        for qubit, count in gate_count.items():
             if count == 0:
                 circuit.qubits.remove(qubit)
         return circuit

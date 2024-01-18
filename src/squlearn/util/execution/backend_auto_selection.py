@@ -1,9 +1,3 @@
-from qiskit import transpile, QuantumCircuit
-from qiskit.providers import Backend
-from qiskit_ibm_runtime import QiskitRuntimeService
-
-import mapomatic as mm
-
 import numpy as np
 from typing import Optional, Callable, Union, List, Tuple
 
@@ -11,6 +5,13 @@ from typing import Optional, Callable, Union, List, Tuple
 from .hqaa import parser_openqasm, heuristic
 from qiskit import qasm3
 import networkx as nx
+
+from logging import Logger
+
+from qiskit import transpile, QuantumCircuit
+from qiskit.providers import Backend
+from qiskit_ibm_runtime import QiskitRuntimeService
+import mapomatic as mm
 
 
 class NoSuitableBackendError(Exception):
@@ -31,7 +32,7 @@ class AutoSelectionBackend:
         n_trials_transpile=1,
         call_limit: Optional[int] = int(30000000),
         verbose: bool = False,
-        logger=None,
+        logger: Logger =None,
     ):
         """Initialize AutoSelectionBackend with service.
 
@@ -45,6 +46,7 @@ class AutoSelectionBackend:
             n_trials_transpile (int, optional): Number of times to try to transpile the circuit. Defaults to 1.
             call_limit(int, optional): Maximum number of calls to VF2 mapper (Mapomatic). Defaults to 30000000.
             verbose (bool, optional): Whether to print information. Defaults to False.
+            logger (logger, optional): Logger object. Defaults to None.
         """
 
         self.service = service
@@ -81,13 +83,18 @@ class AutoSelectionBackend:
             raise NoSuitableBackendError("No suitable backend found with given parameters")
 
     def _print(self, message: str):
+        """Print message if verbose is True, if logger is set, log message."""
         if self.verbose:
             print(message)
         if self.logger is not None:
             self.logger.info(message)
 
     def _filters(self, backend: Backend) -> bool:
-        """Filter for selecting backends."""
+        """Filter for selecting backends, returns True if backend is suitable.
+
+        Args:
+            backend (Backend): Backend object.
+        """
 
         # Check minimum number of qubits
         min_qubits_condition = True
@@ -142,7 +149,15 @@ class AutoSelectionBackend:
         return None
 
     def _find_least_busy_backend(self, circuit: QuantumCircuit) -> Backend:
-        """Find a least busy backend for a given circuit size or min qubits specified by the user."""
+        """Find a least busy backend for a given circuit size or min qubits specified by the user.
+
+        Args:
+            circuit (QuantumCircuit): Circuit object.
+
+        Returns:
+            Backend: The least busy backend object.
+
+        """
         least_busy_backend = self.service.least_busy(
             min_num_qubits=max([self.min_num_qubits, circuit.num_qubits]),
             simulator=False,
@@ -170,7 +185,7 @@ class AutoSelectionBackend:
             backend_qubits = backend.configuration().n_qubits
             if hasattr(backend, "processor_type"):
                 if hasattr(backend.processor_type, "family"):
-                    backend_processor_family = backend.processor_type.get("family","unknown")
+                    backend_processor_family = backend.processor_type.get("family", "unknown")
                 else:
                     backend_processor_family = "unknown"
             else:

@@ -17,7 +17,7 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit.primitives.utils import _circuit_key
 
 
-def custom_result_method(self):
+def _custom_result_method(self):
     return self._result
 
 
@@ -27,14 +27,21 @@ class ParallelEstimator(BaseEstimator):
 
     Args:
         estimator (BaseEstimator): The estimator instance to use
-        num_parallel (int, optional): The number of times the circuit is duplicated. Defaults to None, which means automatic determination.
-        transpiler (callable, optional): A function for transpiling quantum circuits. Defaults to a standard transpile function if not provided.
-        options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for the instance.
+        num_parallel (int, optional): The number of times the circuit is duplicated.
+                                      Defaults to None, which means automatic determination.
+        transpiler (callable, optional): A function for transpiling quantum circuits.
+                                         Defaults to a standard transpile function if not provided.
+        options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for
+                                                                   the instance.
 
     """
 
     def __init__(
-        self, estimator: BaseEstimator, num_parallel: Optional[int] = None, transpiler: Optional[Callable] = None, options=None
+        self,
+        estimator: BaseEstimator,
+        num_parallel: Optional[int] = None,
+        transpiler: Optional[Callable] = None,
+        options=None,
     ) -> None:
         if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
             try:
@@ -55,8 +62,9 @@ class ParallelEstimator(BaseEstimator):
         self._cache = {}
 
     def check_estimator(self) -> None:
-        """Configures the backend and shot settings based on the properties of the provided estimator object."""
+        """Configures the backend and shot settings based on the provided estimator object."""
         from ..executor import ExecutorEstimator
+
         self.shots = None
         if hasattr(self._estimator.options, "execution"):
             self.shots = self._estimator.options.get("execution").get("shots", None)
@@ -78,7 +86,7 @@ class ParallelEstimator(BaseEstimator):
                 self._estimator.session.backend()
             )
             self._session_active = True
-        elif isinstance(self._estimator,ExecutorEstimator):
+        elif isinstance(self._estimator, ExecutorEstimator):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
             self._session_active = self._estimator._executor._session_active
@@ -114,7 +122,7 @@ class ParallelEstimator(BaseEstimator):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
-            elif isinstance(self._estimator,ExecutorEstimator):
+            elif isinstance(self._estimator, ExecutorEstimator):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
@@ -166,6 +174,12 @@ class ParallelEstimator(BaseEstimator):
 
         Input arguments are the same as in Qiskit's estimator.run()
 
+        Args:
+            circuits (Union[QuantumCircuit, List[QuantumCircuit]]): The quantum circuits to be executed.
+            observables (Union[List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str]): The observables to be measured.
+            parameter_values (Union[List[float], List[List[float]]], optional): The parameter values to be used for each circuit.
+            **run_options: Additional keyword arguments for the Estimator run call.
+
         """
         dupl_circuits = []
         dupl_observables = []
@@ -195,7 +209,7 @@ class ParallelEstimator(BaseEstimator):
         for meta in result.metadata:
             meta["shots"] = self.shots
         result_job._result = result
-        result_job.result = custom_result_method.__get__(result_job, type(result_job))
+        result_job.result = _custom_result_method.__get__(result_job, type(result_job))
         return result_job
 
     @property
@@ -235,9 +249,6 @@ class ParallelEstimator(BaseEstimator):
         """
         return self._estimator.options
 
-    # def clear_cache(self):
-    #     self._estimator.clear_cache()
-
     def set_options(self, **fields) -> None:
         """Set options values for the estimator.
 
@@ -246,7 +257,6 @@ class ParallelEstimator(BaseEstimator):
         """
         # TODO: Maybe shots??
         self._estimator.set_options(**fields)
-        self._estimator._options_estimator = self._estimator.options
 
     def create_mapped_circuit(
         self,
@@ -263,12 +273,12 @@ class ParallelEstimator(BaseEstimator):
         Maps a given quantum circuit, optionally duplicating it to fill the backend capacity.
 
         This method maps the provided quantum circuit, potentially duplicating it to utilize as much of the backend's capacity as possible.
-        The duplication is controlled by the 'n_duplications' or 'max_qubits' Args.
+        The duplication is controlled by the 'num_parallel' or 'max_qubits' Args.
 
         Args:
             circuit (QuantumCircuit): The quantum circuit to be mapped.
             observable (Optional[BaseOperator, PauliSumOp], optional): The observable to be estimated. Defaults to None.
-            n_duplications (Optional[int], optional): Specifies the number of times the circuit should be duplicated. Defaults to None.
+            num_parallel (Optional[int], optional): Specifies the number of times the circuit should be duplicated. Defaults to None.
             return_duplications (Optional[bool], optional): If True, returns a tuple of the mapped circuit and the number of duplications. Defaults to False.
             max_qubits (Optional[int], optional): The maximum number of qubits to use from the backend. Defaults to the number of qubits in the backend if None.
 
@@ -298,7 +308,7 @@ class ParallelEstimator(BaseEstimator):
 
         if num_parallel * mapped_circuit.num_qubits > max_qubits:
             raise ValueError(
-                f"The number of qubits in the circuit ({mapped_circuit.num_qubits}) * n_duplications ({num_parallel}) "
+                f"The number of qubits in the circuit ({mapped_circuit.num_qubits}) * num_parallel ({num_parallel}) "
                 f"is greater than the total number of qubits in the backend ({max_qubits})"
             )
 
@@ -310,7 +320,7 @@ class ParallelEstimator(BaseEstimator):
         if shots is None:
             shots = 0
 
-        # Set the shots=shots/n_duplications
+        # Set the shots=shots/num_parallel
         if self.shots is not None:
             self.set_shots(int(self.shots / num_parallel))
 
@@ -341,18 +351,15 @@ class ParallelEstimator(BaseEstimator):
             QuantumCircuit: The simplified quantum circuit.
         """
 
-
-        gate_count = { qubit : 0 for qubit in circuit.qubits }
+        gate_count = {qubit: 0 for qubit in circuit.qubits}
         for gate in circuit.data:
             for qubit in gate.qubits:
                 gate_count[qubit] += 1
-        for qubit,count in gate_count.items():
+        for qubit, count in gate_count.items():
             if count == 0:
                 circuit.qubits.remove(qubit)
 
-
-
-        return circuit,observable
+        return circuit, observable
 
     def duplicate_observable(
         self, observable: Union[BaseOperator, PauliSumOp], n_duplications: int

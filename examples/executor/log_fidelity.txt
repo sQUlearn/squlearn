@@ -113,3 +113,7 @@
 2024-01-18 16:34:18,950 - executor - INFO - Best sub-layout: [4, 5, 6, 7, 113, 114, 115, 116, 58, 71, 77, 76]. Error_rate: 0.06453860864363392
 2024-01-18 16:34:19,081 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_cusco')>
 2024-01-18 16:34:19,138 - executor - INFO - Executor created a new session.
+2024-01-18 17:06:12,668 - executor - INFO - Executor runs sampler with job: cpmm9z70f6rg008wwjg0
+2024-01-18 17:06:12,669 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 17:06:13,686 - executor - INFO - Stored job in cache with hash value: 09fd15abd5cbbf70fef50bf1cb5c4ecd83304d1d
+2024-01-18 17:06:13,894 - executor - INFO - Cached job found with hash value: 09fd15abd5cbbf70fef50bf1cb5c4ecd83304d1d

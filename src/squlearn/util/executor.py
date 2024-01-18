@@ -32,6 +32,8 @@ from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
 from .execution import AutoSelectionBackend, ParallelEstimator, ParallelSampler
+
+
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -167,15 +169,9 @@ class Executor:
     def __init__(
         self,
         execution: Union[
-            str,
-            Backend,
-            QiskitRuntimeService,
-            Session,
-            BaseEstimator,
-            BaseSampler,
-            List[Backend]
+            str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler, List[Backend]
         ] = "statevector_simulator",
-        backend: Union[Backend, str,List[Backend],None] = None,
+        backend: Union[Backend, str, List[Backend], None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
         log_file: str = "",
@@ -187,7 +183,7 @@ class Executor:
         shots: Union[int, None] = None,
         primitive_seed: Union[int, None] = None,
         qpu_parallelization: Union[int, str, None] = None,
-        auto_backend_mode: str = "quality", #"speed"
+        auto_backend_mode: str = "quality",  # "speed"
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -379,8 +375,9 @@ class Executor:
             self._backend_list = [self._backend]
         else:
             if self._IBMQuantum is False:
-                raise ValueError("Automatic backend selection is only supported" +
-                                 " for IBM Quantum backends!")
+                raise ValueError(
+                    "Automatic backend selection is only supported" + " for IBM Quantum backends!"
+                )
 
         # set initial shots
         self._shots = shots
@@ -394,7 +391,9 @@ class Executor:
             self._cache = ExecutorCache(self._logger, cache_dir)
 
         self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
-        self._logger.info(f"Executor initialized with list of backends: {{}}".format(self._backend_list))
+        self._logger.info(
+            f"Executor initialized with list of backends: {{}}".format(self._backend_list)
+        )
         self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:
             self._logger.info(
@@ -481,9 +480,10 @@ class Executor:
                         session=self._session, options=self._options_estimator
                     )
                 else:
-                    raise RuntimeError("Missing Qiskit Runtime service for Sampler initialization!")
+                    raise RuntimeError(
+                        "Missing Qiskit Runtime service for Sampler initialization!"
+                    )
             else:
-
                 if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = qiskit_primitives_Estimator(options=self._options_estimator)
@@ -507,11 +507,17 @@ class Executor:
                     if self._qpu_parallelization == "auto":
                         self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
                     else:
-                        raise ValueError("Unknown qpu_parallelization value: " + self._qpu_parallelization)
+                        raise ValueError(
+                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
+                        )
                 elif isinstance(self._qpu_parallelization, int):
-                    self._estimator = ParallelEstimator(self._estimator, num_parallel=self._qpu_parallelization)
+                    self._estimator = ParallelEstimator(
+                        self._estimator, num_parallel=self._qpu_parallelization
+                    )
                 else:
-                    raise ValueError("Unknown qpu_parallelization type: " + type(self._qpu_parallelization))
+                    raise ValueError(
+                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                    )
 
             estimator = self._estimator
 
@@ -570,7 +576,9 @@ class Executor:
                         options=self._options_sampler,
                     )
                 else:
-                    raise RuntimeError("Missing Qiskit Runtime service for Sampler initialization!")
+                    raise RuntimeError(
+                        "Missing Qiskit Runtime service for Sampler initialization!"
+                    )
             else:
                 if "statevector_simulator" in str(self._backend):
                     # No session, no service, but state_vector simulator -> Sampler
@@ -595,11 +603,17 @@ class Executor:
                     if self._qpu_parallelization == "auto":
                         self._sampler = ParallelSampler(self._sampler, num_parallel=None)
                     else:
-                        raise ValueError("Unknown qpu_parallelization value: " + self._qpu_parallelization)
+                        raise ValueError(
+                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
+                        )
                 elif isinstance(self._qpu_parallelization, int):
-                    self._sampler = ParallelSampler(self._sampler, num_parallel=self._qpu_parallelization)
+                    self._sampler = ParallelSampler(
+                        self._sampler, num_parallel=self._qpu_parallelization
+                    )
                 else:
-                    raise ValueError("Unknown qpu_parallelization type: " + type(self._qpu_parallelization))
+                    raise ValueError(
+                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                    )
 
             sampler = self._sampler
 
@@ -1171,42 +1185,42 @@ class Executor:
         self._set_seed_for_primitive = seed
 
     def select_backend(self, circuit, **options):
-        from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase # check why not outside
+        from ..encoding_circuit.encoding_circuit_base import (
+            EncodingCircuitBase,
+        )  # check why not outside
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
         # todo implement options:
 
-        min_num_qubits = options.get("min_num_qubits",None)
-        max_num_qubits = options.get("max_num_qubits",None)
-        cost_function = options.get("cost_function",None)
-        optimization_level = options.get("optimization_level",3)
-        n_trials_transpile = options.get("n_trials_transpile",1)
-        call_limit = options.get("call_limit",int(3e7))
-        verbose = options.get("verbose",True)
+        min_num_qubits = options.get("min_num_qubits", None)
+        max_num_qubits = options.get("max_num_qubits", None)
+        cost_function = options.get("cost_function", None)
+        optimization_level = options.get("optimization_level", 3)
+        n_trials_transpile = options.get("n_trials_transpile", 1)
+        call_limit = options.get("call_limit", int(3e7))
+        verbose = options.get("verbose", False)
         logger = self._logger
 
-        AutoSelBack = AutoSelectionBackend(backends_to_use=self.backend_list,
-                                           min_num_qubits=min_num_qubits,
-                                           max_num_qubits=max_num_qubits,
-                                           cost_function=cost_function,
-                                           optimization_level=optimization_level,
-                                           n_trials_transpile=n_trials_transpile,
-                                           call_limit=call_limit,
-                                           verbose=verbose,
-                                           logger=logger
-                                           )
+        AutoSelBack = AutoSelectionBackend(
+            backends_to_use=self.backend_list,
+            min_num_qubits=min_num_qubits,
+            max_num_qubits=max_num_qubits,
+            cost_function=cost_function,
+            optimization_level=optimization_level,
+            n_trials_transpile=n_trials_transpile,
+            call_limit=call_limit,
+            verbose=verbose,
+            logger=logger,
+        )
 
-        mode = options.get("mode",self._auto_backend_mode)
-        useHQAA = options.get("useHQAA",False)
-
+        mode = options.get("mode", self._auto_backend_mode)
+        useHQAA = options.get("useHQAA", False)
 
         if isinstance(self._qpu_parallelization, int):
-
-
-            if isinstance(circuit,QuantumCircuit):
+            if isinstance(circuit, QuantumCircuit):
                 real_circuit = circuit
 
-            elif isinstance(circuit,EncodingCircuitBase):
+            elif isinstance(circuit, EncodingCircuitBase):
                 x = ParameterVector("x", circuit.num_features)
                 p = ParameterVector("p", circuit.num_parameters)
                 real_circuit = circuit.get_circuit(x, p)
@@ -1220,25 +1234,29 @@ class Executor:
             for _ in range(self._qpu_parallelization - 1):
                 mapped_circuit.tensor(real_circuit, inplace=True)
 
-            info,transpiled_circuit,backend = AutoSelBack.evaluate(mapped_circuit,mode=mode,useHQAA=useHQAA)
+            info, transpiled_circuit, backend = AutoSelBack.evaluate(
+                mapped_circuit, mode=mode, useHQAA=useHQAA
+            )
 
             return_circ = circuit
 
         else:
-
-            if isinstance(circuit,QuantumCircuit):
-                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
+            if isinstance(circuit, QuantumCircuit):
+                info, transpiled_circuit, backend = AutoSelBack.evaluate(
+                    circuit, mode=mode, useHQAA=useHQAA
+                )
                 return_circ = transpiled_circuit
 
-            elif isinstance(circuit,EncodingCircuitBase):
-
+            elif isinstance(circuit, EncodingCircuitBase):
                 info = None
                 transpiled_circuit = None
                 backend = None
 
-                def helper_function(qiskit_circuit,backend_dummy):
-                    nonlocal info,transpiled_circuit,backend
-                    info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
+                def helper_function(qiskit_circuit, backend_dummy):
+                    nonlocal info, transpiled_circuit, backend
+                    info, transpiled_circuit, backend = AutoSelBack.evaluate(
+                        qiskit_circuit, mode=mode, useHQAA=useHQAA
+                    )
                     return transpiled_circuit
 
                 return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
@@ -1276,7 +1294,6 @@ class Executor:
     def unset_backend(self):
         """Unsets the backend that is used for the execution."""
         self._backend = None
-
 
 
 class ExecutorEstimator(BaseEstimator):

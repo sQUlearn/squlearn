@@ -57,6 +57,11 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
+        primitive (Union[str,None], default=None): The primitive to use for the executor. If None,
+                                                   the initial primitive of executor will be used;
+                                                   if non is set, the Estimator primitive is
+                                                   utilized.
+
 
     See Also
     --------
@@ -115,7 +120,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
-        primitive: Union[str,None] = None,
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__(

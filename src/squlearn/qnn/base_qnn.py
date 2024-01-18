@@ -64,7 +64,7 @@ class BaseQNN(BaseEstimator, ABC):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = None,
-        primitive: Union[str,None] = None,
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -120,7 +120,11 @@ class BaseQNN(BaseEstimator, ABC):
         self.primitive = primitive
         self.executor = executor
         self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching, primitive=self.primitive
+            self.encoding_circuit,
+            self.operator,
+            executor,
+            result_caching=self.caching,
+            primitive=self.primitive,
         )
 
         self.shot_control = shot_control

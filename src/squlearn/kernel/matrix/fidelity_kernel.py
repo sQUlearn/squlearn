@@ -98,14 +98,13 @@ class FidelityKernel(KernelMatrixBase):
         else:
             self._parameter_vector = None
 
-
         self._enc_circ = self._encoding_circuit.get_circuit(
             self._feature_vector, self._parameter_vector
         )
 
         # Automatic select backend if not chosen
         if not self._executor.is_backend_chosen:
-             self._enc_circ = self._executor.select_backend(self._enc_circ)[0]
+            self._enc_circ, info = self._executor.select_backend(self._enc_circ)
 
         if "statevector_simulator" in str(self._executor._backend):
             if self._parameter_vector is None:

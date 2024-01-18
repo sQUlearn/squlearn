@@ -27,6 +27,7 @@ from ..util.optree.optree import (
 
 import copy
 
+
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
 
@@ -242,6 +243,7 @@ class QNN:
         optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+        primitive (str): Primitive that is used for the evaluation of the QNN.
     """
 
     def __init__(
@@ -251,7 +253,7 @@ class QNN:
         executor: Executor,
         optree_caching=True,
         result_caching=True,
-        primitive: Union[str,None] = None,
+        primitive: Union[str, None] = None,
     ) -> None:
         # Executer set-up
         self._executor = executor
@@ -263,13 +265,14 @@ class QNN:
         self._result_caching = result_caching
 
         if self._executor.is_backend_chosen:
-            # todo check for parallel execution
+            # Skip transpilation for parallel qpu execution
             if self._executor.qpu_parallelization:
                 self.pqc = pqc
             else:
                 self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         else:
-            # Automatically select backend (also returns a TranspiledEncodingCircuit)
+            # Automatically select backend (also returns a TranspiledEncodingCircuit except
+            # for parallel qpu execution)
             self.pqc = self._executor.select_backend(pqc)[0]
 
         self.operator = copy.deepcopy(operator)
@@ -277,11 +280,12 @@ class QNN:
         # Set-Up Executor
         self._set_primitive(primitive)
 
+        # Initialize derivative classes
         self._initilize_derivative()
 
-    def _set_primitive(self, primitive: Union[str,None] = None) -> None:
+    def _set_primitive(self, primitive: Union[str, None] = None) -> None:
         """
-        Sets the primitive of the QNN.
+        Sets the primitive for evaluating the of the QNN.
 
         Args:
             primitive (str): Primitive that is used for the evaluation of the QNN.
