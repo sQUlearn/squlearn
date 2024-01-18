@@ -292,8 +292,7 @@ training and test data and shows how to optimize kernels.
 
 *Note:* The same workflow has to be used for FQKs!
 
-*References*
-------------
+.. rubric:: References
 
 [1] `M. Schuld, "Supervised quantum machine learning models are kernel methods". arXiv:2101.11020v2 (2021). <http://arxiv.org/abs/2101.11020v2>`_
 

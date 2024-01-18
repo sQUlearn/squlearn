@@ -37,6 +37,16 @@ class TestQNNRegressor:
         param_op_ini = np.random.rand(operator.num_parameters)
         return QNNRegressor(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
+    @pytest.fixture(scope="module")
+    def qnn_regressor_2out(self) -> QNNRegressor:
+        """QNNRegressor module."""
+        executor = Executor("statevector_simulator")
+        pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
+        operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
+        loss = SquaredLoss()
+        optimizer = SLSQP(options={"maxiter": 2})
+        return QNNRegressor(pqc, operator, executor, loss, optimizer, parameter_seed=0)
+
     def test_predict_unfitted(self, qnn_regressor, data):
         """Tests concerning the unfitted QNNRegressor.
 
@@ -63,8 +73,23 @@ class TestQNNRegressor:
         X, y = data
         qnn_regressor.fit(X, y)
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
+        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+
+    def test_fit_2out(self, qnn_regressor_2out, data):
+        """Tests concerning the fit function of the QNNRegressor for 2 outputs.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        y = np.array([y, y]).T
+        qnn_regressor_2out.fit(X, y)
+        assert qnn_regressor_2out._is_fitted
+        assert not np.allclose(qnn_regressor_2out.param, qnn_regressor_2out.param_ini)
+        assert not np.allclose(qnn_regressor_2out.param_op, qnn_regressor_2out.param_op_ini)
 
     def test_partial_fit(self, qnn_regressor, data):
         """Tests concerning the partial_fit function of the QNNRegressor.
@@ -76,11 +101,11 @@ class TestQNNRegressor:
         X, y = data
 
         qnn_regressor.fit(X, y)
-        param_1 = qnn_regressor._param
+        param_1 = qnn_regressor.param
         qnn_regressor.partial_fit(X, y)
-        param_2 = qnn_regressor._param
+        param_2 = qnn_regressor.param
         qnn_regressor.fit(X, y)
-        param_3 = qnn_regressor._param
+        param_3 = qnn_regressor.param
 
         assert np.allclose(param_1, param_3)
         assert not np.allclose(param_2, param_3)
@@ -104,8 +129,30 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
+        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+
+    def test_fit_minibtach_2out(self, qnn_regressor_2out, data):
+        """Tests concerning fit with mini-batch GD for two outputs.
+
+        Tests include
+            - whether `_is_fitted` is True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        y = np.array([y, y]).T
+        qnn_regressor_2out._optimizer = Adam({"maxiter_total": 10, "maxiter": 2, "lr": 0.1})
+        qnn_regressor_2out.set_params(
+            batch_size=2,
+            epochs=2,
+            shuffle=True,
+        )
+        qnn_regressor_2out.fit(X, y)
+
+        assert qnn_regressor_2out._is_fitted
+        assert not np.allclose(qnn_regressor_2out.param, qnn_regressor_2out.param_ini)
+        assert not np.allclose(qnn_regressor_2out.param_op, qnn_regressor_2out.param_op_ini)
 
     def test_predict(self, qnn_regressor, data):
         """Tests concerning the predict function of the QNNRegressor.
@@ -140,5 +187,5 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor._param, qnn_regressor.param_ini)
-        assert not np.allclose(qnn_regressor._param_op, qnn_regressor.param_op_ini)
+        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)

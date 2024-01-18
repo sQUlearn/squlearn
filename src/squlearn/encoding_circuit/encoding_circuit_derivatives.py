@@ -301,6 +301,10 @@ class EncodingCircuitDerivatives:
         if isinstance(parameters, tuple):
             parameters = list(parameters)
 
+        # If no parameters are given -> return empty list
+        if len(parameters) == 0:
+            return OpTreeList([])
+
         # Call the automatic differentiation routine
         # Check if the same variables are the same type
         params_name = parameters[0].name.split("[", 1)[0]

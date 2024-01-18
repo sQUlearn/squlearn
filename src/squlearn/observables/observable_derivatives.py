@@ -316,6 +316,10 @@ def operator_differentiation(
     if isinstance(parameters, ParameterVectorElement):
         parameters = [parameters]
 
+    # If no parameters are given -> return empty list
+    if len(parameters) == 0:
+        return OpTreeList([])
+
     # Check if the same variables are the same type
     params_name = parameters[0].name.split("[", 1)[0]
     for p in parameters:

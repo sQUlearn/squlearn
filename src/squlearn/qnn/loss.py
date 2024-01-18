@@ -472,19 +472,26 @@ class SquaredLoss(LossBase):
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
         weighted_diff = np.multiply((value_dict["f"] - ground_truth), weights)
-        if multiple_output:
-            d_p = 2.0 * np.einsum("ij,ijk->k", weighted_diff, value_dict["dfdp"])
+
+        if value_dict["dfdp"].shape[0] == 0:
+            d_p = np.array([])
         else:
-            d_p = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdp"])
+            if multiple_output:
+                d_p = 2.0 * np.einsum("ij,ijk->k", weighted_diff, value_dict["dfdp"])
+            else:
+                d_p = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdp"])
 
         # Extra code for the cost operator derivatives
         if not self._opt_param_op:
             return d_p
 
-        if multiple_output:
-            d_op = 2.0 * np.einsum("ij,ijk->k", weighted_diff, value_dict["dfdop"])
+        if value_dict["dfdop"].shape[0] == 0:
+            d_op = np.array([])
         else:
-            d_op = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdop"])
+            if multiple_output:
+                d_op = 2.0 * np.einsum("ij,ijk->k", weighted_diff, value_dict["dfdop"])
+            else:
+                d_op = 2.0 * np.einsum("j,jk->k", weighted_diff, value_dict["dfdop"])
         return d_p, d_op
 
 
@@ -573,20 +580,25 @@ class VarianceLoss(LossBase):
             alpha = self._alpha
 
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
-
-        if multiple_output:
-            d_p = alpha * np.sum(value_dict["dvardp"], axis=(0, 1))
+        if value_dict["dfdp"].shape[0] == 0:
+            d_p = np.array([])
         else:
-            d_p = alpha * np.sum(value_dict["dvardp"], axis=0)
+            if multiple_output:
+                d_p = alpha * np.sum(value_dict["dvardp"], axis=(0, 1))
+            else:
+                d_p = alpha * np.sum(value_dict["dvardp"], axis=0)
 
         # Extra code for the cost operator derivatives
         if not self._opt_param_op:
             return d_p
 
-        if multiple_output:
-            d_op = alpha * np.sum(value_dict["dvardop"], axis=(0, 1))
+        if value_dict["dfdop"].shape[0] == 0:
+            d_op = np.array([])
         else:
-            d_op = alpha * np.sum(value_dict["dvardop"], axis=0)
+            if multiple_output:
+                d_op = alpha * np.sum(value_dict["dvardop"], axis=(0, 1))
+            else:
+                d_op = alpha * np.sum(value_dict["dvardop"], axis=0)
 
         return d_p, d_op
 
