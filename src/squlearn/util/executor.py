@@ -704,12 +704,13 @@ class Executor:
         """
 
         for circuit in circuits:
-            if circuit.num_clbits > 0 and "statevector_simulator" in str(self.backend):
-                raise ValueError(
-                    "The statevector_simulator backend can not be used for the executor,"
-                    " if there are intermediate measurements in the circuit."
-                    " Use e.g. qasm_simulator instead."
-                )
+            for op in circuit.data:
+                if len(op.clbits) > 0 and "statevector_simulator" in str(self.backend):
+                    raise ValueError(
+                        "The statevector_simulator backend can not be used for the executor,"
+                        " if there are intermediate measurements in the circuit."
+                        " Use e.g. qasm_simulator instead."
+                    )
 
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
