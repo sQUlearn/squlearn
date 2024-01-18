@@ -25,6 +25,7 @@ from ..util.optree.optree import (
     OpTree,
 )
 
+import copy
 
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
@@ -271,7 +272,7 @@ class QNN:
             # Automatically select backend (also returns a TranspiledEncodingCircuit)
             self.pqc = self._executor.select_backend(pqc)[0]
 
-        self.operator = operator
+        self.operator = copy.deepcopy(operator)
 
         # Set-Up Executor
         self._set_primitive(primitive)
@@ -387,8 +388,6 @@ class QNN:
 
     def _initilize_derivative(self):
         """Initializes the derivative classes"""
-
-        print("type(self.pqc)",type(self.pqc))
 
         num_qubits_operator = 0
         if isinstance(self.operator, list):

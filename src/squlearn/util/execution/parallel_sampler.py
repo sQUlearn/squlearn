@@ -99,7 +99,6 @@ class ParallelSampler(BaseSampler):
         from ..executor import ExecutorSampler
 
         if num_shots is None:
-            self._logger.info("Set shots to {}".format(num_shots))
             num_shots = 0
 
         # Update shots in backend
@@ -114,24 +113,12 @@ class ParallelSampler(BaseSampler):
                     self._sampler.set_options(shots=None)
                 else:
                     self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except Exception:
-                    pass  # no option available
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except Exception:
-                    pass  # no option available
             elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
                 execution = self._sampler.options.get("execution")
                 execution["shots"] = num_shots
                 self._sampler.set_options(execution=execution)
-                try:
-                    self._options_sampler["execution"]["shots"] = num_shots
-                except Exception:
-                    pass  # no options_sampler or no execution in options_sampler
             elif isinstance(self._sampler,ExecutorSampler):
                 self._sampler._executor.set_shots(num_shots)
             else:
@@ -404,8 +391,6 @@ class ParallelSampler(BaseSampler):
             if max_qubits is None:
                 raise Warning("No number of qubits found in the given Sampler Primitive!")
 
-        print("max_qubits",max_qubits)
-
         # check that n_duplication is None, i.e. not provided.
         if num_parallel is None:
             num_parallel = int(max_qubits // circuit.num_qubits)
@@ -426,11 +411,6 @@ class ParallelSampler(BaseSampler):
         shots = self.shots
         if shots is None:
             shots = 0
-        print(
-            f"\nCircuit with {circuit.num_qubits} qubits has been duplicated {num_parallel} times."
-            f"\nReducing shots from {shots} to {int(shots/num_parallel)}"
-            f"\nBackend has {max_qubits} qubits."
-        )
 
         if self.shots is not None:
             self.set_shots(int(self.shots / num_parallel))

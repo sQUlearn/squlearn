@@ -96,3 +96,20 @@
 2024-01-16 10:24:48,890 - executor - INFO - Job status: JobStatus.DONE
 2024-01-16 10:24:51,333 - executor - INFO - Stored job in cache with hash value: fb17d3b9d76c77184f18d1561ce9fe1335f6c5f9
 2024-01-16 10:24:53,929 - executor - INFO - Cached job found with hash value: fb17d3b9d76c77184f18d1561ce9fe1335f6c5f9
+2024-01-18 16:33:07,083 - executor - INFO - Set shots to None
+2024-01-18 16:33:07,091 - executor - INFO - Executor initialized with backend: None
+2024-01-18 16:33:07,091 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_hanoi')>, <IBMBackend('ibmq_kolkata')>, <IBMBackend('ibmq_mumbai')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_torino')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibm_cairo')>, <IBMBackend('ibm_sherbrooke')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_algiers')>, <IBMBackend('ibm_nazca')>, <IBMBackend('ibm_cusco')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>]
+2024-01-18 16:33:07,092 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:33:07,092 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:33:07,092 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:33:07,093 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:33:07,093 - executor - INFO - Executor intial shots: None
+2024-01-18 16:33:07,098 - executor - INFO - Automatic backend selection started
+2024-01-18 16:33:07,098 - executor - INFO - Number of backends available with given parameters:12
+2024-01-18 16:33:07,100 - executor - INFO - Mode: speed using Mapomatic
+2024-01-18 16:33:07,100 - executor - INFO - Input circuit needs 12 qubits
+2024-01-18 16:33:21,652 - executor - INFO - Least busy backend: ibm_cusco with 127 qubits
+2024-01-18 16:33:29,563 - executor - INFO - Transpiled circuit needs 12 qubits on ibm_cusco
+2024-01-18 16:34:18,950 - executor - INFO - Best sub-layout: [4, 5, 6, 7, 113, 114, 115, 116, 58, 71, 77, 76]. Error_rate: 0.06453860864363392
+2024-01-18 16:34:19,081 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:34:19,138 - executor - INFO - Executor created a new session.

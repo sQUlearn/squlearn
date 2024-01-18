@@ -94,7 +94,6 @@ class ParallelEstimator(BaseEstimator):
         from ..executor import ExecutorEstimator
 
         if num_shots is None:
-            self._logger.info("Set shots to {}".format(num_shots))
             num_shots = 0
 
         # Update shots in backend
@@ -109,24 +108,12 @@ class ParallelEstimator(BaseEstimator):
                     self._estimator.set_options(shots=None)
                 else:
                     self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except Exception:
-                    pass  # no option available
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except Exception:
-                    pass  # no option available
             elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
-                try:
-                    self._options_estimator["execution"]["shots"] = num_shots
-                except Exception:
-                    pass  # no options_estimator or no execution in options_estimator
             elif isinstance(self._estimator,ExecutorEstimator):
                 self._estimator._executor.set_shots(num_shots)
             else:
@@ -319,16 +306,9 @@ class ParallelEstimator(BaseEstimator):
         for _ in range(num_parallel - 1):
             mapped_circuit.tensor(circuit, inplace=True)
 
-        print("mapped_circuit2",mapped_circuit)
-
         shots = self.shots
         if shots is None:
             shots = 0
-        print(
-            f"Circuit with {circuit.num_qubits} qubits has been duplicated {num_parallel} times."
-            f"\nReducing shots from {shots} to {int(shots/num_parallel)}"
-            f"\nBackend has {max_qubits} qubits.\n"
-        )
 
         # Set the shots=shots/n_duplications
         if self.shots is not None:

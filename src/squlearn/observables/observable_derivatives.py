@@ -98,7 +98,6 @@ class ObservableDerivatives:
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = ParameterVector("p_op", observable.num_parameters)
-            print("self._observable.get_operator(self._parameter_vector)",self._observable.get_operator(self._parameter_vector))
             optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector))
         else:
             # multi dimensional output by multiple Expectation-operators

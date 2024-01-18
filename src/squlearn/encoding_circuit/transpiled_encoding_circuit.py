@@ -131,7 +131,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         """
         self._encoding_circuit.set_params(**params)
         # Recompute and re-transpile the circuit by re-initializing the class
-        self.__init__(self._encoding_circuit, self._backend, self._transpile_func, self._remove_unused_qubits, **self._kwargs)
+        self.__init__(self._encoding_circuit, self._backend, self._transpile_func, **self._kwargs)
 
     def get_circuit(
         self,

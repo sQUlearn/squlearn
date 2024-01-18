@@ -825,6 +825,7 @@ class Executor:
                     kwargs,
                     self._options_estimator,
                     self._backend,
+                    self.get_shots(),
                 ]
             )
         else:
@@ -868,6 +869,7 @@ class Executor:
                     kwargs,
                     self._options_sampler,
                     self._backend,
+                    self.get_shots(),
                 ]
             )
         else:
@@ -1198,35 +1200,29 @@ class Executor:
         useHQAA = options.get("useHQAA",False)
 
 
-        if self.qpu_parallelization:
+        if isinstance(self._qpu_parallelization, int):
 
-            print("test")
 
             if isinstance(circuit,QuantumCircuit):
-                info,transpiled_circuit,backend = AutoSelBack.evaluate(circuit,mode=mode,useHQAA=useHQAA)
-                return_circ = circuit
+                real_circuit = circuit
 
             elif isinstance(circuit,EncodingCircuitBase):
-
-                info = None
-                transpiled_circuit = None
-                backend = None
-
-                def helper_function(qiskit_circuit,backend_dummy):
-                    nonlocal info,transpiled_circuit,backend
-
-                    print("qiskit_circuit",qiskit_circuit)
-                    print("qiskit_circuit._layout",qiskit_circuit._layout)
-                    print("type(qiskit_circuit._layout)",type(qiskit_circuit._layout))
-
-                    info,transpiled_circuit,backend = AutoSelBack.evaluate(qiskit_circuit,mode=mode,useHQAA=useHQAA)
-                    return transpiled_circuit
-
-                return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
-                return_circ = circuit
-
+                x = ParameterVector("x", circuit.num_features)
+                p = ParameterVector("p", circuit.num_parameters)
+                real_circuit = circuit.get_circuit(x, p)
             else:
                 raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
+
+            # create the circuit
+            mapped_circuit = real_circuit.copy()
+
+            # duplicate the circuit
+            for _ in range(self._qpu_parallelization - 1):
+                mapped_circuit.tensor(real_circuit, inplace=True)
+
+            info,transpiled_circuit,backend = AutoSelBack.evaluate(mapped_circuit,mode=mode,useHQAA=useHQAA)
+
+            return_circ = circuit
 
         else:
 

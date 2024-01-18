@@ -271,3 +271,122 @@
 2024-01-17 17:14:55,953 - executor - INFO - Error message: The number of qubits of the 0-th circuit (12) does not match the number of qubits of the 0-th observable (81).
 2024-01-17 17:14:55,956 - executor - INFO - Traceback: None
 2024-01-17 17:14:55,957 - executor - INFO - Critical error detected; abort execution
+2024-01-18 12:49:04,958 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-18 12:49:04,959 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-18 12:49:04,960 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 12:49:04,961 - executor - INFO - Executor initialized with session: None
+2024-01-18 12:49:04,962 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 12:49:04,963 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 12:49:04,963 - executor - INFO - Executor intial shots: 5000
+2024-01-18 12:49:04,992 - executor - INFO - Executor created a new session.
+2024-01-18 12:51:11,936 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-18 12:51:11,937 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-18 12:51:11,938 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 12:51:11,939 - executor - INFO - Executor initialized with session: None
+2024-01-18 12:51:11,939 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 12:51:11,940 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 12:51:11,941 - executor - INFO - Executor intial shots: 4000
+2024-01-18 12:51:11,958 - executor - INFO - Executor created a new session.
+2024-01-18 12:54:58,721 - executor - INFO - Executor runs estimator with job: cpmh1cdsp83g008y54g0
+2024-01-18 12:54:58,722 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 12:54:59,742 - executor - INFO - Stored job in cache with hash value: 20999fb7b46ae85978f7ec7709d83355b02c45a3
+2024-01-18 12:59:49,257 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-18 12:59:49,258 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-18 12:59:49,259 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 12:59:49,260 - executor - INFO - Executor initialized with session: None
+2024-01-18 12:59:49,261 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 12:59:49,261 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 12:59:49,262 - executor - INFO - Executor intial shots: 4000
+2024-01-18 12:59:49,294 - executor - INFO - Executor created a new session.
+2024-01-18 13:03:58,694 - executor - INFO - Executor runs estimator with job: cpmh5dnd7p3000860stg
+2024-01-18 13:03:58,695 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 13:03:59,715 - executor - INFO - Stored job in cache with hash value: dd8c3787fde24c51ca98482e77b0b36b4c1f9e3a
+2024-01-18 13:10:20,174 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_algiers')>
+2024-01-18 13:10:20,175 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_algiers')>]
+2024-01-18 13:10:20,176 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 13:10:20,177 - executor - INFO - Executor initialized with session: None
+2024-01-18 13:10:20,178 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 13:10:20,179 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 13:10:20,179 - executor - INFO - Executor intial shots: 4000
+2024-01-18 13:10:20,208 - executor - INFO - Executor created a new session.
+2024-01-18 13:11:36,740 - executor - INFO - Executor runs estimator with job: cpmhab9dmm10008p0510
+2024-01-18 13:11:36,740 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 13:11:37,760 - executor - INFO - Stored job in cache with hash value: dd8c3787fde24c51ca98482e77b0b36b4c1f9e3a
+2024-01-18 15:43:57,521 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 15:43:57,522 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 15:43:57,523 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 15:43:57,523 - executor - INFO - Executor initialized with session: None
+2024-01-18 15:43:57,524 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 15:43:57,524 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 15:43:57,525 - executor - INFO - Executor intial shots: 4000
+2024-01-18 15:43:57,543 - executor - INFO - Executor created a new session.
+2024-01-18 15:47:20,075 - executor - INFO - Executor runs estimator with job: cpmkjbhd7p3000860y00
+2024-01-18 15:47:20,075 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 15:47:21,088 - executor - INFO - Stored job in cache with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:19:41,556 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:19:41,561 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:19:41,562 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:19:41,563 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:19:41,564 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:19:41,565 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:19:41,566 - executor - INFO - Executor intial shots: 4000
+2024-01-18 16:19:59,301 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:19:59,301 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:19:59,306 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:19:59,306 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:19:59,307 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:19:59,307 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:19:59,308 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:19:59,308 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:19:59,309 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:19:59,309 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:19:59,310 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:19:59,310 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:19:59,311 - executor - INFO - Executor intial shots: 5000
+2024-01-18 16:19:59,311 - executor - INFO - Executor intial shots: 5000
+2024-01-18 16:20:02,305 - executor - INFO - Executor created a new session.
+2024-01-18 16:20:02,305 - executor - INFO - Executor created a new session.
+2024-01-18 16:20:02,375 - executor - INFO - Cached job found with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:20:02,375 - executor - INFO - Cached job found with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:20:16,312 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:20:16,312 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:20:16,312 - executor - INFO - Executor initialized with backend: <IBMBackend('ibm_cusco')>
+2024-01-18 16:20:16,314 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:20:16,314 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:20:16,314 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('ibm_cusco')>]
+2024-01-18 16:20:16,316 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:20:16,316 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:20:16,316 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-01-18 16:20:16,317 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:20:16,317 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:20:16,317 - executor - INFO - Executor initialized with session: None
+2024-01-18 16:20:16,319 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:20:16,319 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:20:16,319 - executor - INFO - Executor initialized with estimator: None
+2024-01-18 16:20:16,320 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:20:16,320 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:20:16,320 - executor - INFO - Executor initialized with sampler: None
+2024-01-18 16:20:16,322 - executor - INFO - Executor intial shots: 5000
+2024-01-18 16:20:16,322 - executor - INFO - Executor intial shots: 5000
+2024-01-18 16:20:16,322 - executor - INFO - Executor intial shots: 5000
+2024-01-18 16:20:18,363 - executor - INFO - Executor created a new session.
+2024-01-18 16:20:18,363 - executor - INFO - Executor created a new session.
+2024-01-18 16:20:18,363 - executor - INFO - Executor created a new session.
+2024-01-18 16:22:27,525 - executor - INFO - Executor runs estimator with job: cpmm3cx1tcz0008m6vyg
+2024-01-18 16:22:27,525 - executor - INFO - Executor runs estimator with job: cpmm3cx1tcz0008m6vyg
+2024-01-18 16:22:27,525 - executor - INFO - Executor runs estimator with job: cpmm3cx1tcz0008m6vyg
+2024-01-18 16:22:27,526 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:22:27,526 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:22:27,526 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:22:28,537 - executor - INFO - Stored job in cache with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:22:28,537 - executor - INFO - Stored job in cache with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:22:28,537 - executor - INFO - Stored job in cache with hash value: fce607b339fb725264da81ec7c3b79f02c004e5f
+2024-01-18 16:23:44,980 - executor - INFO - Executor runs estimator with job: cpmm4dsd7p3000860yt0
+2024-01-18 16:23:44,980 - executor - INFO - Executor runs estimator with job: cpmm4dsd7p3000860yt0
+2024-01-18 16:23:44,980 - executor - INFO - Executor runs estimator with job: cpmm4dsd7p3000860yt0
+2024-01-18 16:23:44,982 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:23:44,982 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:23:44,982 - executor - INFO - Job status: JobStatus.DONE
+2024-01-18 16:23:46,002 - executor - INFO - Stored job in cache with hash value: c6ede37fa6d42ce8f05f23ec61c33bb5b0e3d56b
+2024-01-18 16:23:46,002 - executor - INFO - Stored job in cache with hash value: c6ede37fa6d42ce8f05f23ec61c33bb5b0e3d56b
+2024-01-18 16:23:46,002 - executor - INFO - Stored job in cache with hash value: c6ede37fa6d42ce8f05f23ec61c33bb5b0e3d56b
