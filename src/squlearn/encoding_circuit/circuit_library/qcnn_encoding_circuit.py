@@ -388,7 +388,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         else:
             # define default circuit
             if not quantum_circuit:
-                param = ParameterVector("a", 2*len(self.left_qubits))
+                param = ParameterVector("a", 2 * len(self.left_qubits))
                 quantum_circuit = QuantumCircuit(len(self.left_qubits))
                 n_param = 0
                 for i in range(len(self.left_qubits)):
@@ -396,7 +396,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     n_param += 1
                 for i in range(len(self.left_qubits)):
                     for j in range(len(self.left_qubits)):
-                        if i!=j:
+                        if i != j:
                             quantum_circuit.cx(i, j)
                 for i in range(len(self.left_qubits)):
                     quantum_circuit.ry(param[n_param], i)
