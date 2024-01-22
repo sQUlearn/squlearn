@@ -216,11 +216,12 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         _new_operation: bool = True,
     ):
         """Internal function to allow internal _new_operation argument."""
+        if measurement:
+            self._measurement = True
         # define default circuit
         if not quantum_circuit:
             param = ParameterVector("a", 3)
             if measurement:
-                self._measurement = True
                 quantum_circuit = QuantumCircuit(2, 1)
             else:
                 quantum_circuit = QuantumCircuit(2)
