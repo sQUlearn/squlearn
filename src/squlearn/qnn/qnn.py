@@ -354,7 +354,8 @@ class QNN:
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-            num_qubits_operator = self.operator.num_qubits
+            params = ParameterVector("p",self.operator.num_parameters)
+            num_qubits_operator = self.operator.get_operator(params).num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
