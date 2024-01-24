@@ -17,7 +17,7 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.primitives.primitive_job import PrimitiveJob
 
 
-def custom_result_method(self):
+def _custom_result_method(self):
     return self._result
 
 
@@ -210,7 +210,6 @@ class ParallelSampler(BaseSampler):
         Args:
             circuits (Union[QuantumCircuit, List[QuantumCircuit]]): A single QuantumCircuit or a list of QuantumCircuits to be executed.
             parameter_values (Optional[Union[List[float], List[List[float]]]], optional): Values for parameterized circuits. Can be a single list of values or a list of lists for multiple circuits. Defaults to None.
-            n_duplications (Optional[int], optional): The number of times the circuit execution is to be duplicated. Useful for certain types of quantum simulations. Defaults to None.
             process_result (Optional[bool], optional): If True, the results will be processed in a specific manner as defined within the method. Defaults to True.
             **run_options: Additional keyword arguments that are passed to the execution method. These options are specific to the implementation and execution environment.
 
@@ -248,7 +247,7 @@ class ParallelSampler(BaseSampler):
             result = self.process_result(result, circuits, duplicated_circ.num_qubits)
 
         result_job._result = result
-        result_job.result = custom_result_method.__get__(result_job, type(result_job))
+        result_job.result = _custom_result_method.__get__(result_job, type(result_job))
         return result_job
 
     def process_result(
@@ -292,7 +291,7 @@ class ParallelSampler(BaseSampler):
 
         if wrap_result:
             result_job._result = result
-            result_job.result = custom_result_method.__get__(result_job, type(result_job))
+            result_job.result = _custom_result_method.__get__(result_job, type(result_job))
             result = result_job
         return result
 
