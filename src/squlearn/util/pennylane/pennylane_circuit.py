@@ -1,4 +1,5 @@
 
+import matplotlib.pyplot as plt
 from sympy import lambdify
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector,ParameterExpression
@@ -17,12 +18,18 @@ class PennyLaneCircuit():
         self._device = device
         self._qiskit_circuit = circuit
         self._qiskit_observable = observable
+        self._num_qubits = self._qiskit_circuit.num_qubits
 
         # Build circuit instructions for the pennylane circuit from the qiskit circuit
         self._pennylane_gates = []
         self._pennylane_gates_param_function = []
         self._pennylane_gates_wires = []
         self._build_circuit_instructions()
+
+        print("self._pennylane_gates",self._pennylane_gates)
+        print("self._pennylane_gates_param_function",self._pennylane_gates_param_function)
+        print("self._pennylane_gates_wires",self._pennylane_gates_wires)
+
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
         self._pennylane_obs_param = []
@@ -35,12 +42,24 @@ class PennyLaneCircuit():
     def pennylane_circuit(self):
         return self._pennylane_circuit
 
+    def draw(self,engine:str="pennylane",**kwargs):
+
+        if engine == "pennylane":
+            #plt.figure()
+            fig, ax = qml.draw_mpl(self._pennylane_circuit,**kwargs)()
+            #return fig
+        elif engine == "qiskit":
+            return self._qiskit_circuit.draw(**kwargs)
+        else:
+            raise NotImplementedError("Circuit engine not implemented")
+
     def get_pennylane_circuit(self):
         self._pennylane_circuit = self.build_pennylane_circuit()
         return self._pennylane_circuit
 
     def __call__(self, **kwargs):
         # TODO: Check if this works
+
         return self._pennylane_circuit(**kwargs)
 
     def _build_circuit_instructions(self) -> None:
@@ -111,10 +130,11 @@ class PennyLaneCircuit():
     def build_pennylane_circuit(self):
 
         # todo change parameter names
-        def pennylane_circuit(x, param, param_op=None):
+        @self._device.add_pennylane_decorator
+        def pennylane_circuit(**kwargs):
 
-            circ_param_list = list(x) + list(param)
-            obs_param_list = list(param_op)
+            #circ_param_list = list(x) + list(param)
+            #obs_param_list = list(param_op)
 
             # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
@@ -124,14 +144,18 @@ class PennyLaneCircuit():
                 else:
                     op(wires=self._pennylane_gates_wires[i])
 
-            coeff_list = []
-            for coeff in self._pennylane_obs_param:
-                if callable(coeff):
-                    evaluated_param = coeff(*obs_param_list)
-                    coeff_list.append(evaluated_param)
-                else:
-                    coeff_list.append(coeff)
+            if self._qiskit_observable == None:
+                return qml.probs(wires=range(self._num_qubits))
+            else:
 
-            return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
+                coeff_list = []
+                for coeff in self._pennylane_obs_param:
+                    if callable(coeff):
+                        evaluated_param = coeff(*obs_param_list)
+                        coeff_list.append(evaluated_param)
+                    else:
+                        coeff_list.append(coeff)
+
+                return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
 
         return pennylane_circuit

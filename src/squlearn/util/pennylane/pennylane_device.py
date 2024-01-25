@@ -51,7 +51,6 @@ class PennyLaneDevice():
     def gradient_engine(self) -> str:
         return self._gradient_engine
 
-
     def set_num_qubits(self, num_qubits):
 
         if self._wires != num_qubits:
@@ -59,6 +58,19 @@ class PennyLaneDevice():
             self._device = qml.device(
                     self._device_name, wires=self._wires
                 )
+
+    def add_pennylane_decorator(self, pennylane_function):
+
+            if self._gradient_engine == "autodiff":
+                return qml.qnode(self._device, diff_method="backprop", interface="autograd")(pennylane_function)
+            elif self._gradient_engine == "tf" or self._gradient_engine == "tensorflow":
+                return qml.qnode(self._device, diff_method="backprop", interface="tf")(pennylane_function)
+            elif self._gradient_engine == "jax":
+                return qml.qnode(self._device, diff_method="backprop", interface="jax")(pennylane_function)
+            elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
+                return qml.qnode(self._device, diff_method="backprop", interface="torch")(pennylane_function)
+            else:
+                raise NotImplementedError("Gradient engine not implemented")
 
     def get_sympy_interface(self):
 
