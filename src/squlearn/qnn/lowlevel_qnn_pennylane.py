@@ -30,56 +30,60 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._param_obs = ParameterVector("param_op", self._observable.num_parameters)
+        self._param_obs = ParameterVector("param_obs", self._observable.num_parameters)
 
         self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
-        self._qiskit_observable = self._observable.get_observable(self._param_obs)
+        self._qiskit_observable = self._observable.get_operator(self._param_obs)
 
         self._pennylane_circuit = PennyLaneCircuit(self._device, self._qiskit_circuit, self._qiskit_observable)
 
+    def draw(self,**kwargs):
 
-    @abc.abstractmethod
+        return self._pennylane_circuit.draw(**kwargs)
+
+
+    #@abc.abstractmethod
     def set_params(self, **params) -> None:
-        raise NotImplementedError
+        pass
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def get_params(self) -> dict:
-        raise NotImplementedError
+        pass
 
     @property
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def num_qubits(self) -> int:
         """Return the number of qubits of the QNN"""
-        raise NotImplementedError
+        pass
 
     @property
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def num_features(self) -> int:
         """Return the dimension of the features of the PQC"""
-        raise NotImplementedError
+        pass
 
     @property
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def num_parameters(self) -> int:
         """Return the number of trainable parameters of the PQC"""
-        raise NotImplementedError
+        pass
 
     @property
     def num_operator(self) -> int:
         """Return the number outputs"""
-        raise NotImplementedError
+        pass
 
     @property
     def num_parameters_observable(self) -> int:
         """Return the number of trainable parameters of the expectation value operator"""
-        raise NotImplementedError
+        pass
 
     @property
     def multiple_output(self) -> bool:
         """Return true if multiple outputs are used"""
-        raise NotImplementedError
+        pass
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def evaluate(
         self,
         values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
@@ -89,6 +93,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     ) -> dict:
 
         if values=="f" or values ==("f",):
-            return self._pennylane_circuit(x=x, param=param,param_obs=param_obs)
+            return {"f":np.array(self._pennylane_circuit(x=x, param=param,param_obs=param_obs))}
 
 

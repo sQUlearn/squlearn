@@ -26,12 +26,19 @@ class PennyLaneCircuit():
         self._pennylane_gates_wires = []
         self._pennylane_gates_parameters = []
         self._build_circuit_instructions()
+        print("self._pennylane_gates",self._pennylane_gates)
+        print("self._pennylane_gates_param_function",self._pennylane_gates_param_function)
+        print("self._pennylane_gates_wires",self._pennylane_gates_wires)
+        print("self._pennylane_gates_parameters",self._pennylane_gates_parameters)
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
         self._pennylane_obs_param_function = []
         self._pennylane_words = []
         self._pennylane_obs_parameters = []
         self._build_observable_instructions()
+        print("self._pennylane_obs_param_function",self._pennylane_obs_param_function)
+        print("self._pennylane_words",self._pennylane_words)
+        print("self._pennylane_obs_parameters",self._pennylane_obs_parameters)
 
         self._pennylane_circuit = self.build_pennylane_circuit()
 
@@ -179,4 +186,5 @@ class PennyLaneCircuit():
 
                 return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
 
+        print("pennylane_circuit",pennylane_circuit)
         return pennylane_circuit
