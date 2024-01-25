@@ -24,6 +24,7 @@ class PennyLaneCircuit():
         self._pennylane_gates = []
         self._pennylane_gates_param_function = []
         self._pennylane_gates_wires = []
+        self._parameter_dict = {}
         self._build_circuit_instructions()
 
         print("self._pennylane_gates",self._pennylane_gates)
@@ -32,7 +33,7 @@ class PennyLaneCircuit():
 
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
-        self._pennylane_obs_param = []
+        self._pennylane_obs_param_function = []
         self._pennylane_words = []
         self._build_observable_instructions()
 
@@ -67,12 +68,13 @@ class PennyLaneCircuit():
         self._pennylane_gates = []
         self._pennylane_gates_param_function = []
         self._pennylane_gates_wires = []
+        self._pennylane_gates_parameters = []
 
-        #symbol_tuple = tuple(
-        #    [x_._symbol_expr for x_ in self._x_param] + [p_._symbol_expr for p_ in self._p_param]
-        #)
+        symbol_tuple = tuple([p._symbol_expr for p in self._qiskit_circuit.parameters] )
 
-        symbol_tuple = tuple(self._qiskit_circuit.parameters) # TODO: check if this works
+        for param in self._qiskit_circuit.parameters:
+            if param.vector.name not in self._pennylane_gates_parameters:
+                self._pennylane_gates_parameters.append(param.vector.name)
 
         printer, modules = self._device.get_sympy_interface()
 
@@ -83,7 +85,6 @@ class PennyLaneCircuit():
                 for param in op.operation.params:
                     if isinstance(param, ParameterExpression):
                         if param._symbol_expr == None:
-                            # todo check
                             param = param._coeff
                         else:
                             symbol_expr = param._symbol_expr
@@ -107,13 +108,15 @@ class PennyLaneCircuit():
 
         printer, modules = self._device.get_sympy_interface()
 
-        self._pennylane_obs_param = []
-        self._pennylane_words = [
-            pauli.string_to_pauli_word(str(p[::-1])) for p in self._qiskit_observable._pauli_list
-        ]
+        # Get names of all parameters in the observable
+        self._pennylane_obs_parameters = []
+        for param in self._qiskit_observable.parameters:
+            if param.vector.name not in self._pennylane_obs_parameters:
+                self._pennylane_obs_parameters.append(param.vector.name)
 
-        #symbol_tuple = tuple([p_._symbol_expr for p_ in self._p_param_obs]) # TODO: fix 
-
+        # Handle observable parameter expressions and convert them to compatible python functions
+        self._pennylane_obs_param_function = []
+        symbol_tuple = tuple([p._symbol_expr for p in self._qiskit_observable.parameters] )
         for coeff in self._qiskit_observable.coeffs:
             if isinstance(coeff, ParameterExpression):
                 if coeff._symbol_expr == None:
@@ -122,10 +125,14 @@ class PennyLaneCircuit():
                 else:
                     symbol_expr = coeff._symbol_expr
                     f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
-                    self._pennylane_obs_param.append(f)
+                    self._pennylane_obs_param_function.append(f)
             else:
-                self._pennylane_obs_param.append(coeff)
+                self._pennylane_obs_param_function.append(coeff)
 
+        # Convert Pauli strings into PennyLane Pauli words
+        self._pennylane_words = [
+            pauli.string_to_pauli_word(str(p[::-1])) for p in self._qiskit_observable._pauli_list
+        ]
 
     def build_pennylane_circuit(self):
 
@@ -133,23 +140,33 @@ class PennyLaneCircuit():
         @self._device.add_pennylane_decorator
         def pennylane_circuit(**kwargs):
 
-            #circ_param_list = list(x) + list(param)
-            #obs_param_list = list(param_op)
+            circ_param_list = []
+            for key in self._pennylane_gates_parameters:
+                if key not in kwargs:
+                    raise ValueError("Parameter {} not found".format(key))
+                circ_param_list += list(kwargs[key])
+
+
+            obs_param_list = []
+            for key in self._pennylane_obs_parameters:
+                if key not in kwargs:
+                    raise ValueError("Parameter {} not found".format(key))
+                obs_param_list += list(kwargs[key])
 
             # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
                 if self._pennylane_gates_param_function[i] != None:
-                    evaluated_param = tuple([func(*circ_param_list) for func in self._pennylane_gates_param_function[i]])
+                    evaluated_param = tuple([func(*circ_param_list) if callable(func) else func for func in self._pennylane_gates_param_function[i]])
                     op(*evaluated_param, wires=self._pennylane_gates_wires[i])
                 else:
                     op(wires=self._pennylane_gates_wires[i])
 
+            # TODO: maybe change
             if self._qiskit_observable == None:
                 return qml.probs(wires=range(self._num_qubits))
             else:
-
                 coeff_list = []
-                for coeff in self._pennylane_obs_param:
+                for coeff in self._pennylane_obs_param_function:
                     if callable(coeff):
                         evaluated_param = coeff(*obs_param_list)
                         coeff_list.append(evaluated_param)
