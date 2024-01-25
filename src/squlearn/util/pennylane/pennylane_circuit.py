@@ -24,17 +24,13 @@ class PennyLaneCircuit():
         self._pennylane_gates = []
         self._pennylane_gates_param_function = []
         self._pennylane_gates_wires = []
-        self._parameter_dict = {}
+        self._pennylane_gates_parameters = []
         self._build_circuit_instructions()
-
-        print("self._pennylane_gates",self._pennylane_gates)
-        print("self._pennylane_gates_param_function",self._pennylane_gates_param_function)
-        print("self._pennylane_gates_wires",self._pennylane_gates_wires)
-
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
         self._pennylane_obs_param_function = []
         self._pennylane_words = []
+        self._pennylane_obs_parameters = []
         self._build_observable_instructions()
 
         self._pennylane_circuit = self.build_pennylane_circuit()
@@ -42,6 +38,15 @@ class PennyLaneCircuit():
     @property
     def pennylane_circuit(self):
         return self._pennylane_circuit
+
+    @property
+    def circuit_parameter_names(self) -> list:
+        return self._pennylane_gates_parameters
+
+    @property
+    def observable_parameter_names(self) -> list:
+        return self._pennylane_obs_parameters
+
 
     def draw(self,engine:str="pennylane",**kwargs):
 
@@ -59,8 +64,6 @@ class PennyLaneCircuit():
         return self._pennylane_circuit
 
     def __call__(self, **kwargs):
-        # TODO: Check if this works
-
         return self._pennylane_circuit(**kwargs)
 
     def _build_circuit_instructions(self) -> None:
@@ -140,13 +143,14 @@ class PennyLaneCircuit():
         @self._device.add_pennylane_decorator
         def pennylane_circuit(**kwargs):
 
+            # Build input parameter vector for the circuit
             circ_param_list = []
             for key in self._pennylane_gates_parameters:
                 if key not in kwargs:
                     raise ValueError("Parameter {} not found".format(key))
                 circ_param_list += list(kwargs[key])
 
-
+            # Build input parameter vector for the observable
             obs_param_list = []
             for key in self._pennylane_obs_parameters:
                 if key not in kwargs:
