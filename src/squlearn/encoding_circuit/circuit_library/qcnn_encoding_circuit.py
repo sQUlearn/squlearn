@@ -323,7 +323,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 if measurement:
                     self._num_measurements += quantum_circuit.num_clbits * len(input_list)
                 left_qubits = [i for i in self.left_qubits]
-                for i in range(len(input_list)):  # to keep track of the qubits left in the circuit
+                for i in range(len(input_list)):  # keep track of the qubits left in the circuit
                     for j in input_list[i]:
                         if j not in output_list[i]:
                             left_qubits.remove(j)
