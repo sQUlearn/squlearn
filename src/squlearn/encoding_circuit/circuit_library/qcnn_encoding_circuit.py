@@ -7,6 +7,7 @@ from qiskit.converters import circuit_to_gate, circuit_to_instruction
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from squlearn.encoding_circuit.circuit_library.param_z_feature_map import ParamZFeatureMap
 from squlearn.observables import CustomObservable,SummedPaulis
+from squlearn.observables.observable_base import ObservableBase
 
 
 class QCNNEncodingCircuit(EncodingCircuitBase):
@@ -37,7 +38,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         self._left_qubits = [i for i in range(num_qubits)]
         self._operations_list = []
         self._default = default
-        self._measurement = False
+        self._num_measurements = 0
         if default:
             if num_qubits == 0:
                 raise ValueError("To generate a default circuit provide a number of qubits > 0.")
@@ -211,8 +212,6 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         _new_operation: bool = True,
     ):
         """Internal function to allow internal _new_operation argument."""
-        if measurement:
-            self._measurement = True
         # define default circuit
         if not quantum_circuit:
             param = ParameterVector("a", 3)
@@ -233,8 +232,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
 
         quantum_circuit = self.__convert_encoding_circuit(quantum_circuit)
 
-        if (measurement and quantum_circuit.num_clbits != 1) or (
-            not measurement and quantum_circuit.num_clbits == 1
+        if (measurement and quantum_circuit.num_clbits < 1) or (
+            not measurement and quantum_circuit.num_clbits > 0
         ):
             raise ValueError(
                 "Warning on pooling layer: Eather set measurement to True and provide a "
@@ -256,6 +255,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             if self.num_qubits > 0:
                 number_of_gates = int(len(self.left_qubits) / quantum_circuit.num_qubits)
                 self._num_parameters += quantum_circuit.num_parameters * number_of_gates
+                if measurement:
+                    self._num_measurements += quantum_circuit.num_clbits * number_of_gates
                 left_qubits = [i for i in self.left_qubits]
                 for j in range(number_of_gates):
                     for i in self.left_qubits[
@@ -320,6 +321,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 )
             if self.num_qubits > 0:
                 self._num_parameters += quantum_circuit.num_parameters * len(input_list)
+                if measurement:
+                    self._num_measurements += quantum_circuit.num_clbits * len(input_list)
                 left_qubits = [i for i in self.left_qubits]
                 for i in range(
                     len(input_list)
@@ -416,12 +419,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Either with 'set_params', or with 'build_circuit'."
             )
 
-        if self._measurement:
-            total_qc = QuantumCircuit(
-                self.num_qubits, 1
-            )  # keeps track of the whole encoding circuit
-        else:
-            total_qc = QuantumCircuit(self.num_qubits)  # keeps track of the whole encoding circuit
+        total_qc = QuantumCircuit(
+            self.num_qubits, self._num_measurements
+        )  # keeps track of the whole encoding circuit
 
         # if it is asked for a intrinsic feature map
         num_features = len(features)
@@ -437,6 +437,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         ]  # keeps track of the qubits which can still be adressed
         i_param = 0  # counts the number of parameters
         i_pool = 0  # counts the number of pooling layers applied
+        i_clbit = 0 # counts the number of clbits used
         for gate in self.operations_list:
             quantum_circuit = gate[1]  # get the circuit which is to apply
             quantum_circuit.name = gate[2] + "_" + str(i_pool)  # set name of the layer
@@ -499,8 +500,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                             total_qc = total_qc.compose(
                                 circuit_to_instruction(quantum_circuit),
                                 qubits=input_list[j],
-                                clbits=[0],
+                                clbits=list(range(i_clbit,i_clbit+quantum_circuit.num_clbits)),
                             )
+                            i_clbit += quantum_circuit.num_clbits
                         else:
                             total_qc = total_qc.compose(
                                 circuit_to_gate(quantum_circuit), qubits=input_list[j]
@@ -526,8 +528,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                                         (j + 1) * quantum_circuit.num_qubits,
                                     )
                                 ],
-                                clbits=[0],
+                                clbits=list(range(i_clbit,i_clbit+quantum_circuit.num_clbits)),
                             )
+                            i_clbit += quantum_circuit.num_clbits
                         else:
                             total_qc = total_qc.compose(
                                 circuit_to_gate(quantum_circuit),
@@ -616,7 +619,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 self.repeat_layers()
             self.fully_connected()
 
-    def QCNNObservable(self, pauli: str = "Z") -> SummedPaulis:
+    def QCNNObservable(self, obs: Union[ObservableBase, str] = "Z") -> ObservableBase:
         """
         Build a fitting observable for the current circuit.
 
@@ -630,12 +633,27 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             Returns the fitting observable.
         """
 
-        if pauli not in ["X", "Y", "Z"]:
-            pauli = "Z"
+        if isinstance(obs,str):
+            if obs not in ["X", "Y", "Z"]:
+                raise ValueError(
+                    "For 'obs' either provide an 'ObservableBase' type or"
+                    " a 'str' type Pauli gate (X, Y or Z)."
+                )
+            else:
+                pauli = obs
+            obs = SummedPaulis(len(self.left_qubits),op_str = pauli)
         
-        obs = SummedPaulis(len(self.left_qubits),op_str = pauli)
         obs.set_map(self.left_qubits,self.num_qubits)
-        return obs
+        param = ParameterVector("p", obs.num_parameters)
+        operator_list = [] 
+        for i in obs.get_pauli_mapped(param).paulis:
+            operator_list.append(str(i))
+        obs1 = CustomObservable(
+            num_qubits=self.num_qubits,
+            operator_string=operator_list,
+            parameterized=True
+        )
+        return obs1
 
     def __convert_encoding_circuit(self, quantum_circuit) -> QuantumCircuit:
         """Internal function to allow also sQUlearn encoding circuits as input."""
