@@ -7,7 +7,6 @@ from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class HubregtsenEncodingCircuit(EncodingCircuitBase):
-
     """
     Creates the data reuploading encoding circuit as presented in reference [1].
 

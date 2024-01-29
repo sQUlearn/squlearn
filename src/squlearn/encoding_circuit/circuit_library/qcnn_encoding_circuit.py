@@ -11,7 +11,6 @@ from squlearn.observables.observable_base import ObservableBase
 
 
 class QCNNEncodingCircuit(EncodingCircuitBase):
-
     """
     Encoding circuit for quantum convolutional neural networks (QCNN).
 
