@@ -1,4 +1,5 @@
 """Tests for QNNClassifier"""
+
 import pytest
 
 import numpy as np
