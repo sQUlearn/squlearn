@@ -116,7 +116,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     ) -> dict:
 
 
-        x,test = adjust_features(x, self._pqc.num_features)
+        #x,test = adjust_features(x, self._pqc.num_features)
 
 
         if not isinstance(values, tuple):
@@ -129,47 +129,50 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["x"] = x
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
+        xx = [x] # TODO: multiple features -> in a ([x1][x2]) list format (transposed to out format)
 
-        for xx in x:
 
-            for todo in values:
-                if todo=="f" or values ==("f",):
-                    param_ = pnp.array(param, requires_grad=False)
-                    param_obs_ = pnp.array(param_obs, requires_grad=False)
-                    x_ = pnp.array(xx, requires_grad=False)
-                    value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
-                    if "f" in value_dict:
-                        value_dict["f"].append(value)
-                    else:
-                        value_dict["f"] = [value]
-                elif todo=="dfdp" or values ==("dfdp",):
-                    param_ = pnp.array(param, requires_grad=True)
-                    param_obs_ = pnp.array(param_obs, requires_grad=False)
-                    x_ = pnp.array(xx, requires_grad=False)
-                    value = qml.grad(self._pennylane_circuit)(param_,x_,param_obs_)
-                    if "dfdp" in value_dict:
-                        value_dict["dfdp"].append(value)
-                    else:
-                        value_dict["dfdp"] = [value]
-                elif todo=="dfdop" or values ==("dfdop",):
-                    param_ = pnp.array(param, requires_grad=False)
-                    param_obs_ = pnp.array(param_obs, requires_grad=True)
-                    x_ = pnp.array(xx, requires_grad=False)
-                    value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
-                    if "dfdop" in value_dict:
-                        value_dict["dfdop"].append(value)
-                    else:
-                        value_dict["dfdop"] = [value]
-                elif todo=="dfdx" or values ==("dfdx",):
-                    param_ = pnp.array(param, requires_grad=False)
-                    param_obs_ = pnp.array(param_obs, requires_grad=False)
-                    x_ = pnp.array(xx, requires_grad=True)
-                    value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
-                    value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
-                    if "dfdx" in value_dict:
-                        value_dict["dfdx"].append(value)
-                    else:
-                        value_dict["dfdx"] = [value]
+        for todo in values:
+            if todo=="f" or values ==("f",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+                value_dict["f"] = value
+                # if "f" in value_dict:
+                #     value_dict["f"].append(value)
+                # else:
+                #     value_dict["f"] = [value]
+            elif todo=="dfdp" or values ==("dfdp",):
+                param_ = pnp.array(param, requires_grad=True)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdp"] = value
+                # if "dfdp" in value_dict:
+                #     value_dict["dfdp"].append(value)
+                # else:
+                #     value_dict["dfdp"] = [value]
+            elif todo=="dfdop" or values ==("dfdop",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=True)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdop"] = value
+                # if "dfdop" in value_dict:
+                #     value_dict["dfdop"].append(value)
+                # else:
+                #     value_dict["dfdop"] = [value]
+            elif todo=="dfdx" or values ==("dfdx",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=True)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdx"] = value
+                # if "dfdx" in value_dict:
+                #     value_dict["dfdx"].append(value)
+                # else:
+                #     value_dict["dfdx"] = [value]
 
 
         if "f" in value_dict:
