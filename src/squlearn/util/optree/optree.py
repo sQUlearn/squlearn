@@ -4,6 +4,7 @@ import copy
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import ParameterExpression
+from squlearn.encoding_circuit import TranspiledEncodingCircuit #CHANGED
 
 
 class OpTreeElementBase:
@@ -850,6 +851,7 @@ class OpTree:
 
     @staticmethod #CHANGED
     def compose_optree_with_circuit(
+        self,
         optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue],
         circuits: list,
         pos_front: bool = True
@@ -866,6 +868,14 @@ class OpTree:
         Returns:
             The OpTree structure composed with the circuits.
         """
+
+        def combine_circuits(circ1,circ2,pos_front = True):
+            if pos_front:
+                circ1 = TranspiledEncodingCircuit(circ1, self._executor.backend)
+                return OpTreeCircuit(circ1.get_circuit([],[]).compose(circ2))
+            else:
+                circ1 = TranspiledEncodingCircuit(circ1, self._executor.backend)
+                return OpTreeCircuit(circ2.compose(circ1.get_circuit([],[])))
 
         if isinstance(optree_element, OpTreeNodeBase):
             # Recursive copy of the OpTreeNode structure and binding of the parameters
@@ -889,18 +899,12 @@ class OpTree:
             if isinstance(optree_element, QuantumCircuit):
                 return_list = []
                 for x_inp_ in circuits:
-                    if pos_front:
-                        return_list.append(OpTreeCircuit(x_inp_.compose(optree_element)))
-                    else:
-                        return_list.append(OpTreeCircuit(optree_element.compose(x_inp_)))
+                    return_list.append(combine_circuits(x_inp_, optree_element, pos_front))
                 return OpTreeList(return_list)
             elif isinstance(optree_element, OpTreeCircuit):
                 return_list = []
                 for x_inp_ in circuits:
-                    if pos_front:
-                        return_list.append(OpTreeCircuit(x_inp_.compose(optree_element.circuit)))
-                    else:
-                        return_list.append(OpTreeCircuit(optree_element.circuit.compose(x_inp_)))
+                    return_list.append(combine_circuits(x_inp_, optree_element.circuit, pos_front))
                 return OpTreeList(return_list)
             elif isinstance(optree_element, OpTreeValue):
                 return optree_element  # Add nothing to the optree

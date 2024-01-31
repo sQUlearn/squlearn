@@ -257,7 +257,7 @@ class QNN:
         self._inital_shots = self._executor.get_shots()
 
         self._optree_caching = optree_caching
-        self._result_caching = False #CHANGED
+        self._result_caching = result_caching
 
         self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
         self.operator = operator
@@ -923,7 +923,7 @@ class QNN:
             # get the circuits of the PQC derivatives from the encoding circuit module
             pqc_optree_1 = self.pqc_derivatives.get_derivative(key)
 
-            pqc_optree = OpTree.compose_optree_with_circuit(pqc_optree_1,x_inp) #CHANGED
+            pqc_optree = OpTree.compose_optree_with_circuit(self,pqc_optree_1,x_inp) #CHANGED
 
             num_nested = OpTree.get_num_nested_lists(pqc_optree_1) #CHANGED
 
@@ -938,10 +938,12 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
-            if Expec("dp","O","dfdp") in op_list: #CHANGED
+            if Expec("I","O","f") in op_list: #CHANGED
+                val = np.transpose(val[0], (1, 2, 0))
+            elif Expec("I","dop","dfdop") in op_list:
+                val = np.transpose(val[0], (1, 0, 2, 3))
+            elif Expec("dp","O","dfdp") in op_list:
                 val = np.transpose(val[0], (2, 0, 1, 3))
-            else:
-                val = np.transpose(val[0], (1, 0, 2))
 
             set_empty = False
             if val.shape[0] == 0:
