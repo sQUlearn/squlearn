@@ -923,6 +923,11 @@ class QNN:
             # get the circuits of the PQC derivatives from the encoding circuit module
             pqc_optree_1 = self.pqc_derivatives.get_derivative(key)
 
+            x_inp_transpiled= []
+            for x_inp_ in x_inp:
+                x_inp_transpiled.append(TranspiledEncodingCircuit(x_inp_, self._executor.backend))
+            x_inp = x_inp_transpiled
+            
             pqc_optree = OpTree.compose_optree_with_circuit(self,pqc_optree_1,x_inp) #CHANGED
 
             num_nested = OpTree.get_num_nested_lists(pqc_optree_1) #CHANGED

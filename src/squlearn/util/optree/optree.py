@@ -871,16 +871,14 @@ class OpTree:
 
         def combine_circuits(circ1,circ2,pos_front = True):
             if pos_front:
-                circ1 = TranspiledEncodingCircuit(circ1, self._executor.backend)
                 return OpTreeCircuit(circ1.get_circuit([],[]).compose(circ2))
             else:
-                circ1 = TranspiledEncodingCircuit(circ1, self._executor.backend)
                 return OpTreeCircuit(circ2.compose(circ1.get_circuit([],[])))
 
         if isinstance(optree_element, OpTreeNodeBase):
             # Recursive copy of the OpTreeNode structure and binding of the parameters
             # in the OpTree structure.
-            child_list_indexed = [OpTree.compose_optree_with_circuit(c) for c in optree_element.children]
+            child_list_indexed = [OpTree.compose_optree_with_circuit(self,c,circuits,pos_front) for c in optree_element.children]
             factor_list_bound = []
             for fac in optree_element.factor:
                 factor_list_bound.append(fac)
