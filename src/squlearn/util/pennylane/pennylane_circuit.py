@@ -71,8 +71,8 @@ class PennyLaneCircuit():
         self._pennylane_circuit = self.build_pennylane_circuit()
         return self._pennylane_circuit
 
-    def __call__(self, **kwargs):
-        return self._pennylane_circuit(**kwargs)
+    def __call__(self, *args):
+        return self._pennylane_circuit(*args)
 
     def _build_circuit_instructions(self) -> None:
 
@@ -130,7 +130,6 @@ class PennyLaneCircuit():
         for param in self._qiskit_observable.parameters:
             if param.vector.name not in self._pennylane_obs_parameters:
                 self._pennylane_obs_parameters.append(param.vector.name)
-        print("self._pennylane_obs_parameters",self._pennylane_obs_parameters)
 
         # Handle observable parameter expressions and convert them to compatible python functions
         self._pennylane_obs_param_function = []
@@ -152,27 +151,42 @@ class PennyLaneCircuit():
             pauli.string_to_pauli_word(str(p[::-1])) for p in self._qiskit_observable._pauli_list
         ]
 
+    @property
+    def circuit_arguments(self) -> list:
+        return self._pennylane_gates_parameters + self._pennylane_obs_parameters
+
     def build_pennylane_circuit(self):
+
+        print("self._pennylane_gates_parameters",self._pennylane_gates_parameters)
 
         # todo change parameter names
         @self._device.add_pennylane_decorator
-        def pennylane_circuit(**kwargs):
+        #def pennylane_circuit(**kwargs):
+        def pennylane_circuit(*args):
+        #def pennylane_circuit(x,param,param_obs):
+
+            # list -> slow?
+            circ_param_list = sum([list(args[i]) for i in range(len(self._pennylane_gates_parameters))],[])
+            obs_param_list = sum([list(args[len(self._pennylane_gates_parameters)+i]) for i in range(len(self._pennylane_obs_parameters))],[])
+
+            #for i,p in enumerate(param):
+            #    qml.RY(p, wires=i%self._num_qubits)
 
             # Build input parameter vector for the circuit
-            circ_param_list = []
-            for key in self._pennylane_gates_parameters:
-                if key not in kwargs:
-                    raise ValueError("Parameter {} not found".format(key))
-                circ_param_list += list(kwargs[key])
+            # circ_param_list = []
+            # for key in self._pennylane_gates_parameters:
+            #     if key not in kwargs:
+            #         raise ValueError("Parameter {} not found".format(key))
+            #     circ_param_list += list(kwargs[key])
 
-            # Build input parameter vector for the observable
-            obs_param_list = []
-            for key in self._pennylane_obs_parameters:
-                if key not in kwargs:
-                    raise ValueError("Parameter {} not found".format(key))
-                obs_param_list += list(kwargs[key])
+            # # Build input parameter vector for the observable
+            # obs_param_list = []
+            # for key in self._pennylane_obs_parameters:
+            #     if key not in kwargs:
+            #         raise ValueError("Parameter {} not found".format(key))
+            #     obs_param_list += list(kwargs[key])
 
-            # Loop through all penny lane gates
+           # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
                 if self._pennylane_gates_param_function[i] != None:
                     evaluated_param = tuple([func(*circ_param_list) if callable(func) else func for func in self._pennylane_gates_param_function[i]])

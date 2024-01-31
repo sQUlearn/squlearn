@@ -24,7 +24,7 @@ class LowLevelQNNBase(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_params(self) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         raise NotImplementedError
 
     @property
