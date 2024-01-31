@@ -1,4 +1,5 @@
 """Quantum Gaussian Process Regressor"""
+
 import warnings
 
 from ..matrix.kernel_matrix_base import KernelMatrixBase

@@ -1,4 +1,5 @@
 """ Negative log likelihood loss function"""
+
 import scipy
 import numpy as np
 

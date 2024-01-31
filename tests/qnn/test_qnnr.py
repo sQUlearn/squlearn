@@ -1,4 +1,5 @@
 """Tests for QNNRegressor"""
+
 import pytest
 
 import numpy as np

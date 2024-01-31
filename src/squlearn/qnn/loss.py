@@ -1,4 +1,5 @@
 """Loss function implementations for QNNs."""
+
 import abc
 from typing import Union
 import numpy as np
