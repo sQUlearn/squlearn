@@ -1,4 +1,5 @@
 
+import numpy as np
 import matplotlib.pyplot as plt
 from sympy import lambdify
 from qiskit import QuantumCircuit
@@ -113,6 +114,12 @@ class PennyLaneCircuit():
 
     def _build_observable_instructions(self) -> None:
 
+
+        def sort_parameters_after_index(parameter_vector):
+            index_list = [p.index for p in parameter_vector]
+            sorted = np.argsort(index_list)
+            return [parameter_vector[i] for i in sorted]
+
         if self._qiskit_observable == None:
             return None
 
@@ -123,10 +130,11 @@ class PennyLaneCircuit():
         for param in self._qiskit_observable.parameters:
             if param.vector.name not in self._pennylane_obs_parameters:
                 self._pennylane_obs_parameters.append(param.vector.name)
+        print("self._pennylane_obs_parameters",self._pennylane_obs_parameters)
 
         # Handle observable parameter expressions and convert them to compatible python functions
         self._pennylane_obs_param_function = []
-        symbol_tuple = tuple([p._symbol_expr for p in self._qiskit_observable.parameters] )
+        symbol_tuple = tuple([p._symbol_expr for p in sort_parameters_after_index(self._qiskit_observable.parameters)] )
         for coeff in self._qiskit_observable.coeffs:
             if isinstance(coeff, ParameterExpression):
                 if coeff._symbol_expr == None:
@@ -186,5 +194,4 @@ class PennyLaneCircuit():
 
                 return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
 
-        print("pennylane_circuit",pennylane_circuit)
         return pennylane_circuit

@@ -33,7 +33,7 @@ class PennyLaneDevice():
                     self._device_name
                 )
 
-        self._gradient_engine = "autodiff" # autodiff, tf, torch, jax
+        self._gradient_engine = gradient_engine # autodiff, tf, torch, jax
 
     @property
     def device(self) -> qml.device:
