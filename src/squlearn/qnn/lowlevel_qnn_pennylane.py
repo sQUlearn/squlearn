@@ -17,6 +17,14 @@ from .lowlevel_qnn_base import LowLevelQNNBase
 
 from ..util.data_preprocessing import adjust_features, to_tuple
 
+import tensorflow as tf
+
+import jax
+import jax.numpy as jnp
+from jax.config import config
+config.update("jax_enable_x64", True)
+
+import torch
 
 class LowLevelQNNPennyLane(LowLevelQNNBase):
 
@@ -29,7 +37,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         super().__init__(pqc, observable, executor)
 
-        self._device = PennyLaneDevice()
+        self._device = PennyLaneDevice(gradient_engine="pytorch")
 
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
@@ -42,6 +50,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # Initialize result cache
         self._result_caching = result_caching
         self.result_container = {}
+
+        self._jax_cache = {}
 
     def draw(self,**kwargs):
 
@@ -116,7 +126,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     ) -> dict:
 
         xx,test = adjust_features(x, self._pqc.num_features)
-        xx = xx.transpose()
 
         if not isinstance(values, tuple):
             values = (values,)
@@ -136,13 +145,25 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
-        value_dict = self.evaluate_autograd(values,value_dict,xx,param,param_obs)
+        if self._device._gradient_engine == "autodiff":
+            value_dict = self._evaluate_autograd(values,value_dict,xx,param,param_obs)
+        elif self._device._gradient_engine == "tf" or self._device._gradient_engine == "tensorflow":
+            value_dict = self._evaluate_tensorflow(values,value_dict,xx,param,param_obs)
+        elif self._device._gradient_engine == "jax":
+            value_dict = self._evaluate_jax(values,value_dict,xx,param,param_obs)
+        elif self._device._gradient_engine == "torch" or self._device._gradient_engine == "pytorch":
+            value_dict = self._evaluate_pytorch(values,value_dict,xx,param,param_obs)
+        else:
+            raise NotImplementedError("Gradient engine not implemented")
+
 
         return value_dict
 
 
 
-    def evaluate_autograd(self,values,value_dict,x,param,param_obs):
+    def _evaluate_autograd(self,values,value_dict,x,param,param_obs):
+
+        x = x.transpose()
 
         for todo in values:
 
@@ -176,11 +197,129 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         return value_dict
 
+    def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
 
+        x = x.transpose()
 
+        x_ = tf.convert_to_tensor(x, dtype=tf.float64)
+        param_ = tf.convert_to_tensor(param, dtype=tf.float64)
+        param_obs_ = tf.convert_to_tensor(param_obs, dtype=tf.float64)
+        # TODO -> not 100% working
+        for todo in values:
 
+            if todo in value_dict:
+                continue
 
+            if todo=="f" or values ==("f",):
+                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+                value_dict["f"] = value
+            elif todo=="dfdp" or values ==("dfdp",):
+                value = None
+                with tf.GradientTape() as tape:
+                    tape.watch(param_)
+                    y = self._pennylane_circuit(param_,x_,param_obs_)
+                    value = tape.gradient(y, param_)
+                value_dict["dfdp"] = np.array(value)
+            elif todo=="dfdop" or values ==("dfdop",):
+                value = None
+                with tf.GradientTape() as tape:
+                    tape.watch(param_obs_)
+                    y = self._pennylane_circuit(param_,x_,param_obs_)
+                    value = tape.gradient(y, param_obs_)
+                value_dict["dfdop"] = np.array(value)
+            elif todo=="dfdx" or values ==("dfdx",):
+                value = None
+                with tf.GradientTape() as tape:
+                    tape.watch(x_)
+                    y = self._pennylane_circuit(param_,x_,param_obs_)
+                    value = tape.gradient(y, x_)
+                value_dict["dfdx"] = np.array(value)
 
+        return value_dict
+
+    def _evaluate_jax(self,values,value_dict,x,param,param_obs):
+
+        x = x.transpose()
+
+        x_ = jnp.array(x)
+        param_ = jnp.array(param)
+        param_obs_ = jnp.array(param_obs)
+
+        for todo in values:
+
+            if todo in value_dict:
+                continue
+
+            if todo=="f" or values ==("f",):
+                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+                value_dict["f"] = value
+            elif todo=="dfdp" or values ==("dfdp",):
+
+                if "dfdp" not in self._jax_cache:
+                    self._jax_cache["dfdp"] = jax.jacobian(self._pennylane_circuit, argnums=0)
+                fun = self._jax_cache["dfdp"]
+                value = fun(param_,x_,param_obs_)
+                value_dict["dfdp"] = np.array(value)
+            elif todo=="dfdop" or values ==("dfdop",):
+
+                if "dfdop" not in self._jax_cache:
+                    self._jax_cache["dfdop"] = jax.jacobian(self._pennylane_circuit, argnums=2)
+                fun = self._jax_cache["dfdop"]
+                value = fun(param_,x_,param_obs_)
+                value_dict["dfdop"] = np.array(value)
+            elif todo=="dfdx" or values ==("dfdx",):
+
+                if "dfdx" not in self._jax_cache:
+                    self._jax_cache["dfdx"] = jax.jacobian(self._pennylane_circuit, argnums=1)
+                fun = self._jax_cache["dfdx"]
+                value = fun(param_,x_,param_obs_)
+                value_dict["dfdx"] = np.array(value)
+
+        return value_dict
+
+    def _evaluate_pytorch(self,values,value_dict,x,param,param_obs):
+
+        x = x.transpose()
+        print(x)
+
+        for todo in values:
+
+            if todo in value_dict:
+                continue
+
+            if todo=="f" or values ==("f",):
+                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
+                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
+                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+                value_dict["f"] = value
+            elif todo=="dfdp" or values ==("dfdp",):
+                x_ = torch.tensor(x, requires_grad=False)
+                param_ = torch.tensor(param, requires_grad=True)
+                param_obs_ = torch.tensor(param_obs, requires_grad=False)
+                result = self._pennylane_circuit(param_,x_,param_obs_)
+                print("x_",x_)
+                print("result",result)
+                print("torch.ones_like(result)",torch.ones_like(result))
+                value = torch.autograd.grad(result, param_, torch.ones_like(result),retain_graph=True )#, create_graph =True)
+                print("value",value)
+                value_dict["dfdp"] = np.array(value)
+            elif todo=="dfdop" or values ==("dfdop",):
+                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
+                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=True)
+                result = self._pennylane_circuit(param_,x_,param_obs_)
+                result.backward(torch.ones_like(result),create_graph=True)
+                value_dict["dfdop"] = np.array(param_obs_.grad)
+            elif todo=="dfdx" or values ==("dfdx",):
+                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=True)
+                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
+                result = self._pennylane_circuit(param_,x_,param_obs_)
+                result.backward(torch.ones_like(result),create_graph=True)
+                value_dict["dfdx"] = np.array(x_.grad)
+
+        return value_dict
 
 
 
