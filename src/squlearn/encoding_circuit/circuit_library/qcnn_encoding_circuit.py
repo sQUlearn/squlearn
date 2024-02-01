@@ -620,10 +620,15 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         Build a fitting observable for the current circuit.
 
         This function should be called after beeing finished building the circuit.
-        It only contains single qubit measurements.
+        It maps the supplied observable on the circuit, so that only the left qubits
+        are measured.
 
         Args:
-            pauli (str): Its the used pauli gate so either X,Y or Z.
+            obs Union[ObservableBase, str]: A squlearn observable can be supplied
+                with n-qubit measurements, where n can not exceed the number of left qubits.
+                Alternatively, a string of a pauli gate (X, Y or Z) can be supplied and
+                an observable of single qubit measurements, mapped on the left qubits,
+                is build.
 
         Return:
             Returns the fitting observable.
