@@ -62,7 +62,7 @@ class PennyLaneDevice():
     def add_pennylane_decorator(self, pennylane_function):
 
             if self._gradient_engine == "autodiff":
-                return (pennylane_function)
+                return qml.qnode(self._device, diff_method="backprop", interface="autograd")(pennylane_function)
             elif self._gradient_engine == "tf" or self._gradient_engine == "tensorflow":
                 return qml.qnode(self._device, diff_method="backprop", interface="tf")(pennylane_function)
             elif self._gradient_engine == "jax":

@@ -16,8 +16,8 @@ from ..util import Executor
 
 from .loss import LossBase
 #from .qnn import QNN
-#from .lowlevel_qnn_qiskit import LowLevelQNN as QNN
-from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane as QNN
+from .lowlevel_qnn_qiskit import LowLevelQNN as QNN
+#from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane as QNN
 from .training import ShotControlBase
 
 

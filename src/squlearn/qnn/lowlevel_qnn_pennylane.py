@@ -136,6 +136,14 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
+        value_dict = self.evaluate_autograd(values,value_dict,xx,param,param_obs)
+
+        return value_dict
+
+
+
+    def evaluate_autograd(self,values,value_dict,x,param,param_obs):
+
         for todo in values:
 
             if todo in value_dict:
@@ -144,31 +152,40 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             if todo=="f" or values ==("f",):
                 param_ = pnp.array(param, requires_grad=False)
                 param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(xx, requires_grad=False)
+                x_ = pnp.array(x, requires_grad=False)
                 value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
                 value_dict["f"] = value
             elif todo=="dfdp" or values ==("dfdp",):
                 param_ = pnp.array(param, requires_grad=True)
                 param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(xx, requires_grad=False)
-                value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
+                x_ = pnp.array(x, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
                 value_dict["dfdp"] = value
             elif todo=="dfdop" or values ==("dfdop",):
                 param_ = pnp.array(param, requires_grad=False)
                 param_obs_ = pnp.array(param_obs, requires_grad=True)
-                x_ = pnp.array(xx, requires_grad=False)
-                value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
+                x_ = pnp.array(x, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
                 value_dict["dfdop"] = value
             elif todo=="dfdx" or values ==("dfdx",):
                 param_ = pnp.array(param, requires_grad=False)
                 param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(xx, requires_grad=True)
-                value = np.array(qml.grad(self._pennylane_circuit)(param_,x_,param_obs_))
+                x_ = pnp.array(x, requires_grad=True)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
                 value_dict["dfdx"] = value
 
-        print("value_dict",value_dict)
-
         return value_dict
+
+
+
+
+
+
+
+
+
+
+
 
 
     def evaluate_f(self,
