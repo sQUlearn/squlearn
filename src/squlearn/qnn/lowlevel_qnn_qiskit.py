@@ -16,7 +16,7 @@ from ..encoding_circuit.encoding_circuit_derivatives import (
 )
 from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-from ..util.data_preprocessing import adjust_features, adjust_parameters
+from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util import Executor
 
 from ..util.optree.optree import (
@@ -857,24 +857,6 @@ class LowLevelQNN(LowLevelQNNBase):
                 else:
                     real_todo_dic = add_to_real_todo_dic(i, real_todo_dic, value_dict)
             return real_todo_dic
-
-        def to_tuple(x):
-            """helper function for converting data into hashable tuples"""
-
-            def flatten(container):
-                for i in container:
-                    if isinstance(i, (list, tuple, np.ndarray)):
-                        for j in flatten(i):
-                            yield j
-                    else:
-                        yield i
-
-            if isinstance(x, float):
-                return tuple([x])
-            elif len(np.shape(x)) == 1:
-                return tuple(list(x))
-            else:
-                return tuple(flatten(x))
 
         # Done with the helper functions, start of the evaluate function
 

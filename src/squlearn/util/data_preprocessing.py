@@ -32,6 +32,30 @@ def adjust_parameters(x: np.ndarray, x_length: int) -> Tuple[np.ndarray, bool]:
 
     return _adjust_input(x, x_length, allow_single_array=True)
 
+def to_tuple(x: Union[float,np.ndarray,list,tuple]):
+    """Function for converting data into hashable tuples
+
+    Args:
+        x (Union[float,np.ndarray,list,tuple]): Input data.
+
+    Return:
+        Flattened tuple of the input data
+    """
+
+    def flatten(container):
+        for i in container:
+            if isinstance(i, (list, tuple, np.ndarray)):
+                for j in flatten(i):
+                    yield j
+            else:
+                yield i
+
+    if isinstance(x, float):
+        return tuple([x])
+    elif len(np.shape(x)) == 1:
+        return tuple(list(x))
+    else:
+        return tuple(flatten(x))
 
 def _adjust_input(
     x: Union[float, np.ndarray], x_length: int, allow_single_array: bool
