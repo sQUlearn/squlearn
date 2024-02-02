@@ -1885,19 +1885,19 @@ class ConvertedLayeredEncodingCircuit(EncodingCircuitBase):
         """
         split = []
         feature_name = []
-        ioff = 0
+        index_offset = 0
         for vg in self._feature_variable_group:
-            ioff += self._layered_pqc.get_number_of_variables(vg)
-            split.append(ioff)
+            index_offset += self._layered_pqc.get_number_of_variables(vg)
+            split.append(index_offset)
             feature_name.append(vg.variable_name)
         split_features = np.split(features, split)
 
         split = []
         parameter_name = []
-        ioff = 0
+        index_offset = 0
         for vg in self._parameters_variable_group:
-            ioff += self._layered_pqc.get_number_of_variables(vg)
-            split.append(ioff)
+            index_offset += self._layered_pqc.get_number_of_variables(vg)
+            split.append(index_offset)
             parameter_name.append(vg.variable_name)
         split_parameters = np.split(parameters, split)
 

@@ -84,15 +84,16 @@ class ParamZFeatureMap(EncodingCircuitBase):
         num_param = len(parameters)
 
         circuit = QuantumCircuit(self._num_qubits)
-        ioff = 0
+        index_offset = 0
         for _ in range(self._num_layers):
             for i in range(max(self._num_qubits, self._num_features)):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(
-                    parameters[ioff % num_param] * features[i % num_features], i % self._num_qubits
+                    parameters[index_offset % num_param] * features[i % num_features],
+                    i % self._num_qubits,
                 )
-                ioff += 1
+                index_offset += 1
 
             if self._entangling:
                 if self._num_layers % 2 == 0:

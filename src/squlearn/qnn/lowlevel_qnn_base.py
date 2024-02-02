@@ -8,13 +8,12 @@ from ..util import Executor
 
 
 class LowLevelQNNBase(abc.ABC):
-
-    def __init__(self,
-                 pqc: EncodingCircuitBase,
-                 observable: Union[ObservableBase, list],
-                 executor: Executor,
-                 ) -> None:
-
+    def __init__(
+        self,
+        pqc: EncodingCircuitBase,
+        observable: Union[ObservableBase, list],
+        executor: Executor,
+    ) -> None:
         self._pqc = pqc
         self._observable = observable
         self._executor = executor
@@ -63,24 +62,31 @@ class LowLevelQNNBase(abc.ABC):
     @abc.abstractmethod
     def evaluate(
         self,
-        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_obs: Union[float, np.ndarray],
+        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
     ) -> dict:
         raise NotImplementedError
 
-    def gradient(self,
-                 x: Union[float, np.ndarray],
-                 param: Union[float, np.ndarray],
-                 param_obs: Union[float, np.ndarray]):
+    def gradient(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+    ):
+        return np.concatenate(
+            (
+                self.evaluate(x, param, param_obs, "dfdp")["dfdp"],
+                self.evaluate(x, param, param_obs, "dfdop")["dfdop"],
+            ),
+            axis=None,
+        )
 
-        return np.concatenate((self.evaluate("dfdp",x, param, param_obs)["dfdp"],
-                               self.evaluate("dfdop",x, param, param_obs)["dfdop"]),axis=None)
-
-    def __call__(self,
-                 x: Union[float, np.ndarray],
-                 param: Union[float, np.ndarray],
-                 param_obs: Union[float, np.ndarray]):
-
-        return self.evaluate("f",x, param, param_obs)["f"]
+    def __call__(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+    ):
+        return self.evaluate(x, param, param_obs, "f")["f"]

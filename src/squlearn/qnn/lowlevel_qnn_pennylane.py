@@ -37,7 +37,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         super().__init__(pqc, observable, executor)
 
-        self._device = PennyLaneDevice(gradient_engine="pytorch")
+        self._device = PennyLaneDevice()
 
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
@@ -119,16 +119,14 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     #@abc.abstractmethod
     def evaluate(
         self,
-        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_obs: Union[float, np.ndarray],
+        *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
+
     ) -> dict:
 
         xx,test = adjust_features(x, self._pqc.num_features)
-
-        if not isinstance(values, tuple):
-            values = (values,)
 
         if self._pennylane_circuit.circuit_arguments != ["param","x","param_obs"]:
             raise NotImplementedError("Wrong order of circuit arguments!")
@@ -333,4 +331,4 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         param_obs: Union[float, np.ndarray],
     ) -> dict:
 
-        return self.evaluate("f",x, param, param_obs)["f"]
+        return self.evaluate(x, param, param_obs,"f")["f"]

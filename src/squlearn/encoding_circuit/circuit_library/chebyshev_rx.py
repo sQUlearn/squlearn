@@ -49,16 +49,16 @@ class ChebyshevRx(EncodingCircuitBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the ChebyshevRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
-        ioff = 0
-        for ilayer in range(self.num_layers):
+        index_offset = 0
+        for layer in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                bounds[ioff] = [0.0, self.alpha]
-                ioff = ioff + 1
+                bounds[index_offset] = [0.0, self.alpha]
+                index_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                bounds[ioff] = [-np.pi, np.pi]
-                ioff = ioff + 1
+                bounds[index_offset] = [-np.pi, np.pi]
+                index_offset += 1
         return bounds
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
@@ -134,16 +134,23 @@ class ChebyshevRx(EncodingCircuitBase):
         nparam = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
+        index_offset = 0
+        feature_offset = 0
         for _ in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                QC.rx(mapping(parameters[ioff % nparam], features[i % nfeature]), i)
-                ioff = ioff + 1
+                QC.rx(
+                    mapping(
+                        parameters[index_offset % nparam], features[feature_offset % nfeature]
+                    ),
+                    i,
+                )
+                index_offset += 1
+                feature_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                QC.rx(parameters[ioff % nparam], i)
-                ioff = ioff + 1
+                QC.rx(parameters[index_offset % nparam], i)
+                index_offset += 1
             QC = entangle_layer(QC)
 
         return QC
@@ -158,15 +165,15 @@ class ChebyshevRx(EncodingCircuitBase):
                             (default: True)
         """
         cheb_index = []
-        ioff = 0
-        for ilayer in range(self.num_layers):
+        index_offset = 0
+        for layer in range(self.num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
-                cheb_index_layer.append(ioff)
-                ioff = ioff + 1
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
 
             for i in range(self.num_qubits):
-                ioff = ioff + 1
+                index_offset += 1
 
             if flatten:
                 cheb_index += cheb_index_layer

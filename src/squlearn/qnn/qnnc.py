@@ -1,4 +1,5 @@
 """QNNClassifier Implemenation"""
+
 from typing import Callable, Union
 import sys
 

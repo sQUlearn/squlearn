@@ -1,4 +1,5 @@
 """ Tests for OpTree evaluation"""
+
 import pytest
 from typing import Tuple, List
 import numpy as np

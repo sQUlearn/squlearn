@@ -1288,9 +1288,11 @@ class OpTreeEvaluate:
 
             total_tree_list.append(_add_offset_to_tree(index_tree, len(total_circuit_list)))
             total_circuit_list += [
-                circuit
-                if circuit.num_clbits == 0
-                else circuit.remove_final_measurements(inplace=False)
+                (
+                    circuit
+                    if circuit.num_clbits == 0
+                    else circuit.remove_final_measurements(inplace=False)
+                )
                 for circuit in circuit_list
             ]
             total_operator_list += operator_list
