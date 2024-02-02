@@ -226,6 +226,8 @@ class Expec:
             return cls.from_tuple(val)
         elif isinstance(val, ParameterVectorElement):
             return cls.from_parameter(val)
+        elif isinstance(val, ParameterVector):
+            return cls.from_tuple((val,))
         else:
             raise TypeError("Unsupported type:", type(val))
 
@@ -474,43 +476,43 @@ class QNN:
 
     def evaluate_diff_tuple(
         self,
-        diff_tuple,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        diff_tuple,
     ) -> Union[float, np.ndarray]:
         """Evaluate the given tuple of derivatives of the PQC.
 
         Args:
-            diff_tuple: Tuple with parameters used in the differentiation
             x (Union[float,np.ndarray]): Input data values
             param (Union[float,np.ndarray]): Parameter values of the PQC
             param_op (Union[float,np.ndarray]): Parameter values of the operator
+            diff_tuple: Tuple with parameters used in the differentiation
 
         Returns:
             Differentiated values of the QNN
         """
-        return self.evaluate((diff_tuple,), x, param, param_op)[diff_tuple]
+        return self.evaluate(x, param, param_op, diff_tuple)[diff_tuple]
 
     def evaluate_from_string(
         self,
-        input_string: str,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        input_string: str,
     ) -> Union[float, np.ndarray]:
         """Evaluate the given PQC from an input string
 
         Args:
-            input_string (str): Input string that determines the evaluated value(s)
             x (Union[float,np.ndarray]): Input data values
             param (Union[float,np.ndarray]): Parameter values of the PQC
             param_op (Union[float,np.ndarray]): Parameter values of the operator
+            input_string (str): Input string that determines the evaluated value(s)
 
         Returns:
             Values from the QNN defined by the string
         """
-        return self.evaluate(input_string, x, param, param_op)[input_string]
+        return self.evaluate(x, param, param_op, input_string)[input_string]
 
     def evaluate_f(
         self,
@@ -528,7 +530,7 @@ class QNN:
         Returns:
             Values from the QNN
         """
-        return self.evaluate_from_string("f", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "f")
 
     def evaluate_dfdx(
         self,
@@ -546,7 +548,7 @@ class QNN:
         Returns:
             Evaluated derivatives of the the QNN with respect to `x`
         """
-        return self.evaluate_from_string("dfdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdx")
 
     def evaluate_dfdxdx(
         self,
@@ -564,7 +566,7 @@ class QNN:
         Returns:
             Evaluated second order derivatives of the the QNN with respect to `x`
         """
-        return self.evaluate_from_string("dfdxdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdxdx")
 
     def evaluate_laplace(
         self,
@@ -582,7 +584,7 @@ class QNN:
         Returns:
             Evaluated Laplacian of the the QNN for `x`
         """
-        return self.evaluate_from_string("laplace", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace")
 
     def evaluate_laplace_dp(
         self,
@@ -601,7 +603,7 @@ class QNN:
         Returns:
             Evaluated derivative of the Laplacian with respect to the PQC's parameters
         """
-        return self.evaluate_from_string("laplace_dp", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace_dp")
 
     def evaluate_laplace_dop(
         self,
@@ -619,7 +621,7 @@ class QNN:
         Returns:
             Evaluated derivative of the Laplacian with respect to the operator's parameters
         """
-        return self.evaluate_from_string("laplace_dop", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace_dop")
 
     def evaluate_dfdp(
         self,
@@ -637,7 +639,7 @@ class QNN:
         Returns:
             Evaluated derivative of the the QNN with respect to the PQC's parameters.
         """
-        return self.evaluate_from_string("dfdp", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdp")
 
     def evaluate_dfdop(
         self,
@@ -655,7 +657,7 @@ class QNN:
         Returns:
             Evaluated derivative of the the QNN with respect to the operator's parameters.
         """
-        return self.evaluate_from_string("dfdop", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdop")
 
     def evaluate_dfdpdx(
         self,
@@ -673,7 +675,7 @@ class QNN:
         Returns:
             Evaluated derivative of the QNN with respect to the PQC's parameters and `x`
         """
-        return self.evaluate_from_string("dfdpdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdpdx")
 
     def evaluate_dfdopdx(
         self,
@@ -691,7 +693,7 @@ class QNN:
         Returns:
             Evaluated derivative of the QNN with respect to the operator's parameters and `x`
         """
-        return self.evaluate_from_string("dfdopdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdopdx")
 
     def evaluate_variance(
         self,
@@ -709,7 +711,7 @@ class QNN:
         Returns:
             Evaluated variance of the the QNN
         """
-        return self.evaluate_from_string("var", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "var")
 
     def evaluate_var(
         self,
@@ -764,10 +766,10 @@ class QNN:
 
     def evaluate(
         self,
-        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        *values,
     ) -> dict:
         """General function for evaluating the output of derivatives of the QNN.
 
@@ -780,12 +782,11 @@ class QNN:
         the values are returned in a nested list.
 
         Args:
-            values : list of what values and derivatives of the QNN are evaluated.
-                Multiple inputs have to be a tuple.
             x (np.ndarray): Values of the input feature data.
             param (np.ndarray): Parameter values of the PQC parameters
             param_op (np.ndarray): Parameter values of the operator parameters
-
+            values : Derivatives (or values) of the QNN that are evaluated. Higher order
+                     derivatives are given as tuples of parameters or vectors.
 
         Results:
             Returns a dictionary with the computed values.
@@ -894,10 +895,6 @@ class QNN:
         dict_operator = [
             dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
         ]
-
-        # If values is not a tuple, convert it
-        if not isinstance(values, tuple):
-            values = (values,)
 
         # Sort the values, more complicated because values can be tuples of ParameterVectors
         indices = np.argsort([str(t) for t in values])

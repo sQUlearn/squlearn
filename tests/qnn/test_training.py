@@ -1,4 +1,5 @@
 """Tests for training methods."""
+
 import numpy as np
 
 import pytest

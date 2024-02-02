@@ -1,4 +1,5 @@
 """Tests for BaseQNN"""
+
 import pytest
 
 import numpy as np
