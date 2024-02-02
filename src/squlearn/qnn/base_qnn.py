@@ -16,7 +16,8 @@ from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase
-#from .qnn import QNN
+
+# from .qnn import QNN
 from .lowlevel_qnn_qiskit import LowLevelQNN as QNN
 from .training import ShotControlBase
 

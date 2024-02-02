@@ -253,7 +253,6 @@ class LowLevelQNN(LowLevelQNNBase):
         optree_caching=True,
         result_caching=True,
     ) -> None:
-
         pqc = TranspiledEncodingCircuit(pqc, executor.backend)
         super().__init__(pqc, operator, executor)
 

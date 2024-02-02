@@ -8,13 +8,12 @@ from ..util import Executor
 
 
 class LowLevelQNNBase(abc.ABC):
-
-    def __init__(self,
-                 pqc: EncodingCircuitBase,
-                 observable: Union[ObservableBase, list],
-                 executor: Executor,
-                 ) -> None:
-
+    def __init__(
+        self,
+        pqc: EncodingCircuitBase,
+        observable: Union[ObservableBase, list],
+        executor: Executor,
+    ) -> None:
         self._pqc = pqc
         self._observable = observable
         self._executor = executor
@@ -70,17 +69,24 @@ class LowLevelQNNBase(abc.ABC):
     ) -> dict:
         raise NotImplementedError
 
-    def gradient(self,
-                 x: Union[float, np.ndarray],
-                 param: Union[float, np.ndarray],
-                 param_obs: Union[float, np.ndarray]):
+    def gradient(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+    ):
+        return np.concatenate(
+            (
+                self.evaluate(x, param, param_obs, "dfdp")["dfdp"],
+                self.evaluate(x, param, param_obs, "dfdop")["dfdop"],
+            ),
+            axis=None,
+        )
 
-        return np.concatenate((self.evaluate(x, param, param_obs, "dfdp")["dfdp"],
-                               self.evaluate(x, param, param_obs, "dfdop")["dfdop"]),axis=None)
-
-    def __call__(self,
-                 x: Union[float, np.ndarray],
-                 param: Union[float, np.ndarray],
-                 param_obs: Union[float, np.ndarray]):
-
+    def __call__(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+    ):
         return self.evaluate(x, param, param_obs, "f")["f"]
