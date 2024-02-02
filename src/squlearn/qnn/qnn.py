@@ -492,7 +492,7 @@ class QNN:
         Returns:
             Differentiated values of the QNN
         """
-        return self.evaluate(x, param, param_op,diff_tuple)[diff_tuple]
+        return self.evaluate(x, param, param_op, diff_tuple)[diff_tuple]
 
     def evaluate_from_string(
         self,
@@ -769,7 +769,7 @@ class QNN:
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
-        *values
+        *values,
     ) -> dict:
         """General function for evaluating the output of derivatives of the QNN.
 
