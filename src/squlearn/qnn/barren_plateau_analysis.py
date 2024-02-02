@@ -65,9 +65,7 @@ def calc_var_dg(
     # Radom sampling of the gradient derivatives
     grad_val = []
     for i in range(p.shape[0]):
-        grad_val.append(
-            qnn.evaluate_diff_tuple(x, p[i], param_op,qnn.parameters[p_index[i]])
-        )
+        grad_val.append(qnn.evaluate_diff_tuple(x, p[i], param_op, qnn.parameters[p_index[i]]))
 
     # Returns variance and absolute mean value of all sampled gradient entries
     np_array = np.array(grad_val).flatten()

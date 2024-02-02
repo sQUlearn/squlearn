@@ -297,7 +297,7 @@ def train(
             if isinstance(shot_control, ShotsFromRSTD):
                 shot_control.set_shots_for_loss()
 
-        loss_values = qnn.evaluate(input_values, param_, param_op_,*loss.loss_args_tuple)
+        loss_values = qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple)
 
         loss_value = loss.value(
             loss_values,
@@ -329,7 +329,7 @@ def train(
             if isinstance(shot_control, ShotsFromRSTD):
                 if loss.loss_variance_available:
                     loss_variance = loss.variance(
-                        qnn.evaluate(input_values, param_, param_op_,*loss.variance_args_tuple),
+                        qnn.evaluate(input_values, param_, param_op_, *loss.variance_args_tuple),
                         ground_truth=ground_truth,
                         weights=weights_values,
                         iteration=iteration,
@@ -344,7 +344,7 @@ def train(
                 else:
                     raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
 
-        grad_values = qnn.evaluate(input_values, param_, param_op_,*loss.gradient_args_tuple)
+        grad_values = qnn.evaluate(input_values, param_, param_op_, *loss.gradient_args_tuple)
         grad = np.concatenate(
             loss.gradient(
                 grad_values,
@@ -497,7 +497,7 @@ def train_mini_batch(
                                 input_values[idcs[batch_slice]],
                                 param,
                                 param_op,
-                                *loss.variance_args_tuple
+                                *loss.variance_args_tuple,
                             ),
                             ground_truth=ground_truth[idcs[batch_slice]],
                             weights=weights_values[idcs[batch_slice]],
