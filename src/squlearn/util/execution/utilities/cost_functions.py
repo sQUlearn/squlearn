@@ -3,45 +3,6 @@ from qiskit import transpile
 from typing import List
 from qiskit import QuantumCircuit
 
-
-# def default_cost(circ, layouts, backend):
-#     """The default mapomatic cost function that returns the total
-#     error rate over all the layouts for the gates in the given circuit
-
-#     Parameters:
-#         circ (QuantumCircuit): circuit of interest
-#         layouts (list of lists): List of specified layouts
-#         backend (IBMQBackend): An IBM Quantum backend instance
-
-#     Returns:
-#         list: Tuples of layout and error
-#     """
-#     out = []
-#     # Make a single layout nested
-#     props = backend.properties()
-#     for layout in layouts:
-#         error = 0
-#         fid = 1
-#         for item in circ._data:
-#             if item[0].num_qubits == 2:
-#                 q0 = circ.find_bit(item[1][0]).index
-#                 q1 = circ.find_bit(item[1][1]).index
-#                 fid *= (1-props.gate_error(item[0].name, [layout[q0],
-#                                            layout[q1]]))
-
-#             elif item[0].name in ['sx', 'x']:
-#                 q0 = circ.find_bit(item[1][0]).index
-#                 fid *= 1-props.gate_error(item[0].name, layout[q0])
-
-#             elif item[0].name in ['measure', 'reset']:
-#                 q0 = circ.find_bit(item[1][0]).index
-#                 fid *= 1-props.readout_error(layout[q0])
-
-#         error = 1-fid
-#         out.append((layout, error))
-#     return out
-
-
 def cost_func_advanced(circ: QuantumCircuit, layouts: List[List], backend):
     """
     A custom cost function that includes T1 and T2 computed during idle periods,

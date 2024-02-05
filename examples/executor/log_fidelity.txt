@@ -117,3 +117,48 @@
 2024-01-18 17:06:12,669 - executor - INFO - Job status: JobStatus.DONE
 2024-01-18 17:06:13,686 - executor - INFO - Stored job in cache with hash value: 09fd15abd5cbbf70fef50bf1cb5c4ecd83304d1d
 2024-01-18 17:06:13,894 - executor - INFO - Cached job found with hash value: 09fd15abd5cbbf70fef50bf1cb5c4ecd83304d1d
+2024-02-05 17:10:30,848 - executor - INFO - Set shots to None
+2024-02-05 17:10:30,848 - executor - INFO - Executor initialized with backend: None
+2024-02-05 17:10:30,848 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('simulator_stabilizer')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>]
+2024-02-05 17:10:30,849 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-02-05 17:10:30,849 - executor - INFO - Executor initialized with session: None
+2024-02-05 17:10:30,849 - executor - INFO - Executor initialized with estimator: None
+2024-02-05 17:10:30,850 - executor - INFO - Executor initialized with sampler: None
+2024-02-05 17:10:30,850 - executor - INFO - Executor intial shots: None
+2024-02-05 17:10:30,857 - executor - INFO - Automatic backend selection started
+2024-02-05 17:10:30,857 - executor - INFO - Number of backends available with given parameters:3
+2024-02-05 17:10:30,857 - executor - INFO - Mode: speed using Mapomatic
+2024-02-05 17:10:30,858 - executor - INFO - Input circuit needs 4 qubits
+2024-02-05 17:10:36,514 - executor - INFO - Least busy backend: ibm_osaka with 127 qubits
+2024-02-05 17:10:45,099 - executor - INFO - Transpiled circuit needs 4 qubits on ibm_osaka
+2024-02-05 17:10:45,106 - executor - INFO - Best sub-layout: [77, 78, 79, 91]. Error_rate: 0.012424087918218474
+2024-02-05 17:10:45,154 - executor - INFO - Executor uses the backend: <IBMBackend('ibm_osaka')>
+2024-02-05 17:10:45,211 - executor - INFO - Executor created a new session.
+2024-02-05 17:13:25,037 - executor - INFO - Set shots to None
+2024-02-05 17:13:25,037 - executor - INFO - Executor initialized with backend: None
+2024-02-05 17:13:25,038 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('simulator_statevector')>, <IBMBackend('simulator_stabilizer')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>]
+2024-02-05 17:13:25,038 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-02-05 17:13:25,039 - executor - INFO - Executor initialized with session: None
+2024-02-05 17:13:25,039 - executor - INFO - Executor initialized with estimator: None
+2024-02-05 17:13:25,039 - executor - INFO - Executor initialized with sampler: None
+2024-02-05 17:13:25,040 - executor - INFO - Executor intial shots: None
+2024-02-05 17:13:25,042 - executor - INFO - Automatic backend selection started
+2024-02-05 17:13:25,042 - executor - INFO - Number of backends available with given parameters:3
+2024-02-05 17:13:25,043 - executor - INFO - Mode: speed using Mapomatic
+2024-02-05 17:13:25,044 - executor - INFO - Input circuit needs 16 qubits
+2024-02-05 17:13:27,822 - executor - INFO - Least busy backend: ibm_osaka with 127 qubits
+2024-02-05 17:13:35,242 - executor - INFO - Transpiled circuit needs 16 qubits on ibm_osaka
+2024-02-05 17:26:08,925 - executor - INFO - Set shots to None
+2024-02-05 17:26:08,926 - executor - INFO - Executor initialized with backend: None
+2024-02-05 17:26:08,926 - executor - INFO - Executor initialized with list of backends: [<IBMBackend('simulator_stabilizer')>, <IBMBackend('ibm_brisbane')>, <IBMBackend('ibm_kyoto')>, <IBMBackend('ibm_osaka')>, <IBMBackend('ibmq_qasm_simulator')>, <IBMBackend('simulator_extended_stabilizer')>, <IBMBackend('simulator_mps')>, <IBMBackend('simulator_statevector')>]
+2024-02-05 17:26:08,926 - executor - INFO - Executor initialized with service: <QiskitRuntimeService>
+2024-02-05 17:26:08,927 - executor - INFO - Executor initialized with session: None
+2024-02-05 17:26:08,927 - executor - INFO - Executor initialized with estimator: None
+2024-02-05 17:26:08,928 - executor - INFO - Executor initialized with sampler: None
+2024-02-05 17:26:08,928 - executor - INFO - Executor intial shots: None
+2024-02-05 17:26:08,930 - executor - INFO - Automatic backend selection started
+2024-02-05 17:26:08,930 - executor - INFO - Number of backends available with given parameters:3
+2024-02-05 17:26:08,932 - executor - INFO - Mode: speed using Mapomatic
+2024-02-05 17:26:08,932 - executor - INFO - Input circuit needs 16 qubits
+2024-02-05 17:26:11,862 - executor - INFO - Least busy backend: ibm_osaka with 127 qubits
+2024-02-05 17:26:19,413 - executor - INFO - Transpiled circuit needs 16 qubits on ibm_osaka

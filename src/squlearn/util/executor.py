@@ -59,7 +59,8 @@ class Executor:
                                                                                                                        systems or simulators
                                                                                                                      * A list of backends for automatic backend selection later on
                                                                                                                      * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
-                                                                                                                       In this case the backend has to be provided separately via ``backend=``
+                                                                                                                       If no backend is provided, the backend will be automatically selected
+                                                                                                                       from the available backends on this service
                                                                                                                      * A Session, to run the jobs on the Qiskit Runtime service
                                                                                                                      * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                                                                                                                      * A Sampler primitive (either simulator or Qiskit Runtime primitive)
@@ -109,6 +110,9 @@ class Executor:
                                that runs everything through the Executor with
                                :meth:`estimator_run`.
         shots (int): The number of shots that is used in the Executor.
+        backend_list (List[Backend]): The list of backends that is used in the Executor.
+        is_backend_chosen (bool): True if the backend has been chosen.
+        qpu_parallelization (bool): True if the QPU parallelization is used.
 
     See Also:
        * :doc:`User Guide: The Executor Class </user_guide/executor>`
@@ -138,6 +142,28 @@ class Executor:
        executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
+    **Example: Automatic backend selection**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+       from qiskit_ibm_runtime import QiskitRuntimeService
+       from squlearn.encoding_circuit import ChebyshevRx
+       from squlearn.kernel import FidelityKernel, QKRR
+
+
+       # Executor is initialized with a service, and considers all available backends
+       # (except simulators)
+       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service, auto_backend_mode="quality")
+
+       # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
+       qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
+
+       # Backend is automatically selected based on the encoding circuit
+       # All the following functions will be executed on the selected backend
+       qkrr.fit(X_train, y_train)
+
     **Example: Get the Executor based primitives**
 
     .. jupyter-execute::
@@ -162,6 +188,20 @@ class Executor:
        result = job.result()
 
 
+    ** Example: QPU parallelization **
+
+    .. jupyter-execute::
+
+       from squlearn import Executor
+
+       # All circuit executions are copied four times and are executed in parallel
+       executor = Executor(service, qpu_parallelization=4)
+
+       # The level of parallelization is determined automatically to reach a maximum
+       # parallelization level of number of qubits of the backend divided by the number of qubits
+       # of the circuit
+       executor = Executor(service, qpu_parallelization="auto")
+
     Methods:
     --------
     """
@@ -183,7 +223,7 @@ class Executor:
         shots: Union[int, None] = None,
         primitive_seed: Union[int, None] = None,
         qpu_parallelization: Union[int, str, None] = None,
-        auto_backend_mode: str = "quality",  # "speed"
+        auto_backend_mode: str = "quality",
     ) -> None:
         # Default values for internal variables
         self._backend = None

@@ -243,7 +243,9 @@ class QNN:
         optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
-        primitive (str): Primitive that is used for the evaluation of the QNN.
+        primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
+                         ``"estimator"`` or ``"sampler"``. If None, the primitive is set according
+                         to the executor. (default = None)
     """
 
     def __init__(
@@ -273,7 +275,7 @@ class QNN:
         else:
             # Automatically select backend (also returns a TranspiledEncodingCircuit except
             # for parallel qpu execution)
-            self.pqc = self._executor.select_backend(pqc)[0]
+            self.pqc, info = self._executor.select_backend(pqc)
 
         self.operator = copy.deepcopy(operator)
 
