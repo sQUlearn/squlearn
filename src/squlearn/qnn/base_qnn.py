@@ -73,7 +73,6 @@ class BaseQNN(BaseEstimator, ABC):
     ) -> None:
         super().__init__()
         self.encoding_circuit = encoding_circuit
-        self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
@@ -125,11 +124,12 @@ class BaseQNN(BaseEstimator, ABC):
         self.executor = executor
         self._qnn = QNN(
             self.encoding_circuit,
-            self.operator,
+            operator,
             executor,
             result_caching=self.caching,
             primitive=self.primitive,
         )
+        self.operator = self._qnn.operator
 
         self.shot_control = shot_control
         if self.shot_control is not None:
