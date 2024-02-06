@@ -125,7 +125,6 @@ class ObservableDerivatives:
         self._optree_start = optree
         self._optree_cache = {}
         self._optree_caching = optree_caching
-        self.get_operator()
 
     def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
         """Determine the derivative of the observable.
