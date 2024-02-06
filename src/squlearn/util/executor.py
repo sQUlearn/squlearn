@@ -89,9 +89,9 @@ class Executor:
                                                      to ``None``, no parallelization is used.
                                                      Default is ``None``.
         auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
-                                     * ``"quality"``: Automatically selects the best backend for the
-                                                      provided circuit. This is the default value.
-                                     * ``"speed"``: Automatically selects the backend with the smallest queue.
+                                  * ``"quality"``: Automatically selects the best backend for the
+                                                   provided circuit. This is the default value.
+                                  * ``"speed"``: Automatically selects the backend with the smallest queue.
 
     Attributes:
     -----------
