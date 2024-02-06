@@ -53,20 +53,19 @@ class Executor:
     Args:
         execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
 
-                                                                                                                     * A string, that specifics the simulator
-                                                                                                                       backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
-                                                                                                                     * A Qiskit backend, to run the jobs on IBM Quantum
-                                                                                                                       systems or simulators
-                                                                                                                     * A list of backends for automatic backend selection later on
-                                                                                                                     * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
-                                                                                                                       If no backend is provided, the backend will be automatically selected
-                                                                                                                       from the available backends on this service
-                                                                                                                     * A Session, to run the jobs on the Qiskit Runtime service
-                                                                                                                     * A Estimator primitive (either simulator or Qiskit Runtime primitive)
-                                                                                                                     * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+                                                                                                       * A string, that specifics the simulator
+                                                                                                         backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
+                                                                                                       * A Qiskit backend, to run the jobs on IBM Quantum
+                                                                                                         systems or simulators
+                                                                                                       * A list of backends for automatic backend selection later on
+                                                                                                       * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
+                                                                                                         If no backend is provided, the backend will be automatically selected
+                                                                                                         from the available backends on this service
+                                                                                                       * A Session, to run the jobs on the Qiskit Runtime service
+                                                                                                       * A Estimator primitive (either simulator or Qiskit Runtime primitive)
+                                                                                                       * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-                                                                                                                     Default is the initialization with the :class:`StatevectorSimulator`.
-
+                                                                                                       Default is the initialization with the :class:`StatevectorSimulator`.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
                                              Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
@@ -89,13 +88,14 @@ class Executor:
                                                      to ``None``, no parallelization is used.
                                                      Default is ``None``.
         auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
-                                  * ``"quality"``: Automatically selects the best backend for the
-                                                   provided circuit. This is the default value.
-                                  * ``"speed"``: Automatically selects the backend with the smallest queue.
+
+                                    * ``"quality"``: Automatically selects the best backend for the provided circuit. This is the default value.
+                                    * ``"speed"``: Automatically selects the backend with the smallest queue.
 
     Attributes:
     -----------
 
+    Attributes:
         execution (str): String of the execution environment.
         backend (Backend): The backend that is used in the Executor.
         session (Session): The session that is used in the Executor.
@@ -111,9 +111,6 @@ class Executor:
                                that runs everything through the Executor with
                                :meth:`estimator_run`.
         shots (int): The number of shots that is used in the Executor.
-        backend_list (List[Backend]): The list of backends that is used in the Executor.
-        is_backend_chosen (bool): True if the backend has been chosen.
-        qpu_parallelization (bool): True if the QPU parallelization is used.
 
     See Also:
        * :doc:`User Guide: The Executor Class </user_guide/executor>`
@@ -143,29 +140,6 @@ class Executor:
        executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
-
-    **Example: Automatic backend selection**
-
-    .. code-block:: python
-
-       from squlearn import Executor
-       from qiskit_ibm_runtime import QiskitRuntimeService
-       from squlearn.encoding_circuit import ChebyshevRx
-       from squlearn.kernel import FidelityKernel, QKRR
-
-       # Executor is initialized with a service, and considers all available backends
-       # (except simulators)
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service, auto_backend_mode="quality")
-
-       # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
-       qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
-
-       # Backend is automatically selected based on the encoding circuit
-       # All the following functions will be executed on the selected backend
-       qkrr.fit(X_train, y_train)
-
-
     **Example: Get the Executor based primitives**
 
     .. jupyter-execute::
@@ -189,6 +163,26 @@ class Executor:
        job = sampler.run(circuit)
        result = job.result()
 
+    **Example: Automatic backend selection**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+       from qiskit_ibm_runtime import QiskitRuntimeService
+       from squlearn.encoding_circuit import ChebyshevRx
+       from squlearn.kernel import FidelityKernel, QKRR
+
+       # Executor is initialized with a service, and considers all available backends
+       # (except simulators)
+       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service, auto_backend_mode="quality")
+
+       # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
+       qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
+
+       # Backend is automatically selected based on the encoding circuit
+       # All the following functions will be executed on the selected backend
+       qkrr.fit(X_train, y_train)
 
     **Example: QPU parallelization**
 
@@ -208,7 +202,6 @@ class Executor:
     Methods:
     --------
     """
-
     def __init__(
         self,
         execution: Union[
