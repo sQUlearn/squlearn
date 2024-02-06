@@ -49,6 +49,7 @@ class ParallelSampler(BaseSampler):
             options_ini = options
 
         super().__init__(options=options_ini)
+
         self._sampler = sampler
         self._num_parallel = num_parallel
         if transpiler is None:
@@ -69,6 +70,9 @@ class ParallelSampler(BaseSampler):
         if isinstance(self._sampler, qiskit_primitives_Sampler):
             # this is only a hack, there is no real backend in the Primitive Sampler class
             self._backend = Aer.get_backend("statevector_simulator")
+            self.shots = self._sampler.options.get("shots", 0)
+            if self.shots == 0:
+                self.shots = None
         elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
             self._backend = self._sampler._backend
             shots_sampler = self._sampler.options.get("shots", 0)

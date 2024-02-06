@@ -68,9 +68,13 @@ class ParallelEstimator(BaseEstimator):
         self.shots = None
         if hasattr(self._estimator.options, "execution"):
             self.shots = self._estimator.options.get("execution").get("shots", None)
+
         if isinstance(self._estimator, qiskit_primitives_Estimator):
             # this is only a hack, there is no real backend in the Primitive Estimator class
             self._backend = Aer.get_backend("statevector_simulator")
+            self.shots = self._estimator.options.get("shots", 0)
+            if self.shots == 0:
+                self.shots = None
         elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
             self._backend = self._estimator._backend
             shots_estimator = self._estimator.options.get("shots", 0)

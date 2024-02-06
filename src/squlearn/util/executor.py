@@ -503,9 +503,11 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
+            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
         else:
             # Create a new Estimator
             shots = self.get_shots()
+            initialize_parallel_estimator = True
             if self._IBMQuantum:
                 if self._session is not None:
                     if self._session_active is False:
@@ -541,8 +543,9 @@ class Executor:
             if not self._options_estimator:
                 self.set_shots(shots)
 
-            # Generate a in-QPU parallelized estimator
-            if self._qpu_parallelization is not None:
+        # Generate a in-QPU parallelized estimator
+        if self._qpu_parallelization is not None:
+            if initialize_parallel_estimator:
                 if isinstance(self._qpu_parallelization, str):
                     if self._qpu_parallelization == "auto":
                         self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
@@ -559,7 +562,7 @@ class Executor:
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
-            estimator = self._estimator
+        estimator = self._estimator
 
         return estimator
 
@@ -596,9 +599,11 @@ class Executor:
                     session=self._session, options=self._options_sampler
                 )
             sampler = self._sampler
+            initialize_parallel_sampler = not isinstance(sampler, ParallelSampler)
         else:
             # Create a new Sampler
             shots = self.get_shots()
+            initialize_parallel_sampler = True
 
             if self._IBMQuantum:
                 if self._session is not None:
@@ -637,8 +642,9 @@ class Executor:
             if not self._options_sampler:
                 self.set_shots(shots)
 
-            # Generate a in-QPU parallelized sampler
-            if self._qpu_parallelization is not None:
+        # Generate a in-QPU parallelized sampler
+        if self._qpu_parallelization is not None:
+            if initialize_parallel_sampler:
                 if isinstance(self._qpu_parallelization, str):
                     if self._qpu_parallelization == "auto":
                         self._sampler = ParallelSampler(self._sampler, num_parallel=None)
@@ -655,7 +661,7 @@ class Executor:
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
-            sampler = self._sampler
+        sampler = self._sampler
 
         return sampler
 
