@@ -356,14 +356,6 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
-
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
-        else:
-            self._num_qubits = self.pqc.num_virtual_qubits
-
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
@@ -378,6 +370,16 @@ class QNN:
                 self._split_paulis = False
         else:
             self._split_paulis = False
+
+        self.operator_derivatives = ObservableDerivatives(
+            self.operator, self._optree_caching, self._split_paulis
+        )
+        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
+
+        if self.pqc.num_virtual_qubits != num_qubits_operator:
+            raise ValueError("Number of Qubits are not the same!")
+        else:
+            self._num_qubits = self.pqc.num_virtual_qubits
 
         # Initialize result cache
         self.result_container = {}
