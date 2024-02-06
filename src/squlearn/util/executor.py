@@ -66,6 +66,7 @@ class Executor:
                                                                                                                      * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
                                                                                                                      Default is the initialization with the :class:`StatevectorSimulator`.
+
         backend (Union[Backend, str, None]): The backend that is used for the execution.
                                              Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
@@ -91,10 +92,10 @@ class Executor:
                                      * ``"quality"``: Automatically selects the best backend for the
                                                       provided circuit. This is the default value.
                                      * ``"speed"``: Automatically selects the backend with the smallest queue.
+
     Attributes:
     -----------
 
-    Attributes:
         execution (str): String of the execution environment.
         backend (Backend): The backend that is used in the Executor.
         session (Session): The session that is used in the Executor.
@@ -142,6 +143,7 @@ class Executor:
        executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
+
     **Example: Automatic backend selection**
 
     .. code-block:: python
@@ -150,7 +152,6 @@ class Executor:
        from qiskit_ibm_runtime import QiskitRuntimeService
        from squlearn.encoding_circuit import ChebyshevRx
        from squlearn.kernel import FidelityKernel, QKRR
-
 
        # Executor is initialized with a service, and considers all available backends
        # (except simulators)
@@ -163,6 +164,7 @@ class Executor:
        # Backend is automatically selected based on the encoding circuit
        # All the following functions will be executed on the selected backend
        qkrr.fit(X_train, y_train)
+
 
     **Example: Get the Executor based primitives**
 
@@ -188,19 +190,20 @@ class Executor:
        result = job.result()
 
 
-    ** Example: QPU parallelization **
+    **Example: QPU parallelization**
 
     .. jupyter-execute::
 
        from squlearn import Executor
 
        # All circuit executions are copied four times and are executed in parallel
-       executor = Executor(service, qpu_parallelization=4)
+       executor = Executor("statevector_simulator", qpu_parallelization=4)
 
        # The level of parallelization is determined automatically to reach a maximum
        # parallelization level of number of qubits of the backend divided by the number of qubits
        # of the circuit
-       executor = Executor(service, qpu_parallelization="auto")
+       executor = Executor("statevector_simulator", qpu_parallelization="auto")
+
 
     Methods:
     --------
