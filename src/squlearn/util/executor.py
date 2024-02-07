@@ -202,6 +202,7 @@ class Executor:
     Methods:
     --------
     """
+
     def __init__(
         self,
         execution: Union[
@@ -403,7 +404,10 @@ class Executor:
 
         # Check if execution is on a remote IBM backend
         if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-            self._IBMQuantum = True
+            if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
+                self._IBMQuantum = False
+            else:
+                self._IBMQuantum = True
         else:
             self._IBMQuantum = False
 

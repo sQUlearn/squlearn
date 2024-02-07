@@ -391,7 +391,11 @@ class ParallelSampler(BaseSampler):
         """
 
         if max_qubits is None:
-            max_qubits = self._backend.configuration().n_qubits
+            try:
+                max_qubits = self._backend.configuration().n_qubits
+            except AttributeError:
+                max_qubits = self._backend.num_qubits
+
             if max_qubits is None:
                 raise Warning("No number of qubits found in the given Sampler Primitive!")
 

@@ -32,7 +32,7 @@ class AutoSelectionBackend:
         n_trials_transpile=1,
         call_limit: Optional[int] = int(30000000),
         verbose: bool = False,
-        logger: Logger =None,
+        logger: Logger = None,
     ):
         """Initialize AutoSelectionBackend with service.
 
@@ -247,9 +247,11 @@ class AutoSelectionBackend:
             trans_qc_list.extend(trans_qc)
 
         best_two_q_gates_count = [
-            circ.count_ops().get("cx", 0)
-            if "cx" in circ.count_ops()
-            else circ.count_ops().get("ecr", 0)
+            (
+                circ.count_ops().get("cx", 0)
+                if "cx" in circ.count_ops()
+                else circ.count_ops().get("ecr", 0)
+            )
             for circ in trans_qc_list
         ]
 
