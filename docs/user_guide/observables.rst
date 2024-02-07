@@ -99,7 +99,7 @@ The map can be for example obtained in the transpiled encoding circuit.
 
    from squlearn.encoding_circuit import ChebyshevRx,TranspiledEncodingCircuit
    from squlearn.observables import SummedPaulis
-   from qiskit.providers.fake_provider import FakeManilaV2
+   from qiskit_ibm_runtime.fake_provider import FakeManilaV2
    fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    ob = SummedPaulis(num_qubits=3, op_str="Z")
    print("Observable before mapping:\n",ob,"\n\n")
