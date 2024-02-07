@@ -9,13 +9,15 @@ import networkx as nx
 from logging import Logger
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.providers import Backend,BackendV1,BackendV2
+from qiskit.providers import Backend, BackendV1, BackendV2
 from qiskit_ibm_runtime import QiskitRuntimeService
 import mapomatic as mm
 
 
 class NoSuitableBackendError(Exception):
     pass
+
+
 class AutoSelectionBackend:
     """Class for automatically selecting an IBM backend and layout from the available backends, given a circuit."""
 
@@ -69,9 +71,11 @@ class AutoSelectionBackend:
                 try:
                     self.service = self.backends_to_use[0].service  # get service from a backend
                 except AttributeError:
+
                     class dummy_service:
-                        def __init__(self,backend) -> None:
+                        def __init__(self, backend) -> None:
                             self.backend = backend
+
                         def least_busy(self, *args, **kwargs):
                             return self.backend
 
@@ -481,6 +485,7 @@ def get_num_qubits(backend):
         return backend.configuration().n_qubits
     except AttributeError:
         return backend.num_qubits
+
 
 def get_backend_name(backend):
     if callable(getattr(backend, "name", None)):

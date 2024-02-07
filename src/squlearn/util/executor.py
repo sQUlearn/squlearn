@@ -419,9 +419,13 @@ class Executor:
             self._backend_list = [self._backend]
         else:
             if self._IBMQuantum is False:
-                if "fake" not in str(self._backend).lower() and "fake" not in str(self._backend_list).lower():
+                if (
+                    "fake" not in str(self._backend).lower()
+                    and "fake" not in str(self._backend_list).lower()
+                ):
                     raise ValueError(
-                        "Automatic backend selection is only supported" + " for IBM Quantum backends!"
+                        "Automatic backend selection is only supported"
+                        + " for IBM Quantum backends!"
                     )
 
         # set initial shots
