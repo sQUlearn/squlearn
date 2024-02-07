@@ -9,15 +9,13 @@ import networkx as nx
 from logging import Logger
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.providers import Backend
+from qiskit.providers import Backend,BackendV1,BackendV2
 from qiskit_ibm_runtime import QiskitRuntimeService
 import mapomatic as mm
 
 
 class NoSuitableBackendError(Exception):
     pass
-
-
 class AutoSelectionBackend:
     """Class for automatically selecting an IBM backend and layout from the available backends, given a circuit."""
 
@@ -68,13 +66,28 @@ class AutoSelectionBackend:
         if self.service is None:
             self._obtain_backends_from_service = False
             if self.backends_to_use is not None:
-                self.service = self.backends_to_use[0].service  # get service from a backend
+                try:
+                    self.service = self.backends_to_use[0].service  # get service from a backend
+                except AttributeError:
+                    class dummy_service:
+                        def __init__(self,backend) -> None:
+                            self.backend = backend
+                        def least_busy(self, *args, **kwargs):
+                            return self.backend
+
+                    self.service = dummy_service(self.backends_to_use[0])
             else:
                 raise NoSuitableBackendError("Error: Either provide service or backends_to_use.")
         else:
             self._obtain_backends_from_service = True
 
         self.backends = self._get_backend_list()
+
+        for b in self.backends:
+            if isinstance(b, BackendV1):
+                continue
+            elif isinstance(b, BackendV2):
+                raise NoSuitableBackendError("Error: Only V1 backends are supported.")
 
         self._print("Automatic backend selection started")
         if self.backends:
@@ -99,12 +112,12 @@ class AutoSelectionBackend:
         # Check minimum number of qubits
         min_qubits_condition = True
         if self.min_num_qubits:
-            min_qubits_condition = backend.configuration().n_qubits >= self.min_num_qubits
+            min_qubits_condition = get_num_qubits(backend) >= self.min_num_qubits
 
         # Check maximum number of qubits
         max_qubits_condition = True
         if self.max_num_qubits:
-            max_qubits_condition = backend.configuration().n_qubits <= self.max_num_qubits
+            max_qubits_condition = get_num_qubits(backend) <= self.max_num_qubits
 
         # Check backend name if self.backend_to_use exists
         backend_condition = True
@@ -112,7 +125,7 @@ class AutoSelectionBackend:
             backend_condition = backend in self.backends_to_use
 
         # Filter out simulators (if present)
-        if "simulator" in backend.name:
+        if "simulator" in get_backend_name(backend):
             return False
 
         # Return True only if both conditions are met
@@ -144,7 +157,7 @@ class AutoSelectionBackend:
             Backend: The specific backend object.
         """
         for backend in self.backends:
-            if backend.name == backend_name:
+            if get_backend_name(backend) == backend_name:
                 return backend
         return None
 
@@ -165,7 +178,7 @@ class AutoSelectionBackend:
             filters=self._filters,
         )
         self._print(
-            f"Least busy backend: {least_busy_backend.name} with {least_busy_backend.configuration().n_qubits} qubits"
+            f"Least busy backend: {get_backend_name(least_busy_backend)} with {get_num_qubits(least_busy_backend)} qubits"
         )
         return least_busy_backend
 
@@ -182,7 +195,8 @@ class AutoSelectionBackend:
         backend_by_family = {}
 
         for backend in self.backends:
-            backend_qubits = backend.configuration().n_qubits
+            backend_qubits = get_num_qubits(backend)
+
             if hasattr(backend, "processor_type"):
                 if hasattr(backend.processor_type, "family"):
                     backend_processor_family = backend.processor_type.get("family", "unknown")
@@ -268,7 +282,7 @@ class AutoSelectionBackend:
         # Filter out self.backend based on the circuit number of qubits
         possible_backends = []
         for backend in self.backends:
-            if backend.configuration().n_qubits >= small_qc.num_qubits:
+            if get_num_qubits(backend) >= small_qc.num_qubits:
                 possible_backends.append(backend)
 
         if self.useHQAA:
@@ -289,7 +303,7 @@ class AutoSelectionBackend:
             # retrieve the backend from result of best_overall_layout
             best_backend = self._get_specific_backend(best_layout[1])
             self._print(
-                f"Best sub-layout: {best_layout[0]} on backend: {best_backend.name}. Error_rate: {best_layout[2]}"
+                f"Best sub-layout: {best_layout[0]} on backend: {get_backend_name(best_backend)}. Error_rate: {best_layout[2]}"
             )
             # retranspile the circuit to the best backend using best_layout
             best_qc = transpile(
@@ -326,7 +340,7 @@ class AutoSelectionBackend:
         )
         small_qc = mm.deflate_circuit(trans_qc)
         self._print(
-            f"Transpiled circuit needs {small_qc.num_qubits} qubits on {least_busy_backend.name}"
+            f"Transpiled circuit needs {small_qc.num_qubits} qubits on {get_backend_name(least_busy_backend)}"
         )
         if self.useHQAA:
             final_circuit, least_busy_backend, score, layout = self.evaluate_via_HQAA(
@@ -411,7 +425,7 @@ class AutoSelectionBackend:
             )
             this_score = mm.evaluate_layouts(
                 final_circuit,
-                range(backend.configuration().n_qubits),
+                range(get_num_qubits(backend)),
                 backend,
                 cost_function=self.cost_function,
             )
@@ -459,3 +473,17 @@ class AutoSelectionBackend:
             return self._evaluate_speed_mode(circuit, least_busy_backend)
         else:
             raise ValueError(f"Invalid mode: {mode}. Expected 'quality' or 'speed'.")
+
+
+def get_num_qubits(backend):
+
+    try:
+        return backend.configuration().n_qubits
+    except AttributeError:
+        return backend.num_qubits
+
+def get_backend_name(backend):
+    if callable(getattr(backend, "name", None)):
+        return backend.name()
+    else:
+        return backend.name

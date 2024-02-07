@@ -232,6 +232,8 @@ class Executor:
         self._session_active = False
         self._execution_origin = ""
 
+        initial_shots = shots
+
         # Copy estimator options and make a dict
         self._options_estimator = options_estimator
         if self._options_estimator is None:
@@ -352,7 +354,8 @@ class Executor:
                         shots = 1024
                     self._estimator.set_options(shots=shots)
                 else:
-                    shots = shots_estimator
+                    if shots is None:
+                        shots = shots_estimator
             # Real Backend
             elif hasattr(self._estimator, "session"):
                 self._session = self._estimator.session
@@ -383,7 +386,8 @@ class Executor:
                         shots = 1024
                     self._sampler.set_options(shots=shots)
                 else:
-                    shots = shots_sampler
+                    if shots is None:
+                        shots = shots_sampler
             elif hasattr(self._sampler, "session"):
                 self._session = self._sampler.session
                 self._service = self._sampler.session.service
@@ -415,9 +419,10 @@ class Executor:
             self._backend_list = [self._backend]
         else:
             if self._IBMQuantum is False:
-                raise ValueError(
-                    "Automatic backend selection is only supported" + " for IBM Quantum backends!"
-                )
+                if "fake" not in str(self._backend).lower() and "fake" not in str(self._backend_list).lower():
+                    raise ValueError(
+                        "Automatic backend selection is only supported" + " for IBM Quantum backends!"
+                    )
 
         # set initial shots
         self._shots = shots
@@ -981,7 +986,6 @@ class Executor:
         Args:
             num_shots (int or None): Number of shots that are set
         """
-
         self._shots = num_shots
 
         if num_shots is None:
@@ -996,6 +1000,7 @@ class Executor:
         # Update shots in estimator primitive
         if self._estimator is not None:
             if isinstance(self._estimator, qiskit_primitives_Estimator):
+
                 if num_shots == 0:
                     self._estimator.set_options(shots=None)
                 else:
@@ -1321,19 +1326,18 @@ class Executor:
             backend (Backend): Backend that is used for the execution.
         """
 
+        shots = self.get_shots()
         self._backend = backend
+        self._backend.options.shots = shots
 
         self._logger.info(f"Executor uses the backend: {{}}".format(str(self._backend)))
 
-        if self._shots is None:
-            if self._backend is not None:
-                self._shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
-                    self._shots = None
-
         # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend) or "ibm" in str(self._backend_list):
-            self._IBMQuantum = True
+        if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
+            if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
+                self._IBMQuantum = False
+            else:
+                self._IBMQuantum = True
         else:
             self._IBMQuantum = False
 
