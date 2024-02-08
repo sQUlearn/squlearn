@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from typing import Union
 
 from qiskit.circuit import ParameterVector
@@ -78,7 +77,7 @@ class ChebyshevRx(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            features_per_qubit = math.ceil(self.num_qubits / self.num_features)
+            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
             p = np.linspace(0.01, self.alpha, features_per_qubit)
 
             for index2 in index:
