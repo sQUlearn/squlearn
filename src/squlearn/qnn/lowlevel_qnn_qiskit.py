@@ -20,10 +20,13 @@ from ..util.data_preprocessing import adjust_features, adjust_parameters
 from ..util import Executor
 
 from ..util.optree.optree import (
-    OpTree,
     OpTreeList,
     OpTreeCircuit,
+    OpTree,
 )
+
+from .lowlevel_qnn_base import LowLevelQNNBase
+
 
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
@@ -229,7 +232,7 @@ class Expec:
             raise TypeError("Unsupported type:", type(val))
 
 
-class QNN:
+class LowLevelQNN(LowLevelQNNBase):
     """A class for working with QNNs and its derivatives
 
     Args:
@@ -250,17 +253,15 @@ class QNN:
         optree_caching=True,
         result_caching=True,
     ) -> None:
-        # Executer set-up
-        self._executor = executor
+
+        pqc = TranspiledEncodingCircuit(pqc, executor.backend)
+        super().__init__(pqc, operator, executor)
 
         # Set-up shots from backend
         self._inital_shots = self._executor.get_shots()
 
         self._optree_caching = optree_caching
         self._result_caching = result_caching
-
-        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
-        self.operator = operator
 
         # Set-Up Executor
         if self._executor.optree_executor == "estimator":
@@ -282,15 +283,15 @@ class QNN:
         params = dict(num_qubits=self.num_qubits)
 
         if deep:
-            params.update(self.pqc.get_params())
-            if isinstance(self.operator, list):
-                for i, oper in enumerate(self.operator):
+            params.update(self._pqc.get_params())
+            if isinstance(self._observable, list):
+                for i, oper in enumerate(self._observable):
                     oper_dict = oper.get_params()
                     for key, value in oper_dict.items():
                         if key != "num_qubits":
                             params["op" + str(i) + "__" + key] = value
             else:
-                params.update(self.operator.get_params())
+                params.update(self._observable.get_params())
         return params
 
     def set_params(self, **params) -> None:
@@ -316,14 +317,14 @@ class QNN:
         # Set parameters of the PQC
         dict_pqc = {}
         for key, value in params.items():
-            if key in self.pqc.get_params():
+            if key in self._pqc.get_params():
                 dict_pqc[key] = value
         if len(dict_pqc) > 0:
-            self.pqc.set_params(**dict_pqc)
+            self._pqc.set_params(**dict_pqc)
 
         # Set parameters of the operator
-        if isinstance(self.operator, list):
-            for i, oper in enumerate(self.operator):
+        if isinstance(self._observable, list):
+            for i, oper in enumerate(self._observable):
                 dict_operator = {}
                 for key, value in params.items():
                     if key == "num_qubits":
@@ -336,10 +337,10 @@ class QNN:
         else:
             dict_operator = {}
             for key, value in params.items():
-                if key in self.operator.get_params():
+                if key in self._observable.get_params():
                     dict_operator[key] = value
             if len(dict_operator) > 0:
-                self.operator.set_params(**dict_operator)
+                self._observable.set_params(**dict_operator)
 
         self._initilize_derivative()
 
@@ -347,26 +348,26 @@ class QNN:
         """Initializes the derivative classes"""
 
         num_qubits_operator = 0
-        if isinstance(self.operator, list):
-            for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-                num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
+        if isinstance(self._observable, list):
+            for i in range(len(self._observable)):
+                self._observable[i].set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
+                num_qubits_operator = max(num_qubits_operator, self._observable[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-            num_qubits_operator = self.operator.num_qubits
+            self._observable.set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
+            num_qubits_operator = self._observable.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
+        self.operator_derivatives = ObservableDerivatives(self._observable, self._optree_caching)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._optree_caching)
 
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
+        if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
         else:
-            self._num_qubits = self.pqc.num_virtual_qubits
+            self._num_qubits = self._pqc.num_virtual_qubits
 
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
-            operator_string = str(self.operator)
+            operator_string = str(self._observable)
             if "X" in operator_string or "Y" in operator_string:
                 self._split_paulis = True
                 print(
@@ -878,16 +879,18 @@ class QNN:
         # Done with the helper functions, start of the evaluate function
 
         # input adjustments for x, param, param_op to get correct stacking of values
-        x_inp, multi_x = x,False #CHANGED
+        x_inp, multi_x = adjust_features(x, self.num_features)
         param_inp, multi_param = adjust_parameters(param, self.num_parameters)
         param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_observable)
 
         # build dictionary for later use
         dict_encoding_circuit = []
-        for param_inp_ in param_inp:
-            ddd = dict() #CHANGED
-            ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
-            dict_encoding_circuit.append(ddd)
+        for x_inp_ in x_inp:
+            dd = dict(zip(self.pqc_derivatives.feature_vector, x_inp_))
+            for param_inp_ in param_inp:
+                ddd = dd.copy()
+                ddd.update(zip(self.pqc_derivatives.parameter_vector, param_inp_))
+                dict_encoding_circuit.append(ddd)
         dict_operator = [
             dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
         ]
@@ -921,16 +924,8 @@ class QNN:
             )
 
             # get the circuits of the PQC derivatives from the encoding circuit module
-            pqc_optree_1 = self.pqc_derivatives.get_derivative(key)
-
-            x_inp_transpiled= []
-            for x_inp_ in x_inp:
-                x_inp_transpiled.append(TranspiledEncodingCircuit(x_inp_, self._executor.backend))
-            x_inp = x_inp_transpiled
-            
-            pqc_optree = OpTree.compose_optree_with_circuit(self,pqc_optree_1,x_inp) #CHANGED
-
-            num_nested = OpTree.get_num_nested_lists(pqc_optree_1) #CHANGED
+            pqc_optree = self.pqc_derivatives.get_derivative(key)
+            num_nested = OpTree.get_num_nested_lists(pqc_optree)
 
             if self._sampler is not None:
                 val = OpTree.evaluate.evaluate_with_sampler(
@@ -942,13 +937,6 @@ class QNN:
                 )
             else:
                 raise ValueError("No execution is set!")
-
-            if Expec("I","O","f") in op_list: #CHANGED
-                val = np.transpose(val[0], (1, 2, 0))
-            elif Expec("I","dop","dfdop") in op_list:
-                val = np.transpose(val[0], (1, 0, 2, 3))
-            elif Expec("dp","O","dfdp") in op_list:
-                val = np.transpose(val[0], (2, 0, 1, 3))
 
             set_empty = False
             if val.shape[0] == 0:
@@ -1016,7 +1004,10 @@ class QNN:
                         if len(shape) > 2:
                             reshape_list += list(shape[2:])
 
-                    value_dict[expec_] = np.array([i[0] for i in val_final]) #CHANGED
+                    if len(reshape_list) == 0:
+                        value_dict[expec_] = val_final.reshape(-1)[0]
+                    else:
+                        value_dict[expec_] = val_final.reshape(reshape_list)
                     ioff = ioff + 1
 
         # Set-up lables from the input list
