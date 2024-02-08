@@ -706,11 +706,13 @@ class Executor:
 
         def check_circuit_for_measurement(circuit):
             for op in circuit.data:
-                if len(op.clbits) > 0 and "statevector_simulator" in str(self.backend):
+                if len(op.clbits) > 0 and (
+                    isinstance(self._estimator, qiskit_primitives_Estimator)
+                    or (not self._estimator and "statevector_simulator" in str(self.backend))
+                ):
                     raise ValueError(
-                        "The statevector_simulator backend can not be used for the executor,"
+                        "Please use in the Executor 'BackendEstimator',"
                         " if there are intermediate measurements in the circuit."
-                        " Use e.g. qasm_simulator instead."
                     )
 
         if isinstance(circuits, QuantumCircuit):
@@ -762,6 +764,23 @@ class Executor:
         Returns:
             A qiskit job containing the results of the run.
         """
+
+        def check_circuit_for_measurement(circuit):
+            for op in circuit.data:
+                if len(op.clbits) > 0 and (
+                    isinstance(self._sampler, qiskit_primitives_Sampler)
+                    or (not self._sampler and "statevector_simulator" in str(self.backend))
+                ):
+                    raise ValueError(
+                        "Please use in the Executor 'BackendSampler',"
+                        " if there are intermediate measurements in the circuit."
+                    )
+
+        if isinstance(circuits, QuantumCircuit):
+            check_circuit_for_measurement(circuits)
+        else:
+            for circuit in circuits:
+                check_circuit_for_measurement(circuit)
 
         if isinstance(self.sampler, qiskit_primitives_BackendSampler):
             if self._set_seed_for_primitive is not None:
