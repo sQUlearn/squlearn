@@ -938,18 +938,17 @@ class OpTreeEvaluate:
         def _measure_all_unmeasured(circ_in):
             """Helper function for circuits with in-circuit measurements."""
             qubits = [i for i in range(circ_in.num_qubits)]
-            for op in circ_in.data:
-                if op.operation.name == "measure":
-                    for qubit in op.qubits:
+            for instruction, qargs, cargs in circ_in.data:
+                if instruction.name == "measure":
+                    for qubit in qargs:
                         qubits.remove(circ_in.find_bit(qubit)[0])
             circ = circ_in.copy()
             new_creg = circ._create_creg(len(qubits), "meas")
             circ.add_register(new_creg)
             circ.measure(qubits, new_creg)
-            # if len(qubits) == circ_in.num_qubits:
-            return circ
+            if len(qubits) == circ_in.num_qubits:
+                return circ
 
-        def _adjust_measurement_order(circ):
             new_ordering = []
             for instruction, qargs, cargs in circ.data:
                 if instruction.name == "measure":
@@ -1034,12 +1033,10 @@ class OpTreeEvaluate:
             for i, circ_unmeasured in enumerate(circuit_list):
                 for measure in measurement_circuits:
                     if measure is None:
-                        total_circuit_list.append(
-                            _adjust_measurement_order(_measure_all_unmeasured(circ_unmeasured))
-                        )
+                        total_circuit_list.append(_measure_all_unmeasured(circ_unmeasured))
                     else:
                         total_circuit_list.append(
-                            _adjust_measurement_order(
+                            _measure_all_unmeasured(
                                 circ_unmeasured.compose(measure, inplace=False)
                             )
                         )
