@@ -767,13 +767,13 @@ class Executor:
 
         def check_circuit_for_measurement(circuit):
             for op in circuit.data:
-                if len(op.clbits) > 0 and (
+                if op.operation.condition and (
                     isinstance(self._sampler, qiskit_primitives_Sampler)
                     or (not self._sampler and "statevector_simulator" in str(self.backend))
                 ):
                     raise ValueError(
                         "Please use in the Executor 'BackendSampler',"
-                        " if there are intermediate measurements in the circuit."
+                        " if there are qubits gates conditioned on classical bits in the circuit."
                     )
 
         if isinstance(circuits, QuantumCircuit):
