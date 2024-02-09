@@ -64,8 +64,8 @@ For general questions regarding sQUlearn, use the [GitHub Discussions](https://g
 This project was supported by the German Federal Ministry
 of Economic Affairs and Climate Action through the
 projects AutoQML (grant no. 01MQ22002A) and AQUAS
-(grant no. 01MQ22003D), as well as the German Federal Ministry
-of Education and Research through the project H2Giga
-Degrad-EL3 (grant no. 03HY110D).
+(grant no. 01MQ22003D), as well as the German Federal 
+Ministry of Education and Research through the project
+H2Giga Degrad-EL3 (grant no. 03HY110D).
 
 ---
