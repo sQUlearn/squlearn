@@ -44,6 +44,8 @@ class ChebyshevPQC(EncodingCircuitBase):
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
         entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
 
     References
     ----------
@@ -128,9 +130,12 @@ class ChebyshevPQC(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            p = np.linspace(0.01, self.alpha, self.num_qubits)
-            for i in index:
-                param[i] = p
+            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
+            p = np.linspace(0.01, self.alpha, features_per_qubit)
+
+            for index2 in index:
+                for i, ii in enumerate(index2):
+                    param[ii] = p[i % features_per_qubit]
 
         return param
 
