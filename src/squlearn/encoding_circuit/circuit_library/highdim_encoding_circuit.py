@@ -226,18 +226,17 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         qubit_list = range(self.num_qubits)
         QC.h(qubit_list)
 
-        # Determine the number of layers
-        num_layers = int(self.num_features / (self.num_qubits * 3)) + 1
+        # Determine the number of layers of not given
+        if self.num_layers is None:
+            self.num_layers = max(int(self.num_features / (self.num_qubits * 3)), 2)
 
-        # Overwrite number of layers if given by the user
-        if self.num_layers is not None:
-            if self.num_layers < num_layers:
-                raise RuntimeError("Not all features are represented in the encoding circuit!")
-            num_layers = self.num_layers
+        # Check if all features are represented in the encoding circuit
+        if self.num_layers * self.num_qubits * 3 < self.num_features:
+            raise RuntimeError("Not all features are represented in the encoding circuit!")
 
         # Loop through the layers
         index_offset = 0
-        for i in range(num_layers):
+        for i in range(self.num_layers):
             if i != 0:
                 if self.entangling_gate == "iswap":
                     QC = entangle_layer_iswap(QC)
