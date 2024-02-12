@@ -62,7 +62,7 @@ The Executor class provides the following key comfort features when executing a 
 Initialization of the Executor class
 ------------------------------------
 
-The Estimator can be initialized with various inputs (``execution=``) that specify the 
+The Estimator can be initialized with various inputs (``execution=``) that specify the
 execution environment:
 
 - A string specifying the simulator backend (e.g., ``"statevector_simulator"`` or
@@ -98,6 +98,20 @@ execution environment:
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
     executor = Executor(service.get_backend('ibm_nairobi'))
+
+  It is also possible to pass a list of backends from which the most suited backend is chosen
+  automatically (see :ref:`Automatic backend selection <autoselect>`)
+
+- Another way is to just pass the Qiskit Runtime Service to the executor. In this case, the backend
+  will be chosen automatically, for more details see :ref:`Automatic backend selection <autoselect>`.
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service)
 
 - A pre-initialized Session object, which can be used to execute quantum jobs on the Qiskit
   Runtime Service
@@ -233,8 +247,134 @@ Executor class.
     estimator = executor.get_estimator()
     estimator.set_options(resilience_level=2)
 
+.. _autoselect:
+
+Automatic backend selection
+---------------------------
+
+sQUlearn offers automatic determination of the most suitable backend for the
+Quantum Machine Learning (QML) problem. This is facilitated by initializing the Executor with a
+list of supported backends, which includes real IBM backends or simulated fake backends.
+Alternatively, users can pass a Service from Qiskit IBM Runtime, where all appropriate backends
+are automatically considered. The selection process leverages the Mapomatic tool `[1]`_ and also
+identifies the best transpilation for each backend.
+
+Two modes for backend selection are currently implemented:
+
+* ``"quality"``: This mode automatically selects the best backend, which is also the default
+  setting. An estimation of the expected error is calculated for the optimal
+  transpiled circuit of the QML model. Backend selection is performed by the
+  mapomatic tool.
+
+* ``"speed"``: In this mode, the backend with the smallest queue is automatically selected.
+
+Once a backend is chosen, it remains fixed throughout the program unless explicitly changed.
+It's worth noting that if other QML models are initialized, the chosen backend remains
+consistent. The backend selection can be unset using the unset_backend method.
+However, it's important to note that this action only triggers the selection process for
+QML models initialized thereafter.
+
+Below is an example demonstrating the selection of different simulated noisy IBM backends.
+We set up a small Quantum Neural Network (QNN) example and train it on the most suitable backend:
+
+.. jupyter-execute::
+
+   import numpy as np
+   from qiskit_ibm_runtime.fake_provider import FakeManila, FakeBelem, FakeAthens
+   from squlearn.util import Executor
+   from squlearn.qnn import QNNRegressor
+   from squlearn.observables import SummedPaulis
+   from squlearn.encoding_circuit import ChebyshevPQC
+   from squlearn.optimizers import Adam
+   from squlearn.qnn.loss import SquaredLoss
+
+   backends = [FakeBelem(), FakeAthens(), FakeManila()]
+   executor = Executor(backends, shots=10000)
+   qnn = QNNRegressor(
+       ChebyshevPQC(2, 1),
+       SummedPaulis(2),
+       executor,
+       SquaredLoss(),
+       Adam({'maxiter':2}), # Two iteration for demonstration purposes only
+       callback=None # Remove print of the progress bar for cleaner output
+   )
+   qnn.fit(np.array([[0.25],[0.75]]),np.array([0.25,0.75]))
+   print("Chosen backend:", executor.backend)
+
+In the following example, the service is used for initializing the Executor, and
+the mode is switched to ``"speed"``. The executor is then utilized for running a
+Quantum Kernel Ridge Regression (QKRR) in which the backend is chosen automatically.
+
+.. code-block:: python
+
+   import numpy as np
+   from squlearn import Executor
+   from qiskit_ibm_runtime import QiskitRuntimeService
+   from squlearn.encoding_circuit import ChebyshevRx
+   from squlearn.kernel import FidelityKernel, QKRR
+
+   # Executor is initialized with a service, and considers all available backends
+   # (except simulators)
+   service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+   executor = Executor(service, auto_backend_mode="speed")
+
+   # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
+   qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
+
+   # Backend is automatically selected based on the smallest queue
+   # All the following functions will be executed on the selected backend
+   X_train, y_train = np.array([[0.1],[0.2]]), np.array([0.1,0.2])
+   qkrr.fit(X_train, y_train)
+
+
+In-QPU parallelization
+----------------------
+
+The Executor class supports QPU (Quantum Processing Unit) parallelization, enabling simultaneous
+measurements of the same quantum circuit on the quantum hardware by duplicating the circuit.
+This feature significantly enhances the efficiency of quantum computation by reducing the number
+of required shots.
+However, it's essential to note that utilizing QPU parallelization may introduce additional noise
+and hardware errors due to increased qubitd utilization and cross-talk.
+
+The QPU parallelization parameter ``qpu_parallelization`` determines the number of parallel
+evaluations of the Quantum Circuit on the QPU. When qpu_parallelization is set to an integer
+value, it specifies the exact number of parallel executions, for instance:
+
+.. code-block:: python
+
+   executor = Executor(..., qpu_parallelization=4)
+
+This configuration instructs the Executor to duplicate all circuit executions four times and
+execute them concurrently on the QPU.
+
+Alternatively, setting ``qpu_parallelization`` to ``"auto"`` enables automatic determination of
+the parallelization level. In this mode, the Executor dynamically adjusts the degree of
+parallelization to maximize the number of possible parallel circuit measurements, for example:
+
+.. code-block:: python
+
+   executor = Executor(..., qpu_parallelization="auto")
+
+If activated, QPU parallelization is automatically applied to all Primitives created by the
+Executor. By leveraging QPU parallelization, users can expedite the execution of quantum
+circuits on real hardware. Nonetheless, it's crucial to weigh the benefits against the potential
+drawbacks of increased noise and errors. By default, ``qpu_parallelization`` is set to ``None``,
+implying no parallelization is considered unless explicitly specified.
+The transpilation considers the duplicated circuits, hence the duplicated circuits are placed
+accordingly to the qubit layout of the backend.
+In principle, this feature can be used in combination with the automatic backend selection,
+but the backend selection process might take a substantial time due to the increased number of
+circuits that need to be transpiled.
+
 .. seealso::
 
    * :class:`Executor <squlearn.Executor>`
    * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
    * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
+   * `Mapomatic: Automatic mapping of compiled circuits to low-noise sub-graphs <https://github.com/qiskit-community/mapomatic>`_
+
+.. rubric:: References
+
+_`[1]` P. D. Nation and M. Treinish "Suppressing quantum circuit errors due to system variability".
+`PRX Quantum 4(1) 010327 <https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.4.010327>`_ (2023)

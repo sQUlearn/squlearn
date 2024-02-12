@@ -167,6 +167,7 @@ class Executor:
 
     .. code-block:: python
 
+       import numpy as np
        from squlearn import Executor
        from qiskit_ibm_runtime import QiskitRuntimeService
        from squlearn.encoding_circuit import ChebyshevRx
@@ -182,6 +183,7 @@ class Executor:
 
        # Backend is automatically selected based on the encoding circuit
        # All the following functions will be executed on the selected backend
+       X_train, y_train = np.array([[0.1],[0.2]]), np.array([0.1,0.2])
        qkrr.fit(X_train, y_train)
 
     **Example: QPU parallelization**
