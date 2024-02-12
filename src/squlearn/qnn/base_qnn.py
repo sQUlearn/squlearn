@@ -43,6 +43,10 @@ class BaseQNN(BaseEstimator, ABC):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
+        primitive : The primitive that is utilized in the qnn.
+                    Default primitive is the one specified in the executor initialization,
+                    if nothing is specified, the estimator will used.
+                    Possible values are ``"estimator"`` or ``"sampler"``.
     """
 
     def __init__(
@@ -64,11 +68,11 @@ class BaseQNN(BaseEstimator, ABC):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = None,
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
         self.encoding_circuit = encoding_circuit
-        self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
@@ -116,10 +120,16 @@ class BaseQNN(BaseEstimator, ABC):
         self.caching = caching
         self.pretrained = pretrained
 
+        self.primitive = primitive
         self.executor = executor
         self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching
+            self.encoding_circuit,
+            operator,
+            executor,
+            result_caching=self.caching,
+            primitive=self.primitive,
         )
+        self.operator = self._qnn.operator
 
         self.shot_control = shot_control
         if self.shot_control is not None:

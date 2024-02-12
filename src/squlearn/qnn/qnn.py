@@ -25,6 +25,8 @@ from ..util.optree.optree import (
     OpTree,
 )
 
+import copy
+
 
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
@@ -241,6 +243,9 @@ class QNN:
         optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+        primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
+                         ``"estimator"`` or ``"sampler"``. If None, the primitive is set according
+                         to the executor. (default = None)
     """
 
     def __init__(
@@ -250,6 +255,7 @@ class QNN:
         executor: Executor,
         optree_caching=True,
         result_caching=True,
+        primitive: Union[str, None] = None,
     ) -> None:
         # Executer set-up
         self._executor = executor
@@ -260,18 +266,55 @@ class QNN:
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 
-        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
-        self.operator = operator
+        if self._executor.is_backend_chosen:
+            # Skip transpilation for parallel qpu execution
+            if self._executor.qpu_parallelization:
+                self.pqc = pqc
+            else:
+                self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
+        else:
+            # Automatically select backend (also returns a TranspiledEncodingCircuit except
+            # for parallel qpu execution)
+            self.pqc, info = self._executor.select_backend(pqc)
+
+        self.operator = copy.deepcopy(operator)
 
         # Set-Up Executor
-        if self._executor.optree_executor == "estimator":
-            self._estimator = self._executor.get_estimator()
-            self._sampler = None
-        else:
-            self._sampler = self._executor.get_sampler()
-            self._estimator = None
+        self._set_primitive(primitive)
 
+        # Initialize derivative classes
         self._initilize_derivative()
+
+    def _set_primitive(self, primitive: Union[str, None] = None) -> None:
+        """
+        Sets the primitive for evaluating the of the QNN.
+
+        Args:
+            primitive (str): Primitive that is used for the evaluation of the QNN.
+                Can be ``"estimator"`` or ``"sampler"``. If None, the primitive is set
+                according to the executor. (default = None)
+
+        """
+        if primitive is None:
+            if self._executor.optree_executor == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            else:
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+        else:
+            if primitive.lower() == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            elif primitive.lower() == "sampler":
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+            else:
+                raise ValueError("Unknown primitive:", primitive)
 
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
@@ -281,6 +324,7 @@ class QNN:
 
         """
         params = dict(num_qubits=self.num_qubits)
+        params["primitive"] = self._primitive
 
         if deep:
             params.update(self.pqc.get_params())
@@ -313,6 +357,10 @@ class QNN:
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
+
+        if "primitive" in params:
+            self._set_primitive(params["primitive"])
+            params.pop("primitive")
 
         # Set parameters of the PQC
         dict_pqc = {}
@@ -350,19 +398,27 @@ class QNN:
         num_qubits_operator = 0
         if isinstance(self.operator, list):
             for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
+                if isinstance(self.pqc, TranspiledEncodingCircuit):
+                    self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
                 num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
+            if isinstance(self.pqc, TranspiledEncodingCircuit):
+                self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
         self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
 
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
+        if isinstance(self.pqc, TranspiledEncodingCircuit):
+            if self.pqc.num_virtual_qubits != num_qubits_operator:
+                raise ValueError("Number of Qubits are not the same!")
+            else:
+                self._num_qubits = self.pqc.num_virtual_qubits
         else:
-            self._num_qubits = self.pqc.num_virtual_qubits
+            if self.pqc.num_qubits != num_qubits_operator:
+                raise ValueError("Number of Qubits are not the same!")
+            else:
+                self._num_qubits = self.pqc.num_qubits
 
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra

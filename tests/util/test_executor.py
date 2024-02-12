@@ -40,6 +40,16 @@ class TestExecutor:
         return Executor(BackendEstimator(Aer.get_backend("qasm_simulator")), primitive_seed=0)
 
     @pytest.fixture(scope="module")
+    def ExecutorParallelSampler(self) -> Executor:
+        """Executor with Sampler initialization."""
+        return Executor(Sampler(), primitive_seed=0, qpu_parallelization=3)
+
+    @pytest.fixture(scope="module")
+    def ExecutorParallelEstimator(self) -> Executor:
+        """Executor with Estimator initialization."""
+        return Executor(Estimator(), primitive_seed=0, qpu_parallelization=3)
+
+    @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
         qc = QuantumCircuit(2)
@@ -60,6 +70,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
         ],
     )
     def test_shots(self, executor_str, request):
@@ -74,6 +86,8 @@ class TestExecutor:
             "ExecutorQasm": 1024,
             "ExecutorBackendSampler": 1024,
             "ExecutorBackendEstimator": 1024,
+            "ExecutorParallelSampler": None,
+            "ExecutorParallelEstimator": None,
         }
 
         assert executor.shots == assert_dict[executor_str]
@@ -90,6 +104,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
         ],
     )
     def test_sampler(self, executor_str, request, simple_circuit):
@@ -102,6 +118,8 @@ class TestExecutor:
             "ExecutorQasm": {3: 1.0},
             "ExecutorBackendSampler": {3: 1.0},
             "ExecutorBackendEstimator": {3: 1.0},
+            "ExecutorParallelSampler": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
+            "ExecutorParallelEstimator": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
         }
 
         executor = request.getfixturevalue(executor_str)
@@ -120,6 +138,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
         ],
     )
     def test_executor(self, executor_str, request, simple_circuit, observable):
@@ -132,6 +152,8 @@ class TestExecutor:
             "ExecutorQasm": np.array([1.0]),
             "ExecutorBackendSampler": np.array([1.0]),
             "ExecutorBackendEstimator": np.array([1.0]),
+            "ExecutorParallelSampler": np.array([1.0]),
+            "ExecutorParallelEstimator": np.array([1.0]),
         }
 
         executor = request.getfixturevalue(executor_str)

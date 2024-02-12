@@ -102,6 +102,10 @@ class FidelityKernel(KernelMatrixBase):
             self._feature_vector, self._parameter_vector
         )
 
+        # Automatic select backend if not chosen
+        if not self._executor.is_backend_chosen:
+            self._enc_circ, info = self._executor.select_backend(self._enc_circ)
+
         if "statevector_simulator" in str(self._executor._backend):
             if self._parameter_vector is None:
                 self._quantum_kernel = FidelityStatevectorKernel(
