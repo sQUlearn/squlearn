@@ -6,14 +6,14 @@ import pennylane.numpy as pnp
 # TODO: Implement dynamic import for tensorflow, jax and torch
 
 
-import tensorflow as tf
+# import tensorflow as tf
 
-import jax
-import jax.numpy as jnp
-from jax.config import config
-config.update("jax_enable_x64", True)
+# import jax
+# import jax.numpy as jnp
+# from jax.config import config
+# config.update("jax_enable_x64", True)
 
-import torch
+# import torch
 
 
 

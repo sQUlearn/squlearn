@@ -17,14 +17,105 @@ from .lowlevel_qnn_base import LowLevelQNNBase
 
 from ..util.data_preprocessing import adjust_features, to_tuple
 
-import tensorflow as tf
+# import tensorflow as tf
 
-import jax
-import jax.numpy as jnp
-from jax.config import config
-config.update("jax_enable_x64", True)
+# import jax
+# import jax.numpy as jnp
+# from jax.config import config
+# config.update("jax_enable_x64", True)
 
-import torch
+# import torch
+
+class _evaluate:
+
+    def __init__(self,key,order=0,argnum=None,return_grad_param=False,return_grad_param_obs=False,return_grad_x=False,summation=False,transpose = False,squared=False):
+        self.key = key
+        self.order = order
+        self.argnum = argnum
+        self.return_grad_param = return_grad_param
+        self.return_grad_param_obs = return_grad_param_obs
+        self.return_grad_x = return_grad_x
+        self.summation = summation
+        self.transpose = transpose
+        self.squared = squared
+
+
+    @classmethod
+    def from_string(cls, val: str):
+        """Converts an input string to the Expec data structure.
+
+        Args:
+            String that defines the expectation value derivative
+
+        Returns:
+            Associated Expec object
+
+        """
+
+        if isinstance(val, str):
+            if val == "f":
+                return cls("f")
+            elif val == "dfdx":
+                return cls("dfdx",1,argnum=[1],return_grad_x=True,summation=True)
+            elif val == "dfdxdx":
+                return cls("dfdxdx",2,argnum=[1,1],return_grad_x=True,summation=True)
+            elif val == "laplace":
+                raise NotImplementedError("laplace not implemented")
+            elif val == "laplace_dp":
+                raise NotImplementedError("laplace not implemented")
+            elif val == "laplace_dop":
+                raise NotImplementedError("laplace not implemented")
+            elif val == "dfdp":
+                return cls("dfdp",1,argnum=[0],return_grad_param=True)
+            elif val == "dfdpdp":
+                return cls("dfdpdp",2,argnum=[0,0],return_grad_param=True)
+            elif val == "dfdopdp":
+                return cls("dfdopdp",2,argnum=[2,0],return_grad_param=True,return_grad_param_obs=True)
+            elif val == "dfdpdop":
+                return cls("dfdpdop",2,argnum=[0,2],return_grad_param=True,return_grad_param_obs=True)
+            elif val == "dfdop":
+                return cls("dfdop",1,argnum=[2],return_grad_param_obs=True)
+            elif val == "dfdopdop":
+                return cls("dfdopdop",2,argnum=[2,2],return_grad_param_obs=True)
+            elif val == "dfdpdx":
+                return cls("dfdpdx",2,argnum=[0,1],return_grad_param=True,return_grad_x=True,summation=True)
+            elif val == "dfdopdx":
+                return cls("dfdopdx",2,argnum=[2,1],return_grad_param_obs=True,return_grad_x=True,summation=True)
+            elif val == "dfdopdxdx":
+                return cls("dfdopdxdx",3,argnum=[2,1,1],return_grad_param_obs=True,return_grad_x=True,summation=True)
+            elif val == "fcc":
+                return cls("fcc",squared=True)
+            elif val == "dfccdx":
+                return cls("dfccdx",1,argnum=[1],return_grad_x=True,squared=True)
+            elif val == "dfccdxdx":
+                return cls("dfccdxdx",2,argnum=[1,1],return_grad_x=True,squared=True)
+            elif val == "dfccdp":
+                return cls("dfccdp",1,argnum=[0],return_grad_param=True,squared=True)
+            elif val == "dfccdpdp":
+                return cls("dfccdpdp",2,argnum=[0,0],return_grad_param=True,squared=True)
+            elif val == "dfccdopdx":
+                return cls("dfccdopdx",2,argnum=[2,1],return_grad_param_obs=True,return_grad_x=True,squared=True)
+            elif val == "dfccdop":
+                return cls("dfccdop",1,argnum=[2],return_grad_param_obs=True,squared=True)
+            elif val == "dfccdopdop":
+                return cls("dfccdopdop",2,argnum=[2,2],return_grad_param_obs=True,squared=True)
+            elif val in ("var", "varf"):
+                raise NotImplementedError("var/varf not implemented")
+            elif val in ("dvardx", "dvarfdx"):
+                raise NotImplementedError("dvardx/dvarfdx not implemented")
+            elif val in ("dvardp", "dvarfdp"):
+                raise NotImplementedError("dvardp/dvarfdp not implemented")
+            elif val in ("dvardop", "dvarfdop"):
+                raise NotImplementedError("dvardop/dvarfdop not implemented")
+            elif val == "fischer":
+                raise NotImplementedError("fischer not implemented")
+            else:
+                raise ValueError("Unknown input string:", val)
+        else:
+            raise TypeError("String expected, found type:", type(val))
+
+
+
 
 class LowLevelQNNPennyLane(LowLevelQNNBase):
 
@@ -127,6 +218,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     ) -> dict:
 
         xx,test = adjust_features(x, self._pqc.num_features)
+        xx = xx.transpose()
 
         if self._pennylane_circuit.circuit_arguments != ["param","x","param_obs"]:
             raise NotImplementedError("Wrong order of circuit arguments!")
@@ -145,12 +237,12 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         if self._device._gradient_engine == "autodiff":
             value_dict = self._evaluate_autograd(values,value_dict,xx,param,param_obs)
-        elif self._device._gradient_engine == "tf" or self._device._gradient_engine == "tensorflow":
-            value_dict = self._evaluate_tensorflow(values,value_dict,xx,param,param_obs)
-        elif self._device._gradient_engine == "jax":
-            value_dict = self._evaluate_jax(values,value_dict,xx,param,param_obs)
-        elif self._device._gradient_engine == "torch" or self._device._gradient_engine == "pytorch":
-            value_dict = self._evaluate_pytorch(values,value_dict,xx,param,param_obs)
+        # elif self._device._gradient_engine == "tf" or self._device._gradient_engine == "tensorflow":
+        #     value_dict = self._evaluate_tensorflow(values,value_dict,xx,param,param_obs)
+        # elif self._device._gradient_engine == "jax":
+        #     value_dict = self._evaluate_jax(values,value_dict,xx,param,param_obs)
+        # elif self._device._gradient_engine == "torch" or self._device._gradient_engine == "pytorch":
+        #     value_dict = self._evaluate_pytorch(values,value_dict,xx,param,param_obs)
         else:
             raise NotImplementedError("Gradient engine not implemented")
 
@@ -161,169 +253,170 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
     def _evaluate_autograd(self,values,value_dict,x,param,param_obs):
 
-        x = x.transpose()
 
         for todo in values:
 
-            if todo in value_dict:
-                continue
+            todo_class = _evaluate.from_string(todo)
+            value_dict[todo] = self._evaluate_todo(todo_class,x,param,param_obs)
 
-            if todo=="f" or values ==("f",):
-                param_ = pnp.array(param, requires_grad=False)
-                param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(x, requires_grad=False)
-                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
-                value_dict["f"] = value
-            elif todo=="dfdp" or values ==("dfdp",):
-                param_ = pnp.array(param, requires_grad=True)
-                param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(x, requires_grad=False)
-                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
-                value_dict["dfdp"] = value
-            elif todo=="dfdop" or values ==("dfdop",):
-                param_ = pnp.array(param, requires_grad=False)
-                param_obs_ = pnp.array(param_obs, requires_grad=True)
-                x_ = pnp.array(x, requires_grad=False)
-                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
-                value_dict["dfdop"] = value
-            elif todo=="dfdx" or values ==("dfdx",):
-                param_ = pnp.array(param, requires_grad=False)
-                param_obs_ = pnp.array(param_obs, requires_grad=False)
-                x_ = pnp.array(x, requires_grad=True)
-                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
-                value_dict["dfdx"] = value
 
         return value_dict
 
-    def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
+    def _evaluate_todo(self,todo_class: _evaluate,x,param,param_obs):
 
-        x = x.transpose()
+        print("todo_class",todo_class)
 
-        x_ = tf.convert_to_tensor(x, dtype=tf.float64)
-        param_ = tf.convert_to_tensor(param, dtype=tf.float64)
-        param_obs_ = tf.convert_to_tensor(param_obs, dtype=tf.float64)
-        # TODO -> not 100% working
-        for todo in values:
+        if todo_class.squared:
+            raise NotImplementedError("Square not implemented")
+        else:
+            func = self._pennylane_circuit
 
-            if todo in value_dict:
-                continue
+        param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
+        param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
+        x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
-            if todo=="f" or values ==("f",):
-                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
-                value_dict["f"] = value
-            elif todo=="dfdp" or values ==("dfdp",):
-                value = None
-                with tf.GradientTape() as tape:
-                    tape.watch(param_)
-                    y = self._pennylane_circuit(param_,x_,param_obs_)
-                    value = tape.gradient(y, param_)
-                value_dict["dfdp"] = np.array(value)
-            elif todo=="dfdop" or values ==("dfdop",):
-                value = None
-                with tf.GradientTape() as tape:
-                    tape.watch(param_obs_)
-                    y = self._pennylane_circuit(param_,x_,param_obs_)
-                    value = tape.gradient(y, param_obs_)
-                value_dict["dfdop"] = np.array(value)
-            elif todo=="dfdx" or values ==("dfdx",):
-                value = None
-                with tf.GradientTape() as tape:
-                    tape.watch(x_)
-                    y = self._pennylane_circuit(param_,x_,param_obs_)
-                    value = tape.gradient(y, x_)
-                value_dict["dfdx"] = np.array(value)
+        if todo_class.order == 0:
+            value = self._pennylane_circuit(param_,x_,param_obs_)
+        elif todo_class.order > 0:
+            order = todo_class.order-1
+            argnum = todo_class.argnum
+            deriv = qml.jacobian(func,argnum=argnum.pop(0))
+            while order > 0:
+                deriv = qml.jacobian(deriv,argnum=argnum.pop(0))
+                order -= 1
+            value = deriv(param_,x_,param_obs_)
 
-        return value_dict
+        print(todo_class.key,value)
 
-    def _evaluate_jax(self,values,value_dict,x,param,param_obs):
-
-        x = x.transpose()
-
-        x_ = jnp.array(x)
-        param_ = jnp.array(param)
-        param_obs_ = jnp.array(param_obs)
-
-        for todo in values:
-
-            if todo in value_dict:
-                continue
-
-            if todo=="f" or values ==("f",):
-                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
-                value_dict["f"] = value
-            elif todo=="dfdp" or values ==("dfdp",):
-
-                if "dfdp" not in self._jax_cache:
-                    self._jax_cache["dfdp"] = jax.jacobian(self._pennylane_circuit, argnums=0)
-                fun = self._jax_cache["dfdp"]
-                value = fun(param_,x_,param_obs_)
-                value_dict["dfdp"] = np.array(value)
-            elif todo=="dfdop" or values ==("dfdop",):
-
-                if "dfdop" not in self._jax_cache:
-                    self._jax_cache["dfdop"] = jax.jacobian(self._pennylane_circuit, argnums=2)
-                fun = self._jax_cache["dfdop"]
-                value = fun(param_,x_,param_obs_)
-                value_dict["dfdop"] = np.array(value)
-            elif todo=="dfdx" or values ==("dfdx",):
-
-                if "dfdx" not in self._jax_cache:
-                    self._jax_cache["dfdx"] = jax.jacobian(self._pennylane_circuit, argnums=1)
-                fun = self._jax_cache["dfdx"]
-                value = fun(param_,x_,param_obs_)
-                value_dict["dfdx"] = np.array(value)
-
-        return value_dict
-
-    def _evaluate_pytorch(self,values,value_dict,x,param,param_obs):
-
-        x = x.transpose()
-        print(x)
-
-        for todo in values:
-
-            if todo in value_dict:
-                continue
-
-            if todo=="f" or values ==("f",):
-                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
-                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
-                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
-                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
-                value_dict["f"] = value
-            elif todo=="dfdp" or values ==("dfdp",):
-                x_ = torch.tensor(x, requires_grad=False)
-                param_ = torch.tensor(param, requires_grad=True)
-                param_obs_ = torch.tensor(param_obs, requires_grad=False)
-                result = self._pennylane_circuit(param_,x_,param_obs_)
-                print("x_",x_)
-                print("result",result)
-                print("torch.ones_like(result)",torch.ones_like(result))
-                value = torch.autograd.grad(result, param_, torch.ones_like(result),retain_graph=True )#, create_graph =True)
-                print("value",value)
-                value_dict["dfdp"] = np.array(value)
-            elif todo=="dfdop" or values ==("dfdop",):
-                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
-                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
-                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=True)
-                result = self._pennylane_circuit(param_,x_,param_obs_)
-                result.backward(torch.ones_like(result),create_graph=True)
-                value_dict["dfdop"] = np.array(param_obs_.grad)
-            elif todo=="dfdx" or values ==("dfdx",):
-                x_ = torch.tensor(x, dtype=torch.float64, requires_grad=True)
-                param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
-                param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
-                result = self._pennylane_circuit(param_,x_,param_obs_)
-                result.backward(torch.ones_like(result),create_graph=True)
-                value_dict["dfdx"] = np.array(x_.grad)
-
-        return value_dict
+        return value
 
 
 
 
 
+    # def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
 
+    #     x = x.transpose()
+
+    #     x_ = tf.convert_to_tensor(x, dtype=tf.float64)
+    #     param_ = tf.convert_to_tensor(param, dtype=tf.float64)
+    #     param_obs_ = tf.convert_to_tensor(param_obs, dtype=tf.float64)
+    #     # TODO -> not 100% working
+    #     for todo in values:
+
+    #         if todo in value_dict:
+    #             continue
+
+    #         if todo=="f" or values ==("f",):
+    #             value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+    #             value_dict["f"] = value
+    #         elif todo=="dfdp" or values ==("dfdp",):
+    #             value = None
+    #             with tf.GradientTape() as tape:
+    #                 tape.watch(param_)
+    #                 y = self._pennylane_circuit(param_,x_,param_obs_)
+    #                 value = tape.gradient(y, param_)
+    #             value_dict["dfdp"] = np.array(value)
+    #         elif todo=="dfdop" or values ==("dfdop",):
+    #             value = None
+    #             with tf.GradientTape() as tape:
+    #                 tape.watch(param_obs_)
+    #                 y = self._pennylane_circuit(param_,x_,param_obs_)
+    #                 value = tape.gradient(y, param_obs_)
+    #             value_dict["dfdop"] = np.array(value)
+    #         elif todo=="dfdx" or values ==("dfdx",):
+    #             value = None
+    #             with tf.GradientTape() as tape:
+    #                 tape.watch(x_)
+    #                 y = self._pennylane_circuit(param_,x_,param_obs_)
+    #                 value = tape.gradient(y, x_)
+    #             value_dict["dfdx"] = np.array(value)
+
+    #     return value_dict
+
+    # def _evaluate_jax(self,values,value_dict,x,param,param_obs):
+
+    #     x = x.transpose()
+
+    #     x_ = jnp.array(x)
+    #     param_ = jnp.array(param)
+    #     param_obs_ = jnp.array(param_obs)
+
+    #     for todo in values:
+
+    #         if todo in value_dict:
+    #             continue
+
+    #         if todo=="f" or values ==("f",):
+    #             value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+    #             value_dict["f"] = value
+    #         elif todo=="dfdp" or values ==("dfdp",):
+
+    #             if "dfdp" not in self._jax_cache:
+    #                 self._jax_cache["dfdp"] = jax.jacobian(self._pennylane_circuit, argnums=0)
+    #             fun = self._jax_cache["dfdp"]
+    #             value = fun(param_,x_,param_obs_)
+    #             value_dict["dfdp"] = np.array(value)
+    #         elif todo=="dfdop" or values ==("dfdop",):
+
+    #             if "dfdop" not in self._jax_cache:
+    #                 self._jax_cache["dfdop"] = jax.jacobian(self._pennylane_circuit, argnums=2)
+    #             fun = self._jax_cache["dfdop"]
+    #             value = fun(param_,x_,param_obs_)
+    #             value_dict["dfdop"] = np.array(value)
+    #         elif todo=="dfdx" or values ==("dfdx",):
+
+    #             if "dfdx" not in self._jax_cache:
+    #                 self._jax_cache["dfdx"] = jax.jacobian(self._pennylane_circuit, argnums=1)
+    #             fun = self._jax_cache["dfdx"]
+    #             value = fun(param_,x_,param_obs_)
+    #             value_dict["dfdx"] = np.array(value)
+
+    #     return value_dict
+
+    # def _evaluate_pytorch(self,values,value_dict,x,param,param_obs):
+
+    #     x = x.transpose()
+    #     print(x)
+
+    #     for todo in values:
+
+    #         if todo in value_dict:
+    #             continue
+
+    #         if todo=="f" or values ==("f",):
+    #             x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
+    #             param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+    #             param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
+    #             value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+    #             value_dict["f"] = value
+    #         elif todo=="dfdp" or values ==("dfdp",):
+    #             x_ = torch.tensor(x, requires_grad=False)
+    #             param_ = torch.tensor(param, requires_grad=True)
+    #             param_obs_ = torch.tensor(param_obs, requires_grad=False)
+    #             result = self._pennylane_circuit(param_,x_,param_obs_)
+    #             print("x_",x_)
+    #             print("result",result)
+    #             print("torch.ones_like(result)",torch.ones_like(result))
+    #             value = torch.autograd.grad(result, param_, torch.ones_like(result),retain_graph=True )#, create_graph =True)
+    #             print("value",value)
+    #             value_dict["dfdp"] = np.array(value)
+    #         elif todo=="dfdop" or values ==("dfdop",):
+    #             x_ = torch.tensor(x, dtype=torch.float64, requires_grad=False)
+    #             param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+    #             param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=True)
+    #             result = self._pennylane_circuit(param_,x_,param_obs_)
+    #             result.backward(torch.ones_like(result),create_graph=True)
+    #             value_dict["dfdop"] = np.array(param_obs_.grad)
+    #         elif todo=="dfdx" or values ==("dfdx",):
+    #             x_ = torch.tensor(x, dtype=torch.float64, requires_grad=True)
+    #             param_ = torch.tensor(param, dtype=torch.float64, requires_grad=False)
+    #             param_obs_ = torch.tensor(param_obs, dtype=torch.float64, requires_grad=False)
+    #             result = self._pennylane_circuit(param_,x_,param_obs_)
+    #             result.backward(torch.ones_like(result),create_graph=True)
+    #             value_dict["dfdx"] = np.array(x_.grad)
+
+    #     return value_dict
 
     def evaluate_f(self,
         x: Union[float, np.ndarray],
