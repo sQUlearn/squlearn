@@ -32,7 +32,8 @@ def adjust_parameters(x: np.ndarray, x_length: int) -> Tuple[np.ndarray, bool]:
 
     return _adjust_input(x, x_length, allow_single_array=True)
 
-def to_tuple(x: Union[float,np.ndarray,list,tuple]):
+
+def to_tuple(x: Union[float, np.ndarray, list, tuple]):
     """Function for converting data into hashable tuples
 
     Args:
@@ -56,6 +57,7 @@ def to_tuple(x: Union[float,np.ndarray,list,tuple]):
         return tuple(list(x))
     else:
         return tuple(flatten(x))
+
 
 def _adjust_input(
     x: Union[float, np.ndarray], x_length: int, allow_single_array: bool

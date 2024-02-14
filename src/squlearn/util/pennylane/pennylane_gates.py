@@ -1,16 +1,21 @@
 import pennylane as qml
 
+
 def RXX(theta, wires):
-    return qml.PauliRot(theta, 'XX', wires=wires)
+    return qml.PauliRot(theta, "XX", wires=wires)
+
 
 def RYY(theta, wires):
-    return qml.PauliRot(theta, 'YY', wires=wires)
+    return qml.PauliRot(theta, "YY", wires=wires)
+
 
 def RZZ(theta, wires):
-    return qml.PauliRot(theta, 'ZZ', wires=wires)
+    return qml.PauliRot(theta, "ZZ", wires=wires)
+
 
 def RXZ(theta, wires):
-    return qml.PauliRot(theta, 'XZ', wires=wires)
+    return qml.PauliRot(theta, "XZ", wires=wires)
+
 
 qiskit_pennyland_gate_dict = {
     "h": qml.Hadamard,
@@ -30,4 +35,4 @@ qiskit_pennyland_gate_dict = {
     "rzz": RZZ,
     "rxz": RXZ,
     "u": qml.U3,
-    }
+}

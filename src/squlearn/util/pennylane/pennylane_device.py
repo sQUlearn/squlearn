@@ -16,24 +16,24 @@ import pennylane.numpy as pnp
 # import torch
 
 
+class PennyLaneDevice:
 
-class PennyLaneDevice():
-
-    def __init__(self, name: str = "default.qubit", num_qubits: Union[int,None]=None, gradient_engine: str="autodiff"):
+    def __init__(
+        self,
+        name: str = "default.qubit",
+        num_qubits: Union[int, None] = None,
+        gradient_engine: str = "autodiff",
+    ):
 
         self._device_name = name
         self._wires = num_qubits
 
         if self._wires is not None:
-            self._device = qml.device(
-                    self._device_name, wires=self._wires
-                )
+            self._device = qml.device(self._device_name, wires=self._wires)
         else:
-            self._device = qml.device(
-                    self._device_name
-                )
+            self._device = qml.device(self._device_name)
 
-        self._gradient_engine = gradient_engine # autodiff, tf, torch, jax
+        self._gradient_engine = gradient_engine  # autodiff, tf, torch, jax
 
     @property
     def device(self) -> qml.device:
@@ -55,22 +55,28 @@ class PennyLaneDevice():
 
         if self._wires != num_qubits:
             self._wires = num_qubits
-            self._device = qml.device(
-                    self._device_name, wires=self._wires
-                )
+            self._device = qml.device(self._device_name, wires=self._wires)
 
     def add_pennylane_decorator(self, pennylane_function):
 
-            if self._gradient_engine == "autodiff":
-                return qml.qnode(self._device, diff_method="backprop", interface="autograd")(pennylane_function)
-            elif self._gradient_engine == "tf" or self._gradient_engine == "tensorflow":
-                return qml.qnode(self._device, diff_method="backprop", interface="tf")(pennylane_function)
-            elif self._gradient_engine == "jax":
-                return qml.qnode(self._device, diff_method="backprop", interface="jax")(pennylane_function)
-            elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
-                return qml.qnode(self._device, diff_method="backprop", interface="torch")(pennylane_function)
-            else:
-                raise NotImplementedError("Gradient engine not implemented")
+        if self._gradient_engine == "autodiff":
+            return qml.qnode(self._device, diff_method="backprop", interface="autograd")(
+                pennylane_function
+            )
+        elif self._gradient_engine == "tf" or self._gradient_engine == "tensorflow":
+            return qml.qnode(self._device, diff_method="backprop", interface="tf")(
+                pennylane_function
+            )
+        elif self._gradient_engine == "jax":
+            return qml.qnode(self._device, diff_method="backprop", interface="jax")(
+                pennylane_function
+            )
+        elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
+            return qml.qnode(self._device, diff_method="backprop", interface="torch")(
+                pennylane_function
+            )
+        else:
+            raise NotImplementedError("Gradient engine not implemented")
 
     def get_sympy_interface(self):
 
@@ -93,7 +99,7 @@ class PennyLaneDevice():
 
             # SymPy printer for pennylane numpy implementation has to be set manually,
             # otherwise math functions are used in lambdify instead of pennylane.numpy functions
-            from sympy.printing.tensorflow import TensorflowPrinter as Printer # type: ignore
+            from sympy.printing.tensorflow import TensorflowPrinter as Printer  # type: ignore
 
             user_functions = {}
             printer = Printer(
@@ -107,7 +113,8 @@ class PennyLaneDevice():
             modules = tf
 
         elif self._gradient_engine == "jax":
-            from sympy.printing.numpy import JaxPrinter as Printer # type: ignore
+            from sympy.printing.numpy import JaxPrinter as Printer  # type: ignore
+
             user_functions = {}
             printer = Printer(
                 {
@@ -119,7 +126,7 @@ class PennyLaneDevice():
             )  #
             modules = jnp
         elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
-            from sympy.printing.pycode import PythonCodePrinter as Printer # type: ignore
+            from sympy.printing.pycode import PythonCodePrinter as Printer  # type: ignore
 
             user_functions = {}
             printer = Printer(
