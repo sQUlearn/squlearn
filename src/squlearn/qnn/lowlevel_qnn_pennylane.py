@@ -346,6 +346,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 order -= 1
             value = deriv(param_, x_, param_obs_)
 
+        print("value",value)
+
         if todo_class.transpose:
             value = value.transpose()
 

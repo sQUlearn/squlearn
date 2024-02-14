@@ -7,6 +7,7 @@ from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
 
 import pennylane as qml
+import pennylane.numpy as pnp
 import pennylane.pauli as pauli
 
 from .pennylane_device import PennyLaneDevice
@@ -189,8 +190,7 @@ class PennyLaneCircuit:
 
     @property
     def circuit_arguments(self) -> list:
-        #return self._pennylane_gates_parameters + self._pennylane_obs_parameters
-        return ['param', 'x', 'param_obs']
+        return self._pennylane_gates_parameters + self._pennylane_obs_parameters
 
     def build_pennylane_circuit(self):
 
@@ -259,7 +259,7 @@ class PennyLaneCircuit:
                             coeff_list.append(coeff)
 
                     expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
-                return expval_list
+                return pnp.stack(tuple(expval_list))
             else:
                 coeff_list = []
                 for coeff in self._pennylane_obs_param_function:
