@@ -928,6 +928,7 @@ class LowLevelQNN(LowLevelQNNBase):
 
             if set_empty is False:
                 ilist = list(range(len(val.shape)))
+                print("num_nested",num_nested)
 
                 #             # Op_list index       # fm dict   # op dict
                 swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
@@ -949,7 +950,16 @@ class LowLevelQNN(LowLevelQNNBase):
                 if num_nested > 0:
                     swapp_list = swapp_list + ilist[2 : 2 + num_nested]
 
+                print("val",val)
+                print("type(val)",type(val))
+                print("val.shape",val.shape)
+                print("swapp_list",swapp_list)
+                #swapp_list = [2, 0, 1]
+
                 val = np.transpose(val, axes=swapp_list)
+
+                print("val after swap",val)
+                print("val.shape after swap",val.shape)
 
             # store results in value_dict
             # if get rid of unncessary arrays to fit the input vector nesting
