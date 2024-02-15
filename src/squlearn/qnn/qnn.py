@@ -935,55 +935,67 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
-            set_empty = False
-            if val.shape[0] == 0:
-                set_empty = True
+            is_val_empty = False
+            if val.size == 0:
+                is_val_empty = True
 
-            # Swapp results into the following order:
-            # 1. different observables (op_list)
+            # val has the following order:
+            # 0 -> x_inp and param_inp combined (has to be separated later)
+            # 1 -> param_op_inp (often just shape 1)
+            # 2:2+num_nested -> circuit derivatives of parameter shift (if needed)
+            #                   (num_nested = order of derivatives)
+            # 2+num_nested ->  different observables (op_list - todos for same circuit)
+            # 3+num_nested:last-1 -> observable derivatives (if needed)
+            # last : multi_output
+
+            # Swapp results into the following final order:
+            # 1. different observables (op_list - todo for same circuit)
             # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)
             # 5. If there, lists of the operators (e.g. operator derivatives)
             # 6. if there, lists of the circuits (e.g. array for gradient)
+            # swapping is done in two stages, first the op_list are swapped to the first position
+            # afterward the order of each element in the op_list is adjusted
 
-            if set_empty is False:
+            # FIRST SWAP: different observables to the first place of the array
+            # swap i=2+num_nested to position 0, keep the rest in order
+            if is_val_empty is False:
                 ilist = list(range(len(val.shape)))
-
-                #             # Op_list index       # fm dict   # op dict
-                swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
-
-                length = 3 + num_nested
-                # Add multiple output data next
-                if self.multiple_output:
-                    length += 1
-                    swapp_list = swapp_list + [ilist[-1]]
-
-                # If there are lists in the operators, add them next (e.g. dfdop)
-                if len(ilist) > length:
-                    if self.multiple_output:
-                        swapp_list = swapp_list + ilist[3 + num_nested : -1]
-                    else:
-                        swapp_list = swapp_list + ilist[3 + num_nested :]
-
-                # If there are lists in the circuits, add them here (e.g. dfdp)
+                swapp_list2 = [ilist[2 + num_nested]]
+                swapp_list2 += [ilist[0]] + [ilist[1]]
                 if num_nested > 0:
-                    swapp_list = swapp_list + ilist[2 : 2 + num_nested]
-
-                val = np.transpose(val, axes=swapp_list)
+                    swapp_list2 += ilist[2 : 2 + num_nested]
+                swapp_list2 += ilist[3 + num_nested :]
+                val = np.transpose(val, axes=swapp_list2)
 
             # store results in value_dict
-            # if get rid of unncessary arrays to fit the input vector nesting
-            ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                if set_empty:
+                if is_val_empty:
                     value_dict[expec_] = np.array([])
                 else:
+                    # take array associated with op_list, convert to numpy if needed
                     if isinstance(val[iexpec], object):
                         # tolist() is needed, since numpy array conversion is otherwise hanging
                         val_final = np.array(val[iexpec].tolist(), dtype=float)
                     else:
                         val_final = val[iexpec]
+
+                    # SECOND SWAP
+                    # swap the multiple outputs to third position
+                    # swap the observable derivatives to the second position
+                    # swap the circuit derivatives to the last position
+                    ilist = list(range(len(val_final.shape)))
+                    swapp_list3 = [0, 1]
+                    if self.multiple_output:
+                        swapp_list3 += [ilist.pop()]
+                    if len(ilist) > 2 + num_nested:
+                        swapp_list3 += ilist[2 + num_nested :]
+                    if num_nested > 0:
+                        swapp_list3 += ilist[2 : 2 + num_nested]
+                    val_final = np.transpose(val_final, axes=swapp_list3)
+
+                    # Reshape for the final output, adjust x and param if needed
                     reshape_list = []
                     shape = val_final.shape
                     if multi_x:
@@ -1000,12 +1012,10 @@ class QNN:
                     else:
                         if len(shape) > 2:
                             reshape_list += list(shape[2:])
-
                     if len(reshape_list) == 0:
                         value_dict[expec_] = val_final.reshape(-1)[0]
                     else:
                         value_dict[expec_] = val_final.reshape(reshape_list)
-                    ioff = ioff + 1
 
         # Set-up lables from the input list
         for todo in values:
