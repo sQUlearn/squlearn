@@ -181,6 +181,8 @@ def _differentiate_inplace(
                     grad = grad_op
                 else:
                     grad = OpTreeMeasuredOperator(child.circuit, grad_op)
+            elif isinstance(child, OpTreeValue):
+                grad = OpTreeValue(0.0)
             elif isinstance(child, OpTreeExpectationValue):
                 raise NotImplementedError("Expectation value differentiation not implemented yet")
             else:
@@ -272,6 +274,8 @@ def _differentiate_copy(
         return OpTreeMeasuredOperator(element.circuit, grad_op)
     elif isinstance(element, OpTreeExpectationValue):
         raise NotImplementedError("Expectation value differentiation not implemented yet")
+    elif isinstance(element, OpTreeValue):
+        return OpTreeValue(0.0)
     else:
         raise ValueError("Unsupported element type: " + str(type(element)))
 
