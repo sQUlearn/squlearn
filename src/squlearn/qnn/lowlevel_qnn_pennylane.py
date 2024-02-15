@@ -260,7 +260,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     @property
     def num_operator(self) -> int:
         """Return the number outputs"""
-        return 1  # TODO
+        return self._num_operators
 
     @property
     def num_parameters_observable(self) -> int:

@@ -186,7 +186,7 @@ class PennyLaneCircuit:
         if islist:
             return pennylane_obs_param_function, pennylane_words, pennylane_obs_parameters
         else:
-            return pennylane_obs_param_function[0], pennylane_words[0], pennylane_obs_parameters[0]
+            return pennylane_obs_param_function[0], pennylane_words[0], pennylane_obs_parameters
 
     @property
     def circuit_arguments(self) -> list:
@@ -202,10 +202,14 @@ class PennyLaneCircuit:
         def pennylane_circuit(*args):
             # def pennylane_circuit(x,param,param_obs):
 
+            print("self._pennylane_gates_parameters",self._pennylane_gates_parameters)
+            print("self._pennylane_obs_parameters",self._pennylane_obs_parameters)
+
             # list -> slow?
             circ_param_list = sum(
                 [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
             )
+            print("circ_param_list",circ_param_list)
             obs_param_list = sum(
                 [
                     list(args[len(self._pennylane_gates_parameters) + i])
@@ -213,23 +217,6 @@ class PennyLaneCircuit:
                 ],
                 [],
             )
-
-            # for i,p in enumerate(param):
-            #    qml.RY(p, wires=i%self._num_qubits)
-
-            # Build input parameter vector for the circuit
-            # circ_param_list = []
-            # for key in self._pennylane_gates_parameters:
-            #     if key not in kwargs:
-            #         raise ValueError("Parameter {} not found".format(key))
-            #     circ_param_list += list(kwargs[key])
-
-            # # Build input parameter vector for the observable
-            # obs_param_list = []
-            # for key in self._pennylane_obs_parameters:
-            #     if key not in kwargs:
-            #         raise ValueError("Parameter {} not found".format(key))
-            #     obs_param_list += list(kwargs[key])
 
             # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
