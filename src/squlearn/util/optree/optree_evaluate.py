@@ -110,7 +110,9 @@ def _evaluate_index_tree(
                     temp = np.array(
                         [
                             element.factor[i]
-                            * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
+                            * _evaluate_index_tree_recursive(
+                                child, result_array, datatype=datatype
+                            )
                             for i, child in enumerate(element.children)
                         ],
                         dtype=float,
@@ -119,7 +121,9 @@ def _evaluate_index_tree(
                     temp = np.array(
                         [
                             element.factor[i]
-                            * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
+                            * _evaluate_index_tree_recursive(
+                                child, result_array, datatype=datatype
+                            )
                             for i, child in enumerate(element.children)
                         ],
                         dtype=object,

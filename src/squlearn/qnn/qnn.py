@@ -972,7 +972,6 @@ class QNN:
                 swapp_list2 += ilist[3 + num_nested :]
                 val = np.transpose(val, axes=swapp_list2)
 
-
             # store results in value_dict
             for iexpec, expec_ in enumerate(op_list):
                 if is_val_empty:
@@ -990,7 +989,7 @@ class QNN:
                     # swap the observable derivatives to the second position
                     # swap the circuit derivatives to the last position
                     ilist = list(range(len(val_final.shape)))
-                    swapp_list3 = [0,1]
+                    swapp_list3 = [0, 1]
                     if self.multiple_output:
                         swapp_list3 += [ilist.pop()]
                     if len(ilist) > 2 + num_nested:
