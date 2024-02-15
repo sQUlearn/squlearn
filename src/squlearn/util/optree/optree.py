@@ -532,7 +532,7 @@ class OpTree:
 
     @staticmethod
     def get_num_nested_lists(tree: OpTreeElementBase) -> int:
-        """Returns the depth of the OpTree.
+        """Returns the number of nested lists in the OpTree.
 
         Args:
             tree (OpTreeElementBase): The OpTree.
@@ -545,7 +545,7 @@ class OpTree:
         else:
             depth = 0
             for child in tree.children:
-                depth = min(depth, OpTree.get_tree_depth(child))
+                depth = max(depth, OpTree.get_num_nested_lists(child))
             if isinstance(tree, OpTreeList):
                 return depth + 1
             return depth
