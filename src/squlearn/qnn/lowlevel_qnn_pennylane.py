@@ -15,7 +15,7 @@ from ..util.pennylane import PennyLaneCircuit, PennyLaneDevice
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 
-from ..util.data_preprocessing import adjust_features, to_tuple
+from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 
 # import tensorflow as tf
 
@@ -65,7 +65,7 @@ class _evaluate:
 
         if isinstance(val, str):
             if val == "f":
-                return cls("f")
+                return cls("f",transpose=True)
             elif val == "dfdx":
                 return cls("dfdx", 1, argnum=[1], return_grad_x=True, summation=True)
             elif val == "dfdxdx":
@@ -265,7 +265,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     @property
     def num_parameters_observable(self) -> int:
         """Return the number of trainable parameters of the expectation value operator"""
-        return self._observable.num_parameters
+        return self._num_parameters_observable
 
     @property
     def multiple_output(self) -> bool:
@@ -281,8 +281,17 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
     ) -> dict:
 
-        xx, test = adjust_features(x, self._pqc.num_features)
-        xx = xx.transpose()
+        x_inp, multi_x = adjust_features(x, self._pqc.num_features)
+        x_inp = np.transpose(x_inp)
+        #TODO: ALLES FALSCH
+        param_inp, multi_param = adjust_parameters(param, self.num_parameters)
+        param_inp = np.stack([np.transpose(param_inp),np.transpose(param_inp)])
+        param_op_inp, multi_param_op = adjust_parameters(param_obs, self.num_parameters_observable)
+        param_op_inp = np.stack([np.transpose(param_op_inp),np.transpose(param_op_inp)],axis=0)
+
+
+        multi_param = False
+        multi_param_op = False
 
         print("self._pennylane_circuit.circuit_arguments",self._pennylane_circuit.circuit_arguments)
         if self._pennylane_circuit.circuit_arguments != ["param", "x", "param_obs"]:
@@ -300,31 +309,69 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
-        if self._device._gradient_engine == "autodiff":
-            value_dict = self._evaluate_autograd(values, value_dict, xx, param, param_obs)
+
+        for todo in values:
+
+            todo_class = _evaluate.from_string(todo)
+            value = self._evaluate_todo(todo_class, x_inp, param_inp, param_op_inp)
+
+            # reshaping (TODO)
+            reshape_list = []
+            shape = value.shape
+            print("shape",shape)
+            if multi_x:
+                reshape_list.append(len(x))
+            if multi_param:
+                reshape_list.append(len(param))
+            if multi_param_op:
+                reshape_list.append(shape[1])
+            if self.multiple_output:
+                reshape_list.append(shape[0])
+            if self.multiple_output:
+                if len(shape) > 2:
+                    reshape_list += list(shape[2:])
+            else:
+                if len(shape) > 1:
+                    reshape_list += list(shape[1:])
+
+            if len(reshape_list) == 0:
+                value_dict[todo] = value.reshape(-1)[0]
+            else:
+                print("reshape_list",reshape_list)
+                value_dict[todo] = value.reshape(reshape_list)
+
+
+        #if self._device._gradient_engine == "autodiff":
+        #    value_dict = self._evaluate_autograd(values, value_dict, xx, param, param_obs,multi_x)
         # elif self._device._gradient_engine == "tf" or self._device._gradient_engine == "tensorflow":
         #     value_dict = self._evaluate_tensorflow(values,value_dict,xx,param,param_obs)
         # elif self._device._gradient_engine == "jax":
         #     value_dict = self._evaluate_jax(values,value_dict,xx,param,param_obs)
         # elif self._device._gradient_engine == "torch" or self._device._gradient_engine == "pytorch":
         #     value_dict = self._evaluate_pytorch(values,value_dict,xx,param,param_obs)
-        else:
-            raise NotImplementedError("Gradient engine not implemented")
+        #else:
+        #    raise NotImplementedError("Gradient engine not implemented")
 
         return value_dict
 
-    def _evaluate_autograd(self, values, value_dict, x, param, param_obs):
+    # def _evaluate_autograd(self, values, value_dict, x, param, param_obs,multi_x):
 
-        for todo in values:
+    #     for todo in values:
 
-            todo_class = _evaluate.from_string(todo)
-            value_dict[todo] = self._evaluate_todo(todo_class, x, param, param_obs)
+    #         todo_class = _evaluate.from_string(todo)
+    #         value = self._evaluate_todo(todo_class, x, param, param_obs)
 
-        return value_dict
+    #         # reshaping (TODO)
+    #         shape = value.shape
+
+
+
+    #         value_dict[todo]
+
+
+    #     return value_dict
 
     def _evaluate_todo(self, todo_class: _evaluate, x, param, param_obs):
-
-        print("todo_class", todo_class)
 
         if todo_class.squared:
             raise NotImplementedError("Square not implemented")
@@ -336,7 +383,12 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
         if todo_class.order == 0:
+
+            print("param_",param_)
+            print("x_",x_)
+            print("param_obs_",param_obs_)
             value = self._pennylane_circuit(param_, x_, param_obs_)
+            print("value",value)
         elif todo_class.order > 0:
             order = todo_class.order - 1
             argnum = todo_class.argnum
@@ -345,8 +397,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 deriv = qml.jacobian(deriv, argnum=argnum.pop())
                 order -= 1
             value = deriv(param_, x_, param_obs_)
-
-        print("value",value)
 
         if todo_class.transpose:
             value = value.transpose()
