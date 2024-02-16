@@ -194,22 +194,14 @@ class PennyLaneCircuit:
 
     def build_pennylane_circuit(self):
 
-        print("self._pennylane_gates_parameters", self._pennylane_gates_parameters)
-
-        # todo change parameter names
         @self._device.add_pennylane_decorator
-        # def pennylane_circuit(**kwargs):
         def pennylane_circuit(*args):
-            # def pennylane_circuit(x,param,param_obs):
-
-            print("self._pennylane_gates_parameters",self._pennylane_gates_parameters)
-            print("self._pennylane_obs_parameters",self._pennylane_obs_parameters)
 
             # list -> slow?
             circ_param_list = sum(
                 [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
             )
-            print("circ_param_list",circ_param_list)
+
             obs_param_list = sum(
                 [
                     list(args[len(self._pennylane_gates_parameters) + i])
@@ -231,7 +223,6 @@ class PennyLaneCircuit:
                 else:
                     op(wires=self._pennylane_gates_wires[i])
 
-            # TODO: maybe change
             if self._qiskit_observable == None:
                 return qml.probs(wires=range(self._num_qubits))
             elif isinstance(self._qiskit_observable, list):

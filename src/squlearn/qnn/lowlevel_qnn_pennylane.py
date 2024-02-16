@@ -274,7 +274,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         """Return true if multiple outputs are used"""
         return self._multiple_output
 
-    # @abc.abstractmethod
     def evaluate(
         self,
         x: Union[float, np.ndarray],
@@ -283,26 +282,43 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
     ) -> dict:
 
+        return self.evaluate_v1(x, param, param_obs, *values)
+
+    def evaluate_v1(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+        *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
+    ) -> dict:
+
+        def _evaluate_todo(todo_class: _evaluate, x, param, param_obs):
+
+            if todo_class.squared:
+                raise NotImplementedError("Square not implemented")
+            else:
+                func = self._pennylane_circuit
+
+            param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
+            param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
+            x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
+
+            if todo_class.order == 0:
+                value = self._pennylane_circuit(param_, x_, param_obs_)
+            elif todo_class.order > 0:
+                order = todo_class.order - 1
+                argnum = copy.copy(todo_class.argnum)
+                deriv = qml.jacobian(func, argnum=argnum.pop())
+                while order > 0:
+                    deriv = qml.jacobian(deriv, argnum=argnum.pop())
+                    order -= 1
+                value = deriv(param_, x_, param_obs_)
+
+            return np.array(value)
+
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(param_obs, self._num_parameters_observable)
-
-        # x_inp_ = []
-        # param_inp_ = []
-        # param_obs_inp_ = []
-
-        # for x_ in x_inp:
-        #     for p_ in param_inp:
-        #         for po_ in param_obs_inp:
-        #             x_inp_.append(x_)
-        #             param_inp_.append(p_)
-        #             param_obs_inp_.append(po_)
-
-        # x_inp = np.array(x_inp_).transpose()
-        # param_inp = np.array(param_inp_).transpose()
-        # param_obs_inp = np.array(param_obs_inp_).transpose()
-
-
 
         if self._pennylane_circuit.circuit_arguments != ["param", "x", "param_obs"]:
             raise NotImplementedError("Wrong order of circuit arguments!")
@@ -319,40 +335,18 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
-
         for todo in values:
 
             todo_class = _evaluate.from_string(todo)
 
-            # values = []
-            # for x_inp_ in x_inp:
-            #     for param_inp_ in param_inp:
-            #         for param_obs_inp_ in param_obs_inp:
-            #             value = self._evaluate_todo(todo_class, x_inp_, param_inp_, param_obs_inp_)
-            #             values.append(value)
-
-
             values = [
-                self._evaluate_todo(todo_class, x_inp_, param_inp_, param_obs_inp_) for x_inp_ in x_inp for param_inp_ in param_inp for param_obs_inp_ in param_obs_inp
+                _evaluate_todo(todo_class, x_inp_, param_inp_, param_obs_inp_) for x_inp_ in x_inp for param_inp_ in param_inp for param_obs_inp_ in param_obs_inp
             ]
 
             values = np.array(values)
-            print("values",values)
-            print("values.shape",values.shape)
 
-            #value = self._evaluate_todo(todo_class, x_inp, param_inp, param_obs_inp)
-
-
-
-            #value = value.reshape(len(x),len(param),len(param_obs),self.num_operator,self.num_parameters)
-            #value = value.reshape(2,4,4)
-            #print("value",value)
-            #value_dict[todo] = value
-
-            # # reshaping (TODO)
             reshape_list = []
             shape = values.shape
-            print("shape before reshape",shape)
             if multi_x:
                 reshape_list.append(len(x))
             if multi_param:
@@ -365,95 +359,15 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 reshape_list += list(shape[2:])
             else:
                 reshape_list += list(shape[1:])
-            #    if len(shape) > 2:
-            #        reshape_list += list(shape[2:])
-            # else:
-            #     if len(shape) > 1:
-            #         reshape_list += list(shape[1:])
 
             if len(reshape_list) == 0:
                 value_dict[todo] = values.reshape(-1)[0]
             else:
-                print("reshape_list",reshape_list)
                 value_dict[todo] = values.reshape(reshape_list)
-
-
-        #if self._device._gradient_engine == "autodiff":
-        #    value_dict = self._evaluate_autograd(values, value_dict, xx, param, param_obs,multi_x)
-        # elif self._device._gradient_engine == "tf" or self._device._gradient_engine == "tensorflow":
-        #     value_dict = self._evaluate_tensorflow(values,value_dict,xx,param,param_obs)
-        # elif self._device._gradient_engine == "jax":
-        #     value_dict = self._evaluate_jax(values,value_dict,xx,param,param_obs)
-        # elif self._device._gradient_engine == "torch" or self._device._gradient_engine == "pytorch":
-        #     value_dict = self._evaluate_pytorch(values,value_dict,xx,param,param_obs)
-        #else:
-        #    raise NotImplementedError("Gradient engine not implemented")
 
         return value_dict
 
-    # def _evaluate_autograd(self, values, value_dict, x, param, param_obs,multi_x):
-
-    #     for todo in values:
-
-    #         todo_class = _evaluate.from_string(todo)
-    #         value = self._evaluate_todo(todo_class, x, param, param_obs)
-
-    #         # reshaping (TODO)
-    #         shape = value.shape
-
-
-
-    #         value_dict[todo]
-
-
-    #     return value_dict
-
-    def _evaluate_todo(self, todo_class: _evaluate, x, param, param_obs):
-
-        if todo_class.squared:
-            raise NotImplementedError("Square not implemented")
-        else:
-            func = self._pennylane_circuit
-
-        param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
-        param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
-        x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
-
-        if todo_class.order == 0:
-
-            print("param_",param_)
-            print("x_",x_)
-            print("param_obs_",param_obs_)
-            value = self._pennylane_circuit(param_, x_, param_obs_)
-            print("value",value)
-        elif todo_class.order > 0:
-            order = todo_class.order - 1
-            argnum = copy.copy(todo_class.argnum)
-            deriv = qml.jacobian(func, argnum=argnum.pop())
-            while order > 0:
-                deriv = qml.jacobian(deriv, argnum=argnum.pop())
-                order -= 1
-            value = deriv(param_, x_, param_obs_)
-
-        value = np.array(value)
-        # print("value",value)
-        # print("value.shape",value.shape)
-        # value = value.sum(axis=1)
-        # print("value after sum",value)
-        # print("value.shape",value.shape)
-
-        # swapp_list = [2,0,1]
-        # if value.ndim >3:
-        #     swapp_list+=list(range(3,value.ndim))
-
-        # print("swapp_list",swapp_list)
-        # value = value.transpose(swapp_list)
-        # print("value.shape2",value.shape)
-
-#        if todo_class.transpose:
-#            value = value.transpose()
-
-        return value
+   
 
     # def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
 
