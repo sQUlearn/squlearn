@@ -282,7 +282,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
     ) -> dict:
 
-        return self.evaluate_v1(x, param, param_obs, *values)
+        return self.evaluate_v2(x, param, param_obs, *values)
 
     def evaluate_v1(
         self,
@@ -367,6 +367,82 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         return value_dict
 
+    #@abc.abstractmethod
+    def evaluate_v2(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+        *values
+    ) -> dict:
+
+
+        #x,test = adjust_features(x, self._pqc.num_features)
+
+
+        if self._pennylane_circuit.circuit_arguments != ["param","x","param_obs"]:
+            raise NotImplementedError("Wrong order of circuit arguments!")
+
+        value_dict = {}
+        value_dict["x"] = x
+        value_dict["param"] = param
+        value_dict["param_op"] = param_obs
+        xx = [x] # TODO: multiple features -> in a ([x1][x2]) list format (transposed to out format)
+
+
+        for todo in values:
+            if todo=="f" or values ==("f",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(self._pennylane_circuit(param_,x_,param_obs_))
+                value_dict["f"] = value
+                # if "f" in value_dict:
+                #     value_dict["f"].append(value)
+                # else:
+                #     value_dict["f"] = [value]
+            elif todo=="dfdp" or values ==("dfdp",):
+                param_ = pnp.array(param, requires_grad=True)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdp"] = value
+                # if "dfdp" in value_dict:
+                #     value_dict["dfdp"].append(value)
+                # else:
+                #     value_dict["dfdp"] = [value]
+            elif todo=="dfdop" or values ==("dfdop",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=True)
+                x_ = pnp.array(xx, requires_grad=False)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdop"] = value
+                # if "dfdop" in value_dict:
+                #     value_dict["dfdop"].append(value)
+                # else:
+                #     value_dict["dfdop"] = [value]
+            elif todo=="dfdx" or values ==("dfdx",):
+                param_ = pnp.array(param, requires_grad=False)
+                param_obs_ = pnp.array(param_obs, requires_grad=False)
+                x_ = pnp.array(xx, requires_grad=True)
+                value = np.array(qml.jacobian(self._pennylane_circuit)(param_,x_,param_obs_))
+                value_dict["dfdx"] = value
+                # if "dfdx" in value_dict:
+                #     value_dict["dfdx"].append(value)
+                # else:
+                #     value_dict["dfdx"] = [value]
+
+
+        if "f" in value_dict:
+            value_dict["f"] = np.array(value_dict["f"])
+        if "dfdp" in value_dict:
+            value_dict["dfdp"] = np.array(value_dict["dfdp"])
+        if "dfdop" in value_dict:
+            value_dict["dfdop"] = np.array(value_dict["dfdop"])
+        if "dfdx" in value_dict:
+            value_dict["dfdx"] = np.array(value_dict["dfdx"])
+
+        return value_dict
    
 
     # def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
