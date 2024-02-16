@@ -1,6 +1,7 @@
 import abc
 from typing import Union
 import numpy as np
+import copy
 
 from qiskit.circuit import ParameterVector
 
@@ -40,6 +41,7 @@ class _evaluate:
         summation=False,
         transpose=False,
         squared=False,
+        resize_tuple=tuple()
     ):
         self.key = key
         self.order = order
@@ -282,18 +284,26 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     ) -> dict:
 
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
-        x_inp = np.transpose(x_inp)
-        #TODO: ALLES FALSCH
-        param_inp, multi_param = adjust_parameters(param, self.num_parameters)
-        param_inp = np.stack([np.transpose(param_inp),np.transpose(param_inp)])
-        param_op_inp, multi_param_op = adjust_parameters(param_obs, self.num_parameters_observable)
-        param_op_inp = np.stack([np.transpose(param_op_inp),np.transpose(param_op_inp)],axis=0)
+        param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
+        param_obs_inp, multi_param_op = adjust_parameters(param_obs, self._num_parameters_observable)
+
+        # x_inp_ = []
+        # param_inp_ = []
+        # param_obs_inp_ = []
+
+        # for x_ in x_inp:
+        #     for p_ in param_inp:
+        #         for po_ in param_obs_inp:
+        #             x_inp_.append(x_)
+        #             param_inp_.append(p_)
+        #             param_obs_inp_.append(po_)
+
+        # x_inp = np.array(x_inp_).transpose()
+        # param_inp = np.array(param_inp_).transpose()
+        # param_obs_inp = np.array(param_obs_inp_).transpose()
 
 
-        multi_param = False
-        multi_param_op = False
 
-        print("self._pennylane_circuit.circuit_arguments",self._pennylane_circuit.circuit_arguments)
         if self._pennylane_circuit.circuit_arguments != ["param", "x", "param_obs"]:
             raise NotImplementedError("Wrong order of circuit arguments!")
 
@@ -313,32 +323,59 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         for todo in values:
 
             todo_class = _evaluate.from_string(todo)
-            value = self._evaluate_todo(todo_class, x_inp, param_inp, param_op_inp)
 
-            # reshaping (TODO)
+            # values = []
+            # for x_inp_ in x_inp:
+            #     for param_inp_ in param_inp:
+            #         for param_obs_inp_ in param_obs_inp:
+            #             value = self._evaluate_todo(todo_class, x_inp_, param_inp_, param_obs_inp_)
+            #             values.append(value)
+
+
+            values = [
+                self._evaluate_todo(todo_class, x_inp_, param_inp_, param_obs_inp_) for x_inp_ in x_inp for param_inp_ in param_inp for param_obs_inp_ in param_obs_inp
+            ]
+
+            values = np.array(values)
+            print("values",values)
+            print("values.shape",values.shape)
+
+            #value = self._evaluate_todo(todo_class, x_inp, param_inp, param_obs_inp)
+
+
+
+            #value = value.reshape(len(x),len(param),len(param_obs),self.num_operator,self.num_parameters)
+            #value = value.reshape(2,4,4)
+            #print("value",value)
+            #value_dict[todo] = value
+
+            # # reshaping (TODO)
             reshape_list = []
-            shape = value.shape
-            print("shape",shape)
+            shape = values.shape
+            print("shape before reshape",shape)
             if multi_x:
                 reshape_list.append(len(x))
             if multi_param:
                 reshape_list.append(len(param))
             if multi_param_op:
+                reshape_list.append(len(param_obs))
+            if self.multiple_output:
                 reshape_list.append(shape[1])
             if self.multiple_output:
-                reshape_list.append(shape[0])
-            if self.multiple_output:
-                if len(shape) > 2:
-                    reshape_list += list(shape[2:])
+                reshape_list += list(shape[2:])
             else:
-                if len(shape) > 1:
-                    reshape_list += list(shape[1:])
+                reshape_list += list(shape[1:])
+            #    if len(shape) > 2:
+            #        reshape_list += list(shape[2:])
+            # else:
+            #     if len(shape) > 1:
+            #         reshape_list += list(shape[1:])
 
             if len(reshape_list) == 0:
-                value_dict[todo] = value.reshape(-1)[0]
+                value_dict[todo] = values.reshape(-1)[0]
             else:
                 print("reshape_list",reshape_list)
-                value_dict[todo] = value.reshape(reshape_list)
+                value_dict[todo] = values.reshape(reshape_list)
 
 
         #if self._device._gradient_engine == "autodiff":
@@ -391,17 +428,32 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             print("value",value)
         elif todo_class.order > 0:
             order = todo_class.order - 1
-            argnum = todo_class.argnum
+            argnum = copy.copy(todo_class.argnum)
             deriv = qml.jacobian(func, argnum=argnum.pop())
             while order > 0:
                 deriv = qml.jacobian(deriv, argnum=argnum.pop())
                 order -= 1
             value = deriv(param_, x_, param_obs_)
 
-        if todo_class.transpose:
-            value = value.transpose()
+        value = np.array(value)
+        # print("value",value)
+        # print("value.shape",value.shape)
+        # value = value.sum(axis=1)
+        # print("value after sum",value)
+        # print("value.shape",value.shape)
 
-        return np.array(value)
+        # swapp_list = [2,0,1]
+        # if value.ndim >3:
+        #     swapp_list+=list(range(3,value.ndim))
+
+        # print("swapp_list",swapp_list)
+        # value = value.transpose(swapp_list)
+        # print("value.shape2",value.shape)
+
+#        if todo_class.transpose:
+#            value = value.transpose()
+
+        return value
 
     # def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
 
