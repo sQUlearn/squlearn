@@ -17,7 +17,7 @@ from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives.base import SamplerResult, EstimatorResult
-from qiskit import Aer
+from qiskit_aer import Aer
 from qiskit_ibm_runtime import QiskitRuntimeService, Session
 from qiskit.providers import Options
 from qiskit.providers import JobV1 as Job

@@ -84,7 +84,7 @@ execution environment:
   .. code-block:: python
 
     from squlearn import Executor
-    from qiskit import Aer
+    from qiskit_aer import Aer
 
     executor = Executor(Aer.get_backend("qasm_simulator"))
 
