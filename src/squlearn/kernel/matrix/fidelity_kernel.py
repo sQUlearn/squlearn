@@ -9,7 +9,7 @@ from qiskit_machine_learning.kernels import (
     TrainableFidelityQuantumKernel,
     TrainableFidelityStatevectorKernel,
 )
-from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit_algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
 
 from .kernel_matrix_base import KernelMatrixBase
