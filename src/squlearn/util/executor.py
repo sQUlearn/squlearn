@@ -160,7 +160,7 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
-        ] = "statevector_simulator",
+        ] = "aer_simulator_statevector",
         backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
@@ -220,9 +220,11 @@ class Executor:
             execution = backend
         if isinstance(execution, str):
             # Execution is a string -> get backend
-            if execution == "statevector_simulator":
+            if execution in ["statevector_simulator", "aer_simulator_statevector"]:
+                execution = "aer_simulator_statevector"
                 self._backend = Aer.get_backend(execution)
-            elif execution == "qasm_simulator":
+            elif execution in ["qasm_simulator", "aer_simulator"]:
+                execution = "aer_simulator"
                 self._backend = Aer.get_backend(execution)
                 shots_backend = self._backend.options.shots
                 if shots is None:
@@ -275,7 +277,7 @@ class Executor:
             self._estimator = execution
             if isinstance(self._estimator, qiskit_primitives_Estimator):
                 # this is only a hack, there is no real backend in the Primitive Estimator class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._backend = self._estimator._backend
                 shots_estimator = self._estimator.options.get("shots", 0)
@@ -306,7 +308,7 @@ class Executor:
 
             if isinstance(self._sampler, qiskit_primitives_Sampler):
                 # this is only a hack, there is no real backend in the Primitive Sampler class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
