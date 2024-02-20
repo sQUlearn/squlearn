@@ -28,7 +28,7 @@ dependencies = [
     "numpy>=1.17",
     "qiskit>=0.43.0",
     "qiskit-aer>=0.12.0",
-    "qiskit-algorithms",#TODO: set version when released
+    "qiskit-algorithms>=0.3.0",
     "qiskit-ibm-runtime>=0.15.1",
     "qiskit-machine-learning>=0.6.1",
     "scipy>=1.5",
