@@ -33,12 +33,12 @@ class TestExecutor:
     @pytest.fixture(scope="module")
     def ExecutorBackendSampler(self) -> Executor:
         """Executor with BackendSampler initialization."""
-        return Executor(BackendSampler(Aer.get_backend("qasm_simulator")), primitive_seed=0)
+        return Executor(BackendSampler(Aer.get_backend("aer_simulator")), primitive_seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorBackendEstimator(self) -> Executor:
         """Executor with BackendEstimator initialization."""
-        return Executor(BackendEstimator(Aer.get_backend("qasm_simulator")), primitive_seed=0)
+        return Executor(BackendEstimator(Aer.get_backend("aer_simulator")), primitive_seed=0)
 
     @pytest.fixture(scope="module")
     def simple_circuit(self):

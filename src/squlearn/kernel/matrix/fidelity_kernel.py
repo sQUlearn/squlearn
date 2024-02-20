@@ -101,8 +101,7 @@ class FidelityKernel(KernelMatrixBase):
         self._enc_circ = self._encoding_circuit.get_circuit(
             self._feature_vector, self._parameter_vector
         )
-
-        if "statevector_simulator" in str(self._executor._backend):
+        if "statevector" in self._executor._backend.configuration().backend_name:
             if self._parameter_vector is None:
                 self._quantum_kernel = FidelityStatevectorKernel(
                     feature_map=self._enc_circ, shots=self._executor.get_shots()

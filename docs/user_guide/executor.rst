@@ -86,7 +86,7 @@ execution environment:
     from squlearn import Executor
     from qiskit_aer import Aer
 
-    executor = Executor(Aer.get_backend("qasm_simulator"))
+    executor = Executor(Aer.get_backend("aer_simulator"))
 
 - A backend from the Qiskit Runtime Service, which utilizes the execution of quantum jobs on
   IBM Quantum utilizing Sessions and Primitives.
