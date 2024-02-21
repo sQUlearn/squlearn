@@ -38,10 +38,7 @@ class _evaluate:
         return_grad_param=False,
         return_grad_param_obs=False,
         return_grad_x=False,
-        summation=False,
-        transpose=False,
         squared=False,
-        resize_tuple=tuple()
     ):
         self.key = key
         self.order = order
@@ -49,8 +46,6 @@ class _evaluate:
         self.return_grad_param = return_grad_param
         self.return_grad_param_obs = return_grad_param_obs
         self.return_grad_x = return_grad_x
-        self.summation = summation
-        self.transpose = transpose
         self.squared = squared
 
     @classmethod
@@ -67,11 +62,11 @@ class _evaluate:
 
         if isinstance(val, str):
             if val == "f":
-                return cls("f",transpose=True)
+                return cls("f")
             elif val == "dfdx":
-                return cls("dfdx", 1, argnum=[1], return_grad_x=True, summation=True)
+                return cls("dfdx", 1, argnum=[1], return_grad_x=True)
             elif val == "dfdxdx":
-                return cls("dfdxdx", 2, argnum=[1, 1], return_grad_x=True, summation=True)
+                return cls("dfdxdx", 2, argnum=[1, 1], return_grad_x=True)
             elif val == "laplace":
                 raise NotImplementedError("laplace not implemented")
             elif val == "laplace_dp":
@@ -95,58 +90,24 @@ class _evaluate:
             elif val == "dfdopdop":
                 return cls("dfdopdop", 2, argnum=[2, 2], return_grad_param_obs=True)
             elif val == "dfdpdx":
-                return cls(
-                    "dfdpdx",
-                    2,
-                    argnum=[0, 1],
-                    return_grad_param=True,
-                    return_grad_x=True,
-                    summation=True,
-                )
+                return cls("dfdpdx", 2, argnum=[0, 1], return_grad_param=True, return_grad_x=True)
             elif val == "dfdxdp":
-                return cls(
-                    "dfdxdp",
-                    2,
-                    argnum=[1, 0],
-                    return_grad_param=True,
-                    return_grad_x=True,
-                    summation=True,
-                )
+                return cls("dfdxdp", 2, argnum=[1, 0], return_grad_param=True, return_grad_x=True)
             elif val == "dfdxdxdp":
                 return cls(
-                    "dfdxdxdp",
-                    3,
-                    argnum=[1, 1, 0],
-                    return_grad_param=True,
-                    return_grad_x=True,
-                    summation=True,
+                    "dfdxdxdp", 3, argnum=[1, 1, 0], return_grad_param=True, return_grad_x=True
                 )
             elif val == "dfdxdpdx":
                 return cls(
-                    "dfdxdpdx",
-                    3,
-                    argnum=[1, 0, 1],
-                    return_grad_param=True,
-                    return_grad_x=True,
-                    summation=True,
+                    "dfdxdpdx", 3, argnum=[1, 0, 1], return_grad_param=True, return_grad_x=True
                 )
             elif val == "dfdpdxdx":
                 return cls(
-                    "dfdpdxdx",
-                    3,
-                    argnum=[0, 1, 1],
-                    return_grad_param=True,
-                    return_grad_x=True,
-                    summation=True,
+                    "dfdpdxdx", 3, argnum=[0, 1, 1], return_grad_param=True, return_grad_x=True
                 )
             elif val == "dfdopdx":
                 return cls(
-                    "dfdopdx",
-                    2,
-                    argnum=[2, 1],
-                    return_grad_param_obs=True,
-                    return_grad_x=True,
-                    summation=True,
+                    "dfdopdx", 2, argnum=[2, 1], return_grad_param_obs=True, return_grad_x=True
                 )
             elif val == "dfdopdxdx":
                 return cls(
@@ -155,7 +116,6 @@ class _evaluate:
                     argnum=[2, 1, 1],
                     return_grad_param_obs=True,
                     return_grad_x=True,
-                    summation=True,
                 )
             elif val == "fcc":
                 return cls("fcc", squared=True)
@@ -342,7 +302,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
             return np.array(value)
 
-
         def _evaluate_todo_all_x(todo_class: _evaluate, x, param, param_obs):
 
             if todo_class.squared:
@@ -366,25 +325,27 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 value = deriv(param_, x_, param_obs_)
 
             values = np.array(value)
+            # sum over zero values entries due to dx differentiation
             if todo_class.return_grad_x:
-                # Sum over zero entries
                 sum_t = tuple()
                 ioff = 0
                 if self.multiple_output:
-                    ioff=1
+                    ioff = 1
                 for var in reversed(todo_class.argnum):
-                    if var == 1:
-                        sum_t += (ioff+2,)
-                        ioff=ioff+2
+                    if var == 1:  # dx differentiation
+                        sum_t += (ioff + 2,)
+                        ioff = ioff + 2
                     else:
-                        ioff=ioff+1
+                        ioff = ioff + 1
                 values = values.sum(axis=sum_t)
             return values
 
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
         x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
-        param_obs_inp, multi_param_op = adjust_parameters(param_obs, self._num_parameters_observable)
+        param_obs_inp, multi_param_op = adjust_parameters(
+            param_obs, self._num_parameters_observable
+        )
 
         if self._pennylane_circuit.circuit_arguments != ["param", "x", "param_obs"]:
             raise NotImplementedError("Wrong order of circuit arguments!")
@@ -406,33 +367,41 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             todo_class = _evaluate.from_string(todo)
 
             if todo_class.return_grad_x and todo_class.order > 1:
+                # evaluate every single x, param, param_op combination separately
                 values = [
-                    _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_) for x_inp_ in x_inp for param_inp_ in param_inp for param_obs_inp_ in param_obs_inp
+                    _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_)
+                    for x_inp_ in x_inp
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
                 ]
                 values = np.array(values)
 
             else:
+                # evaluate only param, param_op combination separately and all x together
                 values = [
-                    _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_) for param_inp_ in param_inp for param_obs_inp_ in param_obs_inp
+                    _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
                 ]
                 # Restore order of _evaluate_todo_single_x
                 values = np.array(values)
                 index_list = list(range(len(values.shape)))
                 if self.multiple_output:
-                    swapp_list = [2,0,1]+index_list[3:]
+                    swap_list = [2, 0, 1] + index_list[3:]
                 else:
-                    swapp_list = [1,0]+index_list[2:]
-                values = values.transpose(swapp_list)
-                values = values.reshape((values.shape[0]*values.shape[1],)+tuple(values.shape[2:]))
+                    swap_list = [1, 0] + index_list[2:]
+                values = values.transpose(swap_list)
+                values = values.reshape(
+                    (values.shape[0] * values.shape[1],) + tuple(values.shape[2:])
+                )
 
-
-            # Swapp higher order derivatives into correct order
+            # Swap higher order derivatives into correct order
             index_list = list(range(len(values.shape)))
             if self.multiple_output:
-                swapp_list = index_list[0:2] + list(reversed(index_list[2:]))
+                swap_list = index_list[0:2] + list(reversed(index_list[2:]))
             else:
-                swapp_list = index_list[0:1] + list(reversed(index_list[1:]))
-            values = values.transpose(swapp_list)
+                swap_list = index_list[0:1] + list(reversed(index_list[1:]))
+            values = values.transpose(swap_list)
 
             # Reshape to correct format
             reshape_list = []
@@ -466,9 +435,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     #     *values
     # ) -> dict:
 
-
     #     #x,test = adjust_features(x, self._pqc.num_features)
-
 
     #     if self._pennylane_circuit.circuit_arguments != ["param","x","param_obs"]:
     #         raise NotImplementedError("Wrong order of circuit arguments!")
@@ -478,7 +445,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     #     value_dict["param"] = param
     #     value_dict["param_op"] = param_obs
     #     xx = [x] # TODO: multiple features -> in a ([x1][x2]) list format (transposed to out format)
-
 
     #     for todo in values:
     #         if todo=="f" or values ==("f",):
@@ -522,7 +488,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     #             # else:
     #             #     value_dict["dfdx"] = [value]
 
-
     #     if "f" in value_dict:
     #         value_dict["f"] = np.array(value_dict["f"])
     #     if "dfdp" in value_dict:
@@ -533,7 +498,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     #         value_dict["dfdx"] = np.array(value_dict["dfdx"])
 
     #     return value_dict
-   
 
     # def _evaluate_tensorflow(self,values,value_dict,x,param,param_obs):
 

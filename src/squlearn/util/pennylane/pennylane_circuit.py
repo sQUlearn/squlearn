@@ -16,7 +16,12 @@ from .pennylane_gates import qiskit_pennyland_gate_dict
 
 class PennyLaneCircuit:
 
-    def __init__(self, device: PennyLaneDevice, circuit: QuantumCircuit, observable: Union[None,SparsePauliOp,List[SparsePauliOp]]=None) -> None:
+    def __init__(
+        self,
+        device: PennyLaneDevice,
+        circuit: QuantumCircuit,
+        observable: Union[None, SparsePauliOp, List[SparsePauliOp]] = None,
+    ) -> None:
 
         self._device = device
         self._qiskit_circuit = circuit
@@ -29,7 +34,12 @@ class PennyLaneCircuit:
         # self._pennylane_gates_wires = []
         # self._pennylane_gates_parameters = []
         # self._build_circuit_instructions()
-        self._pennylane_gates, self._pennylane_gates_param_function, self._pennylane_gates_wires, self._pennylane_gates_parameters = self.build_circuit_instructions(self._qiskit_circuit)
+        (
+            self._pennylane_gates,
+            self._pennylane_gates_param_function,
+            self._pennylane_gates_wires,
+            self._pennylane_gates_parameters,
+        ) = self.build_circuit_instructions(self._qiskit_circuit)
         print("self._pennylane_gates", self._pennylane_gates)
         print("self._pennylane_gates_param_function", self._pennylane_gates_param_function)
         print("self._pennylane_gates_wires", self._pennylane_gates_wires)
@@ -48,7 +58,11 @@ class PennyLaneCircuit:
             #         self._pennylane_words += pennylane_words
             #         self._pennylane_obs_parameters += pennylane_obs_parameters
             # else:
-            self._pennylane_obs_param_function, self._pennylane_words, self._pennylane_obs_parameters = self.build_observable_instructions(observable)
+            (
+                self._pennylane_obs_param_function,
+                self._pennylane_words,
+                self._pennylane_obs_parameters,
+            ) = self.build_observable_instructions(observable)
 
         self._pennylane_circuit = self.build_pennylane_circuit()
 
@@ -82,8 +96,7 @@ class PennyLaneCircuit:
     def __call__(self, *args):
         return self._pennylane_circuit(*args)
 
-
-    def build_circuit_instructions(self,circuit:QuantumCircuit) -> None:
+    def build_circuit_instructions(self, circuit: QuantumCircuit) -> None:
 
         pennylane_gates = []
         pennylane_gates_param_function = []
@@ -121,12 +134,17 @@ class PennyLaneCircuit:
             wires = [op.qubits[i].index for i in range(op.operation.num_qubits)]
             pennylane_gates_wires.append(wires)
 
-        return pennylane_gates, pennylane_gates_param_function, pennylane_gates_wires, pennylane_gates_parameters
+        return (
+            pennylane_gates,
+            pennylane_gates_param_function,
+            pennylane_gates_wires,
+            pennylane_gates_parameters,
+        )
 
-    def build_observable_instructions(self, observable: Union[List[SparsePauliOp],SparsePauliOp]):
+    def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
 
         if observable == None:
-            return None,None,None
+            return None, None, None
 
         pennylane_obs_param_function = []
         pennylane_obs_parameters = []
@@ -154,10 +172,13 @@ class PennyLaneCircuit:
         # Handle observable parameter expressions and convert them to compatible python functions
 
         symbol_tuple = tuple(
-            sum([[
-                p._symbol_expr
-                for p in sort_parameters_after_index(obs.parameters)
-            ] for obs in observable],[])
+            sum(
+                [
+                    [p._symbol_expr for p in sort_parameters_after_index(obs.parameters)]
+                    for obs in observable
+                ],
+                [],
+            )
         )
 
         pennylane_obs_param_function = []
@@ -179,9 +200,9 @@ class PennyLaneCircuit:
         # Convert Pauli strings into PennyLane Pauli words
         pennylane_words = []
         for obs in observable:
-            pennylane_words.append([
-                pauli.string_to_pauli_word(str(p[::-1])) for p in obs._pauli_list
-            ])
+            pennylane_words.append(
+                [pauli.string_to_pauli_word(str(p[::-1])) for p in obs._pauli_list]
+            )
 
         if islist:
             return pennylane_obs_param_function, pennylane_words, pennylane_obs_parameters
