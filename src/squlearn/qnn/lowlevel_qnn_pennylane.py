@@ -28,8 +28,8 @@ from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tup
 # import torch
 
 
-class _evaluate:
-
+class direct_evaluation:
+    """ Class for evaluation of derivatives of the QNN """
     def __init__(
         self,
         key,
@@ -48,114 +48,200 @@ class _evaluate:
         self.return_grad_x = return_grad_x
         self.squared = squared
 
-    @classmethod
-    def from_string(cls, val: str):
-        """Converts an input string to the Expec data structure.
+
+class post_processing_evaluation:
+    """ Class post processing evaluation of derivatives of the QNN"""
+    def __init__(self, key, evaluation_tuple, evaluation_function):
+        self.key = key
+        self.evaluation_tuple = evaluation_tuple
+        self.evaluation_function = evaluation_function
+
+
+def _get_class_from_string(val: str):
+    """Converts an input string to the Expec data structure.
+
+    Args:
+        String that defines the expectation value derivative
+
+    Returns:
+        Associated Expec object
+
+    """
+
+    def eval_var(value_dict: dict):
+        """Evaluate the variance of the QNN output
 
         Args:
-            String that defines the expectation value derivative
+            value_dict (dict): Dictionary of QNN derivatives values
 
         Returns:
-            Associated Expec object
-
+            Variance of the QNN output
         """
+        return value_dict["fcc"] - np.square(value_dict["f"])
 
-        if isinstance(val, str):
-            if val == "f":
-                return cls("f")
-            elif val == "dfdx":
-                return cls("dfdx", 1, argnum=[1], return_grad_x=True)
-            elif val == "dfdxdx":
-                return cls("dfdxdx", 2, argnum=[1, 1], return_grad_x=True)
-            elif val == "laplace":
-                raise NotImplementedError("laplace not implemented")
-            elif val == "laplace_dp":
-                raise NotImplementedError("laplace not implemented")
-            elif val == "laplace_dop":
-                raise NotImplementedError("laplace not implemented")
-            elif val == "dfdp":
-                return cls("dfdp", 1, argnum=[0], return_grad_param=True)
-            elif val == "dfdpdp":
-                return cls("dfdpdp", 2, argnum=[0, 0], return_grad_param=True)
-            elif val == "dfdopdp":
-                return cls(
-                    "dfdopdp", 2, argnum=[2, 0], return_grad_param=True, return_grad_param_obs=True
+    def eval_dvardx(value_dict: dict):
+        """Evaluate the derivative of the variance with respect to the input
+
+        Args:
+            value_dict (dict): Dictionary of QNN derivatives values
+
+        Returns:
+            Derivative of the variance with respect to the input
+        """
+        return_val = np.zeros(value_dict["dfccdx"].shape)
+        for i in range(value_dict["dfccdx"].shape[-1]):
+            return_val[..., i] = value_dict["dfccdx"][..., i] - 2.0 * (
+                np.multiply(
+                    value_dict["dfdx"][..., i],
+                    value_dict["f"],
                 )
-            elif val == "dfdpdop":
-                return cls(
-                    "dfdpdop", 2, argnum=[0, 2], return_grad_param=True, return_grad_param_obs=True
+            )
+        return return_val
+
+    def eval_dvardp(value_dict):
+        """Evaluate the derivative of the variance with respect to the parameters
+
+        Args:
+            value_dict (dict): Dictionary of QNN derivatives values
+
+        Returns:
+            Derivative of the variance with respect to the parameters
+        """
+        return_val = np.zeros(value_dict["dfccdp"].shape)
+        for i in range(value_dict["dfccdp"].shape[-1]):
+            return_val[..., i] = value_dict["dfccdp"][..., i] - 2.0 * (
+                np.multiply(
+                    value_dict["dfdp"][..., i],
+                    value_dict["f"],
                 )
-            elif val == "dfdop":
-                return cls("dfdop", 1, argnum=[2], return_grad_param_obs=True)
-            elif val == "dfdopdop":
-                return cls("dfdopdop", 2, argnum=[2, 2], return_grad_param_obs=True)
-            elif val == "dfdpdx":
-                return cls("dfdpdx", 2, argnum=[0, 1], return_grad_param=True, return_grad_x=True)
-            elif val == "dfdxdp":
-                return cls("dfdxdp", 2, argnum=[1, 0], return_grad_param=True, return_grad_x=True)
-            elif val == "dfdxdxdp":
-                return cls(
-                    "dfdxdxdp", 3, argnum=[1, 1, 0], return_grad_param=True, return_grad_x=True
+            )
+        return return_val
+
+    def eval_dvardop(value_dict):
+        """Evaluate the derivative of the variance with respect to the observable parameters
+
+        Args:
+            value_dict (dict): Dictionary of QNN derivatives values
+
+        Returns:
+            Derivative of the variance with respect to the observable parameters
+        """
+        return_val = np.zeros(value_dict["dfccdop"].shape)
+        for i in range(value_dict["dfccdop"].shape[-1]):
+            return_val[..., i] = value_dict["dfccdop"][..., i] - 2.0 * (
+                np.multiply(
+                    value_dict["dfdop"][..., i],
+                    value_dict["f"],
                 )
-            elif val == "dfdxdpdx":
-                return cls(
-                    "dfdxdpdx", 3, argnum=[1, 0, 1], return_grad_param=True, return_grad_x=True
-                )
-            elif val == "dfdpdxdx":
-                return cls(
-                    "dfdpdxdx", 3, argnum=[0, 1, 1], return_grad_param=True, return_grad_x=True
-                )
-            elif val == "dfdopdx":
-                return cls(
-                    "dfdopdx", 2, argnum=[2, 1], return_grad_param_obs=True, return_grad_x=True
-                )
-            elif val == "dfdopdxdx":
-                return cls(
-                    "dfdopdxdx",
-                    3,
-                    argnum=[2, 1, 1],
-                    return_grad_param_obs=True,
-                    return_grad_x=True,
-                )
-            elif val == "fcc":
-                return cls("fcc", squared=True)
-            elif val == "dfccdx":
-                return cls("dfccdx", 1, argnum=[1], return_grad_x=True, squared=True)
-            elif val == "dfccdxdx":
-                return cls("dfccdxdx", 2, argnum=[1, 1], return_grad_x=True, squared=True)
-            elif val == "dfccdp":
-                return cls("dfccdp", 1, argnum=[0], return_grad_param=True, squared=True)
-            elif val == "dfccdpdp":
-                return cls("dfccdpdp", 2, argnum=[0, 0], return_grad_param=True, squared=True)
-            elif val == "dfccdopdx":
-                return cls(
-                    "dfccdopdx",
-                    2,
-                    argnum=[2, 1],
-                    return_grad_param_obs=True,
-                    return_grad_x=True,
-                    squared=True,
-                )
-            elif val == "dfccdop":
-                return cls("dfccdop", 1, argnum=[2], return_grad_param_obs=True, squared=True)
-            elif val == "dfccdopdop":
-                return cls(
-                    "dfccdopdop", 2, argnum=[2, 2], return_grad_param_obs=True, squared=True
-                )
-            elif val in ("var", "varf"):
-                return ("f", "fcc")
-            elif val in ("dvardx", "dvarfdx"):
-                return ("dfdx", "dfccdx")
-            elif val in ("dvardp", "dvarfdp"):
-                return ("dfdp", "dfccdp")
-            elif val in ("dvardop", "dvarfdop"):
-                return ("dfdop", "dfccdop")
-            elif val == "fischer":
-                return None
-            else:
-                raise ValueError("Unknown input string:", val)
+            )
+        return return_val
+
+    def get_eval_laplace(todo: str):
+
+        def eval_laplace(value_dict):
+            return_val = np.zeros(value_dict[todo].shape[:-2])
+            for i in range(value_dict[todo].shape[-1]):
+                return_val+=value_dict[todo][...,i,i]
+            return return_val
+
+        return eval_laplace
+
+    if isinstance(val, str):
+        if val == "f":
+            return direct_evaluation("f")
+        elif val == "dfdx":
+            return direct_evaluation("dfdx", 1, argnum=[1], return_grad_x=True)
+        elif val == "dfdxdx":
+            return direct_evaluation("dfdxdx", 2, argnum=[1, 1], return_grad_x=True)
+        elif val == "laplace":
+            return post_processing_evaluation(val,("dfdxdx",), get_eval_laplace("dfdxdx"))
+        elif val == "laplace_dp":
+            return post_processing_evaluation(val,("dfdpdxdx",), get_eval_laplace("dfdpdxdx"))
+        elif val == "laplace_dop":
+            return post_processing_evaluation(val,("dfdopdxdx",), get_eval_laplace("dfdopdxdx"))
+        elif val == "dfdp":
+            return direct_evaluation("dfdp", 1, argnum=[0], return_grad_param=True)
+        elif val == "dfdpdp":
+            return direct_evaluation("dfdpdp", 2, argnum=[0, 0], return_grad_param=True)
+        elif val == "dfdopdp":
+            return direct_evaluation(
+                "dfdopdp", 2, argnum=[2, 0], return_grad_param=True, return_grad_param_obs=True
+            )
+        elif val == "dfdpdop":
+            return direct_evaluation(
+                "dfdpdop", 2, argnum=[0, 2], return_grad_param=True, return_grad_param_obs=True
+            )
+        elif val == "dfdop":
+            return direct_evaluation("dfdop", 1, argnum=[2], return_grad_param_obs=True)
+        elif val == "dfdopdop":
+            return direct_evaluation("dfdopdop", 2, argnum=[2, 2], return_grad_param_obs=True)
+        elif val == "dfdpdx":
+            return direct_evaluation("dfdpdx", 2, argnum=[0, 1], return_grad_param=True, return_grad_x=True)
+        elif val == "dfdxdp":
+            return direct_evaluation("dfdxdp", 2, argnum=[1, 0], return_grad_param=True, return_grad_x=True)
+        elif val == "dfdxdxdp":
+            return direct_evaluation(
+                "dfdxdxdp", 3, argnum=[1, 1, 0], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdxdpdx":
+            return direct_evaluation(
+                "dfdxdpdx", 3, argnum=[1, 0, 1], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdpdxdx":
+            return direct_evaluation(
+                "dfdpdxdx", 3, argnum=[0, 1, 1], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdopdx":
+            return direct_evaluation(
+                "dfdopdx", 2, argnum=[2, 1], return_grad_param_obs=True, return_grad_x=True
+            )
+        elif val == "dfdopdxdx":
+            return direct_evaluation(
+                "dfdopdxdx",
+                3,
+                argnum=[2, 1, 1],
+                return_grad_param_obs=True,
+                return_grad_x=True,
+            )
+        elif val == "fcc":
+            return direct_evaluation("fcc", squared=True)
+        elif val == "dfccdx":
+            return direct_evaluation("dfccdx", 1, argnum=[1], return_grad_x=True, squared=True)
+        elif val == "dfccdxdx":
+            return direct_evaluation("dfccdxdx", 2, argnum=[1, 1], return_grad_x=True, squared=True)
+        elif val == "dfccdp":
+            return direct_evaluation("dfccdp", 1, argnum=[0], return_grad_param=True, squared=True)
+        elif val == "dfccdpdp":
+            return direct_evaluation("dfccdpdp", 2, argnum=[0, 0], return_grad_param=True, squared=True)
+        elif val == "dfccdopdx":
+            return direct_evaluation(
+                "dfccdopdx",
+                2,
+                argnum=[2, 1],
+                return_grad_param_obs=True,
+                return_grad_x=True,
+                squared=True,
+            )
+        elif val == "dfccdop":
+            return direct_evaluation("dfccdop", 1, argnum=[2], return_grad_param_obs=True, squared=True)
+        elif val == "dfccdopdop":
+            return direct_evaluation(
+                "dfccdopdop", 2, argnum=[2, 2], return_grad_param_obs=True, squared=True
+            )
+        elif val in ("var", "varf"):
+            return post_processing_evaluation(val,("f", "fcc"), eval_var)
+        elif val in ("dvardx", "dvarfdx"):
+            return post_processing_evaluation(val,("f", "dfccdx", "dfdx"), eval_dvardx)
+        elif val in ("dvardp", "dvarfdp"):
+            return post_processing_evaluation(val,("f", "dfccdp", "dfdp"), eval_dvardp)
+        elif val in ("dvardop", "dvarfdop"):
+            return post_processing_evaluation(val,("f", "dfccdop", "dfdop"), eval_dvardop)
+        elif val == "fischer":
+            return None
         else:
-            raise TypeError("String expected, found type:", type(val))
+            raise ValueError("Unknown input string:", val)
+    else:
+        raise TypeError("String expected, found type:", type(val))
 
 
 class LowLevelQNNPennyLane(LowLevelQNNBase):
@@ -284,7 +370,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         *values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
     ) -> dict:
 
-        def _evaluate_todo_single_x(todo_class: _evaluate, x, param, param_obs):
+        def _evaluate_todo_single_x(todo_class: direct_evaluation, x, param, param_obs):
 
             if todo_class.squared:
                 func = self._pennylane_circuit_squared
@@ -308,7 +394,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
             return np.array(value)
 
-        def _evaluate_todo_all_x(todo_class: _evaluate, x, param, param_obs):
+        def _evaluate_todo_all_x(todo_class: direct_evaluation, x, param, param_obs):
 
             if todo_class.squared:
                 func = self._pennylane_circuit_squared
@@ -368,18 +454,18 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
-        post_processing_todos = []
+        post_processing_values = []
 
         values = list(values)
 
         for todo in values:
 
-            todo_class = _evaluate.from_string(todo)
-            if isinstance(todo_class,tuple):
-                for sub_todo in todo_class:
+            todo_class = _get_class_from_string(todo)
+            if not isinstance(todo_class,direct_evaluation):
+                for sub_todo in todo_class.evaluation_tuple:
                     if sub_todo not in values:
                         values.append(sub_todo)
-                post_processing_todos.append(todo)
+                post_processing_values.append(todo_class)
             else:
 
                 if todo_class.return_grad_x and todo_class.order > 1:
@@ -441,54 +527,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     value_dict[todo] = output.reshape(reshape_list)
 
 
-        for post in post_processing_todos:
-
-            if post in ("var", "varf"):
-                value_dict[post] = value_dict["fcc"] - np.square(
-                    value_dict["f"]
-                )
-            # d/dx variance
-            elif post in ("dvardx", "dvarfdx"):
-                if self.num_features == 1:
-                    value_dict[post] = value_dict["dfccdx"] - 2.0 * (
-                        np.multiply(value_dict["dfdx"], value_dict["f"])
-                    )
-                else:
-                    value_dict[post] = np.zeros(value_dict["dfccdx"].shape)
-                    for i in range(value_dict["dfccdx"].shape[-1]):
-                        value_dict[post][..., i] = value_dict["dfccdx"][
-                            ..., i
-                        ] - 2.0 * (
-                            np.multiply(
-                                value_dict["dfdx"][..., i],
-                                value_dict["f"],
-                            )
-                        )
-            # d/dp variance
-            elif post in ("dvardp", "dvarfdp"):
-                value_dict[post] = np.zeros(value_dict["dfccdp"].shape)
-                for i in range(value_dict["dfccdp"].shape[-1]):
-                    value_dict[post][..., i] = value_dict["dfccdp"][
-                        ..., i
-                    ] - 2.0 * (
-                        np.multiply(
-                            value_dict["dfdp"][..., i],
-                            value_dict["f"],
-                        )
-                    )
-            # d/dop variance
-            elif post in ("dvardop", "dvarfdop"):
-                value_dict[post] = np.zeros(value_dict["dfccdop"].shape)
-                for i in range(value_dict["dfccdop"].shape[-1]):
-                    value_dict[post][..., i] = value_dict["dfccdop"][
-                        ..., i
-                    ] - 2.0 * (
-                        np.multiply(
-                            value_dict["dfdop"][..., i],
-                            value_dict["f"],
-                        )
-                    )
-
+        for post in post_processing_values:
+            value_dict[post.key] = post.evaluation_function(value_dict)
 
         return value_dict
 
