@@ -63,6 +63,9 @@ class PennyLaneCircuit:
                 self._pennylane_words,
                 self._pennylane_obs_parameters,
             ) = self.build_observable_instructions(observable)
+            print("self._pennylane_obs_param_function", self._pennylane_obs_param_function)
+            print("self._pennylane_words", self._pennylane_words)
+            print("self._pennylane_obs_parameters", self._pennylane_obs_parameters)
 
         self._pennylane_circuit = self.build_pennylane_circuit()
 

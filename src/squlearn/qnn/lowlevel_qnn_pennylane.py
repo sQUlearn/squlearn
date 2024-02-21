@@ -183,6 +183,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._num_parameters_observable = self._observable.num_parameters
             self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
             self._qiskit_observable = self._observable.get_operator(self._param_obs)
+            self._qiskit_observable_squared = self._qiskit_observable.power(2)
+            print("self._qiskit_observable_squared",self._qiskit_observable_squared)
         elif isinstance(self._observable, list):
             self._multiple_output = True
             self._num_operators = len(observable)
@@ -191,15 +193,20 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 self._num_parameters_observable += obs.num_parameters
             self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
             self._qiskit_observable = []
+            self._qiskit_observable_squared = []
             ioff = 0
             for obs in self._observable:
                 self._qiskit_observable.append(obs.get_operator(self._param_obs[ioff:]))
+                self._qiskit_observable_squared.append(self._qiskit_observable[-1].power(2))
                 ioff = ioff + obs.num_parameters
         else:
             raise ValueError("Observable must be of type ObservableBase or list")
 
         self._pennylane_circuit = PennyLaneCircuit(
             self._device, self._qiskit_circuit, self._qiskit_observable
+        )
+        self._pennylane_circuit_squared = PennyLaneCircuit(
+            self._device, self._qiskit_circuit, self._qiskit_observable_squared
         )
 
         # Initialize result cache
@@ -281,7 +288,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         def _evaluate_todo_single_x(todo_class: _evaluate, x, param, param_obs):
 
             if todo_class.squared:
-                raise NotImplementedError("Square not implemented")
+                func = self._pennylane_circuit_squared
             else:
                 func = self._pennylane_circuit
 
@@ -290,7 +297,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
             if todo_class.order == 0:
-                value = self._pennylane_circuit(param_, x_, param_obs_)
+                value = func(param_, x_, param_obs_)
             elif todo_class.order > 0:
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
@@ -305,7 +312,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         def _evaluate_todo_all_x(todo_class: _evaluate, x, param, param_obs):
 
             if todo_class.squared:
-                raise NotImplementedError("Square not implemented")
+                func = self._pennylane_circuit_squared
             else:
                 func = self._pennylane_circuit
 
@@ -314,7 +321,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
             if todo_class.order == 0:
-                value = self._pennylane_circuit(param_, x_, param_obs_)
+                value = func(param_, x_, param_obs_)
             elif todo_class.order > 0:
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
