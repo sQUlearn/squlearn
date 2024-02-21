@@ -679,7 +679,7 @@ class Executor:
             job_pickle._ws_client = None
             try:
                 job_pickle._backend = str(job.backend())
-            except AttributeError:
+            except (QiskitError, AttributeError):
                 job_pickle._backend = self.backend
 
             # overwrite result function with the obtained result
