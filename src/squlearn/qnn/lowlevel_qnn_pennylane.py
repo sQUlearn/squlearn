@@ -143,15 +143,15 @@ class _evaluate:
                     "dfccdopdop", 2, argnum=[2, 2], return_grad_param_obs=True, squared=True
                 )
             elif val in ("var", "varf"):
-                raise NotImplementedError("var/varf not implemented")
+                return ("f", "fcc")
             elif val in ("dvardx", "dvarfdx"):
-                raise NotImplementedError("dvardx/dvarfdx not implemented")
+                return ("dfdx", "dfccdx")
             elif val in ("dvardp", "dvarfdp"):
-                raise NotImplementedError("dvardp/dvarfdp not implemented")
+                return ("dfdp", "dfccdp")
             elif val in ("dvardop", "dvarfdop"):
-                raise NotImplementedError("dvardop/dvarfdop not implemented")
+                return ("dfdop", "dfccdop")
             elif val == "fischer":
-                raise NotImplementedError("fischer not implemented")
+                return None
             else:
                 raise ValueError("Unknown input string:", val)
         else:
@@ -183,8 +183,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._num_parameters_observable = self._observable.num_parameters
             self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
             self._qiskit_observable = self._observable.get_operator(self._param_obs)
-            self._qiskit_observable_squared = self._qiskit_observable.power(2)
-            print("self._qiskit_observable_squared",self._qiskit_observable_squared)
+            self._qiskit_observable_squared = self._qiskit_observable.power(2).simplify()
         elif isinstance(self._observable, list):
             self._multiple_output = True
             self._num_operators = len(observable)
@@ -197,7 +196,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             ioff = 0
             for obs in self._observable:
                 self._qiskit_observable.append(obs.get_operator(self._param_obs[ioff:]))
-                self._qiskit_observable_squared.append(self._qiskit_observable[-1].power(2))
+                self._qiskit_observable_squared.append(self._qiskit_observable[-1].power(2).simplify())
                 ioff = ioff + obs.num_parameters
         else:
             raise ValueError("Observable must be of type ObservableBase or list")
@@ -369,67 +368,127 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         value_dict["param"] = param
         value_dict["param_op"] = param_obs
 
+        post_processing_todos = []
+
+        values = list(values)
+
         for todo in values:
 
             todo_class = _evaluate.from_string(todo)
-
-            if todo_class.return_grad_x and todo_class.order > 1:
-                # evaluate every single x, param, param_op combination separately
-                values = [
-                    _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_)
-                    for x_inp_ in x_inp
-                    for param_inp_ in param_inp
-                    for param_obs_inp_ in param_obs_inp
-                ]
-                values = np.array(values)
-
+            if isinstance(todo_class,tuple):
+                for sub_todo in todo_class:
+                    if sub_todo not in values:
+                        values.append(sub_todo)
+                post_processing_todos.append(todo)
             else:
-                # evaluate only param, param_op combination separately and all x together
-                values = [
-                    _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
-                    for param_inp_ in param_inp
-                    for param_obs_inp_ in param_obs_inp
-                ]
-                # Restore order of _evaluate_todo_single_x
-                values = np.array(values)
-                index_list = list(range(len(values.shape)))
-                if self.multiple_output:
-                    swap_list = [2, 0, 1] + index_list[3:]
+
+                if todo_class.return_grad_x and todo_class.order > 1:
+                    # evaluate every single x, param, param_op combination separately
+                    output = [
+                        _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_)
+                        for x_inp_ in x_inp
+                        for param_inp_ in param_inp
+                        for param_obs_inp_ in param_obs_inp
+                    ]
+                    output = np.array(output)
+
                 else:
-                    swap_list = [1, 0] + index_list[2:]
-                values = values.transpose(swap_list)
-                values = values.reshape(
-                    (values.shape[0] * values.shape[1],) + tuple(values.shape[2:])
+                    # evaluate only param, param_op combination separately and all x together
+                    output = [
+                        _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
+                        for param_inp_ in param_inp
+                        for param_obs_inp_ in param_obs_inp
+                    ]
+                    # Restore order of _evaluate_todo_single_x
+                    output = np.array(output)
+                    index_list = list(range(len(output.shape)))
+                    if self.multiple_output:
+                        swap_list = [2, 0, 1] + index_list[3:]
+                    else:
+                        swap_list = [1, 0] + index_list[2:]
+                    output = output.transpose(swap_list)
+                    output = output.reshape(
+                        (output.shape[0] * output.shape[1],) + tuple(output.shape[2:])
+                    )
+
+                # Swap higher order derivatives into correct order
+                index_list = list(range(len(output.shape)))
+                if self.multiple_output:
+                    swap_list = index_list[0:2] + list(reversed(index_list[2:]))
+                else:
+                    swap_list = index_list[0:1] + list(reversed(index_list[1:]))
+                output = output.transpose(swap_list)
+
+                # Reshape to correct format
+                reshape_list = []
+                shape = output.shape
+                if multi_x:
+                    reshape_list.append(len(x))
+                if multi_param:
+                    reshape_list.append(len(param))
+                if multi_param_op:
+                    reshape_list.append(len(param_obs))
+                if self.multiple_output:
+                    reshape_list.append(shape[1])
+                if self.multiple_output:
+                    reshape_list += list(shape[2:])
+                else:
+                    reshape_list += list(shape[1:])
+
+                if len(reshape_list) == 0:
+                    value_dict[todo] = output.reshape(-1)[0]
+                else:
+                    value_dict[todo] = output.reshape(reshape_list)
+
+
+        for post in post_processing_todos:
+
+            if post in ("var", "varf"):
+                value_dict[post] = value_dict["fcc"] - np.square(
+                    value_dict["f"]
                 )
+            # d/dx variance
+            elif post in ("dvardx", "dvarfdx"):
+                if self.num_features == 1:
+                    value_dict[post] = value_dict["dfccdx"] - 2.0 * (
+                        np.multiply(value_dict["dfdx"], value_dict["f"])
+                    )
+                else:
+                    value_dict[post] = np.zeros(value_dict["dfccdx"].shape)
+                    for i in range(value_dict["dfccdx"].shape[-1]):
+                        value_dict[post][..., i] = value_dict["dfccdx"][
+                            ..., i
+                        ] - 2.0 * (
+                            np.multiply(
+                                value_dict["dfdx"][..., i],
+                                value_dict["f"],
+                            )
+                        )
+            # d/dp variance
+            elif post in ("dvardp", "dvarfdp"):
+                value_dict[post] = np.zeros(value_dict["dfccdp"].shape)
+                for i in range(value_dict["dfccdp"].shape[-1]):
+                    value_dict[post][..., i] = value_dict["dfccdp"][
+                        ..., i
+                    ] - 2.0 * (
+                        np.multiply(
+                            value_dict["dfdp"][..., i],
+                            value_dict["f"],
+                        )
+                    )
+            # d/dop variance
+            elif post in ("dvardop", "dvarfdop"):
+                value_dict[post] = np.zeros(value_dict["dfccdop"].shape)
+                for i in range(value_dict["dfccdop"].shape[-1]):
+                    value_dict[post][..., i] = value_dict["dfccdop"][
+                        ..., i
+                    ] - 2.0 * (
+                        np.multiply(
+                            value_dict["dfdop"][..., i],
+                            value_dict["f"],
+                        )
+                    )
 
-            # Swap higher order derivatives into correct order
-            index_list = list(range(len(values.shape)))
-            if self.multiple_output:
-                swap_list = index_list[0:2] + list(reversed(index_list[2:]))
-            else:
-                swap_list = index_list[0:1] + list(reversed(index_list[1:]))
-            values = values.transpose(swap_list)
-
-            # Reshape to correct format
-            reshape_list = []
-            shape = values.shape
-            if multi_x:
-                reshape_list.append(len(x))
-            if multi_param:
-                reshape_list.append(len(param))
-            if multi_param_op:
-                reshape_list.append(len(param_obs))
-            if self.multiple_output:
-                reshape_list.append(shape[1])
-            if self.multiple_output:
-                reshape_list += list(shape[2:])
-            else:
-                reshape_list += list(shape[1:])
-
-            if len(reshape_list) == 0:
-                value_dict[todo] = values.reshape(-1)[0]
-            else:
-                value_dict[todo] = values.reshape(reshape_list)
 
         return value_dict
 
