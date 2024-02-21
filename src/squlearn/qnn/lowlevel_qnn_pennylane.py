@@ -4,6 +4,7 @@ import numpy as np
 import copy
 
 from qiskit.circuit import ParameterVector
+from qiskit.circuit.parametervector import ParameterVectorElement
 
 import pennylane as qml
 import pennylane.numpy as pnp
@@ -240,6 +241,11 @@ def _get_class_from_string(val: str):
             return None
         else:
             raise ValueError("Unknown input string:", val)
+
+    elif isinstance(val, ParameterVectorElement):
+        raise ValueError("ParameterVectorElement not supported")
+    elif isinstance(val, ParameterVector):
+        raise ValueError("ParameterVector not supported")
     else:
         raise TypeError("String expected, found type:", type(val))
 
