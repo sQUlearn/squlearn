@@ -184,7 +184,7 @@ class Expec:
             raise TypeError("String expected, found type:", type(val))
 
     @classmethod
-    def from_tuple(cls, val: tuple, operator: str = "O"):
+    def from_tuple(cls, val: tuple, operator: str = "O", label = None):
         """Creates an Expec object from an input tuple
 
         Args:
@@ -194,7 +194,46 @@ class Expec:
         Returns
             Associated Expec object
         """
-        return cls(val, operator, val)
+
+        circuit_tuple = tuple() # Derivatives affecting the circuit
+        observable_tuple = tuple() # Derivatives affecting the observable
+
+        # Split the derivative tuple into the circuit and observable part
+        for i in val:
+            if isinstance(i, ParameterVector) or isinstance(i, ParameterVectorElement):
+                if "p_op" in i.name:
+                    observable_tuple += (i,)
+                elif "p" in i.name:
+                    circuit_tuple += (i,)
+                elif "x" in i.name:
+                    circuit_tuple += (i,)
+                else:
+                    raise ValueError("Unknown parameter name:", i.name)
+            else:
+                raise ValueError("Unknown type:", type(i))
+
+        if len(circuit_tuple) == 0:
+            circuit_tuple = "I"
+        if len(observable_tuple) == 0:
+            observable_tuple = operator
+
+        if label is None:
+            label = val
+
+        return cls(circuit_tuple, observable_tuple, label)
+
+    @classmethod
+    def from_parameter_vector(cls, val: ParameterVectorElement, operator: str = "O"):
+        """Creates an Expec object from an inputted parameter
+
+        Args:
+            val (ParameterVectorElement): Parameter that is used in the differentiation.
+            operator (str): String for the operator, default='O'.
+
+        Returns
+            Associated Expec object
+        """
+        return cls.from_tuple((val,), operator, val)
 
     @classmethod
     def from_parameter(cls, val: ParameterVectorElement, operator: str = "O"):
@@ -207,7 +246,7 @@ class Expec:
         Returns
             Associated Expec object
         """
-        return cls((val,), operator, (val,))
+        return cls.from_tuple((val,), operator, val)
 
     @classmethod
     def from_variable(cls, val):
@@ -226,6 +265,8 @@ class Expec:
             return cls.from_string(val)
         elif isinstance(val, tuple):
             return cls.from_tuple(val)
+        elif isinstance(val, ParameterVector):
+            return cls.from_parameter_vector(val)
         elif isinstance(val, ParameterVectorElement):
             return cls.from_parameter(val)
         else:
@@ -432,17 +473,17 @@ class LowLevelQNN(LowLevelQNNBase):
         return self.operator_derivatives.multiple_output
 
     @property
-    def parameters(self):
+    def parameters(self) -> ParameterVector:
         """Return the parameter vector of the PQC."""
         return self.pqc_derivatives.parameter_vector
 
     @property
-    def features(self):
+    def features(self) -> ParameterVector:
         """Return the feature vector of the PQC."""
         return self.pqc_derivatives.feature_vector
 
     @property
-    def parameters_operator(self):
+    def parameters_operator(self) -> ParameterVector:
         """Return the parameter vector of the cost operator."""
         return self.operator_derivatives.parameter_vector
 

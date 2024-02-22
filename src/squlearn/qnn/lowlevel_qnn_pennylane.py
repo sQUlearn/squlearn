@@ -241,11 +241,50 @@ def _get_class_from_string(val: str):
             return None
         else:
             raise ValueError("Unknown input string:", val)
+    elif isinstance(val, tuple):
+
+        return_grad_param = False
+        return_grad_param_obs = False
+        return_grad_x = False
+
+        argnum = []
+        order = 0
+
+        for sub_val in val:
+            if isinstance(sub_val, ParameterVector):
+                order += 1
+                print("sub_val.name",sub_val.name)
+                if "param_obs" in sub_val.name:
+                    return_grad_param_obs = True
+                    argnum.append(2)
+                elif "param" in sub_val.name:
+                    return_grad_param = True
+                    argnum.append(0)
+                elif "x" in sub_val.name:
+                    return_grad_x = True
+                    argnum.append(1)
+                else:
+                    raise ValueError("Unsupported parameter name:", sub_val.name)
+            elif isinstance(sub_val, ParameterVectorElement):
+                raise ValueError("ParameterVectorElement are not supported, calculate full derivative")
+            else:
+                raise ValueError("Unsupported input type:", type(sub_val))
+
+        return direct_evaluation(val, order, argnum, return_grad_param, return_grad_param_obs, return_grad_x)
 
     elif isinstance(val, ParameterVectorElement):
-        raise ValueError("ParameterVectorElement not supported")
+        raise ValueError("ParameterVectorElement are not supported, calculate full derivative")
     elif isinstance(val, ParameterVector):
-        raise ValueError("ParameterVector not supported")
+
+        if val.name == "param":
+            return direct_evaluation(val, 1, argnum=[0], return_grad_param=True)
+        elif val.name == "param_obs":
+            return direct_evaluation(val, 1, argnum=[2], return_grad_param_obs=True)
+        elif val.name == "x":
+            return direct_evaluation(val, 1, argnum=[1], return_grad_x=True)
+        else:
+            raise ValueError("Unknown ParameterVector with the name:", val.name)
+
     else:
         raise TypeError("String expected, found type:", type(val))
 
@@ -269,7 +308,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
 
         if isinstance(self._observable, ObservableBase):
-
             self._multiple_output = False
             self._num_operators = 1
             self._num_parameters_observable = self._observable.num_parameters
@@ -367,6 +405,21 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     def multiple_output(self) -> bool:
         """Return true if multiple outputs are used"""
         return self._multiple_output
+
+    @property
+    def parameters(self) -> ParameterVector:
+        """Return the parameter vector of the PQC."""
+        return self._param
+
+    @property
+    def features(self) -> ParameterVector:
+        """Return the feature vector of the PQC."""
+        return self._x
+
+    @property
+    def parameters_operator(self) -> ParameterVector:
+        """Return the parameter vector of the cost operator."""
+        return self._param_obs
 
     def evaluate(
         self,
