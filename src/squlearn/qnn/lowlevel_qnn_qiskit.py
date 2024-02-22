@@ -184,7 +184,7 @@ class Expec:
             raise TypeError("String expected, found type:", type(val))
 
     @classmethod
-    def from_tuple(cls, val: tuple, operator: str = "O", label = None):
+    def from_tuple(cls, val: tuple, operator: str = "O", label=None):
         """Creates an Expec object from an input tuple
 
         Args:
@@ -195,8 +195,8 @@ class Expec:
             Associated Expec object
         """
 
-        circuit_tuple = tuple() # Derivatives affecting the circuit
-        observable_tuple = tuple() # Derivatives affecting the observable
+        circuit_tuple = tuple()  # Derivatives affecting the circuit
+        observable_tuple = tuple()  # Derivatives affecting the observable
 
         # Split the derivative tuple into the circuit and observable part
         for i in val:
