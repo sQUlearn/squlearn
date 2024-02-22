@@ -147,6 +147,67 @@ def _get_class_from_string(val: str):
 
         return eval_laplace
 
+    def pick_single_elements(pick_indices,label):
+
+        def pick_elements(value_dict):
+            val = value_dict[label]
+            if all(i=="all" for i in pick_indices):
+                return val
+            else:
+                slice_tuple = tuple()
+                for i in pick_indices:
+                    if i == "all":
+                        slice_tuple += (slice(None),)
+                    else:
+                        slice_tuple += (slice(i,i+1,1),)
+                extra_dim = len(val.shape)-len(slice_tuple)
+                if extra_dim > 0:
+                    slice_tuple = (slice(None),)*extra_dim+slice_tuple
+                return val[slice_tuple]
+
+        return pick_elements
+
+    def get_direct_evaluation_from_tuple(todo: tuple):
+
+        return_grad_param = False
+        return_grad_param_obs = False
+        return_grad_x = False
+
+        argnum = []
+        order = 0
+        val_tuple = tuple()
+        pick_list = []
+
+        for sub_val in todo:
+            if isinstance(sub_val, ParameterVector) or isinstance(sub_val, ParameterVectorElement):
+                order += 1
+                if isinstance(sub_val, ParameterVectorElement):
+                    val_tuple += (sub_val.vector,)
+                    pick_list.append(sub_val.index)
+                else:
+                    val_tuple += (sub_val,)
+                    pick_list.append("all")
+                if "param_obs" in sub_val.name:
+                    return_grad_param_obs = True
+                    argnum.append(2)
+                elif "param" in sub_val.name:
+                    return_grad_param = True
+                    argnum.append(0)
+                elif "x" in sub_val.name:
+                    return_grad_x = True
+                    argnum.append(1)
+                else:
+                    raise ValueError("Unsupported parameter name:", sub_val.name)
+            else:
+                raise ValueError("Unsupported input type:", type(sub_val))
+
+        evaluation = direct_evaluation(val_tuple, order, argnum, return_grad_param, return_grad_param_obs, return_grad_x)
+
+        if all(i=="all" for i in pick_list):
+            return evaluation
+        else:
+            return post_processing_evaluation(todo,(evaluation,), pick_single_elements(pick_list,val_tuple))
+
     if isinstance(val, str):
         if val == "f":
             return direct_evaluation("f")
@@ -243,37 +304,16 @@ def _get_class_from_string(val: str):
             raise ValueError("Unknown input string:", val)
     elif isinstance(val, tuple):
 
-        return_grad_param = False
-        return_grad_param_obs = False
-        return_grad_x = False
-
-        argnum = []
-        order = 0
-
-        for sub_val in val:
-            if isinstance(sub_val, ParameterVector):
-                order += 1
-                print("sub_val.name",sub_val.name)
-                if "param_obs" in sub_val.name:
-                    return_grad_param_obs = True
-                    argnum.append(2)
-                elif "param" in sub_val.name:
-                    return_grad_param = True
-                    argnum.append(0)
-                elif "x" in sub_val.name:
-                    return_grad_x = True
-                    argnum.append(1)
-                else:
-                    raise ValueError("Unsupported parameter name:", sub_val.name)
-            elif isinstance(sub_val, ParameterVectorElement):
-                raise ValueError("ParameterVectorElement are not supported, calculate full derivative")
-            else:
-                raise ValueError("Unsupported input type:", type(sub_val))
-
-        return direct_evaluation(val, order, argnum, return_grad_param, return_grad_param_obs, return_grad_x)
+        return get_direct_evaluation_from_tuple(val)
 
     elif isinstance(val, ParameterVectorElement):
-        raise ValueError("ParameterVectorElement are not supported, calculate full derivative")
+
+        pick_list = [val.index]
+        eval = get_direct_evaluation_from_tuple(val)
+        #return post_processing_evaluation(val, (,) pick_single_elements(pick_list,val.name))
+
+
+
     elif isinstance(val, ParameterVector):
 
         if val.name == "param":
@@ -285,6 +325,10 @@ def _get_class_from_string(val: str):
         else:
             raise ValueError("Unknown ParameterVector with the name:", val.name)
 
+    elif isinstance(val, direct_evaluation):
+        return val
+    elif isinstance(val, post_processing_evaluation):
+        return val
     else:
         raise TypeError("String expected, found type:", type(val))
 
@@ -520,6 +564,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         for todo in values:
 
             todo_class = _get_class_from_string(todo)
+
             if not isinstance(todo_class,direct_evaluation):
                 for sub_todo in todo_class.evaluation_tuple:
                     if sub_todo not in values:
@@ -581,9 +626,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     reshape_list += list(shape[1:])
 
                 if len(reshape_list) == 0:
-                    value_dict[todo] = output.reshape(-1)[0]
+                    value_dict[todo_class.key] = output.reshape(-1)[0]
                 else:
-                    value_dict[todo] = output.reshape(reshape_list)
+                    value_dict[todo_class.key] = output.reshape(reshape_list)
 
 
         for post in post_processing_values:
