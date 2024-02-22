@@ -21,11 +21,14 @@ class direct_evaluation:
     """Class for evaluation of derivatives of the QNN
 
     Args:
-        key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative for the value dictionary
+        key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative for
+                                                                          the value dictionary
         order (int): Order of the derivative
-        argnum (Union[None, List[int]]): List of which arguments (x,param,param_obs) to differentiate
+        argnum (Union[None, List[int]]): List of which arguments (x,param,param_obs) to
+                                         differentiate
         return_grad_param (bool): Calculate the gradient with respect to the parameters
-        return_grad_param_obs (bool): Calculate the gradient with respect to the observable parameters
+        return_grad_param_obs (bool): Calculate the gradient with respect to the observable
+                                      parameters
         return_grad_x (bool): Calculate the gradient with respect to the input
         squared (bool): Calculate the squared value of the derivative
     """
@@ -435,6 +438,15 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         self._device = PennyLaneDevice()  # TODO: replace by Executor
 
+        # Initialize result cache
+        self._result_caching = result_caching
+        self.result_container = {}
+
+        self._initialize_pennylane_circuit()
+
+    def _initialize_pennylane_circuit(self):
+        """Function to initialize the PennyLane circuit function of the QNN"""
+
         # Parameter vectors for the PQC and the observable
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
@@ -452,7 +464,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         elif isinstance(self._observable, list):
             # Multiple outputs, multiple observables
             self._multiple_output = True
-            self._num_operators = len(observable)
+            self._num_operators = len(self._observable)
             self._num_parameters_observable = 0
             for obs in self._observable:
                 self._num_parameters_observable += obs.num_parameters
@@ -478,17 +490,51 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._device, self._qiskit_circuit, self._qiskit_observable_squared
         )
 
-        # Initialize result cache
-        self._result_caching = result_caching
-        self.result_container = {}
+
 
     def draw(self, **kwargs):
         # TODO: fix or remove
         return self._pennylane_circuit.draw(**kwargs)
 
     def set_params(self, **params) -> None:
-        # TODO: implement
-        raise NotImplementedError
+        # Check if all parameters are valid
+        valid_params = self.get_params()
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        # Set parameters of the PQC
+        dict_pqc = {}
+        for key, value in params.items():
+            if key in self._pqc.get_params():
+                dict_pqc[key] = value
+        if len(dict_pqc) > 0:
+            self._pqc.set_params(**dict_pqc)
+
+        # Set parameters of the operator
+        if isinstance(self._observable, list):
+            for i, oper in enumerate(self._observable):
+                dict_operator = {}
+                for key, value in params.items():
+                    if key == "num_qubits":
+                        dict_operator[key] = value
+                    else:
+                        if key.startswith("op" + str(i) + "__"):
+                            dict_operator[key.split("__", 1)[1]] = value
+                if len(dict_operator) > 0:
+                    oper.set_params(**dict_operator)
+        else:
+            dict_operator = {}
+            for key, value in params.items():
+                if key in self._observable.get_params():
+                    dict_operator[key] = value
+            if len(dict_operator) > 0:
+                self._observable.set_params(**dict_operator)
+
+        self._initialize_pennylane_circuit()
 
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.

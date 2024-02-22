@@ -297,9 +297,6 @@ class LowLevelQNN(LowLevelQNNBase):
         pqc = TranspiledEncodingCircuit(pqc, executor.backend)
         super().__init__(pqc, operator, executor)
 
-        # Set-up shots from backend
-        self._inital_shots = self._executor.get_shots()
-
         self._optree_caching = optree_caching
         self._result_caching = result_caching
 

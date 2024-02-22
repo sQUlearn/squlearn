@@ -1,6 +1,7 @@
 import abc
 from typing import Union
 import numpy as np
+import copy
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -14,8 +15,8 @@ class LowLevelQNNBase(abc.ABC):
         observable: Union[ObservableBase, list],
         executor: Executor,
     ) -> None:
-        self._pqc = pqc
-        self._observable = observable
+        self._pqc = copy.deepcopy(pqc)
+        self._observable = copy.deepcopy(observable)
         self._executor = executor
 
     @abc.abstractmethod
