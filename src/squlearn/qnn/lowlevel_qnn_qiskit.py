@@ -343,7 +343,7 @@ class LowLevelQNN(LowLevelQNNBase):
         """
 
         # Check if all parameters are valid
-        valid_params = self.get_params()
+        valid_params = self.get_params(deep=True)
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(

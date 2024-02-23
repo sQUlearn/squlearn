@@ -18,7 +18,8 @@ from sklearn.gaussian_process.kernels import Kernel as SklearnKernel
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
-from ...qnn.qnn import QNN
+#from ...qnn.qnn import QNN
+from ...qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane as QNN
 from ...observables import SinglePauli
 from ...observables.observable_base import ObservableBase
 
@@ -120,9 +121,9 @@ class OuterKernelBase:
                 # Evaluate QNN
                 param = parameters[: qnn.num_parameters]
                 param_op = parameters[qnn.num_parameters :]
-                x_result = qnn.evaluate_f(x, param, param_op)
+                x_result = qnn.evaluate(x, param, param_op,"f")["f"]
                 if y is not None:
-                    y_result = qnn.evaluate_f(y, param, param_op)
+                    y_result = qnn.evaluate(x, param, param_op,"f")["f"]
                 else:
                     y_result = None
                 # Evaluate kernel
@@ -446,7 +447,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         param = self._parameters[: self._qnn.num_parameters]
         param_op = self._parameters[self._qnn.num_parameters :]
         # Evaluate and return
-        return self._qnn.evaluate_f(x, param, param_op)
+        return self._qnn.evaluate(x, param, param_op,"f")["f"]
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """Evaluates the Projected Quantum Kernel for the given data points x and y.
@@ -703,9 +704,9 @@ class GaussianOuterKernel(OuterKernelBase):
         if len(param_op.shape) == 1 and len(param_op) == 1:
             param_op = float(param_op)
 
-        x_result = qnn.evaluate_f(x, param, param_op)
+        x_result = qnn.evaluate(x, param, param_op,"f")["f"]
         if y is not None:
-            y_result = qnn.evaluate_f(y, param, param_op)
+            y_result = qnn.evaluate(x, param, param_op,"f")["f"]
         else:
             y_result = None
 
