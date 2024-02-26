@@ -694,12 +694,26 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
             eval_tuple = tuple()
+            argnum_dict={}
+            ioff = 0
             if len(param_) > 0:
                 eval_tuple += (param_,)
+                argnum_dict[0] = ioff
+                ioff +=1
+            else:
+                argnum_dict[0] = None
             if len(x_) > 0:
                 eval_tuple += (x_,)
+                argnum_dict[1] = ioff
+                ioff +=1
+            else:
+                argnum_dict[1] = None
             if len(param_obs_) > 0:
                 eval_tuple += (param_obs_,)
+                argnum_dict[2] = ioff
+                ioff +=1
+            else:
+                argnum_dict[2] = None
 
             if todo_class.order == 0:
                 # Plain function evaluation
@@ -708,10 +722,19 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 # Generate iterative derivative function for higher order derivatives
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
-                deriv = qml.jacobian(func, argnum=argnum.pop())
+                arg_index = argnum_dict[argnum.pop()]
+                if arg_index is None:
+                    deriv = func
+                else:
+                    deriv = qml.jacobian(func, argnum=arg_index)
                 while order > 0:
-                    deriv = qml.jacobian(deriv, argnum=argnum.pop())
                     order -= 1
+                    arg_index = argnum_dict[argnum.pop()]
+                    if arg_index is None:
+                        pass
+                    else:
+                        deriv = qml.jacobian(deriv, argnum=arg_index)
+
                 value = deriv(*(eval_tuple))
 
             # Convert back to numpy format

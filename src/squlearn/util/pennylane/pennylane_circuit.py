@@ -133,6 +133,12 @@ class PennyLaneCircuit:
                         param_tuple += (param,)
 
             pennylane_gates_param_function.append(param_tuple)
+
+            if op.operation.name not in qiskit_pennyland_gate_dict:
+                raise NotImplementedError(
+                    f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's PennyLane backend."
+                )
+
             pennylane_gates.append(qiskit_pennyland_gate_dict[op.operation.name])
             wires = [op.qubits[i].index for i in range(op.operation.num_qubits)]
             pennylane_gates_wires.append(wires)
