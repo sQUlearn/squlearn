@@ -643,14 +643,29 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
-            # TODO: build evaluation tuple!
             eval_tuple = tuple()
+            argnum_dict={}
+            ioff = 0
             if len(param_) > 0:
                 eval_tuple += (param_,)
+                argnum_dict[0] = ioff
+                ioff +=1
+            else:
+                argnum_dict[0] = None
             if len(x_) > 0:
                 eval_tuple += (x_,)
+                argnum_dict[1] = ioff
+                ioff +=1
+            else:
+                argnum_dict[1] = None
             if len(param_obs_) > 0:
                 eval_tuple += (param_obs_,)
+                argnum_dict[2] = ioff
+                ioff +=1
+            else:
+                argnum_dict[2] = None
+
+            print("eval_tuple",eval_tuple)
 
             if todo_class.order == 0:
                 # Plain function evaluation
@@ -659,11 +674,21 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 # Generate iterative derivative function for higher order derivatives
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
-                deriv = qml.jacobian(func, argnum=argnum.pop())
+                arg_index = argnum_dict[argnum.pop()]
+                if arg_index is None:
+                    return np.array([])
+                else:
+                    deriv = qml.jacobian(func, argnum=arg_index)
                 while order > 0:
-                    deriv = qml.jacobian(deriv, argnum=argnum.pop())
                     order -= 1
+                    arg_index = argnum_dict[argnum.pop()]
+                    if arg_index is None:
+                        return np.array([])
+                    else:
+                        deriv = qml.jacobian(deriv, argnum=arg_index)
                 value = deriv(*(eval_tuple))
+
+            print("value",value)
 
             # Convert back to numpy array
             return np.real_if_close(np.array(value))
@@ -715,28 +740,35 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
                 argnum_dict[2] = None
 
+            print("eval_tuple",eval_tuple)
+
             if todo_class.order == 0:
                 # Plain function evaluation
-                value = func(*(eval_tuple))
+                value = func(*eval_tuple)
             elif todo_class.order > 0:
                 # Generate iterative derivative function for higher order derivatives
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
                 arg_index = argnum_dict[argnum.pop()]
+                print("arg_index",arg_index)
                 if arg_index is None:
-                    deriv = func
+                    return np.array([[]])
                 else:
                     deriv = qml.jacobian(func, argnum=arg_index)
                 while order > 0:
                     order -= 1
                     arg_index = argnum_dict[argnum.pop()]
+                    print("arg_index",arg_index)
                     if arg_index is None:
-                        pass
+                        return np.array([[]])
                     else:
                         deriv = qml.jacobian(deriv, argnum=arg_index)
 
-                value = deriv(*(eval_tuple))
+                value = deriv(*eval_tuple)
 
+            
+            print("value",value)
+            
             # Convert back to numpy format
             values = np.array(value)
             # sum over zero values entries due to dx differentiation
@@ -773,6 +805,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             compare_list.append("param_obs")
         if self._pennylane_circuit.circuit_arguments != compare_list:
             raise NotImplementedError("Wrong order of circuit arguments!")
+        
+        print("self._pennylane_circuit.circuit_arguments",self._pennylane_circuit.circuit_arguments)
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
