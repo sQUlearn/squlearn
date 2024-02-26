@@ -70,8 +70,6 @@ class BaseQNN(BaseEstimator, ABC):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.encoding_circuit = encoding_circuit
-        self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
@@ -121,7 +119,7 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
         self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching
+            encoding_circuit, operator, executor, result_caching=self.caching
         )
 
         self.shot_control = shot_control
@@ -183,6 +181,16 @@ class BaseQNN(BaseEstimator, ABC):
     def num_parameters_observable(self) -> int:
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
+
+    @property
+    def encoding_circuit(self) -> EncodingCircuitBase:
+        """Encoding circuit."""
+        return self._qnn._pqc
+    
+    @property
+    def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
+        """Operator."""
+        return self._qnn._observable
 
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
