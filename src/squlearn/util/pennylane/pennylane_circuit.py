@@ -196,13 +196,24 @@ class PennyLaneCircuit:
             for coeff in obs.coeffs:
                 if isinstance(coeff, ParameterExpression):
                     if coeff._symbol_expr == None:
-                        # todo check
                         coeff = coeff._coeff
+                        if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
+                            if np.imag(coeff) != 0:
+                                raise ValueError("Imaginary part of observable coefficient is not supported")
+                            coeff = float(np.real(coeff))
+                        else:
+                            coeff = float(coeff)
                     else:
                         symbol_expr = coeff._symbol_expr
                         f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
                         pennylane_obs_param_function_.append(f)
                 else:
+                    if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
+                        if np.imag(coeff) != 0:
+                            raise ValueError("Imaginary part of observable coefficient is not supported")
+                        coeff = float(np.real(coeff))
+                    else:
+                        coeff = float(coeff)
                     pennylane_obs_param_function_.append(coeff)
             pennylane_obs_param_function.append(pennylane_obs_param_function_)
 
@@ -228,23 +239,17 @@ class PennyLaneCircuit:
         def pennylane_circuit(*args):
 
             # list -> slow?
-            if len(self._pennylane_gates_param_function) > 0:
-                circ_param_list = sum(
-                    [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
-                )
-            else:
-                circ_param_list = []
+            circ_param_list = sum(
+                [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
+            )
 
-            if len(self._pennylane_obs_param_function) > 0:
-                obs_param_list = sum(
-                    [
-                        list(args[len(self._pennylane_gates_parameters) + i])
-                        for i in range(len(self._pennylane_obs_parameters))
-                    ],
-                    [],
-                )
-            else:
-                obs_param_list = []
+            obs_param_list = sum(
+                [
+                    list(args[len(self._pennylane_gates_parameters) + i])
+                    for i in range(len(self._pennylane_obs_parameters))
+                ],
+                [],
+            )
 
             # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
@@ -281,9 +286,7 @@ class PennyLaneCircuit:
                         evaluated_param = coeff(*obs_param_list)
                         coeff_list.append(evaluated_param)
                     else:
-                        coeff_list.append(float(coeff)) # TODO check float type here
-
-                print("coeff_list, self._pennylane_words",coeff_list, self._pennylane_words)
+                        coeff_list.append(coeff)
 
                 return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
 

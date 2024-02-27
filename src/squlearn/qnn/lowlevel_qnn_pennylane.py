@@ -665,8 +665,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
                 argnum_dict[2] = None
 
-            print("eval_tuple",eval_tuple)
-
             if todo_class.order == 0:
                 # Plain function evaluation
                 value = func(*(eval_tuple))
@@ -740,9 +738,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
                 argnum_dict[2] = None
 
-            print("eval_tuple",eval_tuple)
-            print("argnum_dict",argnum_dict)
-
             if todo_class.order == 0:
                 # Plain function evaluation
                 value = func(*eval_tuple)
@@ -751,8 +746,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 order = todo_class.order - 1
                 argnum = copy.copy(todo_class.argnum)
                 arg_index = argnum_dict[argnum.pop()]
-                print("arg_index",arg_index)
-                print("order",order)
                 if arg_index is None:
                     return np.array([[]])
                 else:
@@ -760,7 +753,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 while order > 0:
                     order -= 1
                     arg_index = argnum_dict[argnum.pop()]
-                    print("arg_index",arg_index)
                     if arg_index is None:
                         return np.array([[]])
                     else:
@@ -768,9 +760,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
                 value = deriv(*eval_tuple)
 
-            
-            print("value",value)
-            
             # Convert back to numpy format
             values = np.array(value)
             # sum over zero values entries due to dx differentiation
@@ -807,8 +796,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             compare_list.append("param_obs")
         if self._pennylane_circuit.circuit_arguments != compare_list:
             raise NotImplementedError("Wrong order of circuit arguments!")
-        
-        print("self._pennylane_circuit.circuit_arguments",self._pennylane_circuit.circuit_arguments)
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
@@ -840,7 +827,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
                 # Direct evaluation of the QNN
 
-                if True or todo_class.return_grad_x and todo_class.order > 1:
+                if todo_class.return_grad_x and todo_class.order > 1:
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [
