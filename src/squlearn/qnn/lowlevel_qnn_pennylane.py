@@ -741,6 +741,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 argnum_dict[2] = None
 
             print("eval_tuple",eval_tuple)
+            print("argnum_dict",argnum_dict)
 
             if todo_class.order == 0:
                 # Plain function evaluation
@@ -751,6 +752,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 argnum = copy.copy(todo_class.argnum)
                 arg_index = argnum_dict[argnum.pop()]
                 print("arg_index",arg_index)
+                print("order",order)
                 if arg_index is None:
                     return np.array([[]])
                 else:
@@ -838,7 +840,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
                 # Direct evaluation of the QNN
 
-                if todo_class.return_grad_x and todo_class.order > 1:
+                if True or todo_class.return_grad_x and todo_class.order > 1:
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [
