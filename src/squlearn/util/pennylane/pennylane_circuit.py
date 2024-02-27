@@ -228,17 +228,19 @@ class PennyLaneCircuit:
         def pennylane_circuit(*args):
 
             # list -> slow?
-            circ_param_list = sum(
-                [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
-            )
+            if len(self._pennylane_gates_param_function) > 0:
+                circ_param_list = sum(
+                    [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
+                )
 
-            obs_param_list = sum(
-                [
-                    list(args[len(self._pennylane_gates_parameters) + i])
-                    for i in range(len(self._pennylane_obs_parameters))
-                ],
-                [],
-            )
+            # if len(self._pennylane_obs_param_function) > 0:
+            #     obs_param_list = sum(
+            #         [
+            #             list(args[len(self._pennylane_gates_parameters) + i])
+            #             for i in range(len(self._pennylane_obs_parameters))
+            #         ],
+            #         [],
+            #     )
 
             # Loop through all penny lane gates
             for i, op in enumerate(self._pennylane_gates):
@@ -255,27 +257,29 @@ class PennyLaneCircuit:
 
             if self._qiskit_observable == None:
                 return qml.probs(wires=range(self._num_qubits))
-            elif isinstance(self._qiskit_observable, list):
-                expval_list = []
-                for i, obs in enumerate(self._pennylane_words):
-                    coeff_list = []
-                    for coeff in self._pennylane_obs_param_function[i]:
-                        if callable(coeff):
-                            evaluated_param = coeff(*obs_param_list)
-                            coeff_list.append(evaluated_param)
-                        else:
-                            coeff_list.append(coeff)
+            # elif isinstance(self._qiskit_observable, list):
+            #     expval_list = []
+            #     for i, obs in enumerate(self._pennylane_words):
+            #         coeff_list = []
+            #         for coeff in self._pennylane_obs_param_function[i]:
+            #             if callable(coeff):
+            #                 evaluated_param = coeff(*obs_param_list)
+            #                 coeff_list.append(evaluated_param)
+            #             else:
+            #                 coeff_list.append(coeff)
 
-                    expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
-                return pnp.stack(tuple(expval_list))
+            #         expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
+            #     return pnp.stack(tuple(expval_list))
             else:
                 coeff_list = []
                 for coeff in self._pennylane_obs_param_function:
-                    if callable(coeff):
-                        evaluated_param = coeff(*obs_param_list)
-                        coeff_list.append(evaluated_param)
-                    else:
-                        coeff_list.append(coeff)
+                    # if callable(coeff):
+                    #     evaluated_param = coeff(*obs_param_list)
+                    #     coeff_list.append(evaluated_param)
+                    # else:
+                    coeff_list.append(coeff)
+
+                print("coeff_list, self._pennylane_words",coeff_list, self._pennylane_words)
 
                 return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
 
