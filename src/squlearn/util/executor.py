@@ -17,7 +17,7 @@ from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives.base import SamplerResult, EstimatorResult
-from qiskit import Aer
+from qiskit_aer import Aer
 from qiskit_ibm_runtime import QiskitRuntimeService, Session
 from qiskit.providers import Options
 from qiskit.providers import JobV1 as Job
@@ -161,7 +161,7 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
-        ] = "statevector_simulator",
+        ] = "aer_simulator_statevector",
         backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
@@ -221,9 +221,13 @@ class Executor:
             execution = backend
         if isinstance(execution, str):
             # Execution is a string -> get backend
-            if execution == "statevector_simulator":
+            if execution in ["statevector_simulator", "aer_simulator_statevector"]:
+                execution = "aer_simulator_statevector"
                 self._backend = Aer.get_backend(execution)
-            elif execution == "qasm_simulator":
+                if shots is None:
+                    self._backend.options.shots = None
+            elif execution in ["qasm_simulator", "aer_simulator"]:
+                execution = "aer_simulator"
                 self._backend = Aer.get_backend(execution)
                 shots_backend = self._backend.options.shots
                 if shots is None:
@@ -244,7 +248,7 @@ class Executor:
             self._execution_origin = "Backend"
             if shots is None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
@@ -258,7 +262,7 @@ class Executor:
                 raise ValueError("Unknown backend type: " + backend)
             if shots is None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
             self._execution_origin = "QiskitRuntimeService"
         elif isinstance(execution, Session):
@@ -270,13 +274,13 @@ class Executor:
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
         elif isinstance(execution, BaseEstimator):
             self._estimator = execution
             if isinstance(self._estimator, qiskit_primitives_Estimator):
                 # this is only a hack, there is no real backend in the Primitive Estimator class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._backend = self._estimator._backend
                 shots_estimator = self._estimator.options.get("shots", 0)
@@ -307,7 +311,7 @@ class Executor:
 
             if isinstance(self._sampler, qiskit_primitives_Sampler):
                 # this is only a hack, there is no real backend in the Primitive Sampler class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
@@ -336,7 +340,7 @@ class Executor:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
         # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend):
+        if "ibm" in self.backend_name:
             self._remote = True
         else:
             self._remote = False
@@ -420,7 +424,7 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             else:
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = qiskit_primitives_Estimator(options=self._options_estimator)
                     self._estimator.set_options(shots=self._shots)
@@ -489,7 +493,7 @@ class Executor:
                     options=self._options_sampler,
                 )
             else:
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Sampler
                     self._sampler = qiskit_primitives_Sampler(options=self._options_sampler)
                     self._sampler.set_options(shots=self._shots)
@@ -580,7 +584,7 @@ class Executor:
 
             # Wait for the job to complete
             if job is None:
-                if "simulator" in str(self._backend):
+                if "simulator" in self.backend_name:
                     critical_error = True
                     critical_error_message = RuntimeError("Failed to execute job on simulator!")
             else:
@@ -676,7 +680,7 @@ class Executor:
             job_pickle._ws_client = None
             try:
                 job_pickle._backend = str(job.backend())
-            except QiskitError:
+            except (QiskitError, AttributeError):
                 job_pickle._backend = self.backend
 
             # overwrite result function with the obtained result
@@ -864,7 +868,7 @@ class Executor:
 
         # Update shots in backend
         if self._backend is not None:
-            if "statevector_simulator" not in str(self._backend):
+            if self.is_statevector:
                 self._backend.options.shots = num_shots
 
         # Update shots in estimator primitive
@@ -968,7 +972,7 @@ class Executor:
 
             shots = max(shots_estimator, shots_sampler)
         elif self._backend is not None:
-            if "statevector_simulator" not in str(self._backend):
+            if self.is_statevector:
                 shots = self._backend.options.shots
         else:
             return None  # No shots available
@@ -1091,6 +1095,22 @@ class Executor:
         """
 
         self._set_seed_for_primitive = seed
+
+    @property
+    def backend_name(self) -> str:
+        """Returns the name of the backend."""
+        try:
+            return self._backend.configuration().backend_name
+        except AttributeError:
+            try:
+                return self._backend.name
+            except AttributeError:
+                return str(self._backend)
+
+    @property
+    def is_statevector(self) -> bool:
+        """Returns True if the backend is a statevector simulator."""
+        return "statevector" in self.backend_name
 
 
 class ExecutorEstimator(BaseEstimator):

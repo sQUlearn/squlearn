@@ -25,6 +25,8 @@ class ChebyshevRx(EncodingCircuitBase):
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
     """
 
     def __init__(
@@ -63,7 +65,7 @@ class ChebyshevRx(EncodingCircuitBase):
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebyshevRx encoding circuit.
+        Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -75,9 +77,12 @@ class ChebyshevRx(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            p = np.linspace(0.01, self.alpha, self.num_qubits)
-            for i in index:
-                param[i] = p
+            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
+            p = np.linspace(0.01, self.alpha, features_per_qubit)
+
+            for index2 in index:
+                for i, ii in enumerate(index2):
+                    param[ii] = p[i % features_per_qubit]
 
         return param
 

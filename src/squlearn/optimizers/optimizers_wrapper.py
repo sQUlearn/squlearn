@@ -1,7 +1,7 @@
 """ Various optimization methods that are implemented via wrappers"""
 
 import numpy as np
-import qiskit.algorithms.optimizers as qiskit_optimizers
+import qiskit_algorithms.optimizers as qiskit_optimizers
 from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, default_callback
@@ -134,7 +134,7 @@ class SPSA(WrappedOptimizerBase):
 
     Args:
         options (dict): Options for the SPSA optimizer.
-                        The options are the same as for :meth:`qiskit.algorithms.optimizers.SPSA`
+                        The options are the same as for :meth:`qiskit_algorithms.optimizers.SPSA`
     """
 
     def __init__(self, options: dict = None, callback=default_callback):
