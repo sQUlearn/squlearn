@@ -708,22 +708,19 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
-        def check_circuit_for_measurement(circuit):
-            for op in circuit.data:
-                if len(op.clbits) > 0 and (
-                    isinstance(self._estimator, qiskit_primitives_Estimator)
-                    or (not self._estimator and "statevector_simulator" in str(self.backend))
-                ):
-                    raise ValueError(
-                        "Please use in the Executor 'BackendEstimator',"
-                        " if there are intermediate measurements in the circuit."
-                    )
-
+        containes_incircuit_measurement = False
         if isinstance(circuits, QuantumCircuit):
-            check_circuit_for_measurement(circuits)
+            containes_incircuit_measurement = check_for_incircuit_measurements(circuits)
         else:
             for circuit in circuits:
-                check_circuit_for_measurement(circuit)
+                containes_incircuit_measurement = containes_incircuit_measurement or check_for_incircuit_measurements(circuit)
+
+        if containes_incircuit_measurement:
+            if self.is_statevector and self._shots is not None:
+                self._swapp_to_BackendPrimitive("estimator")
+            else:
+                raise ValueError("Swapping to BackendPrimitive is only possible for " +
+                                 "statevector simulator with shots")
 
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
@@ -755,6 +752,28 @@ class Executor:
 
         return self._primitive_run(run, "estimator", hash_value)
 
+
+    def _swapp_to_BackendPrimitive(self, primitive:str):
+
+        if self.is_statevector and self._shots is not None:
+
+            if primitive == "estimator":
+                self._estimator = qiskit_primitives_BackendEstimator(
+                        backend=self._backend, options=self._options_estimator
+                    )
+                self.set_shots(self._shots)
+            elif primitive == "sampler":
+                self._sampler = qiskit_primitives_BackendSampler(
+                        backend=self._backend, options=self._options_sampler
+                    )
+                self.set_shots(self._shots)
+            else:
+                raise ValueError("Unknown primitive type: " + primitive)
+
+        else:
+            raise ValueError("Swapping to BackendPrimitive is only possible for " +
+                             "statevector simulator with shots")
+
     def sampler_run(self, circuits, parameter_values=None, **kwargs: Any) -> Job:
         """
         Function similar to the Qiskit Sampler run function, but this one includes caching,
@@ -769,22 +788,30 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
-        def check_circuit_for_measurement(circuit):
-            for op in circuit.data:
-                if op.operation.condition and (
-                    isinstance(self._sampler, qiskit_primitives_Sampler)
-                    or (not self._sampler and "statevector_simulator" in str(self.backend))
-                ):
-                    raise ValueError(
-                        "Please use in the Executor 'BackendSampler',"
-                        " if there are qubits gates conditioned on classical bits in the circuit."
-                    )
+        # def check_circuit_for_measurement(circuit):
+        #     for op in circuit.data:
+        #         if op.operation.condition and (
+        #             isinstance(self._sampler, qiskit_primitives_Sampler)
+        #             or (not self._sampler and self.is_statevector)
+        #         ):
+        #             raise ValueError(
+        #                 "Please use in the Executor 'BackendSampler',"
+        #                 " if there are qubits gates conditioned on classical bits in the circuit."
+        #             )
 
+        containes_incircuit_measurement = False
         if isinstance(circuits, QuantumCircuit):
-            check_circuit_for_measurement(circuits)
+            containes_incircuit_measurement = check_for_incircuit_measurements(circuits)
         else:
             for circuit in circuits:
-                check_circuit_for_measurement(circuit)
+                containes_incircuit_measurement = containes_incircuit_measurement or check_for_incircuit_measurements(circuit)
+
+        if containes_incircuit_measurement:
+            if self.is_statevector and self._shots is not None:
+                self._swapp_to_BackendPrimitive("sampler")
+            else:
+                raise ValueError("Swapping to BackendPrimitive is only possible for " +
+                                 "statevector simulator with shots")
 
         if isinstance(self.sampler, qiskit_primitives_BackendSampler):
             if self._set_seed_for_primitive is not None:
@@ -1427,3 +1454,20 @@ class ExecutorCache:
             file.close()
         except:
             raise RuntimeError("Could not store job in cache")
+
+
+
+def check_for_incircuit_measurements(circuit: QuantumCircuit):
+    """
+    Checks for measurements in the circuit, and returns True if there are measurements in the circuit.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to check for measurements.
+
+    Returns:
+        True if there are measurements in the circuit.
+    """
+    for op in circuit.data:
+        if op.operation.condition:
+            return True
+    return False
