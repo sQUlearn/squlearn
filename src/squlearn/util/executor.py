@@ -754,7 +754,11 @@ class Executor:
 
 
     def _swapp_to_BackendPrimitive(self, primitive:str):
+        """ Helperfunction for swapping to the BackendPrimitive for the Executor.
 
+        Args:
+            primitive (str): The primitive to swap to. Either "estimator" or "sampler"
+        """
         if self.is_statevector and self._shots is not None:
 
             if primitive == "estimator":
