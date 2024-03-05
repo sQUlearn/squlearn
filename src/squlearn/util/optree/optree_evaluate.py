@@ -106,14 +106,28 @@ def _evaluate_index_tree(
 
             # Recursive construction of the data array
             if datatype == "float":
-                temp = np.array(
-                    [
-                        element.factor[i]
-                        * _evaluate_index_tree_recursive(child, result_array, datatype=datatype)
-                        for i, child in enumerate(element.children)
-                    ],
-                    dtype=float,
-                )
+                try:
+                    temp = np.array(
+                        [
+                            element.factor[i]
+                            * _evaluate_index_tree_recursive(
+                                child, result_array, datatype=datatype
+                            )
+                            for i, child in enumerate(element.children)
+                        ],
+                        dtype=float,
+                    )
+                except ValueError:
+                    temp = np.array(
+                        [
+                            element.factor[i]
+                            * _evaluate_index_tree_recursive(
+                                child, result_array, datatype=datatype
+                            )
+                            for i, child in enumerate(element.children)
+                        ],
+                        dtype=object,
+                    )
             elif datatype == "object":
                 temp = np.array(
                     [
@@ -1007,10 +1021,10 @@ class OpTreeEvaluate:
         start = time.time()
         # print("Number of circuits for sampler: ", len(total_circuit_list))
 
-        if len(total_circuit_list) == 0:
-            return np.array([])
-
-        sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        if len(total_circuit_list) > 0:
+            sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        else:
+            sampler_result = []
         # print("Sampler run time: ", time.time() - start)
 
         # Compute the expectation value from the sampler results
@@ -1023,9 +1037,6 @@ class OpTreeEvaluate:
                 operator, dictionary_operator_, detect_duplicates
             )
 
-            if _max_from_nested_list(operator_measurement_list) != len(operator_list) - 1:
-                raise ValueError("Operator measurement list does not match operator list!")
-
             if multiple_circuit_dict and dictionaries_combined:
                 # Pick subset of the circuits that are linked to the current operator dictionary
                 circ_tree = evaluation_tree.children[i]
@@ -1037,19 +1048,27 @@ class OpTreeEvaluate:
                 index_slice = slice(0, len(total_circuit_list))
                 offset = 0
 
-            # Evaluate the expectation values from the sampler results
-            expec = _evaluate_expectation_from_sampler(
-                operator_list,
-                sampler_result,
-                operator_measurement_list=circuit_operator_list[index_slice],
-                offset=offset,
-            )
+            if len(total_circuit_list) == 0:
+                # If no circuits are present, return evaluated operator with no circuits
+                expec2 = _evaluate_index_tree(operator_tree, [])
+                final_result.append(_evaluate_index_tree(circ_tree, [expec2]))
+            else:
+                if _max_from_nested_list(operator_measurement_list) != len(operator_list) - 1:
+                    raise ValueError("Operator measurement list does not match operator list!")
 
-            # Evaluate the operator tree
-            expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
+                # Evaluate the expectation values from the sampler results
+                expec = _evaluate_expectation_from_sampler(
+                    operator_list,
+                    sampler_result,
+                    operator_measurement_list=circuit_operator_list[index_slice],
+                    offset=offset,
+                )
 
-            # Evaluate the circuit tree for assembling the final results
-            final_result.append(_evaluate_index_tree(circ_tree, expec2))
+                # Evaluate the operator tree
+                expec2 = [_evaluate_index_tree(operator_tree, ee) for ee in expec]
+
+                # Evaluate the circuit tree for assembling the final results
+                final_result.append(_evaluate_index_tree(circ_tree, expec2))
         # print("Post processing: ", time.time() - start)
 
         if multiple_operator_dict and multiple_circuit_dict and not dictionaries_combined:
@@ -1216,7 +1235,7 @@ class OpTreeEvaluate:
         start = time.time()
         # print("Number of circuits for estimator: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
-            return np.array([])
+            return _evaluate_index_tree(evaluation_tree, [])
 
         estimator_result = (
             estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
@@ -1288,9 +1307,11 @@ class OpTreeEvaluate:
 
             total_tree_list.append(_add_offset_to_tree(index_tree, len(total_circuit_list)))
             total_circuit_list += [
-                circuit
-                if circuit.num_clbits == 0
-                else circuit.remove_final_measurements(inplace=False)
+                (
+                    circuit
+                    if circuit.num_clbits == 0
+                    else circuit.remove_final_measurements(inplace=False)
+                )
                 for circuit in circuit_list
             ]
             total_operator_list += operator_list
@@ -1306,7 +1327,7 @@ class OpTreeEvaluate:
         start = time.time()
         # print("Number of circuits for estimator: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
-            return np.array([])
+            return _evaluate_index_tree(evaluation_tree, [])
 
         estimator_result = (
             estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
@@ -1403,7 +1424,7 @@ class OpTreeEvaluate:
         start = time.time()
         # print("Number of circuits for sampler: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
-            return np.array([])
+            _evaluate_index_tree(evaluation_tree, [])
 
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         # print("Sampler run time: ", time.time() - start)

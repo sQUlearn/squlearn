@@ -15,7 +15,6 @@ from ..util.executor import Executor
 
 
 class PrunedEncodingCircuit(EncodingCircuitBase):
-
     """
     Class for pruning redundant parameter of encoding circuits.
 

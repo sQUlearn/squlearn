@@ -129,7 +129,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         if self.entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self.entangling_gate)
 
-        def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, ioff: int):
+        def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, index_offset: int):
             """
             Private function which creates a single layer
             """
@@ -149,7 +149,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                     iqubit = i % self.num_qubits
 
                 # Determine the index of the feature (x_i)
-                ii = ioff + i
+                ii = index_offset + i
                 if self.cycling:
                     if self.cycling_type == "saw":
                         ii = ii % self.num_features
@@ -226,18 +226,17 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         qubit_list = range(self.num_qubits)
         QC.h(qubit_list)
 
-        # Determine the number of layers
-        num_layers = int(self.num_features / (self.num_qubits * 3)) + 1
+        # Determine the number of layers of not given
+        if self.num_layers is None:
+            self.num_layers = max(int(self.num_features / (self.num_qubits * 3)), 2)
 
-        # Overwrite number of layers if given by the user
-        if self.num_layers is not None:
-            if self.num_layers < num_layers:
-                raise RuntimeError("Not all features are represented in the encoding circuit!")
-            num_layers = self.num_layers
+        # Check if all features are represented in the encoding circuit
+        if self.num_layers * self.num_qubits * 3 < self.num_features:
+            raise RuntimeError("Not all features are represented in the encoding circuit!")
 
         # Loop through the layers
-        ioff = 0
-        for i in range(num_layers):
+        index_offset = 0
+        for i in range(self.num_layers):
             if i != 0:
                 if self.entangling_gate == "iswap":
                     QC = entangle_layer_iswap(QC)
@@ -245,9 +244,9 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                     QC = entangle_layer_cx(QC)
                 else:
                     raise ValueError("Unknown entangling gate:", self.entangling_gate)
-            QC = build_layer(QC, features, ioff)
-            ioff = ioff + self.num_qubits * 3
-            if self.cycling == False and ioff >= self.num_features:
-                ioff = 0
+            QC = build_layer(QC, features, index_offset)
+            index_offset += self.num_qubits * 3
+            if self.cycling == False and index_offset >= self.num_features:
+                index_offset = 0
 
         return QC

@@ -40,7 +40,7 @@ class TestLayeredEncodingCircuit:
 
         # Test the I gate
         lfm.I()
-        expected_circuit.i(range(4))
+        expected_circuit.id(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
         # Test the S gate

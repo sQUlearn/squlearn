@@ -1,4 +1,5 @@
 """Quantum Kernel Optimizer"""
+
 import numpy as np
 from functools import partial
 from typing import Optional, Sequence

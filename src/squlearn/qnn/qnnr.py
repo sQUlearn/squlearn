@@ -1,4 +1,5 @@
 """QNNRegressor Implemenation"""
+
 from typing import Callable, Union
 from warnings import warn
 import sys
