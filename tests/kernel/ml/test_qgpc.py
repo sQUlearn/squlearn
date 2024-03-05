@@ -133,7 +133,7 @@ class TestQGPC:
         try:
             qgpc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to quantum kernel parameters"
+            assert False, "fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_encoding_circuit_params_can_be_changed_after_initialization(
@@ -150,7 +150,7 @@ class TestQGPC:
         try:
             qgpc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to encoding circuit parameters"
+            assert False, "fitting not possible after changes to encoding circuit parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qgpc_pqk, data):
         """Tests concerning the encoding circuit parameter changes."""
@@ -168,7 +168,7 @@ class TestQGPC:
         try:
             qgpc_pqk.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to encoding circuit parameters"
+            assert False, "fitting not possible after changes to encoding circuit parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qgpc, request):
