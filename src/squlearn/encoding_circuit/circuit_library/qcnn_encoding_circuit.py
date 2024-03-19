@@ -436,21 +436,23 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         i_clbit = 0  # counts the number of clbits used
         for gate in self.operations_list:
             quantum_circuit = gate[1]  # get the circuit which is to apply
-            quantum_circuit.name = gate[2] + "_" + str(i_pool)  # set name of the layer
+            qc_name = gate[2] + "_" + str(i_pool)  # set name of the layer
             n_params = quantum_circuit.num_parameters
-
+            n_qubits = quantum_circuit.num_qubits
+            n_clbits = quantum_circuit.num_clbits
             if gate[0] == "Conv":
                 # define number of gates applied
-                number_of_gates_1 = int(len(left_qubits) / quantum_circuit.num_qubits)
+                number_of_gates_1 = int(len(left_qubits) / n_qubits)
                 number_of_gates_2 = 0
-                if gate[3] and len(left_qubits) > quantum_circuit.num_qubits:
-                    number_of_gates_2 = int(len(left_qubits) / quantum_circuit.num_qubits)
+                if gate[3] and len(left_qubits) > n_qubits:
+                    number_of_gates_2 = int(len(left_qubits) / n_qubits)
 
                 # assign parameter and add gates to circuit
                 for j in range(number_of_gates_1):
                     qc_out = quantum_circuit.assign_parameters(
                         parameters[i_param : i_param + n_params]
                     )
+                    qc_out.name = qc_name
                     if not gate[4]:  # if different parameters are supposed to be used
                         i_param += n_params
                     total_qc = total_qc.compose(
@@ -458,8 +460,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         qubits=[
                             left_qubits[i]
                             for i in range(
-                                j * quantum_circuit.num_qubits,
-                                (j + 1) * quantum_circuit.num_qubits,
+                                j * n_qubits,
+                                (j + 1) * n_qubits,
                             )
                         ],
                     )
@@ -467,6 +469,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     qc_out = quantum_circuit.assign_parameters(
                         parameters[i_param : i_param + n_params]
                     )
+                    qc_out.name = qc_name
                     if not gate[4]:
                         i_param += n_params
                     total_qc = total_qc.compose(
@@ -474,8 +477,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         qubits=[
                             left_qubits[i % len(left_qubits)]
                             for i in range(
-                                j * quantum_circuit.num_qubits + 1,
-                                (j + 1) * quantum_circuit.num_qubits + 1,
+                                j * n_qubits + 1,
+                                (j + 1) * n_qubits + 1,
                             )
                         ],
                     )
@@ -492,14 +495,15 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                         qc_out = quantum_circuit.assign_parameters(
                             parameters[i_param : i_param + n_params]
                         )
+                        qc_out.name = qc_name
                         i_param += n_params
                         if gate[3]:  # measurement
                             total_qc = total_qc.compose(
                                 circuit_to_instruction(qc_out),
                                 qubits=input_list[j],
-                                clbits=list(range(i_clbit, i_clbit + quantum_circuit.num_clbits)),
+                                clbits=list(range(i_clbit, i_clbit + n_clbits)),
                             )
-                            i_clbit += quantum_circuit.num_clbits
+                            i_clbit += n_clbits
                         else:
                             total_qc = total_qc.compose(
                                 circuit_to_gate(qc_out), qubits=input_list[j]
@@ -508,12 +512,13 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                             if i not in output_list[j]:
                                 left_qubits_1.remove(i)
                 else:
-                    number_of_gates = int(len(left_qubits) / quantum_circuit.num_qubits)
+                    number_of_gates = int(len(left_qubits) / n_qubits)
                     # assign parameter and add gates to circuit
                     for j in range(number_of_gates):
                         qc_out = quantum_circuit.assign_parameters(
                             parameters[i_param : i_param + n_params]
                         )
+                        qc_out.name = qc_name
                         i_param += n_params
                         if gate[3]:  # measurement
                             total_qc = total_qc.compose(
@@ -521,28 +526,25 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                                 qubits=[
                                     left_qubits[i]
                                     for i in range(
-                                        j * quantum_circuit.num_qubits,
-                                        (j + 1) * quantum_circuit.num_qubits,
+                                        j * n_qubits,
+                                        (j + 1) * n_qubits,
                                     )
                                 ],
-                                clbits=list(range(i_clbit, i_clbit + quantum_circuit.num_clbits)),
+                                clbits=list(range(i_clbit, i_clbit + n_clbits)),
                             )
-                            i_clbit += quantum_circuit.num_clbits
+                            i_clbit += n_clbits
                         else:
                             total_qc = total_qc.compose(
                                 circuit_to_gate(qc_out),
                                 qubits=[
                                     left_qubits[i]
                                     for i in range(
-                                        j * quantum_circuit.num_qubits,
-                                        (j + 1) * quantum_circuit.num_qubits,
+                                        j * n_qubits,
+                                        (j + 1) * n_qubits,
                                     )
                                 ],
                             )
-                        for i in left_qubits[
-                            j * quantum_circuit.num_qubits
-                            + 1 : (j + 1) * quantum_circuit.num_qubits
-                        ]:
+                        for i in left_qubits[j * n_qubits + 1 : (j + 1) * n_qubits]:
                             left_qubits_1.remove(i)
                 left_qubits = left_qubits_1
 
@@ -551,6 +553,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 qc_out = quantum_circuit.assign_parameters(
                     parameters[i_param : i_param + n_params]
                 )
+                qc_out.name = qc_name
                 i_param += n_params
                 total_qc = total_qc.compose(
                     circuit_to_gate(qc_out), qubits=[i for i in left_qubits]
