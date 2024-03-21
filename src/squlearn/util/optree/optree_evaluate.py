@@ -895,6 +895,56 @@ def _transform_operator_to_zbasis(
     # If there are multiple measurements necessary convert to OpTreeSum
     return OpTreeSum(children_list)
 
+def _change_order(n, reorder_list):
+    """Helper function for to map by a given mapping."""
+    for i in reorder_list:
+        if i[1] == n:
+            return i[0]
+
+def _measure_all_unmeasured(circ_in):
+    """Helper function for circuits with in-circuit measurements."""
+    qubits = [i for i in range(circ_in.num_qubits)]
+    for instruction, qargs, cargs in circ_in.data:
+        if instruction.name == "measure":
+            for qubit in qargs:
+                qubits.remove(circ_in.find_bit(qubit)[0])
+    circ = circ_in.copy()
+    new_creg = circ._create_creg(len(qubits), "meas")
+    circ.add_register(new_creg)
+    circ.measure(qubits, new_creg)
+    if len(qubits) == circ_in.num_qubits:
+        return circ
+
+    new_ordering = []
+    for instruction, qargs, cargs in circ.data:
+        if instruction.name == "measure":
+            for n in range(len(qargs)):
+                new_ordering.append(
+                    [circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]]
+                )
+
+    circ_new = QuantumCircuit(circ.num_qubits)
+    new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+    circ_new.add_register(new_creg)
+    for instruction, qargs, cargs in circ.data:
+        if instruction.name == "measure":  # to adjust the clbits of measurements
+            clbits = [circ.find_bit(i)[0] for i in qargs]
+        else:
+            clbits = [circ.find_bit(i)[0] for i in cargs]
+        operation = instruction.copy()
+        if instruction.condition:  # to adjust the clbits of c_if
+            operation.condition = (
+                Clbit(
+                    circ_new.cregs[0],
+                    _change_order(
+                        circ.find_bit(instruction.condition[0])[0], new_ordering
+                    ),
+                ),
+                instruction.condition[1],
+            )
+        circ_new.append(operation, [circ.find_bit(i)[0] for i in qargs], clbits)
+    return circ_new
+
 
 class OpTreeEvaluate:
     """Static class for evaluating OpTree structures with Qiskit's primitives."""
@@ -942,56 +992,6 @@ class OpTreeEvaluate:
         Returns:
             The expectation value of the expectation values as a numpy array.
         """
-
-        def _change_order(n, reorder_list):
-            """Helper function for to map by a given mapping."""
-            for i in reorder_list:
-                if i[1] == n:
-                    return i[0]
-
-        def _measure_all_unmeasured(circ_in):
-            """Helper function for circuits with in-circuit measurements."""
-            qubits = [i for i in range(circ_in.num_qubits)]
-            for instruction, qargs, cargs in circ_in.data:
-                if instruction.name == "measure":
-                    for qubit in qargs:
-                        qubits.remove(circ_in.find_bit(qubit)[0])
-            circ = circ_in.copy()
-            new_creg = circ._create_creg(len(qubits), "meas")
-            circ.add_register(new_creg)
-            circ.measure(qubits, new_creg)
-            if len(qubits) == circ_in.num_qubits:
-                return circ
-
-            new_ordering = []
-            for instruction, qargs, cargs in circ.data:
-                if instruction.name == "measure":
-                    for n in range(len(qargs)):
-                        new_ordering.append(
-                            [circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]]
-                        )
-
-            circ_new = QuantumCircuit(circ.num_qubits)
-            new_creg = circ_new._create_creg(circ.num_qubits, "meas")
-            circ_new.add_register(new_creg)
-            for instruction, qargs, cargs in circ.data:
-                if instruction.name == "measure":  # to adjust the clbits of measurements
-                    clbits = [circ.find_bit(i)[0] for i in qargs]
-                else:
-                    clbits = [circ.find_bit(i)[0] for i in cargs]
-                operation = instruction.copy()
-                if instruction.condition:  # to adjust the clbits of c_if
-                    operation.condition = (
-                        Clbit(
-                            circ_new.cregs[0],
-                            _change_order(
-                                circ.find_bit(instruction.condition[0])[0], new_ordering
-                            ),
-                        ),
-                        instruction.condition[1],
-                    )
-                circ_new.append(operation, [circ.find_bit(i)[0] for i in qargs], clbits)
-            return circ_new
 
         def _max_from_nested_list(l: Union[list, int]):
             """Helper function for finding the maximum value of a nested list"""
@@ -1464,10 +1464,7 @@ class OpTreeEvaluate:
             total_circuit_operator_list += [
                 [iop + offset for iop in icirc] for icirc in circuit_operator_list
             ]
-            total_circuit_list += [
-                circuit.measure_all(inplace=False) if circuit.num_clbits == 0 else circuit
-                for circuit in circuit_list
-            ]
+            total_circuit_list += [_measure_all_unmeasured(circuit) for circuit in circuit_list]
             total_operator_list += operator_list
             total_parameter_list += parameter_list
 
