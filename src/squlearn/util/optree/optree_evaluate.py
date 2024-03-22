@@ -1050,8 +1050,11 @@ class OpTreeEvaluate:
 
             if len(total_circuit_list) == 0:
                 # If no circuits are present, return evaluated operator with no circuits
-                expec2 = _evaluate_index_tree(operator_tree, [])
-                final_result.append(_evaluate_index_tree(circ_tree, [expec2]))
+                if len(operator_list) == 0:
+                    return np.array([])
+                else:
+                    expec2 = _evaluate_index_tree(operator_tree, [])
+                    final_result.append(_evaluate_index_tree(circ_tree, [expec2]))
             else:
                 if _max_from_nested_list(operator_measurement_list) != len(operator_list) - 1:
                     raise ValueError("Operator measurement list does not match operator list!")
