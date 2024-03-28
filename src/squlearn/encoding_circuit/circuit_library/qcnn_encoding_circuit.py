@@ -655,7 +655,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         for i in paulis:
             operator_list.append(str(i))
         obs1 = CustomObservable(
-            num_qubits=self.num_qubits, operator_string=operator_list, parameterized=True
+            num_qubits=self.num_qubits, operator_string=operator_list, parameterized=(obs.num_parameters>0)
         )
         return obs1
 
