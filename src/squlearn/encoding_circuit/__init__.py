@@ -2,6 +2,7 @@ from .pruned_encoding_circuit import PrunedEncodingCircuit, automated_pruning, p
 from .layered_encoding_circuit import LayeredEncodingCircuit
 from .transpiled_encoding_circuit import TranspiledEncodingCircuit
 from .encoding_circuit_derivatives import EncodingCircuitDerivatives
+from .circuit_library.qcnn_encoding_circuit import QCNNEncodingCircuit
 from .circuit_library.yz_cx_encoding_circuit import YZ_CX_EncodingCircuit
 from .circuit_library.highdim_encoding_circuit import HighDimEncodingCircuit
 from .circuit_library.hubregtsen_encoding_circuit import HubregtsenEncodingCircuit
@@ -16,6 +17,7 @@ __all__ = [
     "PrunedEncodingCircuit",
     "TranspiledEncodingCircuit",
     "EncodingCircuitDerivatives",
+    "QCNNEncodingCircuit",
     "automated_pruning",
     "pruning_from_QFI",
     "LayeredEncodingCircuit",
