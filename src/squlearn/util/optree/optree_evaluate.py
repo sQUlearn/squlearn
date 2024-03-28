@@ -755,6 +755,7 @@ def _evaluate_expectation_from_sampler(
     # Check if only the Z and I Paulis are used in the observable
     # Too late for a basis change
     for p in op_pauli_list:
+        print(p)
         if p.x.any():
             raise ValueError(
                 "Observable only with Z and I Paulis are supported, "
@@ -904,18 +905,19 @@ def _change_order(n, reorder_list):
 def _measure_all_unmeasured(circ_in):
     """Helper function for circuits with in-circuit measurements."""
     qubits = [i for i in range(circ_in.num_qubits)]
-    for instruction, qargs, cargs in circ_in.data:
-        if instruction.name == "measure":
-            for qubit in qargs:
-                if circ_in.find_bit(qubit)[0] in qubits:
-                    qubits.remove(circ_in.find_bit(qubit)[0])
-                else:
-                    raise ValueError(
-                        "There are multiple measurements on the same qubit."
-                        "Please remove measurements accordingly. Note that this can happen,"
-                        " if one defines an observable with X,Y Pauli measurements on a qubit,"
-                        " which is already measured in an in-circuit measurement."
-                        )
+    if circ_in.num_clbits > 0:
+        for instruction, qargs, cargs in circ_in.data:
+            if instruction.name == "measure":
+                for qubit in qargs:
+                    if circ_in.find_bit(qubit)[0] in qubits:
+                        qubits.remove(circ_in.find_bit(qubit)[0])
+                    else:
+                        raise ValueError(
+                            "There are multiple measurements on the same qubit."
+                            "Please remove measurements accordingly. Note that this can happen,"
+                            " if one defines an observable with X,Y Pauli measurements on a qubit,"
+                            " which is already measured in an in-circuit measurement."
+                            )
     circ = circ_in.copy()
     new_creg = circ._create_creg(len(qubits), "meas")
     circ.add_register(new_creg)
@@ -1440,6 +1442,14 @@ class OpTreeEvaluate:
             The expectation value of the expectation OpTree as a numpy array.
         """
 
+        def maximum_decompose(circ):
+            """Helper function to decompose circuits."""
+            circ_dec = circ.decompose()
+            while circ_dec != circ:
+                circ_dec = circ_dec.decompose()
+                circ = circ.decompose()
+            return circ_dec
+
         # Preprocess the dictionary
         multiple_dict = True
         if not isinstance(dictionary, list):
@@ -1475,7 +1485,7 @@ class OpTreeEvaluate:
             total_circuit_operator_list += [
                 [iop + offset for iop in icirc] for icirc in circuit_operator_list
             ]
-            total_circuit_list += [_measure_all_unmeasured(circuit) for circuit in circuit_list]
+            total_circuit_list += [_measure_all_unmeasured(maximum_decompose(circuit)) for circuit in circuit_list]
             total_operator_list += operator_list
             total_parameter_list += parameter_list
 
@@ -1490,6 +1500,7 @@ class OpTreeEvaluate:
         # print("Number of circuits for sampler: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
             _evaluate_index_tree(evaluation_tree, [])
+        print(total_circuit_list[0], total_parameter_list)
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         # print("Sampler run time: ", time.time() - start)
 
