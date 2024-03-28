@@ -896,11 +896,13 @@ def _transform_operator_to_zbasis(
     # If there are multiple measurements necessary convert to OpTreeSum
     return OpTreeSum(children_list)
 
+
 def _change_order(n, reorder_list):
     """Helper function for to map by a given mapping."""
     for i in reorder_list:
         if i[1] == n:
             return i[0]
+
 
 def _measure_all_unmeasured(circ_in):
     """Helper function for circuits with in-circuit measurements."""
@@ -917,7 +919,7 @@ def _measure_all_unmeasured(circ_in):
                             "Please remove measurements accordingly. Note that this can happen,"
                             " if one defines an observable with X,Y Pauli measurements on a qubit,"
                             " which is already measured in an in-circuit measurement."
-                            )
+                        )
     circ = circ_in.copy()
     new_creg = circ._create_creg(len(qubits), "meas")
     circ.add_register(new_creg)
@@ -929,9 +931,7 @@ def _measure_all_unmeasured(circ_in):
     for instruction, qargs, cargs in circ.data:
         if instruction.name == "measure":
             for n in range(len(qargs)):
-                new_ordering.append(
-                    [circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]]
-                )
+                new_ordering.append([circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]])
 
     circ_new = QuantumCircuit(circ.num_qubits)
     new_creg = circ_new._create_creg(circ.num_qubits, "meas")
@@ -946,9 +946,7 @@ def _measure_all_unmeasured(circ_in):
             operation.condition = (
                 Clbit(
                     circ_new.cregs[0],
-                    _change_order(
-                        circ.find_bit(instruction.condition[0])[0], new_ordering
-                    ),
+                    _change_order(circ.find_bit(instruction.condition[0])[0], new_ordering),
                 ),
                 instruction.condition[1],
             )
@@ -1485,7 +1483,9 @@ class OpTreeEvaluate:
             total_circuit_operator_list += [
                 [iop + offset for iop in icirc] for icirc in circuit_operator_list
             ]
-            total_circuit_list += [_measure_all_unmeasured(maximum_decompose(circuit)) for circuit in circuit_list]
+            total_circuit_list += [
+                _measure_all_unmeasured(maximum_decompose(circuit)) for circuit in circuit_list
+            ]
             total_operator_list += operator_list
             total_parameter_list += parameter_list
 
