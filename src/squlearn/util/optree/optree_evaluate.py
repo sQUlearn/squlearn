@@ -907,7 +907,15 @@ def _measure_all_unmeasured(circ_in):
     for instruction, qargs, cargs in circ_in.data:
         if instruction.name == "measure":
             for qubit in qargs:
-                qubits.remove(circ_in.find_bit(qubit)[0])
+                if circ_in.find_bit(qubit)[0] in qubits:
+                    qubits.remove(circ_in.find_bit(qubit)[0])
+                else:
+                    raise ValueError(
+                        "There are multiple measurements on the same qubit."
+                        "Please remove measurements accordingly. Note that this can happen,"
+                        " if one defines an observable with X,Y Pauli measurements on a qubit,"
+                        " which is already measured in an in-circuit measurement."
+                        )
     circ = circ_in.copy()
     new_creg = circ._create_creg(len(qubits), "meas")
     circ.add_register(new_creg)
@@ -1479,7 +1487,6 @@ class OpTreeEvaluate:
         # print("Number of circuits for sampler: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
             _evaluate_index_tree(evaluation_tree, [])
-
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         # print("Sampler run time: ", time.time() - start)
 
