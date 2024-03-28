@@ -897,17 +897,28 @@ def _transform_operator_to_zbasis(
     return OpTreeSum(children_list)
 
 
-def _change_order(n, reorder_list):
-    """Helper function for to map by a given mapping."""
-    for i in reorder_list:
-        if i[1] == n:
-            return i[0]
-
-
 def _measure_all_unmeasured(circ_in):
     """Helper function for circuits with in-circuit measurements."""
-    qubits = [i for i in range(circ_in.num_qubits)]
-    if circ_in.num_clbits > 0:
+
+    def change_order(n, reorder_list):
+        """Helper function for to map by a given mapping."""
+        for i in reorder_list:
+            if i[1] == n:
+                return i[0]
+
+    def maximum_decompose(circ):
+        """Helper function to decompose circuits."""
+        circ_dec = circ.decompose()
+        while circ_dec != circ:
+            circ_dec = circ_dec.decompose()
+            circ = circ.decompose()
+        return circ_dec
+
+    if circ_in.num_clbits == 0:
+        return circ_in.measure_all(inplace=False)
+    else:
+        qubits = [i for i in range(circ_in.num_qubits)]
+        circ_in = maximum_decompose(circ_in)
         for instruction, qargs, cargs in circ_in.data:
             if instruction.name == "measure":
                 for qubit in qargs:
@@ -920,38 +931,38 @@ def _measure_all_unmeasured(circ_in):
                             " if one defines an observable with X,Y Pauli measurements on a qubit,"
                             " which is already measured in an in-circuit measurement."
                         )
-    circ = circ_in.copy()
-    new_creg = circ._create_creg(len(qubits), "meas")
-    circ.add_register(new_creg)
-    circ.measure(qubits, new_creg)
-    if len(qubits) == circ_in.num_qubits:
-        return circ
+        circ = circ_in.copy()
+        new_creg = circ._create_creg(len(qubits), "meas")
+        circ.add_register(new_creg)
+        circ.measure(qubits, new_creg)
+        if len(qubits) == circ_in.num_qubits:
+            return circ
 
-    new_ordering = []
-    for instruction, qargs, cargs in circ.data:
-        if instruction.name == "measure":
-            for n in range(len(qargs)):
-                new_ordering.append([circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]])
+        new_ordering = []
+        for instruction, qargs, cargs in circ.data:
+            if instruction.name == "measure":
+                for n in range(len(qargs)):
+                    new_ordering.append([circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]])
 
-    circ_new = QuantumCircuit(circ.num_qubits)
-    new_creg = circ_new._create_creg(circ.num_qubits, "meas")
-    circ_new.add_register(new_creg)
-    for instruction, qargs, cargs in circ.data:
-        if instruction.name == "measure":  # to adjust the clbits of measurements
-            clbits = [circ.find_bit(i)[0] for i in qargs]
-        else:
-            clbits = [circ.find_bit(i)[0] for i in cargs]
-        operation = instruction.copy()
-        if instruction.condition:  # to adjust the clbits of c_if
-            operation.condition = (
-                Clbit(
-                    circ_new.cregs[0],
-                    _change_order(circ.find_bit(instruction.condition[0])[0], new_ordering),
-                ),
-                instruction.condition[1],
-            )
-        circ_new.append(operation, [circ.find_bit(i)[0] for i in qargs], clbits)
-    return circ_new
+        circ_new = QuantumCircuit(circ.num_qubits)
+        new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+        circ_new.add_register(new_creg)
+        for instruction, qargs, cargs in circ.data:
+            if instruction.name == "measure":  # to adjust the clbits of measurements
+                clbits = [circ.find_bit(i)[0] for i in qargs]
+            else:
+                clbits = [circ.find_bit(i)[0] for i in cargs]
+            operation = instruction.copy()
+            if instruction.condition:  # to adjust the clbits of c_if
+                operation.condition = (
+                    Clbit(
+                        circ_new.cregs[0],
+                        change_order(circ.find_bit(instruction.condition[0])[0], new_ordering),
+                    ),
+                    instruction.condition[1],
+                )
+            circ_new.append(operation, [circ.find_bit(i)[0] for i in qargs], clbits)
+        return circ_new
 
 
 class OpTreeEvaluate:
@@ -1092,8 +1103,6 @@ class OpTreeEvaluate:
         # Compute the expectation value from the sampler results
         start = time.time()
         final_result = []
-
-        # new_order = _build_reorder(total_circuit_list[0])
 
         for i, dictionary_operator_ in enumerate(dictionary_operator):
             # Create the operator list and the indexed copy of the operator tree
@@ -1440,14 +1449,6 @@ class OpTreeEvaluate:
             The expectation value of the expectation OpTree as a numpy array.
         """
 
-        def maximum_decompose(circ):
-            """Helper function to decompose circuits."""
-            circ_dec = circ.decompose()
-            while circ_dec != circ:
-                circ_dec = circ_dec.decompose()
-                circ = circ.decompose()
-            return circ_dec
-
         # Preprocess the dictionary
         multiple_dict = True
         if not isinstance(dictionary, list):
@@ -1483,9 +1484,7 @@ class OpTreeEvaluate:
             total_circuit_operator_list += [
                 [iop + offset for iop in icirc] for icirc in circuit_operator_list
             ]
-            total_circuit_list += [
-                _measure_all_unmeasured(maximum_decompose(circuit)) for circuit in circuit_list
-            ]
+            total_circuit_list += [_measure_all_unmeasured(circuit) for circuit in circuit_list]
             total_operator_list += operator_list
             total_parameter_list += parameter_list
 
@@ -1500,7 +1499,7 @@ class OpTreeEvaluate:
         # print("Number of circuits for sampler: ", len(total_circuit_list))
         if len(total_circuit_list) == 0:
             _evaluate_index_tree(evaluation_tree, [])
-        print(total_circuit_list[0], total_parameter_list)
+
         sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         # print("Sampler run time: ", time.time() - start)
 

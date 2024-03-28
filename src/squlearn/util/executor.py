@@ -773,7 +773,7 @@ class Executor:
                     backend=self._backend, options=self._options_estimator
                 )
                 self._logger.info(
-                    "Changed from the Estimator() to " + "the BackendEstimator() primitive"
+                    "Changed from the Estimator() to the BackendEstimator() primitive"
                 )
                 self.set_shots(self._shots)
 
