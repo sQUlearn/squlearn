@@ -1,6 +1,6 @@
 import numpy as np
 from qiskit.circuit import ParameterVector
-from qiskit.algorithms.gradients import LinCombQGT, QFI
+from qiskit_algorithms.gradients import LinCombQGT, QFI
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from .executor import Executor

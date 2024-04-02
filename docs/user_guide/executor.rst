@@ -84,9 +84,9 @@ execution environment:
   .. code-block:: python
 
     from squlearn import Executor
-    from qiskit import Aer
+    from qiskit_aer import Aer
 
-    executor = Executor(Aer.get_backend("qasm_simulator"))
+    executor = Executor(Aer.get_backend("aer_simulator"))
 
 - A backend from the Qiskit Runtime Service, which utilizes the execution of quantum jobs on
   IBM Quantum utilizing Sessions and Primitives.
@@ -178,12 +178,12 @@ Qiskit framework. The primitives can be obtained by the :meth:`get_estimator` an
 Executor class for all executions, and thus benefit from all comfort features of the Executor.
 
 The following example shows, how to evaluate the Quantum Fisher Information utilizing the
-Executor primitive (see `QFI in Qiskit <https://qiskit.org/documentation/stubs/qiskit.algorithms.gradients.QFI.html>`_)
+Executor primitive (see `QFI in Qiskit <https://qiskit-community.github.io/qiskit-algorithms/stubs/qiskit_algorithms.gradients.QFI.html>`_)
 
   .. jupyter-execute::
 
       from squlearn import Executor
-      from qiskit.algorithms.gradients import LinCombQGT, QFI
+      from qiskit_algorithms.gradients import LinCombQGT, QFI
       from qiskit.quantum_info import Pauli
       # Executor intialization (other ways are possible, see above)
       executor = Executor(execution="statevector_simulator")
