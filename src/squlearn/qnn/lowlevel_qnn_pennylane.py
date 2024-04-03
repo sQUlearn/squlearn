@@ -666,7 +666,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
             if todo_class.order == 0:
                 # Plain function evaluation
-                value = func(*(eval_tuple))
+                #value = func(*(eval_tuple))
+                value = self._executor.pennylane_execute(func, *(eval_tuple))
             elif todo_class.order > 0:
                 # Generate iterative derivative function for higher order derivatives
                 order = todo_class.order - 1
@@ -683,7 +684,12 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                         return np.array([])
                     else:
                         deriv = qml.jacobian(deriv, argnum=arg_index)
-                value = deriv(*(eval_tuple))
+
+                hash_value = func.hash + str(todo_class.argnum)
+                deriv.hash = hash_value
+
+                self._executor.pennylane_execute(deriv, *(eval_tuple))
+                #value = deriv(*(eval_tuple))
 
             print("value",value)
 
@@ -739,7 +745,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
             if todo_class.order == 0:
                 # Plain function evaluation
-                value = func(*eval_tuple)
+                #value = func(*eval_tuple)
+                value = self._executor.pennylane_execute(func, *(eval_tuple))
             elif todo_class.order > 0:
                 # Generate iterative derivative function for higher order derivatives
                 order = todo_class.order - 1
@@ -757,7 +764,10 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     else:
                         deriv = qml.jacobian(deriv, argnum=arg_index)
 
-                value = deriv(*eval_tuple)
+                #value = deriv(*eval_tuple)
+                hash_value = func.hash + str(todo_class.argnum)
+                deriv.hash = hash_value
+                value = self._executor.pennylane_execute(deriv, *(eval_tuple))
 
             # Convert back to numpy format
             values = np.array(value)
@@ -811,6 +821,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         post_processing_values = []
         values = list(values)  # Convert to list to be able to append
+        # Sort the values, more complicated because values can be tuples of ParameterVectors
+        indices = np.argsort([str(t) for t in values])
+        values = [values[i] for i in indices]
         for todo in values:
 
             todo_class = _get_class_from_string(todo)

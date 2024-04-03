@@ -140,6 +140,11 @@ class PennyLaneCircuit:
     def observable_parameter_names(self) -> list:
         return self._pennylane_obs_parameters
 
+    @property
+    def hash(self) -> int:
+
+        return str(self._qiskit_circuit) + str(self._qiskit_observable)
+
     def draw(self, engine: str = "pennylane", **kwargs):
 
         if engine == "pennylane":

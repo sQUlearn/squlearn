@@ -402,9 +402,44 @@ class Executor:
             pennylane_function
         )
 
-    #def pennylane_execute():
-    #    NotImplementedError()
-    #    #device.batch_execute is available
+    def pennylane_execute(self,pennylane_circuit:callable,*args, **kwargs):
+
+        result = None
+        cached = False
+        if self._caching:
+
+            if hasattr(pennylane_circuit,"hash"):
+                circuit_hash = pennylane_circuit.hash
+            else:
+                circuit_hash = hash(pennylane_circuit)
+
+            # Generate hash value for caching
+            hash_value = self._cache.hash_variable(
+                [
+                    "pennylane_execute",
+                    circuit_hash,
+                    args,
+                    kwargs,
+                    self._pennylane_device.name,
+                ]
+            )
+
+            result = self._cache.get_file(hash_value)
+            cached = True
+
+        if result is None:
+            cached = False
+            # Execute the circuit todo: implement restart
+            try:
+                result = pennylane_circuit(*args, **kwargs)
+            except Exception as e:
+                raise RuntimeError("Failed to execute the PennyLane circuit!") from e
+
+
+        if self._caching and not cached:
+            self._cache.store_file(hash_value, copy.copy(result))
+
+        return result
 
     @property
     def execution(self) -> str:
