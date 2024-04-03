@@ -404,37 +404,57 @@ class Executor:
 
     def pennylane_execute(self,pennylane_circuit:callable,*args, **kwargs):
 
-        result = None
-        cached = False
-        if self._caching:
+        # TODO: logging, restarts for hardware, critical errors
 
-            if hasattr(pennylane_circuit,"hash"):
-                circuit_hash = pennylane_circuit.hash
-            else:
-                circuit_hash = hash(pennylane_circuit)
+        success = False
+        critical_error = False
+        critical_error_message = None
+        for repeat in range(self._max_jobs_retries):
 
-            # Generate hash value for caching
-            hash_value = self._cache.hash_variable(
-                [
-                    "pennylane_execute",
-                    circuit_hash,
-                    args,
-                    kwargs,
-                    self._pennylane_device.name,
-                ]
-            )
-
-            result = self._cache.get_file(hash_value)
-            cached = True
-
-        if result is None:
-            cached = False
-            # Execute the circuit todo: implement restart
             try:
-                result = pennylane_circuit(*args, **kwargs)
-            except Exception as e:
-                raise RuntimeError("Failed to execute the PennyLane circuit!") from e
+                result = None
+                cached = False
+                if self._caching:
 
+                    if hasattr(pennylane_circuit,"hash"):
+                        circuit_hash = pennylane_circuit.hash
+                    else:
+                        circuit_hash = hash(pennylane_circuit)
+
+                    # Generate hash value for caching
+                    hash_value = self._cache.hash_variable(
+                        [
+                            "pennylane_execute",
+                            circuit_hash,
+                            args,
+                            kwargs,
+                            self._pennylane_device.name,
+                        ]
+                    )
+
+                    result = self._cache.get_file(hash_value)
+                    cached = True
+
+                if result is None:
+                    cached = False
+                    # Execute the circuit todo: implement restart
+                    result = pennylane_circuit(*args, **kwargs)
+
+                success = True
+
+            except Exception as e:
+                self._logger.info(f"Executor failed to run pennylane_execute because of unknown error!")
+                self._logger.info(f"Error message: {{}}".format(e))
+                self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                success = False
+
+            if success:
+                break
+
+        if success is not True:
+            raise RuntimeError(
+                f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
+            )
 
         if self._caching and not cached:
             self._cache.store_file(hash_value, copy.copy(result))
