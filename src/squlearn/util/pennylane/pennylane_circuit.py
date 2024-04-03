@@ -10,30 +10,99 @@ import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
 
-from .pennylane_device import PennyLaneDevice
 from .pennylane_gates import qiskit_pennyland_gate_dict
+from ..executor import Executor
 
+
+def _get_sympy_interface():
+
+    # SymPy printer for pennylane numpy implementation has to be set manually,
+    # otherwise math functions are used in lambdify instead of pennylane.numpy functions
+    from sympy.printing.numpy import NumPyPrinter as Printer
+
+    user_functions = {}
+    printer = Printer(
+        {
+            "fully_qualified_modules": False,
+            "inline": True,
+            "allow_unknown_functions": True,
+            "user_functions": user_functions,
+        }
+    )  #
+    modules = pnp
+
+        #     # SymPy printer for pennylane numpy implementation has to be set manually,
+        #     # otherwise math functions are used in lambdify instead of pennylane.numpy functions
+        #     from sympy.printing.tensorflow import TensorflowPrinter as Printer  # type: ignore
+
+        #     user_functions = {}
+        #     printer = Printer(
+        #         {
+        #             "fully_qualified_modules": False,
+        #             "inline": True,
+        #             "allow_unknown_functions": True,
+        #             "user_functions": user_functions,
+        #         }
+        #     )  #
+        #     modules = tf
+
+        # elif self._gradient_engine == "jax":
+        #     from sympy.printing.numpy import JaxPrinter as Printer  # type: ignore
+
+        #     user_functions = {}
+        #     printer = Printer(
+        #         {
+        #             "fully_qualified_modules": False,
+        #             "inline": True,
+        #             "allow_unknown_functions": True,
+        #             "user_functions": user_functions,
+        #         }
+        #     )  #
+        #     modules = jnp
+        # elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
+        #     from sympy.printing.pycode import PythonCodePrinter as Printer  # type: ignore
+
+        #     user_functions = {}
+        #     printer = Printer(
+        #         {
+        #             "fully_qualified_modules": False,
+        #             "inline": True,
+        #             "allow_unknown_functions": True,
+        #             "user_functions": user_functions,
+        #         }
+        #     )  #
+        #     modules = torch
+
+        # else:
+        #     # tbd for jax and tensorflow
+        #     printer = None
+        #     modules = None
+
+    return printer, modules
 
 class PennyLaneCircuit:
 
     def __init__(
         self,
-        device: PennyLaneDevice,
         circuit: QuantumCircuit,
         observable: Union[None, SparsePauliOp, List[SparsePauliOp]] = None,
+        executor: Executor = None,
     ) -> None:
 
-        self._device = device
+        self._executor = executor
         self._qiskit_circuit = circuit
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits
 
+        if self._executor:
+            self._decorator = self._executor.pennylane_decorator
+        else:
+            device = qml.device("default.qubit")
+            def pennylane_decorator(pennylane_function):
+                return qml.qnode(device, diff_method="backprop", interface="autograd")(pennylane_function)
+            self._decorator = pennylane_decorator
+
         # Build circuit instructions for the pennylane circuit from the qiskit circuit
-        # self._pennylane_gates = []
-        # self._pennylane_gates_param_function = []
-        # self._pennylane_gates_wires = []
-        # self._pennylane_gates_parameters = []
-        # self._build_circuit_instructions()
         (
             self._pennylane_gates,
             self._pennylane_gates_param_function,
@@ -48,16 +117,6 @@ class PennyLaneCircuit:
         # Build circuit instructions for the pennylane observable from the qiskit circuit
 
         if observable != None:
-            # if isinstance(observable, list):
-            #     self._pennylane_obs_param_function = []
-            #     self._pennylane_words = []
-            #     self._pennylane_obs_parameters = []
-            #     for obs in observable:
-            #         pennylane_obs_param_function, pennylane_words, pennylane_obs_parameters = self.build_observable_instructions(obs)
-            #         self._pennylane_obs_param_function += pennylane_obs_param_function
-            #         self._pennylane_words += pennylane_words
-            #         self._pennylane_obs_parameters += pennylane_obs_parameters
-            # else:
             (
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
@@ -112,7 +171,7 @@ class PennyLaneCircuit:
             if param.vector.name not in pennylane_gates_parameters:
                 pennylane_gates_parameters.append(param.vector.name)
 
-        printer, modules = self._device.get_sympy_interface()
+        printer, modules = _get_sympy_interface()
 
         for op in circuit.data:
             param_tuple = None
@@ -169,7 +228,7 @@ class PennyLaneCircuit:
             argsort_list = np.argsort(index_list)
             return [parameter_vector[i] for i in argsort_list]
 
-        printer, modules = self._device.get_sympy_interface()
+        printer, modules = _get_sympy_interface()
 
         # Get names of all parameters in all observables
         pennylane_obs_parameters = []
@@ -235,7 +294,7 @@ class PennyLaneCircuit:
 
     def build_pennylane_circuit(self):
 
-        @self._device.add_pennylane_decorator
+        @self._decorator
         def pennylane_circuit(*args):
 
             # list -> slow?

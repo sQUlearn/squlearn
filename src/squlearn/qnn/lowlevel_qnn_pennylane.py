@@ -13,8 +13,9 @@ from .lowlevel_qnn_base import LowLevelQNNBase
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
-from ..util.pennylane import PennyLaneCircuit, PennyLaneDevice
+
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ..util.pennylane.pennylane_circuit import PennyLaneCircuit
 
 
 class direct_evaluation:
@@ -436,8 +437,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         super().__init__(pqc, observable, executor)
 
-        self._device = PennyLaneDevice()  # TODO: replace by Executor
-
         # Initialize result cache
         self._result_caching = result_caching
         self.result_container = {}
@@ -483,11 +482,11 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         # PennyLane Circuit function of the QNN
         self._pennylane_circuit = PennyLaneCircuit(
-            self._device, self._qiskit_circuit, self._qiskit_observable
+            self._qiskit_circuit, self._qiskit_observable, self._executor
         )
         # PennyLane Circuit function with a squared observable
         self._pennylane_circuit_squared = PennyLaneCircuit(
-            self._device, self._qiskit_circuit, self._qiskit_observable_squared
+            self._qiskit_circuit, self._qiskit_observable_squared, self._executor
         )
 
     def draw(self, **kwargs):

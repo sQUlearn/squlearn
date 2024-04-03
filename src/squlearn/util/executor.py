@@ -29,6 +29,10 @@ from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureErro
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
+from pennylane.devices import Device as PennylaneDevice
+from pennylane import QubitDevice
+import pennylane as qml
+
 
 class Executor:
     """
@@ -160,6 +164,7 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
+            PennylaneDevice,
         ] = "aer_simulator_statevector",
         backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
@@ -218,6 +223,10 @@ class Executor:
         if execution is None and backend is not None:
             # Only backend is given
             execution = backend
+
+        self._quantum_framework = "qiskit"
+        self._pennylane_device = None
+
         if isinstance(execution, str):
             # Execution is a string -> get backend
             if execution in ["statevector_simulator", "aer_simulator_statevector"]:
@@ -239,6 +248,9 @@ class Executor:
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
+        elif isinstance(execution, QubitDevice) or isinstance(execution, PennylaneDevice):
+            self._quantum_framework = "pennylane"
+            self._pennylane_device = execution
         elif isinstance(execution, Backend):
             # Execution is a backend class
             if hasattr(execution, "service"):
@@ -366,6 +378,33 @@ class Executor:
         self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
         self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
+
+
+# Penny Lane STUFF
+
+    @property
+    def quantum_framework(self) -> str:
+        """ Return the quantum framework that is used in the executor.
+
+        Either "qiskit" or "pennylane"
+        """
+        return self._quantum_framework
+
+    @property
+    def pennylane_device(self):
+        return self._pennylane_device
+
+    def pennylane_decorator(self, pennylane_function):
+        #return qml.qnode(self.pennylane_device, diff_method="backprop", interface="autograd")(
+        #    pennylane_function
+        #)
+        return qml.qnode(self.pennylane_device, diff_method="best")(
+            pennylane_function
+        )
+
+    #def pennylane_execute():
+    #    NotImplementedError()
+    #    #device.batch_execute is available
 
     @property
     def execution(self) -> str:

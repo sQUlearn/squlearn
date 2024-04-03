@@ -268,3 +268,5 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
+        if self.callback == "pbar":
+            self._pbar.close()

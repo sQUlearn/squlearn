@@ -18,8 +18,8 @@ from ..util import Executor
 from .loss import LossBase
 
 # from .qnn import QNN
-# from .lowlevel_qnn_qiskit import LowLevelQNN as QNN
-from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane as QNN
+from .lowlevel_qnn_qiskit import LowLevelQNN
+from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .training import ShotControlBase
 
 
@@ -118,9 +118,23 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(
-            encoding_circuit, operator, executor, result_caching=self.caching
-        )
+
+
+        if self.executor.quantum_framework == "qiskit":
+            print("Qiskit: LowLevelQNN")
+            self._qnn = LowLevelQNN(
+                encoding_circuit, operator, executor, result_caching=self.caching
+            )
+        elif self.executor.quantum_framework == "pennylane":
+            print("ennyLane: LowLevelQNNPennyLane")
+            self._qnn = LowLevelQNNPennyLane(
+                encoding_circuit, operator, executor, result_caching=self.caching
+            )
+        else:
+            raise ValueError(f"Unknown quantum framework {self.executor.quantum_framework}")
+
+
+
 
         self.shot_control = shot_control
         if self.shot_control is not None:
@@ -186,7 +200,7 @@ class BaseQNN(BaseEstimator, ABC):
     def encoding_circuit(self) -> EncodingCircuitBase:
         """Encoding circuit."""
         return self._qnn._pqc
-    
+
     @property
     def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
         """Operator."""
