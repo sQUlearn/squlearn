@@ -114,22 +114,14 @@ class PennyLaneCircuit:
             self._pennylane_gates_wires,
             self._pennylane_gates_parameters,
         ) = self.build_circuit_instructions(self._qiskit_circuit)
-        print("self._pennylane_gates", self._pennylane_gates)
-        print("self._pennylane_gates_param_function", self._pennylane_gates_param_function)
-        print("self._pennylane_gates_wires", self._pennylane_gates_wires)
-        print("self._pennylane_gates_parameters", self._pennylane_gates_parameters)
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
-
         if observable is not None and not isinstance(observable, str):
             (
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
                 self._pennylane_obs_parameters,
             ) = self.build_observable_instructions(observable)
-            print("self._pennylane_obs_param_function", self._pennylane_obs_param_function)
-            print("self._pennylane_words", self._pennylane_words)
-            print("self._pennylane_obs_parameters", self._pennylane_obs_parameters)
         else:
             self._pennylane_obs_param_function = []
             self._pennylane_words = []

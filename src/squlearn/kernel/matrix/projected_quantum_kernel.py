@@ -19,8 +19,10 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 
-# from ...qnn.qnn import QNN
-from ...qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane as QNN
+from ...qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+from ...qnn.lowlevel_qnn_qiskit import LowLevelQNN
+from ...qnn.lowlevel_qnn_base import LowLevelQNNBase
+
 from ...observables import SinglePauli
 from ...observables.observable_base import ObservableBase
 
@@ -36,7 +38,7 @@ class OuterKernelBase:
 
     @abstractmethod
     def __call__(
-        self, qnn: QNN, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
+        self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
         """
         Args:
@@ -109,7 +111,7 @@ class OuterKernelBase:
                 self._num_hyper_parameters = len(self._name_hyper_parameters)
 
             def __call__(
-                self, qnn: QNN, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
+                self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
             ) -> np.ndarray:
                 """Evaluates the outer kernel
 
@@ -373,9 +375,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
         # Set-up of the QNN
-        self._qnn = QNN(
-            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
-        )
+        if self._executor.quantum_framework == "pennylane":
+            self._qnn = LowLevelQNNPennyLane(
+                self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+            )
+        elif self._executor.quantum_framework == "qiskit":
+            self._qnn = LowLevelQNN(
+                self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+            )
 
         # Set-up of the outer kernel
         self._set_outer_kernel(outer_kernel, **kwargs)
@@ -682,7 +689,7 @@ class GaussianOuterKernel(OuterKernelBase):
         self._name_hyper_parameters = ["gamma"]
 
     def __call__(
-        self, qnn: QNN, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
+        self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
         """Evaluates the QNN and returns the Gaussian projected kernel
 
@@ -707,7 +714,7 @@ class GaussianOuterKernel(OuterKernelBase):
 
         x_result = qnn.evaluate(x, param, param_op, "f")["f"]
         if y is not None:
-            y_result = qnn.evaluate(x, param, param_op, "f")["f"]
+            y_result = qnn.evaluate(y, param, param_op, "f")["f"]
         else:
             y_result = None
 

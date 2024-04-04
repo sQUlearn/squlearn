@@ -805,7 +805,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
         if self._result_caching == True:
-            caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_obs))
+            caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_obs), (self._executor.shots == None),)
             value_dict = self.result_container.get(caching_tuple, {})
         else:
             value_dict = {}
@@ -823,6 +823,10 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         for todo in values:
 
             todo_class = _get_class_from_string(todo)
+
+            if todo_class.key in value_dict:
+                # Skip if the value is already calculated
+                continue
 
             if isinstance(todo_class, post_processing_evaluation):
                 # In case of post processing, the evaluation function is called later
@@ -900,6 +904,10 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # Calculate the variance of the QNN output, the Laplace operation, or pick single elements
         for post in post_processing_values:
             value_dict[post.key] = post.evaluation_function(value_dict)
+
+        # Store the updated dictionary for the theta value
+        if self._result_caching:
+            self.result_container[caching_tuple] = value_dict
 
         return value_dict
 
