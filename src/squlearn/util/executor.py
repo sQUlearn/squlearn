@@ -28,6 +28,8 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
+from qiskit.utils import algorithm_globals
+from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
 
 from pennylane.devices import Device as PennylaneDevice
 from pennylane import QubitDevice
@@ -176,7 +178,7 @@ class Executor:
         max_jobs_retries: int = 10,
         wait_restart: int = 1,
         shots: Union[int, None] = None,
-        primitive_seed: Union[int, None] = None,
+        seed: Union[int, None] = None,
     ) -> None:
         # Default values for internal variables
         self._backend = None
@@ -198,7 +200,11 @@ class Executor:
         if self._options_sampler is None:
             self._options_sampler = {}
 
-        self._set_seed_for_primitive = primitive_seed
+        self._set_seed_for_primitive = seed
+        self._pennylane_seed = seed
+        if seed is not None:
+            algorithm_globals.random_seed = seed
+            qiskit_algorithm_globals.random_seed = seed
 
         # Copy Executor options
         self._log_file = log_file
@@ -249,10 +255,15 @@ class Executor:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
 
-
         elif isinstance(execution, QubitDevice) or isinstance(execution, PennylaneDevice):
             self._quantum_framework = "pennylane"
             self._pennylane_device = execution
+
+            if self._pennylane_seed is not None:
+                if hasattr(self._pennylane_device, "_rng"):
+                    self._pennylane_device._rng = np.random.default_rng(self._pennylane_seed)
+                if hasattr(self._pennylane_device, "_prng_key"):
+                    self._pennylane_device._prng_key = None
 
             if len(self._pennylane_device.shots.shot_vector) > 2:
                 raise ValueError("Shot vector in PennyLane device is not supported yet!")
@@ -407,15 +418,11 @@ class Executor:
         #    pennylane_function
         # )
 
-        #return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
+        # return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
 
-        return qml.qnode(self.pennylane_device, diff_method="best")(
-            pennylane_function
-        )
+        return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
     def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
-
-        # TODO: logging, restarts for hardware, critical errors
 
         success = False
         critical_error = False
@@ -460,6 +467,10 @@ class Executor:
                 success = True
 
             except NotImplementedError as e:
+                critical_error = True
+                critical_error_message = e
+
+            except RuntimeError as e:
                 critical_error = True
                 critical_error_message = e
 

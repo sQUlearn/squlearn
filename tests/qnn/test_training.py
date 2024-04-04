@@ -52,7 +52,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = SummedPaulis(2)
-        executor = Executor("qasm_simulator", primitive_seed=0)
+        executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,
@@ -75,7 +75,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
-        executor = Executor("qasm_simulator", primitive_seed=0)
+        executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,

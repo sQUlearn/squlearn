@@ -19,11 +19,11 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
 
-
 from ...util.pennylane.pennylane_gates import qiskit_pennyland_gate_dict
 from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
 
 from functools import lru_cache
+
 
 class FidelityKernel(KernelMatrixBase):
     """
@@ -101,8 +101,11 @@ class FidelityKernel(KernelMatrixBase):
         self._mit_depol_noise = mit_depol_noise
 
         if self._executor.quantum_framework == "pennylane":
-            self._statevector = True
-            if self._statevector:
+
+            if self._executor.is_statevector:
+
+                # Mode 1 for statevector: calculate the statevector of the quantum circuit
+                # and use it to calculate the fidelity as the overlap of the two states.
 
                 x = ParameterVector("x", self.num_features)
                 if self.num_parameters > 0:
@@ -111,17 +114,17 @@ class FidelityKernel(KernelMatrixBase):
                     self._parameter_vector = None
 
                 enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-                circuit = transpile(enc_circ, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0)
-
-                self._pennylane_circuit = PennyLaneCircuit(circuit, executor = self._executor)
-
-                def pennylane_circuit_(input_var):
-                    return np.sqrt(self._pennylane_circuit(*(input_var)))
-
-                self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_)
+                circuit = transpile(
+                    enc_circ, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
+                )
+                self._pennylane_circuit = PennyLaneCircuit(circuit, "state", self._executor)
+                def pennylane_circuit_executor(*args,**kwargs):
+                    return self._executor.pennylane_execute(self._pennylane_circuit,*args,**kwargs)
+                self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_executor)
 
             else:
 
+                # Mode 2 for qasm: calculate the |0> probabilities of the quantum circuit U(x)U(x)'
                 x1 = ParameterVector("x1", self.num_features)
                 x2 = ParameterVector("x2", self.num_features)
                 if self.num_parameters > 0:
@@ -133,9 +136,13 @@ class FidelityKernel(KernelMatrixBase):
                 enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
 
                 circuit = enc_circ1.compose(enc_circ2.inverse())
-                circuit = transpile(circuit, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0)
-
-                self._pennylane_circuit = PennyLaneCircuit(circuit, executor = self._executor)
+                circuit = transpile(
+                    circuit, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
+                )
+                pennylane_circuit = PennyLaneCircuit(circuit, "probs", self._executor)
+                def pennylane_circuit_executor(*args,**kwargs):
+                    return self._executor.pennylane_execute(pennylane_circuit,*args,**kwargs)
+                self._pennylane_circuit = pennylane_circuit_executor
 
         elif self._executor.quantum_framework == "qiskit":
 
@@ -151,7 +158,9 @@ class FidelityKernel(KernelMatrixBase):
             if self._executor.is_statevector:
                 if self._parameter_vector is None:
                     self._quantum_kernel = FidelityStatevectorKernel(
-                        feature_map=self._enc_circ, shots=self._executor.get_shots(), enforce_psd=False,
+                        feature_map=self._enc_circ,
+                        shots=self._executor.get_shots(),
+                        enforce_psd=False,
                     )
                 else:
                     self._quantum_kernel = TrainableFidelityStatevectorKernel(
@@ -273,14 +282,14 @@ class FidelityKernel(KernelMatrixBase):
 
         if y is None:
             y = x
-        kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
-
+        kernel_matrix = np.ones((x.shape[0], y.shape[0]))
         if self._executor.quantum_framework == "pennylane":
-
-            if self._statevector:
+            # PennyLane implementation is found below, _pennylane_evaluate_kernel_sv replicates
+            # FidelityStatevectorKernel from Qiskit Machine Learning
+            if self._executor.is_statevector:
                 kernel_matrix = self._pennylane_evaluate_kernel_sv(x, y)
             else:
-                kernel_matrix = self._pennylane_evaluate_kernel(x,y)
+                kernel_matrix = self._pennylane_evaluate_kernel(x, y)
 
         elif self._executor.quantum_framework == "qiskit":
 
@@ -292,7 +301,6 @@ class FidelityKernel(KernelMatrixBase):
                 self._quantum_kernel.assign_training_parameters(self._parameters)
 
             kernel_matrix = self._quantum_kernel.evaluate(x, y)
-
 
         if self._mit_depol_noise is not None:
             print("WARNING: Advanced option. Do not use it within an squlearn.kernel.ml workflow")
@@ -313,9 +321,7 @@ class FidelityKernel(KernelMatrixBase):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 
-    ###########
-    ## Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
-    ###########
+    # Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
         msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob = self._survival_probability(kernel)
@@ -347,13 +353,9 @@ class FidelityKernel(KernelMatrixBase):
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)
 
+    def _pennylane_evaluate_kernel(self, x, y):
 
-
-    def _pennylane_evaluate_kernel(self,x,y):
-
-        def is_trivial(
-            i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool
-        ) -> bool:
+        def is_trivial(i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool) -> bool:
             """
             Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
 
@@ -407,16 +409,17 @@ class FidelityKernel(KernelMatrixBase):
                     indices.append((i, j))
 
         if self._parameter_vector is not None:
+            if self._parameters is None:
+                raise ValueError(
+                    "Parameters have to been set with assign_parameters or as initial parameters!"
+                )
             kernel_entries = [
                 self._pennylane_circuit(self._parameters, rp, lp)[0]
-                for rp,lp in zip(y_list,x_list)
+                for rp, lp in zip(y_list, x_list)
             ]
 
         else:
-            kernel_entries = [
-                self._pennylane_circuit(rp, lp)[0]
-                for rp,lp in zip(y_list,x_list)
-            ]
+            kernel_entries = [self._pennylane_circuit(rp, lp)[0] for rp, lp in zip(y_list, x_list)]
 
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
         if is_symmetric:
@@ -434,34 +437,40 @@ class FidelityKernel(KernelMatrixBase):
         sv_shots = self._executor.shots
         self._executor.set_shots(None)
 
-        def compute_fidelity(x: np.ndarray, y: np.ndarray) -> float:
+        def compute_overlap(x: np.ndarray, y: np.ndarray) -> float:
             return np.abs(np.conj(x) @ y) ** 2
 
-        def add_shot_noise(fidelity: float) -> float:
+        def draw_shots(fidelity: float) -> float:
             return algorithm_globals.random.binomial(n=sv_shots, p=fidelity) / sv_shots
 
         def compute_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
-            fidelity = compute_fidelity(x, y)
+            fidelity = compute_overlap(x, y)
             if sv_shots is not None:
-                fidelity = add_shot_noise(fidelity)
+                fidelity = draw_shots(fidelity)
             return fidelity
 
         if self._parameter_vector is not None:
-            x_sv = [self._pennylane_circuit_cached((tuple(self._parameters), tuple(x_))) for x_ in x]
-            y_sv = [self._pennylane_circuit_cached((tuple(self._parameters), tuple(y_))) for y_ in y]
+            if self._parameters is None:
+                raise ValueError(
+                    "Parameters have to been set with assign_parameters or as initial parameters!"
+                )
+            x_sv = np.array(
+                [self._pennylane_circuit_cached(tuple(self._parameters), tuple(x_)) for x_ in x]
+            )
+            y_sv = np.array(
+                [self._pennylane_circuit_cached(tuple(self._parameters), tuple(y_)) for y_ in y]
+            )
         else:
-            x_sv = [self._pennylane_circuit_cached((tuple(x_),)) for x_ in x]
-            y_sv = [self._pennylane_circuit_cached((tuple(y_),)) for y_ in y]
+            x_sv = [self._pennylane_circuit_cached(tuple(x_)) for x_ in x]
+            y_sv = [self._pennylane_circuit_cached(tuple(y_)) for y_ in y]
 
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
-        for i, x in enumerate(x_sv):
-            for j, y in enumerate(y_sv):
-                if np.array_equal(x, y):
+        for i, x_ in enumerate(x_sv):
+            for j, y_ in enumerate(y_sv):
+                if np.array_equal(x_, y_):
                     continue
-                kernel_matrix[i, j] = compute_kernel_entry(x, y)
+                kernel_matrix[i, j] = compute_kernel_entry(x_, y_)
 
         self._executor.set_shots(sv_shots)
 
         return kernel_matrix
-
-

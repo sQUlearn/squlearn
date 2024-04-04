@@ -86,7 +86,7 @@ class PennyLaneCircuit:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        observable: Union[None, SparsePauliOp, List[SparsePauliOp]] = None,
+        observable: Union[None, SparsePauliOp, List[SparsePauliOp], str] = None,
         executor: Executor = None,
     ) -> None:
 
@@ -121,7 +121,7 @@ class PennyLaneCircuit:
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
 
-        if observable != None:
+        if observable is not None and not isinstance(observable, str):
             (
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
@@ -343,6 +343,10 @@ class PennyLaneCircuit:
 
             if self._qiskit_observable == None:
                 return qml.probs(wires=range(self._num_qubits))
+            elif self._qiskit_observable == "probs":
+                return qml.probs(wires=range(self._num_qubits))
+            elif self._qiskit_observable == "state":
+                return qml.state()
             elif isinstance(self._qiskit_observable, list):
                 expval_list = []
                 for i, obs in enumerate(self._pennylane_words):
