@@ -248,6 +248,8 @@ class Executor:
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
+
+
         elif isinstance(execution, QubitDevice) or isinstance(execution, PennylaneDevice):
             self._quantum_framework = "pennylane"
             self._pennylane_device = execution
@@ -255,7 +257,8 @@ class Executor:
             if len(self._pennylane_device.shots.shot_vector) > 2:
                 raise ValueError("Shot vector in PennyLane device is not supported yet!")
             else:
-                shots = self._pennylane_device.shots.total_shots
+                if shots is None:
+                    shots = self._pennylane_device.shots.total_shots
 
         elif isinstance(execution, Backend):
             # Execution is a backend class

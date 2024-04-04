@@ -11,11 +11,19 @@ from qiskit_machine_learning.kernels import (
 )
 from qiskit_algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
+from qiskit.compiler import transpile
+from qiskit_algorithms.utils import algorithm_globals
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
+
+
+from ...util.pennylane.pennylane_gates import qiskit_pennyland_gate_dict
+from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
+
+from functools import lru_cache
 
 class FidelityKernel(KernelMatrixBase):
     """
@@ -92,41 +100,85 @@ class FidelityKernel(KernelMatrixBase):
         self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
 
-        self._feature_vector = ParameterVector("x", self.num_features)
-        if self.num_parameters > 0:
-            self._parameter_vector = ParameterVector("θ", self.num_parameters)
-        else:
-            self._parameter_vector = None
+        if self._executor.quantum_framework == "pennylane":
+            self._statevector = True
+            if self._statevector:
 
-        self._enc_circ = self._encoding_circuit.get_circuit(
-            self._feature_vector, self._parameter_vector
-        )
-        if self._executor.is_statevector:
-            if self._parameter_vector is None:
-                self._quantum_kernel = FidelityStatevectorKernel(
-                    feature_map=self._enc_circ, shots=self._executor.get_shots()
-                )
+                x = ParameterVector("x", self.num_features)
+                if self.num_parameters > 0:
+                    self._parameter_vector = ParameterVector("p", self.num_parameters)
+                else:
+                    self._parameter_vector = None
+
+                enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
+                circuit = transpile(enc_circ, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0)
+
+                self._pennylane_circuit = PennyLaneCircuit(circuit, executor = self._executor)
+
+                def pennylane_circuit_(input_var):
+                    return np.sqrt(self._pennylane_circuit(*(input_var)))
+
+                self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_)
+
             else:
-                self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                    feature_map=self._enc_circ,
-                    training_parameters=self._parameter_vector,
-                    shots=self._executor.get_shots(),
-                )
+
+                x1 = ParameterVector("x1", self.num_features)
+                x2 = ParameterVector("x2", self.num_features)
+                if self.num_parameters > 0:
+                    self._parameter_vector = ParameterVector("p", self.num_parameters)
+                else:
+                    self._parameter_vector = None
+
+                enc_circ1 = self._encoding_circuit.get_circuit(x1, self._parameter_vector)
+                enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
+
+                circuit = enc_circ1.compose(enc_circ2.inverse())
+                circuit = transpile(circuit, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0)
+
+                self._pennylane_circuit = PennyLaneCircuit(circuit, executor = self._executor)
+
+        elif self._executor.quantum_framework == "qiskit":
+
+            self._feature_vector = ParameterVector("x", self.num_features)
+            if self.num_parameters > 0:
+                self._parameter_vector = ParameterVector("p", self.num_parameters)
+            else:
+                self._parameter_vector = None
+
+            self._enc_circ = self._encoding_circuit.get_circuit(
+                self._feature_vector, self._parameter_vector
+            )
+            if self._executor.is_statevector:
+                if self._parameter_vector is None:
+                    self._quantum_kernel = FidelityStatevectorKernel(
+                        feature_map=self._enc_circ, shots=self._executor.get_shots(), enforce_psd=False,
+                    )
+                else:
+                    self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                        feature_map=self._enc_circ,
+                        training_parameters=self._parameter_vector,
+                        shots=self._executor.get_shots(),
+                        enforce_psd=False,
+                    )
+            else:
+                fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                if self._parameter_vector is None:
+                    self._quantum_kernel = FidelityQuantumKernel(
+                        feature_map=self._enc_circ,
+                        fidelity=fidelity,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        enforce_psd=False,
+                    )
+                else:
+                    self._quantum_kernel = TrainableFidelityQuantumKernel(
+                        feature_map=self._enc_circ,
+                        fidelity=fidelity,
+                        training_parameters=self._parameter_vector,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        enforce_psd=False,
+                    )
         else:
-            fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
-            if self._parameter_vector is None:
-                self._quantum_kernel = FidelityQuantumKernel(
-                    feature_map=self._enc_circ,
-                    fidelity=fidelity,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                )
-            else:
-                self._quantum_kernel = TrainableFidelityQuantumKernel(
-                    feature_map=self._enc_circ,
-                    fidelity=fidelity,
-                    training_parameters=self._parameter_vector,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                )
+            raise RuntimeError("Invalid quantum framework!")
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -222,14 +274,26 @@ class FidelityKernel(KernelMatrixBase):
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
-        if self._parameter_vector is not None:
-            if self._parameters is None:
-                raise ValueError(
-                    "Parameters have to been set with assign_parameters or as initial parameters!"
-                )
-            self._quantum_kernel.assign_training_parameters(self._parameters)
 
-        kernel_matrix = self._quantum_kernel.evaluate(x, y)
+        if self._executor.quantum_framework == "pennylane":
+
+            if self._statevector:
+                kernel_matrix = self._pennylane_evaluate_kernel_sv(x, y)
+            else:
+                kernel_matrix = self._pennylane_evaluate_kernel(x,y)
+
+        elif self._executor.quantum_framework == "qiskit":
+
+            if self._parameter_vector is not None:
+                if self._parameters is None:
+                    raise ValueError(
+                        "Parameters have to been set with assign_parameters or as initial parameters!"
+                    )
+                self._quantum_kernel.assign_training_parameters(self._parameters)
+
+            kernel_matrix = self._quantum_kernel.evaluate(x, y)
+
+
         if self._mit_depol_noise is not None:
             print("WARNING: Advanced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
@@ -282,3 +346,122 @@ class FidelityKernel(KernelMatrixBase):
     def _survival_probability_mean(self, kernel: np.ndarray) -> float:
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)
+
+
+
+    def _pennylane_evaluate_kernel(self,x,y):
+
+        def is_trivial(
+            i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool
+        ) -> bool:
+            """
+            Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
+
+            Args:
+                i: row index of the entry in the kernel matrix.
+                j: column index of the entry in the kernel matrix.
+                x_i: a sample from the dataset that corresponds to the row in the kernel matrix.
+                y_j: a sample from the dataset that corresponds to the column in the kernel matrix.
+                symmetric: whether it is a symmetric case or not.
+
+            Returns:
+                `True` if the entry is trivial, `False` otherwise.
+            """
+            # if we evaluate all combinations, then it is non-trivial
+            if self._evaluate_duplicates == "all":
+                return False
+
+            # if we are on the diagonal and we don't evaluate it, it is trivial
+            if symmetric and i == j and self._evaluate_duplicates == "off_diagonal":
+                return True
+
+            # if don't evaluate any duplicates
+            if np.array_equal(x_i, y_j) and self._evaluate_duplicates == "none":
+                return True
+
+            # otherwise evaluate
+            return False
+
+        is_symmetric = np.array_equal(x, y)
+        num_features = x.shape[1]
+        x_list = np.zeros((0, num_features))
+        y_list = np.zeros((0, num_features))
+
+        if is_symmetric:
+            indices = []
+            for i, x_i in enumerate(x):
+                for j, x_j in enumerate(x[i:]):
+                    if is_trivial(i, i + j, x_i, x_j, True):
+                        continue
+                    x_list = np.vstack((x_list, x_i))
+                    y_list = np.vstack((y_list, x_j))
+                    indices.append((i, i + j))
+        else:
+            indices = []
+            for i, x_i in enumerate(x):
+                for j, y_j in enumerate(y):
+                    if is_trivial(i, j, x_i, y_j, False):
+                        continue
+                    x_list = np.vstack((x_list, x_i))
+                    y_list = np.vstack((y_list, y_j))
+                    indices.append((i, j))
+
+        if self._parameter_vector is not None:
+            kernel_entries = [
+                self._pennylane_circuit(self._parameters, rp, lp)[0]
+                for rp,lp in zip(y_list,x_list)
+            ]
+
+        else:
+            kernel_entries = [
+                self._pennylane_circuit(rp, lp)[0]
+                for rp,lp in zip(y_list,x_list)
+            ]
+
+        kernel_matrix = np.ones((x.shape[0], y.shape[0]))
+        if is_symmetric:
+            for i, (col, row) in enumerate(indices):
+                kernel_matrix[col, row] = kernel_entries[i]
+                kernel_matrix[row, col] = kernel_entries[i]
+        else:
+            for i, (col, row) in enumerate(indices):
+                kernel_matrix[col, row] = kernel_entries[i]
+
+        return kernel_matrix
+
+    def _pennylane_evaluate_kernel_sv(self, x, y):
+
+        sv_shots = self._executor.shots
+        self._executor.set_shots(None)
+
+        def compute_fidelity(x: np.ndarray, y: np.ndarray) -> float:
+            return np.abs(np.conj(x) @ y) ** 2
+
+        def add_shot_noise(fidelity: float) -> float:
+            return algorithm_globals.random.binomial(n=sv_shots, p=fidelity) / sv_shots
+
+        def compute_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
+            fidelity = compute_fidelity(x, y)
+            if sv_shots is not None:
+                fidelity = add_shot_noise(fidelity)
+            return fidelity
+
+        if self._parameter_vector is not None:
+            x_sv = [self._pennylane_circuit_cached((tuple(self._parameters), tuple(x_))) for x_ in x]
+            y_sv = [self._pennylane_circuit_cached((tuple(self._parameters), tuple(y_))) for y_ in y]
+        else:
+            x_sv = [self._pennylane_circuit_cached((tuple(x_),)) for x_ in x]
+            y_sv = [self._pennylane_circuit_cached((tuple(y_),)) for y_ in y]
+
+        kernel_matrix = np.ones((x.shape[0], y.shape[0]))
+        for i, x in enumerate(x_sv):
+            for j, y in enumerate(y_sv):
+                if np.array_equal(x, y):
+                    continue
+                kernel_matrix[i, j] = compute_kernel_entry(x, y)
+
+        self._executor.set_shots(sv_shots)
+
+        return kernel_matrix
+
+
