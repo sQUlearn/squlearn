@@ -119,7 +119,6 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
 
-
         if self.executor.quantum_framework == "qiskit":
             print("Qiskit: LowLevelQNN")
             self._qnn = LowLevelQNN(
@@ -132,9 +131,6 @@ class BaseQNN(BaseEstimator, ABC):
             )
         else:
             raise ValueError(f"Unknown quantum framework {self.executor.quantum_framework}")
-
-
-
 
         self.shot_control = shot_control
         if self.shot_control is not None:

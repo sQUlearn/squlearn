@@ -643,30 +643,30 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
             eval_tuple = tuple()
-            argnum_dict={}
+            argnum_dict = {}
             ioff = 0
             if len(param_) > 0:
                 eval_tuple += (param_,)
                 argnum_dict[0] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[0] = None
             if len(x_) > 0:
                 eval_tuple += (x_,)
                 argnum_dict[1] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[1] = None
             if len(param_obs_) > 0:
                 eval_tuple += (param_obs_,)
                 argnum_dict[2] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[2] = None
 
             if todo_class.order == 0:
                 # Plain function evaluation
-                #value = func(*(eval_tuple))
+                # value = func(*(eval_tuple))
                 value = self._executor.pennylane_execute(func, *(eval_tuple))
             elif todo_class.order > 0:
                 # Generate iterative derivative function for higher order derivatives
@@ -687,11 +687,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
                 hash_value = func.hash + str(todo_class.argnum)
                 deriv.hash = hash_value
-
-                self._executor.pennylane_execute(deriv, *(eval_tuple))
-                #value = deriv(*(eval_tuple))
-
-            print("value",value)
+                value = self._executor.pennylane_execute(deriv, *(eval_tuple))
 
             # Convert back to numpy array
             return np.real_if_close(np.array(value))
@@ -722,30 +718,30 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
 
             eval_tuple = tuple()
-            argnum_dict={}
+            argnum_dict = {}
             ioff = 0
             if len(param_) > 0:
                 eval_tuple += (param_,)
                 argnum_dict[0] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[0] = None
             if len(x_) > 0:
                 eval_tuple += (x_,)
                 argnum_dict[1] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[1] = None
             if len(param_obs_) > 0:
                 eval_tuple += (param_obs_,)
                 argnum_dict[2] = ioff
-                ioff +=1
+                ioff += 1
             else:
                 argnum_dict[2] = None
 
             if todo_class.order == 0:
                 # Plain function evaluation
-                #value = func(*eval_tuple)
+                # value = func(*eval_tuple)
                 value = self._executor.pennylane_execute(func, *(eval_tuple))
             elif todo_class.order > 0:
                 # Generate iterative derivative function for higher order derivatives
@@ -764,7 +760,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     else:
                         deriv = qml.jacobian(deriv, argnum=arg_index)
 
-                #value = deriv(*eval_tuple)
+                # value = deriv(*eval_tuple)
                 hash_value = func.hash + str(todo_class.argnum)
                 deriv.hash = hash_value
                 value = self._executor.pennylane_execute(deriv, *(eval_tuple))
@@ -797,11 +793,11 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # Check if the order of the circuit arguments is correct
         # !! DIFFERENT TO THE INPUT ORDER OF THE EVALUATION FUNCTION !!
         compare_list = []
-        if self.num_parameters >0:
+        if self.num_parameters > 0:
             compare_list.append("param")
-        if self.num_features >0:
+        if self.num_features > 0:
             compare_list.append("x")
-        if self.num_parameters_observable >0:
+        if self.num_parameters_observable > 0:
             compare_list.append("param_obs")
         if self._pennylane_circuit.circuit_arguments != compare_list:
             raise NotImplementedError("Wrong order of circuit arguments!")
@@ -838,8 +834,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 post_processing_values.append(todo_class)
             else:
                 # Direct evaluation of the QNN
-
-                if todo_class.return_grad_x and todo_class.order > 1:
+                if (
+                    todo_class.return_grad_x and todo_class.order > 1
+                ) or self._executor.shots is not None: # Can be removed if PennyLane bug 4462 is fixed
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [

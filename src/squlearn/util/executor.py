@@ -251,6 +251,12 @@ class Executor:
         elif isinstance(execution, QubitDevice) or isinstance(execution, PennylaneDevice):
             self._quantum_framework = "pennylane"
             self._pennylane_device = execution
+
+            if len(self._pennylane_device.shots.shot_vector) > 2:
+                raise ValueError("Shot vector in PennyLane device is not supported yet!")
+            else:
+                shots = self._pennylane_device.shots.total_shots
+
         elif isinstance(execution, Backend):
             # Execution is a backend class
             if hasattr(execution, "service"):
@@ -379,12 +385,11 @@ class Executor:
         self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
-
-# Penny Lane STUFF
+    # Penny Lane STUFF
 
     @property
     def quantum_framework(self) -> str:
-        """ Return the quantum framework that is used in the executor.
+        """Return the quantum framework that is used in the executor.
 
         Either "qiskit" or "pennylane"
         """
@@ -395,14 +400,17 @@ class Executor:
         return self._pennylane_device
 
     def pennylane_decorator(self, pennylane_function):
-        #return qml.qnode(self.pennylane_device, diff_method="backprop", interface="autograd")(
+        # return qml.qnode(self.pennylane_device, diff_method="backprop", interface="autograd")(
         #    pennylane_function
-        #)
+        # )
+
+        #return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
+
         return qml.qnode(self.pennylane_device, diff_method="best")(
             pennylane_function
         )
 
-    def pennylane_execute(self,pennylane_circuit:callable,*args, **kwargs):
+    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
 
         # TODO: logging, restarts for hardware, critical errors
 
@@ -416,7 +424,7 @@ class Executor:
                 cached = False
                 if self._caching:
 
-                    if hasattr(pennylane_circuit,"hash"):
+                    if hasattr(pennylane_circuit, "hash"):
                         circuit_hash = pennylane_circuit.hash
                     else:
                         circuit_hash = hash(pennylane_circuit)
@@ -429,6 +437,7 @@ class Executor:
                             args,
                             kwargs,
                             self._pennylane_device.name,
+                            self.shots,
                         ]
                     )
 
@@ -439,17 +448,36 @@ class Executor:
                     cached = False
                     # Execute the circuit todo: implement restart
                     result = pennylane_circuit(*args, **kwargs)
+                    self._logger.info(f"Executor runs pennylane execution")
+                else:
+                    self._logger.info(
+                        f"Cached result found with hash value: {{}}".format(hash_value)
+                    )
 
                 success = True
 
+            except NotImplementedError as e:
+                critical_error = True
+                critical_error_message = e
+
             except Exception as e:
-                self._logger.info(f"Executor failed to run pennylane_execute because of unknown error!")
+
+                self._logger.info(
+                    f"Executor failed to run pennylane_execute because of unknown error!"
+                )
                 self._logger.info(f"Error message: {{}}".format(e))
                 self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
                 success = False
 
             if success:
                 break
+            elif critical_error is False:
+                self._logger.info(f"Restarting PennyLane execution")
+                success = False
+
+            if critical_error:
+                self._logger.info(f"Critical error detected; abort execution")
+                raise critical_error_message
 
         if success is not True:
             raise RuntimeError(
@@ -493,6 +521,10 @@ class Executor:
 
         The estimator that is created depends on the backend that is used for the execution.
         """
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Estimator is only available for Qiskit backends")
+
         if self._estimator is not None:
             if self._session is not None and self._session_active is False:
                 # Session is expired, create a new session and a new estimator
@@ -560,6 +592,10 @@ class Executor:
 
         The estimator that is created depends on the backend that is used for the execution.
         """
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Sampler is only available for Qiskit backends")
+
         if self._sampler is not None:
             if self._session is not None and self._session_active is False:
                 # Session is expired, create a new one and a new estimator
@@ -661,6 +697,10 @@ class Executor:
                     )
                     self._session_active = False
                     continue
+
+            except NotImplementedError as e:
+                critical_error = True
+                critical_error_message = e
 
             except QiskitError as e:
                 critical_error = True
@@ -921,70 +961,84 @@ class Executor:
 
         self._shots = num_shots
 
-        if num_shots is None:
-            self._logger.info("Set shots to {}".format(num_shots))
-            num_shots = 0
+        self._logger.info("Set shots to {}".format(num_shots))
 
         # Update shots in backend
-        if self._backend is not None:
-            if self.is_statevector:
-                self._backend.options.shots = num_shots
+        if num_shots is None:
+            num_shots = 0
 
-        # Update shots in estimator primitive
-        if self._estimator is not None:
-            if isinstance(self._estimator, qiskit_primitives_Estimator):
+        if self.quantum_framework == "pennylane":
+
+            if self._pennylane_device is not None:
                 if num_shots == 0:
-                    self._estimator.set_options(shots=None)
+                    self._pennylane_device._shots = qml.measurements.Shots(None)
                 else:
+                    self._pennylane_device._shots = qml.measurements.Shots(num_shots)
+
+        elif self.quantum_framework == "qiskit":
+
+            # Update shots in backend
+            if self._backend is not None:
+                if self.is_statevector:
+                    self._backend.options.shots = num_shots
+
+            # Update shots in estimator primitive
+            if self._estimator is not None:
+                if isinstance(self._estimator, qiskit_primitives_Estimator):
+                    if num_shots == 0:
+                        self._estimator.set_options(shots=None)
+                    else:
+                        self._estimator.set_options(shots=num_shots)
+                    try:
+                        self._options_estimator["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                     self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
-                execution = self._estimator.options.get("execution")
-                execution["shots"] = num_shots
-                self._estimator.set_options(execution=execution)
-                try:
-                    self._options_estimator["execution"]["shots"] = num_shots
-                except:
-                    pass  # no options_estimator or no execution in options_estimator
-            else:
-                raise RuntimeError("Unknown estimator type!")
-
-        # Update shots in sampler primitive
-        if self._sampler is not None:
-            if isinstance(self._sampler, qiskit_primitives_Sampler):
-                if num_shots == 0:
-                    self._sampler.set_options(shots=None)
+                    try:
+                        self._options_estimator["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
+                    execution = self._estimator.options.get("execution")
+                    execution["shots"] = num_shots
+                    self._estimator.set_options(execution=execution)
+                    try:
+                        self._options_estimator["execution"]["shots"] = num_shots
+                    except:
+                        pass  # no options_estimator or no execution in options_estimator
                 else:
+                    raise RuntimeError("Unknown estimator type!")
+
+            # Update shots in sampler primitive
+            if self._sampler is not None:
+                if isinstance(self._sampler, qiskit_primitives_Sampler):
+                    if num_shots == 0:
+                        self._sampler.set_options(shots=None)
+                    else:
+                        self._sampler.set_options(shots=num_shots)
+                    try:
+                        self._options_sampler["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                     self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
-                self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
-                execution = self._sampler.options.get("execution")
-                execution["shots"] = num_shots
-                self._sampler.set_options(execution=execution)
-                try:
-                    self._options_sampler["execution"]["shots"] = num_shots
-                except:
-                    pass  # no options_sampler or no execution in options_sampler
-            else:
-                raise RuntimeError("Unknown sampler type!")
+                    try:
+                        self._options_sampler["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
+                    execution = self._sampler.options.get("execution")
+                    execution["shots"] = num_shots
+                    self._sampler.set_options(execution=execution)
+                    try:
+                        self._options_sampler["execution"]["shots"] = num_shots
+                    except:
+                        pass  # no options_sampler or no execution in options_sampler
+                else:
+                    raise RuntimeError("Unknown sampler type!")
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
     def get_shots(self) -> int:
         """Getter for the number of shots.
@@ -993,48 +1047,60 @@ class Executor:
             Returns the number of shots that are used for the current evaluation.
         """
         shots = self._shots
-        if self._estimator is not None or self._sampler is not None:
-            shots_estimator = 0
-            shots_sampler = 0
-            if self._estimator is not None:
-                if isinstance(self._estimator, qiskit_primitives_Estimator):
-                    shots_estimator = self._estimator.options.get("shots", 0)
-                elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                    shots_estimator = self._estimator.options.get("shots", 0)
-                elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
-                    execution = self._estimator.options.get("execution")
-                    shots_estimator = execution["shots"]
-                else:
-                    raise RuntimeError("Unknown estimator type!")
 
-            if self._sampler is not None:
-                if isinstance(self._sampler, qiskit_primitives_Sampler):
-                    shots_sampler = self._sampler.options.get("shots", 0)
-                elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
-                    shots_sampler = self._sampler.options.get("shots", 0)
-                elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
-                    execution = self._sampler.options.get("execution")
-                    shots_sampler = execution["shots"]
-                else:
-                    raise RuntimeError("Unknown sampler type!")
+        if self.quantum_framework == "pennylane":
 
-            if self._estimator is not None and self._sampler is not None:
-                if shots_estimator != shots_sampler:
-                    raise ValueError(
-                        "The number of shots of the given \
-                                      Estimator and Sampler is not equal!"
-                    )
-            if shots_estimator is None:
+            if self._pennylane_device is not None:
+                shots = self._pennylane_device.shots.total_shots
+            else:
+                return None  # No shots available
+
+        elif self.quantum_framework == "qiskit":
+
+            if self._estimator is not None or self._sampler is not None:
                 shots_estimator = 0
-            if shots_sampler is None:
                 shots_sampler = 0
+                if self._estimator is not None:
+                    if isinstance(self._estimator, qiskit_primitives_Estimator):
+                        shots_estimator = self._estimator.options.get("shots", 0)
+                    elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
+                        shots_estimator = self._estimator.options.get("shots", 0)
+                    elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
+                        execution = self._estimator.options.get("execution")
+                        shots_estimator = execution["shots"]
+                    else:
+                        raise RuntimeError("Unknown estimator type!")
 
-            shots = max(shots_estimator, shots_sampler)
-        elif self._backend is not None:
-            if self.is_statevector:
-                shots = self._backend.options.shots
+                if self._sampler is not None:
+                    if isinstance(self._sampler, qiskit_primitives_Sampler):
+                        shots_sampler = self._sampler.options.get("shots", 0)
+                    elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
+                        shots_sampler = self._sampler.options.get("shots", 0)
+                    elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
+                        execution = self._sampler.options.get("execution")
+                        shots_sampler = execution["shots"]
+                    else:
+                        raise RuntimeError("Unknown sampler type!")
+
+                if self._estimator is not None and self._sampler is not None:
+                    if shots_estimator != shots_sampler:
+                        raise ValueError(
+                            "The number of shots of the given \
+                                        Estimator and Sampler is not equal!"
+                        )
+                if shots_estimator is None:
+                    shots_estimator = 0
+                if shots_sampler is None:
+                    shots_sampler = 0
+
+                shots = max(shots_estimator, shots_sampler)
+            elif self._backend is not None:
+                if self.is_statevector:
+                    shots = self._backend.options.shots
+            else:
+                return None  # No shots available
         else:
-            return None  # No shots available
+            raise RuntimeError("Unknown quantum framework!")
 
         if shots == 0:
             shots = None
@@ -1053,6 +1119,10 @@ class Executor:
 
     def create_session(self):
         """Creates a new session, is called automatically."""
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Session can only be created for Qiskit framework!")
+
         if self._service is not None:
             self._session = Session(
                 self._service, backend=self._backend, max_time=self._max_session_time
@@ -1064,6 +1134,10 @@ class Executor:
 
     def close_session(self):
         """Closes the current session, is called automatically."""
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Session can only be closed for Qiskit framework!")
+
         if self._session is not None:
             self._logger.info(f"Executor closed session: {{}}".format(self._session.session_id))
             self._session.close()

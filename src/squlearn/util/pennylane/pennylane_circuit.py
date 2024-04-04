@@ -31,54 +31,55 @@ def _get_sympy_interface():
     )  #
     modules = pnp
 
-        #     # SymPy printer for pennylane numpy implementation has to be set manually,
-        #     # otherwise math functions are used in lambdify instead of pennylane.numpy functions
-        #     from sympy.printing.tensorflow import TensorflowPrinter as Printer  # type: ignore
+    #     # SymPy printer for pennylane numpy implementation has to be set manually,
+    #     # otherwise math functions are used in lambdify instead of pennylane.numpy functions
+    #     from sympy.printing.tensorflow import TensorflowPrinter as Printer  # type: ignore
 
-        #     user_functions = {}
-        #     printer = Printer(
-        #         {
-        #             "fully_qualified_modules": False,
-        #             "inline": True,
-        #             "allow_unknown_functions": True,
-        #             "user_functions": user_functions,
-        #         }
-        #     )  #
-        #     modules = tf
+    #     user_functions = {}
+    #     printer = Printer(
+    #         {
+    #             "fully_qualified_modules": False,
+    #             "inline": True,
+    #             "allow_unknown_functions": True,
+    #             "user_functions": user_functions,
+    #         }
+    #     )  #
+    #     modules = tf
 
-        # elif self._gradient_engine == "jax":
-        #     from sympy.printing.numpy import JaxPrinter as Printer  # type: ignore
+    # elif self._gradient_engine == "jax":
+    #     from sympy.printing.numpy import JaxPrinter as Printer  # type: ignore
 
-        #     user_functions = {}
-        #     printer = Printer(
-        #         {
-        #             "fully_qualified_modules": False,
-        #             "inline": True,
-        #             "allow_unknown_functions": True,
-        #             "user_functions": user_functions,
-        #         }
-        #     )  #
-        #     modules = jnp
-        # elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
-        #     from sympy.printing.pycode import PythonCodePrinter as Printer  # type: ignore
+    #     user_functions = {}
+    #     printer = Printer(
+    #         {
+    #             "fully_qualified_modules": False,
+    #             "inline": True,
+    #             "allow_unknown_functions": True,
+    #             "user_functions": user_functions,
+    #         }
+    #     )  #
+    #     modules = jnp
+    # elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
+    #     from sympy.printing.pycode import PythonCodePrinter as Printer  # type: ignore
 
-        #     user_functions = {}
-        #     printer = Printer(
-        #         {
-        #             "fully_qualified_modules": False,
-        #             "inline": True,
-        #             "allow_unknown_functions": True,
-        #             "user_functions": user_functions,
-        #         }
-        #     )  #
-        #     modules = torch
+    #     user_functions = {}
+    #     printer = Printer(
+    #         {
+    #             "fully_qualified_modules": False,
+    #             "inline": True,
+    #             "allow_unknown_functions": True,
+    #             "user_functions": user_functions,
+    #         }
+    #     )  #
+    #     modules = torch
 
-        # else:
-        #     # tbd for jax and tensorflow
-        #     printer = None
-        #     modules = None
+    # else:
+    #     # tbd for jax and tensorflow
+    #     printer = None
+    #     modules = None
 
     return printer, modules
+
 
 class PennyLaneCircuit:
 
@@ -98,8 +99,12 @@ class PennyLaneCircuit:
             self._decorator = self._executor.pennylane_decorator
         else:
             device = qml.device("default.qubit")
+
             def pennylane_decorator(pennylane_function):
-                return qml.qnode(device, diff_method="backprop", interface="autograd")(pennylane_function)
+                return qml.qnode(device, diff_method="backprop", interface="autograd")(
+                    pennylane_function
+                )
+
             self._decorator = pennylane_decorator
 
         # Build circuit instructions for the pennylane circuit from the qiskit circuit
@@ -263,7 +268,9 @@ class PennyLaneCircuit:
                         coeff = coeff._coeff
                         if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
                             if np.imag(coeff) != 0:
-                                raise ValueError("Imaginary part of observable coefficient is not supported")
+                                raise ValueError(
+                                    "Imaginary part of observable coefficient is not supported"
+                                )
                             coeff = float(np.real(coeff))
                         else:
                             coeff = float(coeff)
@@ -274,7 +281,9 @@ class PennyLaneCircuit:
                 else:
                     if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
                         if np.imag(coeff) != 0:
-                            raise ValueError("Imaginary part of observable coefficient is not supported")
+                            raise ValueError(
+                                "Imaginary part of observable coefficient is not supported"
+                            )
                         coeff = float(np.real(coeff))
                     else:
                         coeff = float(coeff)
