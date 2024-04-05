@@ -233,6 +233,16 @@ class Executor:
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
+        if execution == "statevector_simulator":
+            execution = qml.device("default.qubit")
+            if shots is None:
+                shots = None
+
+        if execution == "qasm_simulator":
+            execution = qml.device("default.qubit")
+            if shots is None:
+                shots = 1024
+
         if isinstance(execution, str):
             # Execution is a string -> get backend
             if execution in ["statevector_simulator", "aer_simulator_statevector"]:
@@ -265,11 +275,15 @@ class Executor:
                 if hasattr(self._pennylane_device, "_prng_key"):
                     self._pennylane_device._prng_key = None
 
-            if len(self._pennylane_device.shots.shot_vector) > 2:
-                raise ValueError("Shot vector in PennyLane device is not supported yet!")
-            else:
+            if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                if len(self._pennylane_device.shots.shot_vector) > 2:
+                    raise ValueError("Shot vector in PennyLane device is not supported yet!")
+                else:
+                    if shots is None:
+                        shots = self._pennylane_device.shots.total_shots
+            elif isinstance(self._pennylane_device.shots, int):
                 if shots is None:
-                    shots = self._pennylane_device.shots.total_shots
+                    shots = self._pennylane_device.shots
 
         elif isinstance(execution, Backend):
             # Execution is a backend class
@@ -422,7 +436,36 @@ class Executor:
 
         return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
-    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
+#TODO: BATCHED_EXECUTION!!
+
+    def pennylane_execute_batched(self, pennylane_circuit, arg_tuples, **kwargs):
+
+        if not isinstance(pennylane_circuit, list):
+            pennylane_circuit = [pennylane_circuit]
+
+        if not isinstance(arg_tuples, list):
+            arg_tuples = [arg_tuples]
+
+        if len(pennylane_circuit) != len(arg_tuples):
+            raise ValueError("Length of pennylane_circuit and arg_tuples does not match")
+
+        hash_value=""
+
+        batched_tapes = []
+        for i,arg_tuple in enumerate(arg_tuples):
+            pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
+
+            if hasattr(pennylane_circuit[i].pennylane_circuit, "hash"):
+                hash_value += str(pennylane_circuit[i].pennylane_circuit.hash)
+            else:
+                hash_value += str(hash(pennylane_circuit[i].pennylane_circuit))
+
+            batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
+
+        return self.pennylane_execute_tapes_cached(batched_tapes,hash_value)
+
+
+    def pennylane_execute_tapes_cached(self, tapes, hash_value):
 
         success = False
         critical_error = False
@@ -434,18 +477,11 @@ class Executor:
                 cached = False
                 if self._caching:
 
-                    if hasattr(pennylane_circuit, "hash"):
-                        circuit_hash = pennylane_circuit.hash
-                    else:
-                        circuit_hash = hash(pennylane_circuit)
-
                     # Generate hash value for caching
                     hash_value = self._cache.hash_variable(
                         [
                             "pennylane_execute",
-                            circuit_hash,
-                            args,
-                            kwargs,
+                            hash_value,
                             self._pennylane_device.name,
                             self.shots,
                         ]
@@ -457,7 +493,7 @@ class Executor:
                 if result is None:
                     cached = False
                     # Execute the circuit todo: implement restart
-                    result = pennylane_circuit(*args, **kwargs)
+                    result = qml.execute(tapes,self.pennylane_device)
                     self._logger.info(f"Executor runs pennylane execution")
                 else:
                     self._logger.info(
@@ -502,6 +538,99 @@ class Executor:
             self._cache.store_file(hash_value, copy.copy(result))
 
         return result
+
+    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
+
+        if hasattr(pennylane_circuit, "hash"):
+            hash_value = pennylane_circuit.hash
+        else:
+            hash_value = hash(pennylane_circuit)
+
+        pennylane_circuit.pennylane_circuit.construct(args,kwargs)
+        tape = pennylane_circuit.pennylane_circuit.tape
+
+        return self.pennylane_execute_tapes_cached([tape],hash_value)[0]
+
+    # def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
+
+    #     success = False
+    #     critical_error = False
+    #     critical_error_message = None
+    #     for repeat in range(self._max_jobs_retries):
+
+    #         try:
+    #             result = None
+    #             cached = False
+    #             if self._caching:
+
+    #                 if hasattr(pennylane_circuit, "hash"):
+    #                     circuit_hash = pennylane_circuit.hash
+    #                 else:
+    #                     circuit_hash = hash(pennylane_circuit)
+
+    #                 # Generate hash value for caching
+    #                 hash_value = self._cache.hash_variable(
+    #                     [
+    #                         "pennylane_execute",
+    #                         circuit_hash,
+    #                         args,
+    #                         kwargs,
+    #                         self._pennylane_device.name,
+    #                         self.shots,
+    #                     ]
+    #                 )
+
+    #                 result = self._cache.get_file(hash_value)
+    #                 cached = True
+
+    #             if result is None:
+    #                 cached = False
+    #                 # Execute the circuit todo: implement restart
+    #                 result = pennylane_circuit(*args, **kwargs)
+    #                 self._logger.info(f"Executor runs pennylane execution")
+    #             else:
+    #                 self._logger.info(
+    #                     f"Cached result found with hash value: {{}}".format(hash_value)
+    #                 )
+
+    #             success = True
+
+    #         except NotImplementedError as e:
+    #             critical_error = True
+    #             critical_error_message = e
+
+    #         except RuntimeError as e:
+    #             critical_error = True
+    #             critical_error_message = e
+
+    #         except Exception as e:
+
+    #             self._logger.info(
+    #                 f"Executor failed to run pennylane_execute because of unknown error!"
+    #             )
+    #             self._logger.info(f"Error message: {{}}".format(e))
+    #             self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+    #             success = False
+
+    #         if success:
+    #             break
+    #         elif critical_error is False:
+    #             self._logger.info(f"Restarting PennyLane execution")
+    #             success = False
+
+    #         if critical_error:
+    #             self._logger.info(f"Critical error detected; abort execution")
+    #             raise critical_error_message
+
+    #     if success is not True:
+    #         raise RuntimeError(
+    #             f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
+    #         )
+
+    #     if self._caching and not cached:
+    #         self._cache.store_file(hash_value, copy.copy(result))
+
+    #     return result
 
     @property
     def execution(self) -> str:
@@ -984,10 +1113,13 @@ class Executor:
         if self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
-                if num_shots == 0:
-                    self._pennylane_device._shots = qml.measurements.Shots(None)
-                else:
-                    self._pennylane_device._shots = qml.measurements.Shots(num_shots)
+                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                    if num_shots == 0:
+                        self._pennylane_device._shots = qml.measurements.Shots(None)
+                    else:
+                        self._pennylane_device._shots = qml.measurements.Shots(num_shots)
+                elif isinstance(self._pennylane_device.shots, int) or self._pennylane_device.shots is None:
+                    self._pennylane_device._shots = num_shots
 
         elif self.quantum_framework == "qiskit":
 
@@ -1065,7 +1197,10 @@ class Executor:
         if self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
-                shots = self._pennylane_device.shots.total_shots
+                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                    shots = self._pennylane_device.shots.total_shots
+                elif isinstance(self._pennylane_device.shots, int) or self._pennylane_device.shots is None:
+                    shots = self._pennylane_device.shots
             else:
                 return None  # No shots available
 

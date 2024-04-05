@@ -120,12 +120,10 @@ class BaseQNN(BaseEstimator, ABC):
         self.executor = executor
 
         if self.executor.quantum_framework == "qiskit":
-            print("Qiskit: LowLevelQNN")
             self._qnn = LowLevelQNN(
                 encoding_circuit, operator, executor, result_caching=self.caching
             )
         elif self.executor.quantum_framework == "pennylane":
-            print("ennyLane: LowLevelQNNPennyLane")
             self._qnn = LowLevelQNNPennyLane(
                 encoding_circuit, operator, executor, result_caching=self.caching
             )
