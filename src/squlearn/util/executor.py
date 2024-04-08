@@ -434,10 +434,10 @@ class Executor:
 
         # return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
 
-        if "Lightning Qubit" in str(self.pennylane_device):
-            return qml.qnode(self.pennylane_device, diff_method="adjoint")(pennylane_function)
-        else:
-            return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
+        #if "Lightning Qubit" in str(self.pennylane_device):
+        #    return qml.qnode(self.pennylane_device, diff_method="adjoint")(pennylane_function)
+        #else:
+        return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
     # TODO: BATCHED_EXECUTION!!
 
@@ -515,14 +515,19 @@ class Executor:
                 critical_error = True
                 critical_error_message = e
 
-            except Exception as e:
 
-                self._logger.info(
-                    f"Executor failed to run pennylane_execute because of unknown error!"
-                )
-                self._logger.info(f"Error message: {{}}".format(e))
-                self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-                success = False
+            except Exception as e:
+                critical_error = True
+                critical_error_message = e
+
+            # except Exception as e: TODO: restart errors
+
+            #     self._logger.info(
+            #         f"Executor failed to run pennylane_execute because of unknown error!"
+            #     )
+            #     self._logger.info(f"Error message: {{}}".format(e))
+            #     self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+            #     success = False
 
             if success:
                 break
@@ -1046,7 +1051,10 @@ class Executor:
                     isinstance(self._pennylane_device.shots, int)
                     or self._pennylane_device.shots is None
                 ):
-                    self._pennylane_device._shots = num_shots
+                    if num_shots == 0:
+                        self._pennylane_device._shots = None
+                    else:
+                        self._pennylane_device._shots = num_shots
 
         elif self.quantum_framework == "qiskit":
 

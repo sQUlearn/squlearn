@@ -161,8 +161,8 @@ class PennyLaneCircuit:
         self._pennylane_circuit = self.build_pennylane_circuit()
         return self._pennylane_circuit
 
-    def __call__(self, *args):
-        return self._pennylane_circuit(*args)
+    def __call__(self, *args, **kwargs):
+        return self._pennylane_circuit(*args, **kwargs)
 
     def build_circuit_instructions(self, circuit: QuantumCircuit) -> None:
 
