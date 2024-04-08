@@ -844,10 +844,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 # Direct evaluation of the QNN
                 if (
                     todo_class.return_grad_x and todo_class.order > 1
-                ) or (todo_class.order > 1 and self._executor.shots is not None):  # Can be removed if PennyLane bug 4462 is fixed
+                ) or (todo_class.order >= 1 and self._executor.shots is not None):  # Can be removed if PennyLane bug 4462 is fixed
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
-                    print("_evaluate_todo_single_x")
                     output = [
                         _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_)
                         for x_inp_ in x_inp
@@ -859,7 +858,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 else:
                     # evaluate only param, param_op combination separately and all x together
                     # Faster evaluation for lower-order derivatives
-                    print("_evaluate_todo_all_x")
                     output = [
                         _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
                         for param_inp_ in param_inp
@@ -867,7 +865,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     ]
                     # Restore order of _evaluate_todo_single_x
                     output = np.array(output)
-                    print("output before",output)
                     if self._executor.shots is not None and multi_x==False:
                         output = output.reshape(output.shape +(1,))
                     #if len(output.shape) < 2:
@@ -878,8 +875,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                         swap_list = [2, 0, 1] + index_list[3:]
                     else:
                         swap_list = [1, 0] + index_list[2:]
-                    print("output",output)
-                    print("swap_list",swap_list)
                     output = output.transpose(swap_list)
                     output = output.reshape(
                         (output.shape[0] * output.shape[1],) + tuple(output.shape[2:])
