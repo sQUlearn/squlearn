@@ -434,7 +434,10 @@ class Executor:
 
         # return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
 
-        return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
+        if "Lightning Qubit" in str(self.pennylane_device):
+            return qml.qnode(self.pennylane_device, diff_method="adjoint")(pennylane_function)
+        else:
+            return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
     # TODO: BATCHED_EXECUTION!!
 
@@ -462,9 +465,12 @@ class Executor:
 
             batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
 
-        return self.pennylane_execute_tapes_cached(batched_tapes, hash_value)
+        def execute_tapes():
+            return qml.execute(batched_tapes, self.pennylane_device)
 
-    def pennylane_execute_tapes_cached(self, tapes, hash_value):
+        return self.pennylane_execute_cached(execute_tapes, hash_value)
+
+    def pennylane_execute_cached(self, function, hash_value):
 
         success = False
         critical_error = False
@@ -492,7 +498,7 @@ class Executor:
                 if result is None:
                     cached = False
                     # Execute the circuit todo: implement restart
-                    result = qml.execute(tapes, self.pennylane_device)
+                    result = function()
                     self._logger.info(f"Executor runs pennylane execution")
                 else:
                     self._logger.info(
@@ -545,91 +551,11 @@ class Executor:
         else:
             hash_value = hash(pennylane_circuit)
 
-        pennylane_circuit.pennylane_circuit.construct(args, kwargs)
-        tape = pennylane_circuit.pennylane_circuit.tape
+        def execute_circuit():
+            kwargs['shots'] = self.shots
+            return pennylane_circuit(*args, **kwargs)
 
-        return self.pennylane_execute_tapes_cached([tape], hash_value)[0]
-
-    # def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
-
-    #     success = False
-    #     critical_error = False
-    #     critical_error_message = None
-    #     for repeat in range(self._max_jobs_retries):
-
-    #         try:
-    #             result = None
-    #             cached = False
-    #             if self._caching:
-
-    #                 if hasattr(pennylane_circuit, "hash"):
-    #                     circuit_hash = pennylane_circuit.hash
-    #                 else:
-    #                     circuit_hash = hash(pennylane_circuit)
-
-    #                 # Generate hash value for caching
-    #                 hash_value = self._cache.hash_variable(
-    #                     [
-    #                         "pennylane_execute",
-    #                         circuit_hash,
-    #                         args,
-    #                         kwargs,
-    #                         self._pennylane_device.name,
-    #                         self.shots,
-    #                     ]
-    #                 )
-
-    #                 result = self._cache.get_file(hash_value)
-    #                 cached = True
-
-    #             if result is None:
-    #                 cached = False
-    #                 # Execute the circuit todo: implement restart
-    #                 result = pennylane_circuit(*args, **kwargs)
-    #                 self._logger.info(f"Executor runs pennylane execution")
-    #             else:
-    #                 self._logger.info(
-    #                     f"Cached result found with hash value: {{}}".format(hash_value)
-    #                 )
-
-    #             success = True
-
-    #         except NotImplementedError as e:
-    #             critical_error = True
-    #             critical_error_message = e
-
-    #         except RuntimeError as e:
-    #             critical_error = True
-    #             critical_error_message = e
-
-    #         except Exception as e:
-
-    #             self._logger.info(
-    #                 f"Executor failed to run pennylane_execute because of unknown error!"
-    #             )
-    #             self._logger.info(f"Error message: {{}}".format(e))
-    #             self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-    #             success = False
-
-    #         if success:
-    #             break
-    #         elif critical_error is False:
-    #             self._logger.info(f"Restarting PennyLane execution")
-    #             success = False
-
-    #         if critical_error:
-    #             self._logger.info(f"Critical error detected; abort execution")
-    #             raise critical_error_message
-
-    #     if success is not True:
-    #         raise RuntimeError(
-    #             f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
-    #         )
-
-    #     if self._caching and not cached:
-    #         self._cache.store_file(hash_value, copy.copy(result))
-
-    #     return result
+        return self.pennylane_execute_cached(execute_circuit, hash_value)
 
     @property
     def execution(self) -> str:
@@ -1397,9 +1323,20 @@ class Executor:
     @property
     def is_statevector(self) -> bool:
         """Returns True if the backend is a statevector simulator."""
-        return True
-        return "statevector" in self.backend_name
 
+        if self.quantum_framework == "qiskit":
+            return "statevector" in self.backend_name
+        elif self.quantum_framework == "pennylane":
+
+            statevector_device = False
+            if "default.qubit device" in self._pennylane_device.name:
+                statevector_device = True
+            elif "Lightning Qubit" in self._pennylane_device.name:
+                statevector_device = True
+
+            return statevector_device
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
 class ExecutorEstimator(BaseEstimator):
     """
