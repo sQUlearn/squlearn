@@ -140,11 +140,7 @@ class FidelityKernel(KernelMatrixBase):
                 circuit = transpile(
                     circuit, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
                 )
-                pennylane_circuit = PennyLaneCircuit(circuit, "probs", self._executor)
-                def pennylane_circuit_executor(*args,**kwargs):
-                    return self._executor.pennylane_execute(pennylane_circuit,*args,**kwargs)
-                self._pennylane_circuit = pennylane_circuit_executor
-                self._pennylane_circuit2 = pennylane_circuit
+                self._pennylane_circuit = PennyLaneCircuit(circuit, "probs", self._executor)
 
         elif self._executor.quantum_framework == "qiskit":
 
@@ -369,7 +365,7 @@ class FidelityKernel(KernelMatrixBase):
                 symmetric: whether it is a symmetric case or not.
 
             Returns:
-                `True` if the entry is trivial, `False` otherwise.
+                True
             """
             # if we evaluate all combinations, then it is non-trivial
             if self._evaluate_duplicates == "all":
@@ -415,30 +411,16 @@ class FidelityKernel(KernelMatrixBase):
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-            
-            arguments = [(self._parameters,rp,lp) for rp, lp in zip(y_list, x_list)]
-            circuits=[self._pennylane_circuit2]*len(arguments)
-            all_vals = self._executor.pennylane_execute_batched(circuits,arguments)
-            kernel_entries2 = [val[0] for val in all_vals]
-
-            print("kernel_entries2",kernel_entries2)
-            
-            kernel_entries = [
-                self._pennylane_circuit(self._parameters, rp, lp)[0]
-                for rp, lp in zip(y_list, x_list)
-            ]
-
-            print("kernel_entries",kernel_entries)
+            arguments = [(self._parameters,x1,x2) for x1, x2 in zip(y_list, x_list)]
 
         else:
-            
-            arguments = [(rp,lp) for rp, lp in zip(y_list, x_list)]
-            circuits=[self._pennylane_circuit2]*len(arguments)
-            kernel_entries2 = self._executor.pennylane_execute_batched(circuits,arguments)
-            print("kernel_entries2",kernel_entries2)
 
-            kernel_entries = [self._pennylane_circuit(rp, lp)[0] for rp, lp in zip(y_list, x_list)]
-            print("kernel_entries",kernel_entries)
+            arguments = [(x1,x2) for x1, x2 in zip(y_list, x_list)]
+
+        circuits=[self._pennylane_circuit]*len(arguments)
+        all_probs = self._executor.pennylane_execute_batched(circuits,arguments)
+        kernel_entries = [prob[0] for prob in all_probs] # Get the count of the zero state
+
 
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
         if is_symmetric:
@@ -464,7 +446,7 @@ class FidelityKernel(KernelMatrixBase):
 
         def compute_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
             fidelity = compute_overlap(x, y)
-            if sv_shots is not None:
+            if sv_shots is not None and sv_shots > 1:
                 fidelity = draw_shots(fidelity)
             return fidelity
 

@@ -1392,6 +1392,7 @@ class Executor:
     @property
     def is_statevector(self) -> bool:
         """Returns True if the backend is a statevector simulator."""
+        return True
         return "statevector" in self.backend_name
 
 
