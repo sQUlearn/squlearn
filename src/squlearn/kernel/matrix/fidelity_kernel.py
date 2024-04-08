@@ -125,7 +125,6 @@ class FidelityKernel(KernelMatrixBase):
                     )
 
                 self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_executor)
-                self._pennylane_circuit2 = self._pennylane_circuit
 
             else:
 
@@ -270,8 +269,7 @@ class FidelityKernel(KernelMatrixBase):
             raise ValueError("The following parameters could not be assigned:", params)
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
-        """
-        Evaluates the fidelity kernel matrix.
+        """Evaluates the fidelity kernel matrix.
 
         Args:
             x (np.ndarray) :
@@ -323,63 +321,40 @@ class FidelityKernel(KernelMatrixBase):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 
-    # Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
-    def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
-        msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
-        survival_prob = self._survival_probability(kernel)
-        for i in range(kernel.shape[0]):
-            for j in range(kernel.shape[1]):
-                msplit_kernel_matrix[i, j] = (
-                    kernel[i, j]
-                    - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob[i] * survival_prob[j])
-                ) / (survival_prob[i] * survival_prob[j])
-        return msplit_kernel_matrix
-
-    def _get_mmean_kernel(self, kernel: np.ndarray) -> np.ndarray:
-        mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
-        survival_prob_mean = self._survival_probability_mean(kernel)
-        mmean_kernel_matrix = (
-            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean**2)
-        ) / survival_prob_mean**2
-        return mmean_kernel_matrix
-
-    def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:
-        kernel_diagonal = np.diag(kernel)
-        surv_prob = np.sqrt(
-            (kernel_diagonal - 2 ** (-1.0 * self._num_qubits))
-            / (1 - 2 ** (-1.0 * self._num_qubits))
-        )
-        return surv_prob
-
-    def _survival_probability_mean(self, kernel: np.ndarray) -> float:
-        surv_prob = self._survival_probability(kernel)
-        return np.mean(surv_prob)
-
     def _pennylane_evaluate_kernel(self, x, y):
+        """Function to evaluate the kernel matrix using PennyLane based on fidelity test.
 
-        def is_trivial(i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool) -> bool:
-            """
-            Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
+        Args:
+            x (np.ndarray): Vector of data for which the kernel matrix is evaluated
+            y (np.ndarray): Vector of data for which the kernel matrix is evaluated
+                            (can be similar to x)
+
+        Returns:
+            np.ndarray: Quantum kernel matrix as 2D numpy array.
+        """
+
+        def not_needed(i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool) -> bool:
+            """Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
 
             Args:
-                i: row index of the entry in the kernel matrix.
-                j: column index of the entry in the kernel matrix.
-                x_i: a sample from the dataset that corresponds to the row in the kernel matrix.
-                y_j: a sample from the dataset that corresponds to the column in the kernel matrix.
-                symmetric: whether it is a symmetric case or not.
+                i: Row index kernel matrix entry.
+                j: Column index kernel matrix matrix entry.
+                x_i: A sample from the dataset corresponding to the row in the kernel matrix.
+                y_j: A sample from the dataset corresponding to the column in the kernel matrix.
+                symmetric: Boolean indicating whether it is a symmetric case or not.
 
             Returns:
-                True
+                True if value is trivial, False otherwise.
             """
-            # if we evaluate all combinations, then it is non-trivial
+            # evaluate all combinations -> all are needed
             if self._evaluate_duplicates == "all":
                 return False
 
-            # if we are on the diagonal and we don't evaluate it, it is trivial
+            # only off-diagonal entries are needed
             if symmetric and i == j and self._evaluate_duplicates == "off_diagonal":
                 return True
 
-            # if don't evaluate any duplicates
+            # don't evaluate any duplicates
             if np.array_equal(x_i, y_j) and self._evaluate_duplicates == "none":
                 return True
 
@@ -395,7 +370,7 @@ class FidelityKernel(KernelMatrixBase):
             indices = []
             for i, x_i in enumerate(x):
                 for j, x_j in enumerate(x[i:]):
-                    if is_trivial(i, i + j, x_i, x_j, True):
+                    if not_needed(i, i + j, x_i, x_j, True):
                         continue
                     x_list = np.vstack((x_list, x_i))
                     y_list = np.vstack((y_list, x_j))
@@ -404,7 +379,7 @@ class FidelityKernel(KernelMatrixBase):
             indices = []
             for i, x_i in enumerate(x):
                 for j, y_j in enumerate(y):
-                    if is_trivial(i, j, x_i, y_j, False):
+                    if not_needed(i, j, x_i, y_j, False):
                         continue
                     x_list = np.vstack((x_list, x_i))
                     y_list = np.vstack((y_list, y_j))
@@ -416,9 +391,7 @@ class FidelityKernel(KernelMatrixBase):
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
             arguments = [(self._parameters, x1, x2) for x1, x2 in zip(y_list, x_list)]
-
         else:
-
             arguments = [(x1, x2) for x1, x2 in zip(y_list, x_list)]
 
         circuits = [self._pennylane_circuit] * len(arguments)
@@ -437,17 +410,33 @@ class FidelityKernel(KernelMatrixBase):
         return kernel_matrix
 
     def _pennylane_evaluate_kernel_sv(self, x, y):
+        """
+        Function to evaluate the kernel matrix with statevector simulator using PennyLane.
 
+        Evaluates the kernel matrix using the statevectors, overlap is then
+        classically calculated.
+
+        Args:
+            x (np.ndarray): Vector of data for which the kernel matrix is evaluated
+            y (np.ndarray): Vector of data for which the kernel matrix is evaluated
+                            (can be similar to x)
+
+        Returns:
+            np.ndarray: Quantum kernel matrix as 2D numpy array.
+        """
         sv_shots = self._executor.shots
         self._executor.set_shots(None)
 
         def compute_overlap(x: np.ndarray, y: np.ndarray) -> float:
+            """Compute the overlap between two statevectors x and y."""
             return np.abs(np.conj(x) @ y) ** 2
 
         def draw_shots(fidelity: float) -> float:
+            """Draw shots from the binomial distribution."""
             return algorithm_globals.random.binomial(n=sv_shots, p=fidelity) / sv_shots
 
         def compute_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
+            """Compute the kernel entry between two statevectors x and y."""
             fidelity = compute_overlap(x, y)
             if sv_shots is not None and sv_shots > 1:
                 fidelity = draw_shots(fidelity)
@@ -478,3 +467,71 @@ class FidelityKernel(KernelMatrixBase):
         self._executor.set_shots(sv_shots)
 
         return kernel_matrix
+
+    def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
+        """Function to mitigate depolarizing noise using msplit method.
+
+        Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Mitigated Quantum kernel matrix as 2D numpy array.
+        """
+
+        msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
+        survival_prob = self._survival_probability(kernel)
+        for i in range(kernel.shape[0]):
+            for j in range(kernel.shape[1]):
+                msplit_kernel_matrix[i, j] = (
+                    kernel[i, j]
+                    - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob[i] * survival_prob[j])
+                ) / (survival_prob[i] * survival_prob[j])
+        return msplit_kernel_matrix
+
+    def _get_mmean_kernel(self, kernel: np.ndarray) -> np.ndarray:
+        """
+        Function to mitigate depolarizing noise using mmean method.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Mitigated Quantum kernel matrix as 2D numpy array.
+        """
+        mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
+        survival_prob_mean = self._survival_probability_mean(kernel)
+        mmean_kernel_matrix = (
+            kernel - 2 ** (-1.0 * self._num_qubits) * (1 - survival_prob_mean**2)
+        ) / survival_prob_mean**2
+        return mmean_kernel_matrix
+
+    def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:
+        """Function to calculate the survival probability.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Survival probability as 1D numpy array.
+        """
+        kernel_diagonal = np.diag(kernel)
+        surv_prob = np.sqrt(
+            (kernel_diagonal - 2 ** (-1.0 * self._num_qubits))
+            / (1 - 2 ** (-1.0 * self._num_qubits))
+        )
+        return surv_prob
+
+    def _survival_probability_mean(self, kernel: np.ndarray) -> float:
+        """
+        Function to calculate the mean survival probability.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            float: Mean survival probability.
+        """
+        surv_prob = self._survival_probability(kernel)
+        return np.mean(surv_prob)
