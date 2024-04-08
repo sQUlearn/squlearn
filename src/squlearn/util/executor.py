@@ -552,7 +552,6 @@ class Executor:
             hash_value = hash(pennylane_circuit)
 
         def execute_circuit():
-            kwargs['shots'] = self.shots
             return pennylane_circuit(*args, **kwargs)
 
         return self.pennylane_execute_cached(execute_circuit, hash_value)

@@ -102,7 +102,7 @@ class FidelityKernel(KernelMatrixBase):
 
         if self._executor.quantum_framework == "pennylane":
 
-            if self._executor.is_statevector:
+            if self._executor.is_statevector or "":
 
                 # Mode 1 for statevector: calculate the statevector of the quantum circuit
                 # and use it to calculate the fidelity as the overlap of the two states.
