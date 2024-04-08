@@ -111,7 +111,11 @@ class OuterKernelBase:
                 self._num_hyper_parameters = len(self._name_hyper_parameters)
 
             def __call__(
-                self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
+                self,
+                qnn: LowLevelQNNBase,
+                parameters: np.ndarray,
+                x: np.ndarray,
+                y: np.ndarray = None,
             ) -> np.ndarray:
                 """Evaluates the outer kernel
 

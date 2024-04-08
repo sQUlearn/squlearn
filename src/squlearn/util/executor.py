@@ -436,7 +436,7 @@ class Executor:
 
         return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
-#TODO: BATCHED_EXECUTION!!
+    # TODO: BATCHED_EXECUTION!!
 
     def pennylane_execute_batched(self, pennylane_circuit, arg_tuples, **kwargs):
 
@@ -449,10 +449,10 @@ class Executor:
         if len(pennylane_circuit) != len(arg_tuples):
             raise ValueError("Length of pennylane_circuit and arg_tuples does not match")
 
-        hash_value=""
+        hash_value = ""
 
         batched_tapes = []
-        for i,arg_tuple in enumerate(arg_tuples):
+        for i, arg_tuple in enumerate(arg_tuples):
             pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
 
             if hasattr(pennylane_circuit[i].pennylane_circuit, "hash"):
@@ -462,8 +462,7 @@ class Executor:
 
             batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
 
-        return self.pennylane_execute_tapes_cached(batched_tapes,hash_value)
-
+        return self.pennylane_execute_tapes_cached(batched_tapes, hash_value)
 
     def pennylane_execute_tapes_cached(self, tapes, hash_value):
 
@@ -493,7 +492,7 @@ class Executor:
                 if result is None:
                     cached = False
                     # Execute the circuit todo: implement restart
-                    result = qml.execute(tapes,self.pennylane_device)
+                    result = qml.execute(tapes, self.pennylane_device)
                     self._logger.info(f"Executor runs pennylane execution")
                 else:
                     self._logger.info(
@@ -546,10 +545,10 @@ class Executor:
         else:
             hash_value = hash(pennylane_circuit)
 
-        pennylane_circuit.pennylane_circuit.construct(args,kwargs)
+        pennylane_circuit.pennylane_circuit.construct(args, kwargs)
         tape = pennylane_circuit.pennylane_circuit.tape
 
-        return self.pennylane_execute_tapes_cached([tape],hash_value)[0]
+        return self.pennylane_execute_tapes_cached([tape], hash_value)[0]
 
     # def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
 
@@ -1118,7 +1117,10 @@ class Executor:
                         self._pennylane_device._shots = qml.measurements.Shots(None)
                     else:
                         self._pennylane_device._shots = qml.measurements.Shots(num_shots)
-                elif isinstance(self._pennylane_device.shots, int) or self._pennylane_device.shots is None:
+                elif (
+                    isinstance(self._pennylane_device.shots, int)
+                    or self._pennylane_device.shots is None
+                ):
                     self._pennylane_device._shots = num_shots
 
         elif self.quantum_framework == "qiskit":
@@ -1199,7 +1201,10 @@ class Executor:
             if self._pennylane_device is not None:
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
                     shots = self._pennylane_device.shots.total_shots
-                elif isinstance(self._pennylane_device.shots, int) or self._pennylane_device.shots is None:
+                elif (
+                    isinstance(self._pennylane_device.shots, int)
+                    or self._pennylane_device.shots is None
+                ):
                     shots = self._pennylane_device.shots
             else:
                 return None  # No shots available

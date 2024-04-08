@@ -805,7 +805,12 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
         if self._result_caching == True:
-            caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_obs), (self._executor.shots == None),)
+            caching_tuple = (
+                to_tuple(x),
+                to_tuple(param),
+                to_tuple(param_obs),
+                (self._executor.shots == None),
+            )
             value_dict = self.result_container.get(caching_tuple, {})
         else:
             value_dict = {}

@@ -118,8 +118,12 @@ class FidelityKernel(KernelMatrixBase):
                     enc_circ, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
                 )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state", self._executor)
-                def pennylane_circuit_executor(*args,**kwargs):
-                    return self._executor.pennylane_execute(self._pennylane_circuit,*args,**kwargs)
+
+                def pennylane_circuit_executor(*args, **kwargs):
+                    return self._executor.pennylane_execute(
+                        self._pennylane_circuit, *args, **kwargs
+                    )
+
                 self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_executor)
                 self._pennylane_circuit2 = self._pennylane_circuit
 
@@ -411,16 +415,15 @@ class FidelityKernel(KernelMatrixBase):
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-            arguments = [(self._parameters,x1,x2) for x1, x2 in zip(y_list, x_list)]
+            arguments = [(self._parameters, x1, x2) for x1, x2 in zip(y_list, x_list)]
 
         else:
 
-            arguments = [(x1,x2) for x1, x2 in zip(y_list, x_list)]
+            arguments = [(x1, x2) for x1, x2 in zip(y_list, x_list)]
 
-        circuits=[self._pennylane_circuit]*len(arguments)
-        all_probs = self._executor.pennylane_execute_batched(circuits,arguments)
-        kernel_entries = [prob[0] for prob in all_probs] # Get the count of the zero state
-
+        circuits = [self._pennylane_circuit] * len(arguments)
+        all_probs = self._executor.pennylane_execute_batched(circuits, arguments)
+        kernel_entries = [prob[0] for prob in all_probs]  # Get the count of the zero state
 
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
         if is_symmetric:
