@@ -387,11 +387,17 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
-        # Check if execution is on a remote IBM backend
-        if "ibm" in self.backend_name:
-            self._remote = True
-        else:
-            self._remote = False
+        # Check if execution is on a remote backend
+        self._remote = False
+        if self.quantum_framework == "qiskit":
+            if "ibm" in self.backend_name:
+                self._remote = True
+        elif self.quantum_framework == "pennylane":
+            local_device = ("default.qubit" in str(self._pennylane_device) or
+                            "default.mixed" in str(self._pennylane_device) or
+                            "default.clifford" in str(self._pennylane_device) or
+                            "Lightning Qubit" in str(self._pennylane_device))
+            self._remote = not local_device
 
         # set initial shots
         self._shots = shots
@@ -507,7 +513,6 @@ class Executor:
                 critical_error = True
                 critical_error_message = e
 
-
             except Exception as e:
                 critical_error = True
                 critical_error_message = e
@@ -559,9 +564,25 @@ class Executor:
         return self._execution_origin
 
     @property
-    def backend(self) -> Backend:
+    def backend(self) -> Union[Backend, None, PennylaneDevice]:
         """Returns the backend that is used in the executor."""
-        return self._backend
+
+        if self.quantum_framework == "qiskit":
+            return self._backend
+        elif self.quantum_framework == "pennylane":
+            return self._pennylane_device
+        else:
+            raise RuntimeError("Unknown quantum framework!")
+
+    @property
+    def device(self) -> Union[Backend, None, PennylaneDevice]:
+        """Returns the device that is used in the executor (equivalent to backend)."""
+        return self.backend
+
+    @property
+    def remote(self) -> bool:
+        """Returns a boolean if the execution is on a remote backend."""
+        return self._remote
 
     @property
     def session(self) -> Session:
