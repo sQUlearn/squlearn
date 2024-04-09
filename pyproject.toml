@@ -33,6 +33,7 @@ dependencies = [
     "qiskit-machine-learning>=0.6.1",
     "scipy>=1.5",
     "scikit-learn>=1.0",
+    "scikit-optimize>=0.8",
     "tqdm>=4.0",
 ]
 requires-python = ">=3.9"
