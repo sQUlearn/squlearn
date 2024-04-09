@@ -1422,9 +1422,11 @@ class Executor:
         elif self.quantum_framework == "pennylane":
 
             statevector_device = False
-            if "default.qubit device" in self._pennylane_device.name:
+            if "default.qubit" in self._pennylane_device.name:
                 statevector_device = True
-            elif "Lightning Qubit" in self._pennylane_device.name:
+            if "default.clifford" in self._pennylane_device.name:
+                statevector_device = True
+            if "Lightning Qubit" in self._pennylane_device.name:
                 statevector_device = True
 
             return statevector_device

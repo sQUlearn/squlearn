@@ -9,7 +9,7 @@ from squlearn.observables import SummedPaulis, SinglePauli
 from squlearn.encoding_circuit import ChebyshevPQC, HighDimEncodingCircuit
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn.loss import SquaredLoss
-from squlearn.qnn.lowlevel_qnn_qiskit import LowLevelQNN as QNN
+from squlearn.qnn.lowlevel_qnn_qiskit import LowLevelQNNQiskit as QNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
 

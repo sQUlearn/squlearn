@@ -273,7 +273,7 @@ class Expec:
             raise TypeError("Unsupported type:", type(val))
 
 
-class LowLevelQNN(LowLevelQNNBase):
+class LowLevelQNNQiskit(LowLevelQNNBase):
     """A class for working with QNNs and its derivatives
 
     Args:

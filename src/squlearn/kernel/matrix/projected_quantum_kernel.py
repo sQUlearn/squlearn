@@ -20,7 +20,7 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 
 from ...qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
-from ...qnn.lowlevel_qnn_qiskit import LowLevelQNN
+from ...qnn.lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from ...qnn.lowlevel_qnn_base import LowLevelQNNBase
 
 from ...observables import SinglePauli
@@ -384,7 +384,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._encoding_circuit, self._measurement, executor, result_caching=self._caching
             )
         elif self._executor.quantum_framework == "qiskit":
-            self._qnn = LowLevelQNN(
+            self._qnn = LowLevelQNNQiskit(
                 self._encoding_circuit, self._measurement, executor, result_caching=self._caching
             )
 

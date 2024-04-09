@@ -18,7 +18,7 @@ from ..util import Executor
 from .loss import LossBase
 
 # from .qnn import QNN
-from .lowlevel_qnn_qiskit import LowLevelQNN
+from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .training import ShotControlBase
 
@@ -137,7 +137,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.executor = executor
 
         if self.executor.quantum_framework == "qiskit":
-            self._qnn = LowLevelQNN(
+            self._qnn = LowLevelQNNQiskit(
                 encoding_circuit, operator, executor, result_caching=self.caching
             )
         elif self.executor.quantum_framework == "pennylane":
