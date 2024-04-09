@@ -350,13 +350,11 @@ class PennyLaneCircuit:
                                 coeff_list.append(evaluated_param)
                             else:
                                 coeff_list.append(coeff)
-                        print("qml.Hamiltonian")
                         expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
                     else:
                         # In case no parameters are present in the observable
                         # Calculate the expectation value of the single observables
                         # since this is more compatible with hardware backends
-                        print("test1")
                         expval_list.append(pnp.sum([qml.expval(obs) for obs in self._pennylane_words[i]]))
                 return pnp.stack(tuple(expval_list))
             else:
@@ -368,13 +366,11 @@ class PennyLaneCircuit:
                             coeff_list.append(evaluated_param)
                         else:
                             coeff_list.append(coeff)
-                    print("qml.Hamiltonian")
                     return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
                 else:
                     # In case no parameters are present in the observable
                     # Calculate the expectation value of the single observables
                     # since this is more compatible with hardware backends
-                    print("test2")
                     return pnp.sum([qml.expval(obs) for obs in self._pennylane_words])
 
         return pennylane_circuit

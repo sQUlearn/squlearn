@@ -844,7 +844,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 # Direct evaluation of the QNN
                 if (
                     todo_class.return_grad_x and todo_class.order > 1
-                ) or (todo_class.order >= 1 and self._executor.shots is not None):  # Can be removed if PennyLane bug 4462 is fixed
+                ) or (todo_class.order >= 1 and self._executor.shots is not None):  # TODO: Should be removed if PennyLane bug 4462 is fixed
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [

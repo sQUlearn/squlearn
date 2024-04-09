@@ -428,18 +428,7 @@ class Executor:
         return self._pennylane_device
 
     def pennylane_decorator(self, pennylane_function):
-        # return qml.qnode(self.pennylane_device, diff_method="backprop", interface="autograd")(
-        #    pennylane_function
-        # )
-
-        # return qml.qnode(self.pennylane_device, diff_method="parameter-shift")(pennylane_function)
-
-        #if "Lightning Qubit" in str(self.pennylane_device):
-        #    return qml.qnode(self.pennylane_device, diff_method="adjoint")(pennylane_function)
-        #else:
         return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
-
-    # TODO: BATCHED_EXECUTION!!
 
     def pennylane_execute_batched(self, pennylane_circuit, arg_tuples, **kwargs):
 
