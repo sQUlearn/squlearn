@@ -15,6 +15,7 @@ class SGLBO(OptimizerBase, SGDMixin):
     * **maxiter** (int): Maximum number of iterations per fit run (default: 100)
     * **maxiter_total** (int): Maximum number of iterations in total (default: maxiter)
     * **eps** (float): Step size for finite differences (default: 0.01)
+    * **num_average** (int): Number of gradients to average (default: 1)
     * **bo_n_calls** (int): Number of iterations for the Bayesian Optimization (default: 20)
     * **bo_bounds** (List): Lower and upper bound for the search space for the Bayesian Optimization for each dimension. Each bound should be provided as a tupel (default: (0.0, 0.3))
     * **bo_bounds_fac** (float): Factor to adapt the bounds based on the gradient information (default: None)
@@ -266,6 +267,13 @@ class SGLBO(OptimizerBase, SGDMixin):
                 )
             f.write(output)
             f.close()
+
+    def reset(self):
+        """Resets the optimizer to its initial state."""
+        self.gradient_deque = deque(maxlen=self.num_average)
+        self.x = None
+        self.func = None
+        self.iteration = 0
 
     def _update_lr(self) -> None:
         pass
