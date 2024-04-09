@@ -21,6 +21,7 @@ from ...util.executor import Executor
 
 from ...util.pennylane.pennylane_gates import qiskit_pennyland_gate_dict
 from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
+from ...util.data_preprocessing import to_tuple, adjust_features
 
 from functools import lru_cache
 
@@ -442,20 +443,22 @@ class FidelityKernel(KernelMatrixBase):
                 fidelity = draw_shots(fidelity)
             return fidelity
 
+        # Convert the input data to the correct format for the lrucache
+        x_inp, _ = adjust_features(x, self.num_features)
+        x_inpT = to_tuple(np.transpose(x_inp),flatten=False)
+        y_inp, _ = adjust_features(y, self.num_features)
+        y_inpT = to_tuple(np.transpose(y_inp),flatten=False)
+
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-            x_sv = np.array(
-                [self._pennylane_circuit_cached(tuple(self._parameters), tuple(x_)) for x_ in x]
-            )
-            y_sv = np.array(
-                [self._pennylane_circuit_cached(tuple(self._parameters), tuple(y_)) for y_ in y]
-            )
+            x_sv = np.array(self._pennylane_circuit_cached(tuple(self._parameters), x_inpT))
+            y_sv = np.array(self._pennylane_circuit_cached(tuple(self._parameters), y_inpT))
         else:
-            x_sv = [self._pennylane_circuit_cached(tuple(x_)) for x_ in x]
-            y_sv = [self._pennylane_circuit_cached(tuple(y_)) for y_ in y]
+            x_sv = np.array(self._pennylane_circuit_cached(x_inpT))
+            y_sv = np.array(self._pennylane_circuit_cached(y_inpT))
 
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
         for i, x_ in enumerate(x_sv):

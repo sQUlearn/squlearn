@@ -236,16 +236,6 @@ class Executor:
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
-        if execution == "statevector_simulator":
-            execution = qml.device("default.qubit")
-            if shots is None:
-                shots = None
-
-        if execution == "qasm_simulator":
-            execution = qml.device("default.qubit")
-            if shots is None:
-                shots = 1024
-
         if isinstance(execution, str):
             # Execution is a string -> get backend
             if execution in ["statevector_simulator", "aer_simulator_statevector"]:

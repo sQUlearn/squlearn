@@ -33,7 +33,7 @@ def adjust_parameters(x: np.ndarray, x_length: int) -> Tuple[np.ndarray, bool]:
     return _adjust_input(x, x_length, allow_single_array=True)
 
 
-def to_tuple(x: Union[float, np.ndarray, list, tuple]):
+def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> Tuple:
     """Function for converting data into hashable tuples
 
     Args:
@@ -43,21 +43,35 @@ def to_tuple(x: Union[float, np.ndarray, list, tuple]):
         Flattened tuple of the input data
     """
 
-    def flatten(container):
-        for i in container:
-            if isinstance(i, (list, tuple, np.ndarray)):
-                for j in flatten(i):
-                    yield j
-            else:
-                yield i
+    if flatten:
 
-    if isinstance(x, float):
-        return tuple([x])
-    elif len(np.shape(x)) == 1:
-        return tuple(list(x))
+        def recursive_flatten(container):
+            for i in container:
+                if isinstance(i, (list, tuple, np.ndarray)):
+                    for j in recursive_flatten(i):
+                        yield j
+                else:
+                    yield i
+
+        if isinstance(x, float):
+            return tuple([x])
+        elif len(np.shape(x)) == 1:
+            return tuple(list(x))
+        else:
+            return tuple(recursive_flatten(x))
+
     else:
-        return tuple(flatten(x))
 
+        def array_to_nested_tuple(arr):
+            if isinstance(arr, (list, tuple, np.ndarray)):
+                return tuple(array_to_nested_tuple(subarr) for subarr in arr)
+            else:
+                return arr
+
+        if isinstance(x, (list, tuple, np.ndarray)):
+            return array_to_nested_tuple(x)
+        else:
+            return tuple([x])
 
 def _adjust_input(
     x: Union[float, np.ndarray], x_length: int, allow_single_array: bool
