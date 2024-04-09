@@ -254,6 +254,11 @@ class Executor:
                     "IBM backend are not supported by string input, since credentials are missing "
                     + execution
                 )
+            elif execution in ["pennylane", "default.qubit"]:
+                self._quantum_framework = "pennylane"
+                self._pennylane_device = qml.device("default.qubit")
+                if shots is None:
+                    shots = self._pennylane_device.shots.total_shots
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"

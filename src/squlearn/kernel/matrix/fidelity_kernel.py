@@ -425,23 +425,18 @@ class FidelityKernel(KernelMatrixBase):
         Returns:
             np.ndarray: Quantum kernel matrix as 2D numpy array.
         """
-        sv_shots = self._executor.shots
+        shots = self._executor.shots
         self._executor.set_shots(None)
+        is_symmetric = np.array_equal(x, y)
 
-        def compute_overlap(x: np.ndarray, y: np.ndarray) -> float:
-            """Compute the overlap between two statevectors x and y."""
-            return np.abs(np.conj(x) @ y) ** 2
-
-        def draw_shots(fidelity: float) -> float:
-            """Draw shots from the binomial distribution."""
-            return algorithm_globals.random.binomial(n=sv_shots, p=fidelity) / sv_shots
-
-        def compute_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
-            """Compute the kernel entry between two statevectors x and y."""
-            fidelity = compute_overlap(x, y)
-            if sv_shots is not None and sv_shots > 1:
-                fidelity = draw_shots(fidelity)
-            return fidelity
+        def get_kernel_entry(x: np.ndarray, y: np.ndarray) -> float:
+            """Compute the kernel entry based on the overlap x and y."""
+            # Calculate overlap between statevector x and y
+            overlap = np.abs(np.matmul(x.conj(), y)) ** 2
+            # If shots are set, draw from the binomial distribution
+            if shots is not None and shots > 1:
+                overlap = algorithm_globals.random.binomial(n=shots, p=overlap) / shots
+            return overlap
 
         # Convert the input data to the correct format for the lrucache
         x_inp, _ = adjust_features(x, self.num_features)
@@ -460,14 +455,34 @@ class FidelityKernel(KernelMatrixBase):
             x_sv = np.array(self._pennylane_circuit_cached(x_inpT))
             y_sv = np.array(self._pennylane_circuit_cached(y_inpT))
 
-        kernel_matrix = np.ones((x.shape[0], y.shape[0]))
-        for i, x_ in enumerate(x_sv):
-            for j, y_ in enumerate(y_sv):
-                if np.array_equal(x_, y_):
-                    continue
-                kernel_matrix[i, j] = compute_kernel_entry(x_, y_)
+        kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
 
-        self._executor.set_shots(sv_shots)
+        if is_symmetric:
+            # pylint: disable-next=consider-using-enumerate
+            for i in range(len(x_sv)):
+                # pylint: disable-next=consider-using-enumerate
+                for j in range(i):
+                    if np.array_equal(x_sv[i], y_sv[j]):
+                        if self._evaluate_duplicates == "none":
+                            kernel_matrix[i, j] = 1.0
+                            kernel_matrix[j, i] = 1.0
+                            continue
+                    kernel_matrix[i, j] = get_kernel_entry(x_sv[i], y_sv[j])
+                    kernel_matrix[j, i] = kernel_matrix[i, j]
+        else:
+            for i, x_ in enumerate(x_sv):
+                for j, y_ in enumerate(y_sv):
+                    if np.array_equal(x_, y_):
+                        if self._evaluate_duplicates == "none":
+                            kernel_matrix[i, j] = 1.0
+                            continue
+                    kernel_matrix[i, j] = get_kernel_entry(x_, y_)
+
+        if self._evaluate_duplicates in ["none","off_diagonal"] and is_symmetric:
+            for i in range(x.shape[0]):
+                kernel_matrix[i, i] = 1.0
+
+        self._executor.set_shots(shots)
 
         return kernel_matrix
 
