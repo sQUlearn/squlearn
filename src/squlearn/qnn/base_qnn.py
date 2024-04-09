@@ -12,6 +12,7 @@ from sklearn.base import BaseEstimator
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -210,7 +211,10 @@ class BaseQNN(BaseEstimator, ABC):
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
         """Encoding circuit."""
-        return self._qnn._pqc
+        if isinstance(self._qnn._pqc, TranspiledEncodingCircuit):
+            return self._qnn._pqc._encoding_circuit
+        else:
+            return self._qnn._pqc
 
     @property
     def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
