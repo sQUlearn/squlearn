@@ -44,6 +44,8 @@ class ChebyshevPQC(EncodingCircuitBase):
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
         entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
 
     References
     ----------
@@ -83,21 +85,21 @@ class ChebyshevPQC(EncodingCircuitBase):
         """The bounds of the trainable parameters of the ChebyshevPQC encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
 
-        ioff = 0
+        index_offset = 0
         # Basis change at the beginning
         for i in range(self.num_qubits):
-            bounds[ioff] = [-np.pi, np.pi]
-            ioff = ioff + 1
+            bounds[index_offset] = [-np.pi, np.pi]
+            index_offset += 1
 
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                bounds[ioff] = [0.0, self.alpha]
-                ioff = ioff + 1
+                bounds[index_offset] = [0.0, self.alpha]
+                index_offset += 1
 
             for i in range(0, self.num_qubits, 2):
-                bounds[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
-                ioff = ioff + 1
+                bounds[index_offset] = [-2.0 * np.pi, 2.0 * np.pi]
+                index_offset += 1
 
             if self.num_qubits > 2:
                 if self.closed:
@@ -105,12 +107,12 @@ class ChebyshevPQC(EncodingCircuitBase):
                 else:
                     istop = self.num_qubits - 1
                 for i in range(1, istop, 2):
-                    bounds[ioff] = [-2.0 * np.pi, 2.0 * np.pi]
-                    ioff = ioff + 1
+                    bounds[index_offset] = [-2.0 * np.pi, 2.0 * np.pi]
+                    index_offset += 1
 
         for i in range(self.num_qubits):
-            bounds[ioff] = [-np.pi, np.pi]
-            ioff = ioff + 1
+            bounds[index_offset] = [-np.pi, np.pi]
+            index_offset += 1
 
         return bounds
 
@@ -128,9 +130,12 @@ class ChebyshevPQC(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            p = np.linspace(0.01, self.alpha, self.num_qubits)
-            for i in index:
-                param[i] = p
+            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
+            p = np.linspace(0.01, self.alpha, features_per_qubit)
+
+            for index2 in index:
+                for i, ii in enumerate(index2):
+                    param[ii] = p[i % features_per_qubit]
 
         return param
 
@@ -184,7 +189,8 @@ class ChebyshevPQC(EncodingCircuitBase):
         nfeature = len(features)
         nparam = len(parameters)
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
+        index_offset = 0
+        feature_offset = 0
 
         if self.entangling_gate == "crz":
             egate = QC.crz
@@ -195,27 +201,33 @@ class ChebyshevPQC(EncodingCircuitBase):
 
         # Basis change at the beginning
         for i in range(self.num_qubits):
-            QC.ry(parameters[ioff % nparam], i)
-            ioff = ioff + 1
+            QC.ry(parameters[index_offset % nparam], i)
+            index_offset += 1
 
         for _ in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                QC.rx(phi_map(parameters[ioff % nparam], features[i % nfeature]), i)
-                ioff = ioff + 1
+                QC.rx(
+                    phi_map(
+                        parameters[index_offset % nparam], features[feature_offset % nfeature]
+                    ),
+                    i,
+                )
+                index_offset += 1
+                feature_offset += 1
 
             for i in range(0, self.num_qubits + self.closed - 1, 2):
-                egate(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                ioff = ioff + 1
+                egate(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                index_offset += 1
 
             if self.num_qubits > 2:
                 for i in range(1, self.num_qubits + self.closed - 1, 2):
-                    egate(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                    ioff = ioff + 1
+                    egate(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    index_offset += 1
 
         for i in range(self.num_qubits):
-            QC.ry(parameters[ioff % nparam], i)
-            ioff = ioff + 1
+            QC.ry(parameters[index_offset % nparam], i)
+            index_offset += 1
 
         return QC
 
@@ -229,15 +241,15 @@ class ChebyshevPQC(EncodingCircuitBase):
                             (default: True)
         """
         cheb_index = []
-        ioff = self.num_qubits
-        for ilayer in range(self.num_layers):
+        index_offset = self.num_qubits
+        for layer in range(self.num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
-                cheb_index_layer.append(ioff)
-                ioff = ioff + 1
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
 
             for i in range(0, self.num_qubits, 2):
-                ioff = ioff + 1
+                index_offset += 1
 
             if self.num_qubits > 2:
                 if self.closed:
@@ -245,7 +257,7 @@ class ChebyshevPQC(EncodingCircuitBase):
                 else:
                     istop = self.num_qubits - 1
                 for i in range(1, istop, 2):
-                    ioff = ioff + 1
+                    index_offset += 1
             if flatten:
                 cheb_index += cheb_index_layer
             else:

@@ -1,4 +1,5 @@
 """Tests for QSVR"""
+
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
@@ -37,7 +38,7 @@ class TestQSVR:
             regularization="thresholding",
             mit_depol_noise="msplit",
         )
-        return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
+        return QSVR(kernel, C=1, epsilon=0.1)
 
     @pytest.fixture(scope="module")
     def qsvr_pqk(self) -> QSVR:
@@ -48,11 +49,11 @@ class TestQSVR:
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )
-        return QSVR(quantum_kernel=kernel, C=1, epsilon=0.1)
+        return QSVR(kernel, C=1, epsilon=0.1)
 
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
-        qsvr_instance = QSVR(quantum_kernel=MagicMock())
+        qsvr_instance = QSVR(MagicMock())
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             "C",
             "cache_size",

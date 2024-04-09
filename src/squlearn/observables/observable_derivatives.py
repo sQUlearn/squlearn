@@ -89,8 +89,10 @@ class ObservableDerivatives:
         self,
         observable: Union[ObservableBase, list],
         optree_caching=True,
+        split_paulis=False,
     ):
         self._observable = observable
+        self._split_paulis = split_paulis
 
         # Contains the OperatorMeasurement() of the expectation-operator for later replacement
         if isinstance(self._observable, ObservableBase):
@@ -124,9 +126,6 @@ class ObservableDerivatives:
         self._optree_cache = {}
         self._optree_caching = optree_caching
 
-        if self._optree_caching:
-            self._optree_cache["O"] = optree
-
     def get_derivative(self, derivative: Union[str, tuple, list]) -> OpTreeElementBase:
         """Determine the derivative of the observable.
 
@@ -143,7 +142,7 @@ class ObservableDerivatives:
             if derivative == "I":
                 measure_op = OpTreeOperator(SparsePauliOp("I" * self._observable.num_qubits))
             elif derivative == "O":
-                measure_op = self._optree_start
+                measure_op = self.get_operator()
             elif derivative == "OO":
                 measure_op = self.get_operator_squared()
             elif derivative == "dop" or derivative == "Odop":
@@ -218,10 +217,27 @@ class ObservableDerivatives:
                     self._differentiation_from_tuple(optree, diff_tuple[1:], observable_label),
                     diff_tuple[0],
                 )
+
+                if self._split_paulis:
+                    measure = OpTree.evaluate.transform_to_zbasis(measure)
+
                 # Store result in the optree_cache
                 if self._optree_caching == True:
                     self._optree_cache[(helper_hash(diff_tuple), observable_label)] = measure
                 return measure
+
+    def get_operator(self):
+        "Returns the observable operator"
+        if self._optree_caching == True and "O" in self._optree_cache:
+            return self._optree_cache["O"].copy()
+        else:
+            O = self._optree_start
+            if self._split_paulis:
+                O = OpTree.evaluate.transform_to_zbasis(O)
+            # If caching is enabled, store in the dictionary
+            if self._optree_caching == True:
+                self._optree_cache["O"] = O
+            return O
 
     def get_operator_squared(self):
         "Returns the squared form of the observable OO=O^2"
@@ -250,10 +266,13 @@ class ObservableDerivatives:
                     raise ValueError("Unknown type in recursive_squaring:", type(op))
 
             O2 = OpTree.simplify(recursive_squaring(self._optree_start))
+            if self._split_paulis:
+                O2 = OpTree.evaluate.transform_to_zbasis(O2)
 
             # If caching is enabled, store in the dictionary
             if self._optree_caching == True:
                 self._optree_cache["OO"] = O2
+
             return O2
 
     @property
@@ -315,6 +334,10 @@ def operator_differentiation(
 
     if isinstance(parameters, ParameterVectorElement):
         parameters = [parameters]
+
+    # If no parameters are given -> return empty list
+    if len(parameters) == 0:
+        return OpTreeList([])
 
     # Check if the same variables are the same type
     params_name = parameters[0].name.split("[", 1)[0]

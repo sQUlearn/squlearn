@@ -170,6 +170,7 @@ examples/**/*.log
 
 #Example caches
 examples/**/_cache
+examples/integration/mlruns
 
 # Genereated doc images
 docs/examples/images/*

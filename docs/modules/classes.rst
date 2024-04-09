@@ -65,6 +65,7 @@ Encoding Circuits
    encoding_circuit.ChebyshevRx
    encoding_circuit.ParamZFeatureMap
    encoding_circuit.QiskitEncodingCircuit
+   encoding_circuit.QCNNEncodingCircuit
 
 Encoding Circuit Tools
 ------------------------------------

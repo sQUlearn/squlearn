@@ -25,6 +25,8 @@ class ChebyshevRx(EncodingCircuitBase):
         num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
+        alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
+                       that appear in the arccos encoding. (default: 4.0)
     """
 
     def __init__(
@@ -49,21 +51,21 @@ class ChebyshevRx(EncodingCircuitBase):
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the ChebyshevRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
-        ioff = 0
-        for ilayer in range(self.num_layers):
+        index_offset = 0
+        for layer in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                bounds[ioff] = [0.0, self.alpha]
-                ioff = ioff + 1
+                bounds[index_offset] = [0.0, self.alpha]
+                index_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                bounds[ioff] = [-np.pi, np.pi]
-                ioff = ioff + 1
+                bounds[index_offset] = [-np.pi, np.pi]
+                index_offset += 1
         return bounds
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
-        Generates random parameters for the ChebyshevRx encoding circuit.
+        Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
             seed (Union[int,None]): Seed for the random number generator (default: None)
@@ -75,9 +77,12 @@ class ChebyshevRx(EncodingCircuitBase):
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            p = np.linspace(0.01, self.alpha, self.num_qubits)
-            for i in index:
-                param[i] = p
+            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
+            p = np.linspace(0.01, self.alpha, features_per_qubit)
+
+            for index2 in index:
+                for i, ii in enumerate(index2):
+                    param[ii] = p[i % features_per_qubit]
 
         return param
 
@@ -134,16 +139,23 @@ class ChebyshevRx(EncodingCircuitBase):
         nparam = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
+        index_offset = 0
+        feature_offset = 0
         for _ in range(self.num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                QC.rx(mapping(parameters[ioff % nparam], features[i % nfeature]), i)
-                ioff = ioff + 1
+                QC.rx(
+                    mapping(
+                        parameters[index_offset % nparam], features[feature_offset % nfeature]
+                    ),
+                    i,
+                )
+                index_offset += 1
+                feature_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                QC.rx(parameters[ioff % nparam], i)
-                ioff = ioff + 1
+                QC.rx(parameters[index_offset % nparam], i)
+                index_offset += 1
             QC = entangle_layer(QC)
 
         return QC
@@ -158,15 +170,15 @@ class ChebyshevRx(EncodingCircuitBase):
                             (default: True)
         """
         cheb_index = []
-        ioff = 0
-        for ilayer in range(self.num_layers):
+        index_offset = 0
+        for layer in range(self.num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
-                cheb_index_layer.append(ioff)
-                ioff = ioff + 1
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
 
             for i in range(self.num_qubits):
-                ioff = ioff + 1
+                index_offset += 1
 
             if flatten:
                 cheb_index += cheb_index_layer

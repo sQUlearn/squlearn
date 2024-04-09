@@ -1,16 +1,20 @@
 """ Fidelity Quantum Kernel class"""
-import numpy as np
+
 from typing import Union
+import numpy as np
+
+from qiskit_machine_learning.kernels import (
+    FidelityQuantumKernel,
+    FidelityStatevectorKernel,
+    TrainableFidelityQuantumKernel,
+    TrainableFidelityStatevectorKernel,
+)
+from qiskit_algorithms.state_fidelities import ComputeUncompute
+from qiskit.circuit import ParameterVector
+
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
-
-from qiskit_machine_learning.kernels import QuantumKernel
-from qiskit_machine_learning.kernels.fidelity_quantum_kernel import FidelityQuantumKernel
-from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
-from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.circuit import ParameterVector
-from qiskit_ibm_runtime import IBMBackend
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -27,9 +31,8 @@ class FidelityKernel(KernelMatrixBase):
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
-    Depending on the choice of the Qiskit Primitive or Quantum Instance,
-    and dependent on the choice of trainable parameters, the
-    appropriate Quantum Kernel implementation is chosen.
+    Depending on the choice of the backend and the choice of trainable parameters, the appropriate
+    Quantum Kernel implementation is chosen.
 
     Args:
         encoding_circuit (EncodingCircuitBase): PQC encoding circuit.
@@ -98,32 +101,32 @@ class FidelityKernel(KernelMatrixBase):
         self._enc_circ = self._encoding_circuit.get_circuit(
             self._feature_vector, self._parameter_vector
         )
-
-        if self._executor.execution == "Sampler" or isinstance(self._executor.backend, IBMBackend):
+        if self._executor.is_statevector:
+            if self._parameter_vector is None:
+                self._quantum_kernel = FidelityStatevectorKernel(
+                    feature_map=self._enc_circ, shots=self._executor.get_shots()
+                )
+            else:
+                self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                    feature_map=self._enc_circ,
+                    training_parameters=self._parameter_vector,
+                    shots=self._executor.get_shots(),
+                )
+        else:
             fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
             if self._parameter_vector is None:
-                # Fidelity Quantum Kernel without any parameters
                 self._quantum_kernel = FidelityQuantumKernel(
                     feature_map=self._enc_circ,
                     fidelity=fidelity,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
             else:
-                # Fidelity Quantum Kernel with any parameters -> TrainableFidelityQuantumKernel
                 self._quantum_kernel = TrainableFidelityQuantumKernel(
                     feature_map=self._enc_circ,
                     fidelity=fidelity,
                     training_parameters=self._parameter_vector,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
-        else:
-            # Will be soon deprecated!
-            self._quantum_kernel = QuantumKernel(
-                feature_map=self._enc_circ,
-                quantum_instance=self._executor.backend,
-                training_parameters=self._parameter_vector,
-                evaluate_duplicates=self._evaluate_duplicates,
-            )
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -140,6 +143,7 @@ class FidelityKernel(KernelMatrixBase):
         params["evaluate_duplicates"] = self._evaluate_duplicates
         params["mit_depol_noise"] = self._mit_depol_noise
         params["regularization"] = self._regularization
+        params["encoding_circuit"] = self._encoding_circuit
         if deep:
             params.update(self._encoding_circuit.get_params())
         return params
@@ -156,25 +160,35 @@ class FidelityKernel(KernelMatrixBase):
 
         # Check if all parameters are valid
         valid_params = self.get_params()
-        for key, value in params.items():
+        for key in params.keys():
             if key not in valid_params:
                 raise ValueError(
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
+        if "encoding_circuit" in params:
+            self._encoding_circuit = params["encoding_circuit"]
+            params.pop("encoding_circuit")
+
         dict_encoding_circuit = {}
         for key in params.keys():
             if key in self._encoding_circuit.get_params().keys():
                 dict_encoding_circuit[key] = params[key]
+        for key in dict_encoding_circuit.keys():
+            params.pop(key)
+
         self._encoding_circuit.set_params(**dict_encoding_circuit)
 
         if "evaluate_duplicates" in params.keys():
             self._evaluate_duplicates = params["evaluate_duplicates"].lower()
+            params.pop("evaluate_duplicates")
         if "mit_depol_noise" in params.keys():
             self._mit_depol_noise = params["mit_depol_noise"]
+            params.pop("mit_depol_noise")
         if "regularization" in params.keys():
             self._regularization = params["regularization"]
+            params.pop("regularization")
 
         self.__init__(
             self._encoding_circuit,
@@ -189,7 +203,22 @@ class FidelityKernel(KernelMatrixBase):
         if self.num_parameters == num_parameters_backup:
             self._parameters = parameters_backup
 
+        if len(params) > 0:
+            raise ValueError("The following parameters could not be assigned:", params)
+
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
+        """
+        Evaluates the fidelity kernel matrix.
+
+        Args:
+            x (np.ndarray) :
+                Vector of training or test data for which the kernel matrix is evaluated
+            y (np.ndarray, default=None) :
+                Vector of training or test data for which the kernel matrix is evaluated
+        Returns:
+            Returns the quantum kernel matrix as 2D numpy array.
+        """
+
         if y is None:
             y = x
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
@@ -198,7 +227,6 @@ class FidelityKernel(KernelMatrixBase):
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-
             self._quantum_kernel.assign_training_parameters(self._parameters)
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)

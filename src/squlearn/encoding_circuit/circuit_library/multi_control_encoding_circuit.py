@@ -105,13 +105,15 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         nfeature = len(features)
         nparam = len(parameters)
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
+        index_offset = 0
+        feature_offset = 0
 
-        for ilayer in range(self.num_layers):
+        for layer in range(self.num_layers):
             # First ZZ-encoding circuit
             QC.h(range(self.num_qubits))
             for i in range(self.num_qubits):
-                QC.rz(features[i % nfeature], i)
+                QC.rz(features[feature_offset % nfeature], i)
+                feature_offset += 1
 
             if self.closed:
                 istop = self.num_qubits
@@ -119,12 +121,12 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                 istop = self.num_qubits - 1
 
             for i in range(0, istop, 2):
-                QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                ioff = ioff + 1
-                QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                ioff = ioff + 1
-                QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                ioff = ioff + 1
+                QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                index_offset += 1
+                QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                index_offset += 1
+                QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                index_offset += 1
 
             if self.num_qubits >= 2:
                 if self.closed:
@@ -133,14 +135,15 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                     istop = self.num_qubits - 1
 
                 for i in range(1, istop, 2):
-                    QC.crx(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                    ioff = ioff + 1
-                    QC.cry(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                    ioff = ioff + 1
-                    QC.crz(parameters[ioff % nparam], i, (i + 1) % self.num_qubits)
-                    ioff = ioff + 1
+                    QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    index_offset += 1
+                    QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    index_offset += 1
+                    QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    index_offset += 1
 
         if self.final_encoding:
             for i in range(self.num_qubits):
-                QC.rz(features[i % nfeature], i)
+                QC.rz(features[feature_offset % nfeature], i)
+                feature_offset += 1
         return QC

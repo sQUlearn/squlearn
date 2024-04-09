@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as follows."
+title: sQUlearn
+authors:
+  - family-names: sQUlearn Contributors
+url: https://squlearn.github.io
+license: Apache-2.0
+repository-code: https://github.com/sQUlearn/squlearn
+preferred-citation:
+  type: article
+  status: preprint
+  title: "sQUlearn - A Python Library for Quantum Machine Learning"
+  authors:
+    - family-names: Kreplin
+      given-names: David A.
+      orcid: https://orcid.org/0000-0002-8129-6864
+      affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
+    - family-names: Willmann
+      given-names: Moritz
+      orcid: https://orcid.org/0009-0000-8099-425X
+      affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
+    - family-names: Schnabel
+      given-names: Jan
+      orcid: https://orcid.org/0000-0003-3485-0479
+      affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
+    - family-names: Rapp
+      given-names: Frederic
+      orcid: https://orcid.org/0009-0008-6240-8390
+      affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
+    - family-names: Roth
+      given-names: Marco
+      orcid: https://orcid.org/0000-0002-1276-5655
+      affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
+  year: 2023
+  month: 11
+  doi: 10.48550/arXiv.2311.08990
+  url: https://arxiv.org/abs/2311.08990

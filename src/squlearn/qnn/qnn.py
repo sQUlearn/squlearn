@@ -226,6 +226,8 @@ class Expec:
             return cls.from_tuple(val)
         elif isinstance(val, ParameterVectorElement):
             return cls.from_parameter(val)
+        elif isinstance(val, ParameterVector):
+            return cls.from_tuple((val,))
         else:
             raise TypeError("Unsupported type:", type(val))
 
@@ -356,14 +358,6 @@ class QNN:
             self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
             num_qubits_operator = self.operator.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(self.operator, self._optree_caching)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
-
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
-        else:
-            self._num_qubits = self.pqc.num_virtual_qubits
-
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
@@ -378,6 +372,16 @@ class QNN:
                 self._split_paulis = False
         else:
             self._split_paulis = False
+
+        self.operator_derivatives = ObservableDerivatives(
+            self.operator, self._optree_caching, self._split_paulis
+        )
+        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
+
+        if self.pqc.num_virtual_qubits != num_qubits_operator:
+            raise ValueError("Number of Qubits are not the same!")
+        else:
+            self._num_qubits = self.pqc.num_virtual_qubits
 
         # Initialize result cache
         self.result_container = {}
@@ -423,7 +427,7 @@ class QNN:
         return self.operator_derivatives.num_operators
 
     @property
-    def num_parameters_operator(self) -> int:
+    def num_parameters_observable(self) -> int:
         """Return the number of trainable parameters of the expectation value operator"""
         return self.operator_derivatives.num_parameters
 
@@ -474,43 +478,43 @@ class QNN:
 
     def evaluate_diff_tuple(
         self,
-        diff_tuple,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        diff_tuple,
     ) -> Union[float, np.ndarray]:
         """Evaluate the given tuple of derivatives of the PQC.
 
         Args:
-            diff_tuple: Tuple with parameters used in the differentiation
             x (Union[float,np.ndarray]): Input data values
             param (Union[float,np.ndarray]): Parameter values of the PQC
             param_op (Union[float,np.ndarray]): Parameter values of the operator
+            diff_tuple: Tuple with parameters used in the differentiation
 
         Returns:
             Differentiated values of the QNN
         """
-        return self.evaluate((diff_tuple,), x, param, param_op)[diff_tuple]
+        return self.evaluate(x, param, param_op, diff_tuple)[diff_tuple]
 
     def evaluate_from_string(
         self,
-        input_string: str,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        input_string: str,
     ) -> Union[float, np.ndarray]:
         """Evaluate the given PQC from an input string
 
         Args:
-            input_string (str): Input string that determines the evaluated value(s)
             x (Union[float,np.ndarray]): Input data values
             param (Union[float,np.ndarray]): Parameter values of the PQC
             param_op (Union[float,np.ndarray]): Parameter values of the operator
+            input_string (str): Input string that determines the evaluated value(s)
 
         Returns:
             Values from the QNN defined by the string
         """
-        return self.evaluate(input_string, x, param, param_op)[input_string]
+        return self.evaluate(x, param, param_op, input_string)[input_string]
 
     def evaluate_f(
         self,
@@ -528,7 +532,7 @@ class QNN:
         Returns:
             Values from the QNN
         """
-        return self.evaluate_from_string("f", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "f")
 
     def evaluate_dfdx(
         self,
@@ -546,7 +550,7 @@ class QNN:
         Returns:
             Evaluated derivatives of the the QNN with respect to `x`
         """
-        return self.evaluate_from_string("dfdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdx")
 
     def evaluate_dfdxdx(
         self,
@@ -564,7 +568,7 @@ class QNN:
         Returns:
             Evaluated second order derivatives of the the QNN with respect to `x`
         """
-        return self.evaluate_from_string("dfdxdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdxdx")
 
     def evaluate_laplace(
         self,
@@ -582,7 +586,7 @@ class QNN:
         Returns:
             Evaluated Laplacian of the the QNN for `x`
         """
-        return self.evaluate_from_string("laplace", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace")
 
     def evaluate_laplace_dp(
         self,
@@ -601,7 +605,7 @@ class QNN:
         Returns:
             Evaluated derivative of the Laplacian with respect to the PQC's parameters
         """
-        return self.evaluate_from_string("laplace_dp", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace_dp")
 
     def evaluate_laplace_dop(
         self,
@@ -619,7 +623,7 @@ class QNN:
         Returns:
             Evaluated derivative of the Laplacian with respect to the operator's parameters
         """
-        return self.evaluate_from_string("laplace_dop", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "laplace_dop")
 
     def evaluate_dfdp(
         self,
@@ -637,7 +641,7 @@ class QNN:
         Returns:
             Evaluated derivative of the the QNN with respect to the PQC's parameters.
         """
-        return self.evaluate_from_string("dfdp", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdp")
 
     def evaluate_dfdop(
         self,
@@ -655,7 +659,7 @@ class QNN:
         Returns:
             Evaluated derivative of the the QNN with respect to the operator's parameters.
         """
-        return self.evaluate_from_string("dfdop", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdop")
 
     def evaluate_dfdpdx(
         self,
@@ -673,7 +677,7 @@ class QNN:
         Returns:
             Evaluated derivative of the QNN with respect to the PQC's parameters and `x`
         """
-        return self.evaluate_from_string("dfdpdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdpdx")
 
     def evaluate_dfdopdx(
         self,
@@ -691,7 +695,7 @@ class QNN:
         Returns:
             Evaluated derivative of the QNN with respect to the operator's parameters and `x`
         """
-        return self.evaluate_from_string("dfdopdx", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "dfdopdx")
 
     def evaluate_variance(
         self,
@@ -709,7 +713,7 @@ class QNN:
         Returns:
             Evaluated variance of the the QNN
         """
-        return self.evaluate_from_string("var", x, param, param_op)
+        return self.evaluate_from_string(x, param, param_op, "var")
 
     def evaluate_var(
         self,
@@ -764,10 +768,10 @@ class QNN:
 
     def evaluate(
         self,
-        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
+        *values,
     ) -> dict:
         """General function for evaluating the output of derivatives of the QNN.
 
@@ -780,12 +784,11 @@ class QNN:
         the values are returned in a nested list.
 
         Args:
-            values : list of what values and derivatives of the QNN are evaluated.
-                Multiple inputs have to be a tuple.
             x (np.ndarray): Values of the input feature data.
             param (np.ndarray): Parameter values of the PQC parameters
             param_op (np.ndarray): Parameter values of the operator parameters
-
+            values : Derivatives (or values) of the QNN that are evaluated. Higher order
+                     derivatives are given as tuples of parameters or vectors.
 
         Results:
             Returns a dictionary with the computed values.
@@ -881,7 +884,7 @@ class QNN:
         # input adjustments for x, param, param_op to get correct stacking of values
         x_inp, multi_x = adjust_features(x, self.num_features)
         param_inp, multi_param = adjust_parameters(param, self.num_parameters)
-        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_operator)
+        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_observable)
 
         # build dictionary for later use
         dict_encoding_circuit = []
@@ -895,9 +898,9 @@ class QNN:
             dict(zip(self.operator_derivatives.parameter_vector, p)) for p in param_op_inp
         ]
 
-        # If values is not a tuple, convert it
-        if not isinstance(values, tuple):
-            values = (values,)
+        # Sort the values, more complicated because values can be tuples of ParameterVectors
+        indices = np.argsort([str(t) for t in values])
+        values = tuple([values[i] for i in indices])
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
@@ -934,65 +937,87 @@ class QNN:
             else:
                 raise ValueError("No execution is set!")
 
-            # Swapp results into the following order:
-            # 1. different observables (op_list)
+            is_val_empty = False
+            if val.size == 0:
+                is_val_empty = True
+
+            # val has the following order:
+            # 0 -> x_inp and param_inp combined (has to be separated later)
+            # 1 -> param_op_inp (often just shape 1)
+            # 2:2+num_nested -> circuit derivatives of parameter shift (if needed)
+            #                   (num_nested = order of derivatives)
+            # 2+num_nested ->  different observables (op_list - todos for same circuit)
+            # 3+num_nested:last-1 -> observable derivatives (if needed)
+            # last : multi_output
+
+            # Swapp results into the following final order:
+            # 1. different observables (op_list - todo for same circuit)
             # 2. different input data/ encoding circuit parameters (x_inp,params) -> separated later
             # 3. different operator parameters (param_op_inp)
             # 4. different output values (multi_output)
             # 5. If there, lists of the operators (e.g. operator derivatives)
             # 6. if there, lists of the circuits (e.g. array for gradient)
+            # swapping is done in two stages, first the op_list are swapped to the first position
+            # afterward the order of each element in the op_list is adjusted
 
-            ilist = list(range(len(val.shape)))
-
-            #             # Op_list index       # fm dict   # op dict
-            swapp_list = [ilist[2 + num_nested]] + [ilist[0]] + [ilist[1]]
-
-            length = 3 + num_nested
-            # Add multiple output data next
-            if self.multiple_output:
-                length += 1
-                swapp_list = swapp_list + [ilist[-1]]
-
-            # If there are lists in the operators, add them next (e.g. dfdop)
-            if len(ilist) > length:
-                if self.multiple_output:
-                    swapp_list = swapp_list + ilist[3 + num_nested : -1]
-                else:
-                    swapp_list = swapp_list + ilist[3 + num_nested :]
-
-            # If there are lists in the circuits, add them here (e.g. dfdp)
-            if num_nested > 0:
-                swapp_list = swapp_list + ilist[2 : 2 + num_nested]
-
-            val = np.transpose(val, axes=swapp_list)
+            # FIRST SWAP: different observables to the first place of the array
+            # swap i=2+num_nested to position 0, keep the rest in order
+            if is_val_empty is False:
+                index_list = list(range(len(val.shape)))
+                swapp_list = [index_list[2 + num_nested]]
+                swapp_list += [index_list[0]] + [index_list[1]]
+                if num_nested > 0:
+                    swapp_list += index_list[2 : 2 + num_nested]
+                swapp_list += index_list[3 + num_nested :]
+                val = np.transpose(val, axes=swapp_list)
 
             # store results in value_dict
-            # if get rid of unncessary arrays to fit the input vector nesting
-            ioff = 0
             for iexpec, expec_ in enumerate(op_list):
-                val_final = val[iexpec]
-                reshape_list = []
-                shape = val_final.shape
-                if multi_x:
-                    reshape_list.append(len(x))
-                if multi_param:
-                    reshape_list.append(len(param))
-                if multi_param_op:
-                    reshape_list.append(shape[1])
-                if self.multiple_output:
-                    reshape_list.append(shape[2])
-                if self.multiple_output:
-                    if len(shape) > 3:
-                        reshape_list += list(shape[3:])
+                if is_val_empty:
+                    value_dict[expec_] = np.array([])
                 else:
-                    if len(shape) > 2:
-                        reshape_list += list(shape[2:])
+                    # take array associated with op_list, convert to numpy if needed
+                    if isinstance(val[iexpec], object):
+                        # tolist() is needed, since numpy array conversion is otherwise hanging
+                        val_final = np.array(val[iexpec].tolist(), dtype=float)
+                    else:
+                        val_final = val[iexpec]
 
-                if len(reshape_list) == 0:
-                    value_dict[expec_] = val_final.reshape(-1)[0]
-                else:
-                    value_dict[expec_] = val_final.reshape(reshape_list)
-                ioff = ioff + 1
+                    # SECOND SWAP
+                    # swap the multiple outputs to third position
+                    # swap the observable derivatives to the second position
+                    # swap the circuit derivatives to the last position
+                    index_list = list(range(len(val_final.shape)))
+                    swapp_list = [0, 1]
+                    if self.multiple_output:
+                        swapp_list += [index_list.pop()]
+                    if len(index_list) > 2 + num_nested:
+                        swapp_list += index_list[2 + num_nested :]
+                    if num_nested > 0:
+                        swapp_list += index_list[2 : 2 + num_nested]
+                    val_final = np.transpose(val_final, axes=swapp_list)
+
+                    # Reshape for the final output, adjust x and param if needed
+                    reshape_list = []
+                    shape = val_final.shape
+                    if multi_x:
+                        reshape_list.append(len(x))
+                    if multi_param:
+                        reshape_list.append(len(param))
+                    if multi_param_op:
+                        reshape_list.append(shape[1])
+                    if self.multiple_output:
+                        reshape_list.append(shape[2])
+                    if self.multiple_output:
+                        if len(shape) > 3:
+                            reshape_list += list(shape[3:])
+                    else:
+                        if len(shape) > 2:
+                            reshape_list += list(shape[2:])
+                    if len(reshape_list) == 0:
+                        value_dict[expec_] = val_final.reshape(-1)[0]
+                    else:
+                        value_dict[expec_] = val_final.reshape(reshape_list)
 
         # Set-up lables from the input list
         for todo in values:

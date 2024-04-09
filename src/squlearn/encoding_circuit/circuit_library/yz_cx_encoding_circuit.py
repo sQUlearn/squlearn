@@ -34,9 +34,15 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     """
 
     def __init__(
-        self, num_qubits: int, num_features: int, num_layers: int = 1, c: float = 1.0
+        self,
+        num_qubits: int,
+        num_features: int,
+        num_layers: int = 1,
+        closed: bool = True,
+        c: float = 1.0,
     ) -> None:
         super().__init__(num_qubits, num_features)
+        self.closed = closed
 
         self._num_layers = num_layers
         self._c = c
@@ -100,18 +106,25 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
 
         # Creates the layers of the encoding circuit
         QC = QuantumCircuit(self.num_qubits)
-        ioff = 0
-        for ilayer in range(self.num_layers):
+        index_offset = 0
+        feature_offset = 0
+        for layer in range(self.num_layers):
             for i in range(self.num_qubits):
-                QC.ry(parameters[ioff % nparam] + self.c * features[i % nfeature], i)
-                ioff = ioff + 1
-                QC.rz(parameters[ioff % nparam] + self.c * features[i % nfeature], i)
-                ioff = ioff + 1
+                QC.ry(
+                    parameters[index_offset % nparam]
+                    + self.c * features[feature_offset % nfeature],
+                    i,
+                )
+                index_offset += 1
+                QC.rz(
+                    parameters[index_offset % nparam]
+                    + self.c * features[feature_offset % nfeature],
+                    i,
+                )
+                index_offset += 1
+                feature_offset += 1
             # Entangling layer depends on odd or even layer
-            if ilayer % 2 == 0:
-                for i in range(0, self.num_qubits - 1, 2):
-                    QC.cx(i, i + 1)
-            else:
-                for i in range(1, self.num_qubits - 1, 2):
-                    QC.cx(i, i + 1)
+            if self.num_qubits >= 2:
+                for i in range(layer % 2, self.num_qubits + self.closed - 1, 2):
+                    QC.cx(i, (i + 1) % self.num_qubits)
         return QC

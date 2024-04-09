@@ -1,4 +1,5 @@
 """QNN Base Implemenation"""
+
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
@@ -99,6 +100,23 @@ class BaseQNN(BaseEstimator, ABC):
             self.param_op_ini = param_op_ini
         self._param_op = self.param_op_ini.copy()
 
+        """
+        operator_qubits = []
+        total_num_qubits = encoding_circuit.num_qubits
+        for obs in operator.get_operator([0]*operator.num_parameters).paulis:
+            for n_q,q in enumerate(str(obs)):
+                if q != "I":
+                    if n_q not in operator_qubits:
+                        operator_qubits.append(total_num_qubits-n_q-1)
+        print(operator_qubits)
+        circ_decomposed = None
+        circ = encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters)
+        for instruction, qargs, cargs in encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters).decompose().data:
+            if instruction.name == "measure":
+                for qubit in qargs:
+                    if encoding_circuit.find_bit(qubit)[0] in operator_qubits:
+                        raise ValueError("There are measurements in the operator on qubits which are already measured in the circuit. Please remove these measurements or adjust the in-circuit measurements.")
+        """
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
         ):
@@ -151,6 +169,15 @@ class BaseQNN(BaseEstimator, ABC):
 
         self._is_fitted = self.pretrained
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_pbar"]
+        return state
+
+    def __setstate__(self, state) -> None:
+        state.update({"_pbar": None})
+        return super().__setstate__(state)
+
     @property
     def param(self) -> np.ndarray:
         """Parameters of the PQC."""
@@ -160,6 +187,16 @@ class BaseQNN(BaseEstimator, ABC):
     def param_op(self) -> np.ndarray:
         """Parameters of the cost operator."""
         return self._param_op
+
+    @property
+    def num_parameters(self) -> int:
+        """Number of parameters of the PQC."""
+        return self._qnn.num_parameters
+
+    @property
+    def num_parameters_observable(self) -> int:
+        """Number of parameters of the observable."""
+        return self._qnn.num_parameters_observable
 
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.

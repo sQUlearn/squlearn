@@ -1,4 +1,5 @@
 """QNNRegressor Implemenation"""
+
 from typing import Callable, Union
 from warnings import warn
 import sys
@@ -147,6 +148,10 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         """
         if not self._is_fitted and not self.pretrained:
             warn("The model is not fitted.")
+
+        if self.shot_control is not None:
+            self.shot_control.reset_shots()
+
         return self._qnn.evaluate_f(X, self._param, self._param_op)
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:

@@ -1,4 +1,5 @@
 """ Quantum Gaussian process classifier"""
+
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 from squlearn.kernel.matrix.kernel_util import kernel_wrapper
 from sklearn.gaussian_process import GaussianProcessClassifier
