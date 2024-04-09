@@ -73,6 +73,7 @@ def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> 
         else:
             return tuple([x])
 
+
 def _adjust_input(
     x: Union[float, np.ndarray], x_length: int, allow_single_array: bool
 ) -> Tuple[np.ndarray, bool]:

@@ -103,7 +103,7 @@ class FidelityKernel(KernelMatrixBase):
 
         if self._executor.quantum_framework == "pennylane":
 
-            if self._executor.is_statevector or "":
+            if self._executor.is_statevector:
 
                 # Mode 1 for statevector: calculate the statevector of the quantum circuit
                 # and use it to calculate the fidelity as the overlap of the two states.
@@ -121,8 +121,9 @@ class FidelityKernel(KernelMatrixBase):
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state", self._executor)
 
                 def pennylane_circuit_executor(*args, **kwargs):
+                    args_numpy = [np.array(arg) for arg in args]
                     return self._executor.pennylane_execute(
-                        self._pennylane_circuit, *args, **kwargs
+                        self._pennylane_circuit, *args_numpy, **kwargs
                     )
 
                 self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_executor)
@@ -440,9 +441,9 @@ class FidelityKernel(KernelMatrixBase):
 
         # Convert the input data to the correct format for the lrucache
         x_inp, _ = adjust_features(x, self.num_features)
-        x_inpT = to_tuple(np.transpose(x_inp),flatten=False)
+        x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
         y_inp, _ = adjust_features(y, self.num_features)
-        y_inpT = to_tuple(np.transpose(y_inp),flatten=False)
+        y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
 
         if self._parameter_vector is not None:
             if self._parameters is None:
@@ -454,6 +455,11 @@ class FidelityKernel(KernelMatrixBase):
         else:
             x_sv = np.array(self._pennylane_circuit_cached(x_inpT))
             y_sv = np.array(self._pennylane_circuit_cached(y_inpT))
+
+        if len(x_sv.shape) == 1:
+            x_sv = np.array([x_sv])
+        if len(y_sv.shape) == 1:
+            y_sv = np.array([y_sv])
 
         kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
 
@@ -478,7 +484,7 @@ class FidelityKernel(KernelMatrixBase):
                             continue
                     kernel_matrix[i, j] = get_kernel_entry(x_, y_)
 
-        if self._evaluate_duplicates in ["none","off_diagonal"] and is_symmetric:
+        if self._evaluate_duplicates in ["none", "off_diagonal"] and is_symmetric:
             for i in range(x.shape[0]):
                 kernel_matrix[i, i] = 1.0
 

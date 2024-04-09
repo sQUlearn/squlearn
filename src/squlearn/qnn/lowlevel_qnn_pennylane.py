@@ -842,9 +842,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             else:
 
                 # Direct evaluation of the QNN
-                if (
-                    todo_class.return_grad_x and todo_class.order > 1
-                ) or (todo_class.order >= 1 and self._executor.shots is not None):  # TODO: Should be removed if PennyLane bug 4462 is fixed
+                if (todo_class.return_grad_x and todo_class.order > 1) or (
+                    todo_class.order >= 1 and self._executor.shots is not None
+                ):  # TODO: Should be removed if PennyLane bug 4462 is fixed
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [
@@ -865,10 +865,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     ]
                     # Restore order of _evaluate_todo_single_x
                     output = np.array(output)
-                    if self._executor.shots is not None and multi_x==False:
-                        output = output.reshape(output.shape +(1,))
-                    #if len(output.shape) < 2:
-                     #   output = output.reshape((1, -1))
+                    if self._executor.shots is not None and multi_x == False:
+                        output = output.reshape(output.shape + (1,))
 
                     index_list = list(range(len(output.shape)))
                     if self.multiple_output:

@@ -355,7 +355,9 @@ class PennyLaneCircuit:
                         # In case no parameters are present in the observable
                         # Calculate the expectation value of the single observables
                         # since this is more compatible with hardware backends
-                        expval_list.append(pnp.sum([qml.expval(obs) for obs in self._pennylane_words[i]]))
+                        expval_list.append(
+                            pnp.sum([qml.expval(obs) for obs in self._pennylane_words[i]])
+                        )
                 return pnp.stack(tuple(expval_list))
             else:
                 if len(obs_param_list) > 0:

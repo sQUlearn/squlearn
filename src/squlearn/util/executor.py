@@ -38,7 +38,6 @@ from pennylane import QubitDevice
 import pennylane as qml
 
 
-
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -388,10 +387,12 @@ class Executor:
             if "ibm" in self.backend_name:
                 self._remote = True
         elif self.quantum_framework == "pennylane":
-            local_device = ("default.qubit" in str(self._pennylane_device) or
-                            "default.mixed" in str(self._pennylane_device) or
-                            "default.clifford" in str(self._pennylane_device) or
-                            "Lightning Qubit" in str(self._pennylane_device))
+            local_device = (
+                "default.qubit" in str(self._pennylane_device)
+                or "default.mixed" in str(self._pennylane_device)
+                or "default.clifford" in str(self._pennylane_device)
+                or "Lightning Qubit" in str(self._pennylane_device)
+            )
             self._remote = not local_device
 
         # set initial shots
@@ -405,19 +406,20 @@ class Executor:
         if self._caching:
             self._cache = ExecutorCache(self._logger, cache_dir)
 
-        self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
-        self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
+        self._logger.info(f"Executor initialized with {{}}".format(self.quantum_framework))
+        if self._backend is not None:
+            self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
+        if self._service is not None:
+            self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:
             self._logger.info(
                 f"Executor initialized with session: {{}}".format(self._session.session_id)
             )
-        else:
-            self._logger.info(f"Executor initialized with session: {{}}".format(self._session))
-        self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
-        self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
+        if self._estimator is not None:
+            self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
+        if self._sampler is not None:
+            self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
-
-    # Penny Lane STUFF
 
     @property
     def quantum_framework(self) -> str:
@@ -429,24 +431,72 @@ class Executor:
 
     @property
     def pennylane_device(self):
+        """Returns the PennyLane device that is used in the executor."""
+        if self.quantum_framework != "pennylane":
+            raise RuntimeError("PennyLane device is only available for PennyLane backends")
         return self._pennylane_device
 
     def pennylane_decorator(self, pennylane_function):
+        """
+        Decorator for a PennyLane circuit
+
+        Args:
+            pennylane_function (callable): The PennyLane circuit function
+        """
         return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
-    def pennylane_execute_batched(self, pennylane_circuit, arg_tuples, **kwargs):
+    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
+        """
+        Function for executing of PennyLane circuits with the Executor with caching and restarts
 
+        Args:
+            pennylane_circuit (callable): The PennyLane circuit function
+            args: Arguments for the circuit
+            kwargs: Keyword arguments for the circuit
+
+        Returns:
+            The result of the circuit
+        """
+        # Get hash value of the circuit
+        if hasattr(pennylane_circuit, "hash"):
+            hash_value = pennylane_circuit.hash
+        else:
+            hash_value = hash(pennylane_circuit)
+
+        # Helper function for execution
+        def execute_circuit():
+            return pennylane_circuit(*args, **kwargs)
+
+        # Call function for cached execution
+        return self.pennylane_execute_cached(execute_circuit, hash_value)
+
+    def pennylane_execute_batched(
+        self, pennylane_circuit: callable, arg_tuples: Union[list, tuple], **kwargs
+    ) -> Union[np.array, list]:
+        """
+        Function for batched execution of PennyLane circuits.
+
+        Args:
+            pennylane_circuit (callable): The PennyLane circuit function
+            arg_tuples (Union[list,tuple]): List of tuples with arguments for the circuit
+
+        Returns
+            Union[np.array,list]: List of results of the circuits
+        """
+        input_list = True
         if not isinstance(pennylane_circuit, list):
             pennylane_circuit = [pennylane_circuit]
+            input_list = False
 
         if not isinstance(arg_tuples, list):
             arg_tuples = [arg_tuples]
+            input_list = False
 
         if len(pennylane_circuit) != len(arg_tuples):
             raise ValueError("Length of pennylane_circuit and arg_tuples does not match")
 
+        # Build tapes for batched execution and get the hash value of the circuits
         hash_value = ""
-
         batched_tapes = []
         for i, arg_tuple in enumerate(arg_tuples):
             pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
@@ -458,13 +508,27 @@ class Executor:
 
             batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
 
+        # Helper function for execution
         def execute_tapes():
             return qml.execute(batched_tapes, self.pennylane_device)
 
-        return self.pennylane_execute_cached(execute_tapes, hash_value)
+        # Call function for cached execution
+        if input_list:
+            return self.pennylane_execute_cached(execute_tapes, hash_value)
+        else:
+            return self.pennylane_execute_cached(execute_tapes, hash_value)[0]
 
-    def pennylane_execute_cached(self, function, hash_value):
+    def pennylane_execute_cached(self, function: callable, hash_value: Union[str, int]):
+        """
+        Function for cached execution of PennyLane circuits with the Executor
 
+        Args:
+            function (callable): The function that is executed
+            hash_value (Union[str,int]): Hash value for the caching
+
+        Returns:
+            The result of the circuit
+        """
         success = False
         critical_error = False
         critical_error_message = None
@@ -491,8 +555,8 @@ class Executor:
                 if result is None:
                     cached = False
                     # Execute the circuit todo: implement restart
-                    result = function()
                     self._logger.info(f"Executor runs pennylane execution")
+                    result = function()
                 else:
                     self._logger.info(
                         f"Cached result found with hash value: {{}}".format(hash_value)
@@ -500,26 +564,23 @@ class Executor:
 
                 success = True
 
-            except NotImplementedError as e:
-                critical_error = True
-                critical_error_message = e
-
-            except RuntimeError as e:
+            except (
+                NotImplementedError,
+                RuntimeError,
+                ValueError,
+                NotImplementedError,
+                TypeError,
+            ) as e:
                 critical_error = True
                 critical_error_message = e
 
             except Exception as e:
-                critical_error = True
-                critical_error_message = e
-
-            # except Exception as e: TODO: restart errors
-
-            #     self._logger.info(
-            #         f"Executor failed to run pennylane_execute because of unknown error!"
-            #     )
-            #     self._logger.info(f"Error message: {{}}".format(e))
-            #     self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
-            #     success = False
+                self._logger.info(
+                    f"Executor failed to run pennylane_execute because of unknown error!"
+                )
+                self._logger.info(f"Error message: {{}}".format(e))
+                self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
+                success = False
 
             if success:
                 break
@@ -540,18 +601,6 @@ class Executor:
             self._cache.store_file(hash_value, copy.copy(result))
 
         return result
-
-    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
-
-        if hasattr(pennylane_circuit, "hash"):
-            hash_value = pennylane_circuit.hash
-        else:
-            hash_value = hash(pennylane_circuit)
-
-        def execute_circuit():
-            return pennylane_circuit(*args, **kwargs)
-
-        return self.pennylane_execute_cached(execute_circuit, hash_value)
 
     @property
     def execution(self) -> str:
@@ -793,7 +842,7 @@ class Executor:
                     f"Executor failed to run " + label + f" because of unknown error!"
                 )
                 self._logger.info(f"Error message: {{}}".format(e))
-                self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
 
             # Wait for the job to complete
             if job is None:
@@ -817,7 +866,7 @@ class Executor:
                             f"Executor failed to get job status because of unknown error!"
                         )
                         self._logger.info(f"Error message: {{}}".format(e))
-                        self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                        self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
                         break
 
                     if self._remote:
@@ -858,7 +907,7 @@ class Executor:
                                 f"Executor failed to get job result because of unknown error!"
                             )
                             self._logger.info(f"Error message: {{}}".format(e))
-                            self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                            self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
                         if result_success:
                             break
                         else:
@@ -1427,6 +1476,7 @@ class Executor:
             return statevector_device
         else:
             raise RuntimeError("Unknown quantum framework!")
+
 
 class ExecutorEstimator(BaseEstimator):
     """
