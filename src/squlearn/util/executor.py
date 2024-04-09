@@ -459,9 +459,9 @@ class Executor:
         """
         # Get hash value of the circuit
         if hasattr(pennylane_circuit, "hash"):
-            hash_value = pennylane_circuit.hash
+            hash_value = [pennylane_circuit.hash, args]
         else:
-            hash_value = hash(pennylane_circuit)
+            hash_value = [hash(pennylane_circuit), args]
 
         # Helper function for execution
         def execute_circuit():
@@ -507,6 +507,8 @@ class Executor:
                 hash_value += str(hash(pennylane_circuit[i].pennylane_circuit))
 
             batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
+
+        hash_value = [hash_value, arg_tuples]
 
         # Helper function for execution
         def execute_tapes():
@@ -555,8 +557,13 @@ class Executor:
                 if result is None:
                     cached = False
                     # Execute the circuit todo: implement restart
-                    self._logger.info(f"Executor runs pennylane execution")
+                    self._logger.info(
+                        f"Executor start execution of pennylane circuit with hash value: {{}}".format(
+                            hash_value
+                        )
+                    )
                     result = function()
+                    self._logger.info(f"Execution of pennylane circuit successful")
                 else:
                     self._logger.info(
                         f"Cached result found with hash value: {{}}".format(hash_value)
