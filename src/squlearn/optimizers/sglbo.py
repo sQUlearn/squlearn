@@ -9,6 +9,7 @@ from .optimizer_base import OptimizerBase, SGDMixin, default_callback, Optimizer
 
 class SGLBO(OptimizerBase, SGDMixin):
     """sQUlearn's implementation of the SGLBO optimizer
+
     Possible options that can be set in the options dictionary are:
 
     * **tol** (float): Tolerance for the termination of the optimization (default: 1e-6)
