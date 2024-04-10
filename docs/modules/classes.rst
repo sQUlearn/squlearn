@@ -191,8 +191,10 @@ QNN Core
    :toctree: generated/
    :template: class.rst
 
-   qnn.qnn.QNN
-   qnn.qnn.Expec
+   qnn.lowlevel_qnn.LowLevelQNN
+   qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
+   qnn.lowlevel_qnn_pennylane.LowLevelQNNPennylane
+   qnn.lowlevel_qnn_qiskit.Expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
