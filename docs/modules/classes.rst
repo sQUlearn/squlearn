@@ -193,7 +193,7 @@ QNN Core
 
    qnn.lowlevel_qnn.LowLevelQNN
    qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
-   qnn.lowlevel_qnn_pennylane.LowLevelQNNPennylane
+   qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
    qnn.lowlevel_qnn_qiskit.Expec
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
