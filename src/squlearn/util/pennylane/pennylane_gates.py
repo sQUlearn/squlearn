@@ -50,4 +50,5 @@ qiskit_pennyland_gate_dict = {
     "rxz": RXZ,
     "barrier": qml.Barrier,
     "u": qml.U3,
+    "measure": qml.measure,
 }

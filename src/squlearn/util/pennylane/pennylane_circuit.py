@@ -6,6 +6,9 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
 
+from qiskit.compiler import transpile
+from qiskit_aer import Aer
+
 import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
@@ -91,7 +94,9 @@ class PennyLaneCircuit:
     ) -> None:
 
         self._executor = executor
-        self._qiskit_circuit = circuit
+        # Transpile circuit to statevector simulator basis gates to  expand blocks automatically
+        self._qiskit_circuit = transpile(circuit, backend=Aer.get_backend("statevector_simulator"))
+
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits
 
@@ -113,6 +118,7 @@ class PennyLaneCircuit:
             self._pennylane_gates_param_function,
             self._pennylane_gates_wires,
             self._pennylane_gates_parameters,
+            self._pennylane_gates_parameters_count,
         ) = self.build_circuit_instructions(self._qiskit_circuit)
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
@@ -121,6 +127,7 @@ class PennyLaneCircuit:
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
                 self._pennylane_obs_parameters,
+                self._pennylane_obs_parameters_count,
             ) = self.build_observable_instructions(observable)
         else:
             self._pennylane_obs_param_function = []
@@ -142,6 +149,14 @@ class PennyLaneCircuit:
         return self._pennylane_obs_parameters
 
     @property
+    def circuit_parameter_count(self) -> dict:
+        return self._pennylane_gates_parameters_count
+
+    @property
+    def observable_parameter_count(self) -> dict:
+        return self._pennylane_obs_parameters_count
+
+    @property
     def hash(self) -> int:
 
         return str(self._qiskit_circuit) + str(self._qiskit_observable)
@@ -150,8 +165,15 @@ class PennyLaneCircuit:
 
         if engine == "pennylane":
             # plt.figure()
-            fig, ax = qml.draw_mpl(self._pennylane_circuit, **kwargs)()
-            # return fig
+
+            args = []
+            for name in self.circuit_parameter_names:
+                args.append(np.random.rand(self.circuit_parameter_count[name]))
+            for name in self.observable_parameter_names:
+                args.append(np.random.rand(self.observable_parameter_count[name]))
+            args = tuple(args)
+            print("args", args)
+            return qml.draw_mpl(self._pennylane_circuit)(*args)
         elif engine == "qiskit":
             return self._qiskit_circuit.draw(**kwargs)
         else:
@@ -170,12 +192,16 @@ class PennyLaneCircuit:
         pennylane_gates_param_function = []
         pennylane_gates_wires = []
         pennylane_gates_parameters = []
+        pennylane_gates_parameters_count = {}
 
         symbol_tuple = tuple([p._symbol_expr for p in circuit.parameters])
 
         for param in circuit.parameters:
             if param.vector.name not in pennylane_gates_parameters:
                 pennylane_gates_parameters.append(param.vector.name)
+                pennylane_gates_parameters_count[param.vector.name] = 1
+            else:
+                pennylane_gates_parameters_count[param.vector.name] += 1
 
         printer, modules = _get_sympy_interface()
 
@@ -199,6 +225,10 @@ class PennyLaneCircuit:
 
             pennylane_gates_param_function.append(param_tuple)
 
+            # print("op",op)
+            # print("op.operation",op.operation)
+            # print("op.operation.name",op.operation.name)
+
             if op.operation.name not in qiskit_pennyland_gate_dict:
                 raise NotImplementedError(
                     f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's PennyLane backend."
@@ -213,6 +243,7 @@ class PennyLaneCircuit:
             pennylane_gates_param_function,
             pennylane_gates_wires,
             pennylane_gates_parameters,
+            pennylane_gates_parameters_count,
         )
 
     def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
@@ -238,10 +269,14 @@ class PennyLaneCircuit:
 
         # Get names of all parameters in all observables
         pennylane_obs_parameters = []
+        pennylane_obs_parameters_count = {}
         for obs in observable:
             for param in obs.parameters:
                 if param.vector.name not in pennylane_obs_parameters:
                     pennylane_obs_parameters.append(param.vector.name)
+                    pennylane_obs_parameters_count[param.vector.name] = 1
+                else:
+                    pennylane_obs_parameters_count[param.vector.name] += 1
 
         # Handle observable parameter expressions and convert them to compatible python functions
 
@@ -294,9 +329,19 @@ class PennyLaneCircuit:
             )
 
         if islist:
-            return pennylane_obs_param_function, pennylane_words, pennylane_obs_parameters
+            return (
+                pennylane_obs_param_function,
+                pennylane_words,
+                pennylane_obs_parameters,
+                pennylane_obs_parameters_count,
+            )
         else:
-            return pennylane_obs_param_function[0], pennylane_words[0], pennylane_obs_parameters
+            return (
+                pennylane_obs_param_function[0],
+                pennylane_words[0],
+                pennylane_obs_parameters,
+                pennylane_obs_parameters_count,
+            )
 
     @property
     def circuit_arguments(self) -> list:

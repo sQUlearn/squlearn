@@ -432,7 +432,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         pqc: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
-        result_caching: bool = False,
+        result_caching: bool = True,
     ) -> None:
 
         super().__init__(pqc, observable, executor)
@@ -782,6 +782,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         # Pre-process the input data to the format [[x1],[x2]]
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
+        print("x_inp", x_inp)
+        print("self._pqc.num_features", self._pqc.num_features)
         x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(
@@ -865,14 +867,19 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     ]
                     # Restore order of _evaluate_todo_single_x
                     output = np.array(output)
-                    if self._executor.shots is not None and multi_x == False:
+
+                    # Capture some strange edge cases
+                    if self._executor.shots is not None and sum(np.shape(x)) == self.num_features:
                         output = output.reshape(output.shape + (1,))
+                    if len(x) == 0 and self._executor.shots is None:
+                        output = output.reshape((1,) + output.shape)
 
                     index_list = list(range(len(output.shape)))
                     if self.multiple_output:
                         swap_list = [2, 0, 1] + index_list[3:]
                     else:
                         swap_list = [1, 0] + index_list[2:]
+
                     output = output.transpose(swap_list)
                     output = output.reshape(
                         (output.shape[0] * output.shape[1],) + tuple(output.shape[2:])
@@ -884,6 +891,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     swap_list = index_list[0:2] + list(reversed(index_list[2:]))
                 else:
                     swap_list = index_list[0:1] + list(reversed(index_list[1:]))
+
                 output = output.transpose(swap_list)
 
                 # Reshape to correct format
