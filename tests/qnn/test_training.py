@@ -9,7 +9,7 @@ from squlearn.observables import SummedPaulis, SinglePauli
 from squlearn.encoding_circuit import ChebyshevPQC, HighDimEncodingCircuit
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn.loss import SquaredLoss
-from squlearn.qnn.lowlevel_qnn_qiskit import LowLevelQNNQiskit as QNN
+from squlearn.qnn.qnn import QNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
 
@@ -52,7 +52,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = SummedPaulis(2)
-        executor = Executor("qasm_simulator", seed=0)
+        executor = Executor("qasm_simulator", primitive_seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,
@@ -75,7 +75,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
-        executor = Executor("qasm_simulator", seed=0)
+        executor = Executor("qasm_simulator", primitive_seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,
