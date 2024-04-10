@@ -82,6 +82,7 @@ class Executor:
             until the execution is aborted.
         wait_restart (int): The time to wait before restarting a job in seconds.
         shots (Union[int, None]): The number of initial shots that is used for the execution.
+        seed (Union[int, None]): The seed that is used for finite samples in the execution.
 
     Attributes:
     -----------

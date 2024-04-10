@@ -13,32 +13,32 @@ class TestExecutor:
     @pytest.fixture(scope="module")
     def ExecutorSampler(self) -> Executor:
         """Executor with Sampler initialization."""
-        return Executor(Sampler(), primitive_seed=0)
+        return Executor(Sampler(), seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorEstimator(self) -> Executor:
         """Executor with Estimator initialization."""
-        return Executor(Estimator(), primitive_seed=0)
+        return Executor(Estimator(), seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorStatevector(self) -> Executor:
         """Executor with statevector_simulator initialization."""
-        return Executor("statevector_simulator", primitive_seed=0)
+        return Executor("statevector_simulator", seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorQasm(self) -> Executor:
         """Executor with qasm_simulator initialization."""
-        return Executor("qasm_simulator", primitive_seed=0)
+        return Executor("qasm_simulator", seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorBackendSampler(self) -> Executor:
         """Executor with BackendSampler initialization."""
-        return Executor(BackendSampler(Aer.get_backend("aer_simulator")), primitive_seed=0)
+        return Executor(BackendSampler(Aer.get_backend("aer_simulator")), seed=0)
 
     @pytest.fixture(scope="module")
     def ExecutorBackendEstimator(self) -> Executor:
         """Executor with BackendEstimator initialization."""
-        return Executor(BackendEstimator(Aer.get_backend("aer_simulator")), primitive_seed=0)
+        return Executor(BackendEstimator(Aer.get_backend("aer_simulator")), seed=0)
 
     @pytest.fixture(scope="module")
     def simple_circuit(self):
