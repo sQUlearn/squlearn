@@ -16,6 +16,8 @@ def RZZ(theta, wires):
 def RXZ(theta, wires):
     return qml.PauliRot(theta, "XZ", wires=wires)
 
+def reset(wires):
+    return qml.measure(wires=wires,reset=True)
 
 qiskit_pennyland_gate_dict = {
     "i": qml.Identity,
@@ -51,4 +53,5 @@ qiskit_pennyland_gate_dict = {
     "barrier": qml.Barrier,
     "u": qml.U3,
     "measure": qml.measure,
+    "reset": reset,
 }
