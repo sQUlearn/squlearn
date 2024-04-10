@@ -174,7 +174,7 @@ class Executor:
             BaseEstimator,
             BaseSampler,
             PennylaneDevice,
-        ] = "aer_simulator_statevector",
+        ] = "pennylane",
         backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,

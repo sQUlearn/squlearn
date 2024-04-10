@@ -782,8 +782,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         # Pre-process the input data to the format [[x1],[x2]]
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
-        print("x_inp", x_inp)
-        print("self._pqc.num_features", self._pqc.num_features)
         x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(
