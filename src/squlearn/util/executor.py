@@ -10,7 +10,9 @@ import traceback
 from dataclasses import asdict
 import time
 import dill as pickle
+from packaging import version
 
+import qiskit
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
 from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
 from qiskit.primitives import Sampler as qiskit_primitives_Sampler
@@ -30,7 +32,9 @@ from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 from qiskit import QuantumCircuit
 
-from qiskit.utils import algorithm_globals
+
+if version.parse(qiskit.__version__) <= version.parse("0.45.0"):
+    from qiskit.utils import algorithm_globals
 from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
 
 from pennylane.devices import Device as PennylaneDevice
@@ -206,7 +210,8 @@ class Executor:
         self._set_seed_for_primitive = seed
         self._pennylane_seed = seed
         if seed is not None:
-            algorithm_globals.random_seed = seed
+            if version.parse(qiskit.__version__) <= version.parse("0.45.0"):
+                algorithm_globals.random_seed = seed
             qiskit_algorithm_globals.random_seed = seed
 
         # Copy Executor options
