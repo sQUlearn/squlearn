@@ -1,9 +1,8 @@
 import numpy as np
 from typing import Union, List
-import matplotlib.pyplot as plt
 from sympy import lambdify
 from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.circuit import ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
 
 from qiskit.compiler import transpile
@@ -164,15 +163,12 @@ class PennyLaneCircuit:
     def draw(self, engine: str = "pennylane", **kwargs):
 
         if engine == "pennylane":
-            # plt.figure()
-
             args = []
             for name in self.circuit_parameter_names:
                 args.append(np.random.rand(self.circuit_parameter_count[name]))
             for name in self.observable_parameter_names:
                 args.append(np.random.rand(self.observable_parameter_count[name]))
             args = tuple(args)
-            print("args", args)
             return qml.draw_mpl(self._pennylane_circuit)(*args)
         elif engine == "qiskit":
             return self._qiskit_circuit.draw(**kwargs)
@@ -216,7 +212,7 @@ class PennyLaneCircuit:
                         else:
                             symbol_expr = param._symbol_expr
                             f = lambdify(
-                                symbol_tuple, symbol_expr, modules=modules, printer=printer
+                                symbol_tuple, symbol_expr, modules=modules, printer=printer, dummify = True
                             )
 
                             param_tuple += (f,)
@@ -224,10 +220,6 @@ class PennyLaneCircuit:
                         param_tuple += (param,)
 
             pennylane_gates_param_function.append(param_tuple)
-
-            # print("op",op)
-            # print("op.operation",op.operation)
-            # print("op.operation.name",op.operation.name)
 
             if op.operation.name not in qiskit_pennyland_gate_dict:
                 raise NotImplementedError(
@@ -307,7 +299,7 @@ class PennyLaneCircuit:
                             coeff = float(coeff)
                     else:
                         symbol_expr = coeff._symbol_expr
-                        f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
+                        f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer, dummify = True)
                         pennylane_obs_param_function_.append(f)
                 else:
                     if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
