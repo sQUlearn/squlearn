@@ -154,7 +154,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        pred = self._qnn.evaluate(X, self._param, self._param_op,"f")["f"]
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -170,7 +170,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset()
 
-        pred = self._qnn.evaluate(X, self._param, self._param_op,"f")["f"]
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
