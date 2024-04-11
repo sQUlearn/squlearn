@@ -83,7 +83,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         clf = QNNClassifier(
             ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),

@@ -30,7 +30,7 @@ class KernelOptimizer(KernelOptimizerBase):
         from squlearn.optimizers import Adam
         from squlearn.kernel.optimization import NLL
         enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
-        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
+        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         adam = Adam(options={"maxiter": 20, "lr": 0.1})
         nll_loss = NLL(quantum_kernel=q_kernel, sigma=noise_std**2)
         optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam,

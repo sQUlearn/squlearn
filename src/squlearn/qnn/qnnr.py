@@ -81,7 +81,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         reg = QNNRegressor(
             ChebyshevRx(4, 1, 2),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),

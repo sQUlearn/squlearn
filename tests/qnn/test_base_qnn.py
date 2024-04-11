@@ -26,7 +26,7 @@ class TestBaseQNN:
     def qnn_single_op(self) -> MockBaseQNN:
         """BaseQNN module with single operator."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
         loss = SquaredLoss()
@@ -37,7 +37,7 @@ class TestBaseQNN:
     def qnn_multi_op(self) -> MockBaseQNN:
         """BaseQNN module with multiple operators."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         operator = [IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S") for _ in range(5)]
         loss = SquaredLoss()

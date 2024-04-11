@@ -308,7 +308,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.util import Executor
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
-       kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor("statevector_simulator"))
+       kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor())
        x = np.random.rand(10)
        kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
        print(kernel_matrix)
@@ -334,7 +334,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
        # Use Matern Outer kernel with nu=0.5 as a outer kernel hyperparameter
        kernel = ProjectedQuantumKernel(encoding_circuit=fm,
-                                       executor=Executor("statevector_simulator"),
+                                       executor=Executor(),
                                        measurement=measuments,
                                        outer_kernel="matern",
                                        nu=0.5)
