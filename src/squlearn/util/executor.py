@@ -113,7 +113,27 @@ class Executor:
        * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
        * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
 
-    **Example: Different initializations of the Executor**
+    **Example: Different PennyLane based initializations of the Executor**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+       import pennylane as qml
+
+       # Executor with a PennyLane device (statevector)
+       executor = Executor(qml.device("default.qubit"))
+
+       # Executor with a PennyLane device (shot-based)
+       executor = Executor(qml.device("default.qubit", shots=1000))
+
+       # Executor with a PennyLane lightining device
+       executor = Executor(qml.device("lightning.qubit"))
+
+       # Executor with a AWS Braket device with 4 qubits (requires a valid AWS credential to be set)
+       dev = qml.device("braket.aws.qubit", device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1", wires=4)
+       executor = Executor(dev)
+
+    **Example: Different Qiskit based initializations of the Executor**
 
     .. code-block:: python
 
@@ -136,7 +156,7 @@ class Executor:
        executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
-    **Example: Get the Executor based primitives**
+    **Example: Get the Executor based Qiskit primitives**
 
     .. jupyter-execute::
 
@@ -151,7 +171,6 @@ class Executor:
        # Get the Executor based Sampler - can be used as a normal Qiskit Sampler
        sampler = executor.get_sampler()
 
-    .. jupyter-execute::
 
        # Run a circuit with the Executor based Sampler
        from qiskit.circuit.random import random_circuit

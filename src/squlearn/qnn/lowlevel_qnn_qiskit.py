@@ -290,6 +290,9 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameters (ParameterVector): Parameter vector of the PQC
         features (ParameterVector): Feature vector of the PQC
         parameters_operator (ParameterVector): Parameter vector of the cost operator
+
+    Methods:
+    --------
     """
 
     def __init__(

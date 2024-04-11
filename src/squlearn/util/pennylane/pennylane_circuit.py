@@ -118,6 +118,8 @@ class PennyLaneCircuit:
         circuit_arguments (list): List of all circuit and observable parameters names
         hash (str): Hashable object of the circuit and observable for caching
 
+    Methods:
+    --------
     """
 
     def __init__(
