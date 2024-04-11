@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Union, List
-from sympy import lambdify
+from sympy import lambdify,sympify
+
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
@@ -190,7 +191,7 @@ class PennyLaneCircuit:
         pennylane_gates_parameters = []
         pennylane_gates_parameters_count = {}
 
-        symbol_tuple = tuple([p._symbol_expr for p in circuit.parameters])
+        symbol_tuple = tuple([sympify(p._symbol_expr) for p in circuit.parameters])
 
         for param in circuit.parameters:
             if param.vector.name not in pennylane_gates_parameters:
@@ -210,9 +211,9 @@ class PennyLaneCircuit:
                         if param._symbol_expr == None:
                             param = param._coeff
                         else:
-                            symbol_expr = param._symbol_expr
+                            symbol_expr = sympify(param._symbol_expr)
                             f = lambdify(
-                                symbol_tuple, symbol_expr, modules=modules, printer=printer, dummify = True
+                                symbol_tuple, symbol_expr, modules=modules, printer=printer
                             )
 
                             param_tuple += (f,)
@@ -227,7 +228,7 @@ class PennyLaneCircuit:
                 )
 
             pennylane_gates.append(qiskit_pennyland_gate_dict[op.operation.name])
-            wires = [op.qubits[i].index for i in range(op.operation.num_qubits)]
+            wires = [circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)]
             pennylane_gates_wires.append(wires)
 
         return (
@@ -275,7 +276,7 @@ class PennyLaneCircuit:
         symbol_tuple = tuple(
             sum(
                 [
-                    [p._symbol_expr for p in sort_parameters_after_index(obs.parameters)]
+                    [sympify(p._symbol_expr) for p in sort_parameters_after_index(obs.parameters)]
                     for obs in observable
                 ],
                 [],
@@ -298,8 +299,8 @@ class PennyLaneCircuit:
                         else:
                             coeff = float(coeff)
                     else:
-                        symbol_expr = coeff._symbol_expr
-                        f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer, dummify = True)
+                        symbol_expr = sympify(coeff._symbol_expr)
+                        f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
                         pennylane_obs_param_function_.append(f)
                 else:
                     if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
