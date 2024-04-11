@@ -3,12 +3,23 @@ from typing import Union
 import numpy as np
 import copy
 
+from qiskit.circuit import ParameterVector
+from qiskit.circuit.parametervector import ParameterVectorElement
+
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
 
 
 class LowLevelQNNBase(abc.ABC):
+    """Base class for low-level QNNs.
+
+    Args:
+        pqc (EncodingCircuitBase): The parameterized quantum circuit.
+        observable (Union[ObservableBase, list]): The observable(s) to measure.
+        executor (Executor): The executor for the quantum circuit.
+    """
+
     def __init__(
         self,
         pqc: EncodingCircuitBase,
@@ -21,10 +32,12 @@ class LowLevelQNNBase(abc.ABC):
 
     @abc.abstractmethod
     def set_params(self, **params) -> None:
+        """Set the parameters of the QNN."""
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_params(self, deep: bool = True) -> dict:
+        """Get the parameters of the QNN."""
         raise NotImplementedError
 
     @property
@@ -66,8 +79,35 @@ class LowLevelQNNBase(abc.ABC):
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_obs: Union[float, np.ndarray],
-        values,  # TODO: data type definition missing Union[str,Expec,tuple,...]
+        *values: Union[
+            str,
+            ParameterVector,
+            ParameterVectorElement,
+            tuple,
+        ],
     ) -> dict:
+        """General function for evaluating the output of derivatives of the QNN.
+
+        Evaluation works for given combination of
+        input features `x` and parameters `param` and `param_op`.
+        The function includes caching of results
+
+        If `x`, `param`, and/or `param_op` are given as a nested list
+        (for example multiple sets of parameters),
+        the values are returned in a nested list.
+
+        Args:
+            x (np.ndarray): Values of the input feature data.
+            param (np.ndarray): Parameter values of the PQC parameters
+            param_op (np.ndarray): Parameter values of the operator parameters
+            values : Derivatives (or values) of the QNN that are evaluated. Higher order
+                     derivatives are given as tuples of parameters or vectors.
+
+        Results:
+            Returns a dictionary with the computed values.
+            The keys of the dictionary are given by the entries in the values tuple
+
+        """
         raise NotImplementedError
 
     def gradient(
@@ -76,6 +116,17 @@ class LowLevelQNNBase(abc.ABC):
         param: Union[float, np.ndarray],
         param_obs: Union[float, np.ndarray],
     ):
+        """Return the gradient wrt. trainable parameters of the QNN.
+
+        Args:
+            x (Union[float, np.ndarray]): Input data.
+            param (Union[float, np.ndarray]): Parameters of the PQC.
+            param_obs (Union[float, np.ndarray]): Parameters of the observable.
+
+        Returns:
+            np.ndarray: Gradient of the QNN.
+
+        """
         return np.concatenate(
             (
                 self.evaluate(x, param, param_obs, "dfdp")["dfdp"],
@@ -90,4 +141,16 @@ class LowLevelQNNBase(abc.ABC):
         param: Union[float, np.ndarray],
         param_obs: Union[float, np.ndarray],
     ):
+        """
+        Function for evaluating the QNN.
+
+        Args:
+            x (Union[float, np.ndarray]): Input data.
+            param (Union[float, np.ndarray]): Parameters of the PQC.
+            param_obs (Union[float, np.ndarray]): Parameters of the observable.
+
+        Returns:
+            np.ndarray: The output of the QNN.
+
+        """
         return self.evaluate(x, param, param_obs, "f")["f"]

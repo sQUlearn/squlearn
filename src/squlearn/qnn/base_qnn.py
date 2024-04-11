@@ -9,7 +9,6 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
@@ -18,9 +17,7 @@ from ..util import Executor
 
 from .loss import LossBase
 
-# from .qnn import QNN
-from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
-from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+from .lowlevel_qnn import LowLevelQNN
 from .training import ShotControlBase
 
 
@@ -137,16 +134,7 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
 
-        if self.executor.quantum_framework == "qiskit":
-            self._qnn = LowLevelQNNQiskit(
-                encoding_circuit, operator, executor, result_caching=self.caching
-            )
-        elif self.executor.quantum_framework == "pennylane":
-            self._qnn = LowLevelQNNPennyLane(
-                encoding_circuit, operator, executor, result_caching=self.caching
-            )
-        else:
-            raise ValueError(f"Unknown quantum framework {self.executor.quantum_framework}")
+        self._qnn = LowLevelQNN(encoding_circuit, operator, executor, result_caching=self.caching)
 
         self.shot_control = shot_control
         if self.shot_control is not None:

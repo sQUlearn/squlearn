@@ -18,7 +18,15 @@ from ..executor import Executor
 
 
 def _get_sympy_interface():
+    """
+    Returns the sympy interface that is used in the parameter conversion.
 
+    Necessary for the correct conversion of sympy expressions in Qiskit to
+    python functions in PennyLane.
+
+    Returns:
+        Tuple of sympy printer and sympy modules
+    """
     # SymPy printer for pennylane numpy implementation has to be set manually,
     # otherwise math functions are used in lambdify instead of pennylane.numpy functions
     from sympy.printing.numpy import NumPyPrinter as Printer
@@ -31,8 +39,12 @@ def _get_sympy_interface():
             "allow_unknown_functions": True,
             "user_functions": user_functions,
         }
-    )  #
+    )
+    # Use Pennylane numpy for sympy lambdify
     modules = pnp
+
+    # The functions down below can be used to switch between different gradient engines
+    # as tensorflow, jax and torch. However, this is not supported and implemented yet.
 
     #     # SymPy printer for pennylane numpy implementation has to be set manually,
     #     # otherwise math functions are used in lambdify instead of pennylane.numpy functions
@@ -85,6 +97,28 @@ def _get_sympy_interface():
 
 
 class PennyLaneCircuit:
+    """
+    Class for converting a Qiskit circuit to a PennyLane circuit.
+
+    Args:
+        circuit (QuantumCircuit): Qiskit circuit to convert to PennyLane
+        observable (Union[None, SparsePauliOp, List[SparsePauliOp], str]): Observable to be measured
+                                                                           Can be also a string like ``"probs"`` or ``"state"``
+        executor (Executor): Executor object to handle the PennyLane circuit. Has to be initialized with a PennyLane device.
+
+    Attributes:
+    -----------
+
+    Attributes:
+        pennylane_circuit (qml.qnode): PennyLane circuit that can be called with parameters
+        circuit_parameter_names (list): List of circuit parameter names
+        observable_parameter_names (list): List of observable parameter names
+        circuit_parameter_dimensions (dict): Dictionary with the dimension of each circuit parameter
+        observable_parameter_dimension (dict): Dictionary with the dimension of each observable parameter
+        circuit_arguments (list): List of all circuit and observable parameters names
+        hash (str): Hashable object of the circuit and observable for caching
+
+    """
 
     def __init__(
         self,
@@ -94,13 +128,17 @@ class PennyLaneCircuit:
     ) -> None:
 
         self._executor = executor
-        # Transpile circuit to statevector simulator basis gates to  expand blocks automatically
+        # Transpile circuit to statevector simulator basis gates to expand blocks automatically
         self._qiskit_circuit = transpile(circuit, backend=Aer.get_backend("statevector_simulator"))
 
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits
 
         if self._executor:
+            if self._executor.quantum_framework != "pennylane":
+                raise ValueError(
+                    "Executor is not compatible with PennyLane. Please provide a executor initialized with a PennyLane device!"
+                )
             self._decorator = self._executor.pennylane_decorator
         else:
             device = qml.device("default.qubit")
@@ -118,7 +156,7 @@ class PennyLaneCircuit:
             self._pennylane_gates_param_function,
             self._pennylane_gates_wires,
             self._pennylane_gates_parameters,
-            self._pennylane_gates_parameters_count,
+            self._pennylane_gates_parameters_dimensions,
         ) = self.build_circuit_instructions(self._qiskit_circuit)
 
         # Build circuit instructions for the pennylane observable from the qiskit circuit
@@ -127,7 +165,7 @@ class PennyLaneCircuit:
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
                 self._pennylane_obs_parameters,
-                self._pennylane_obs_parameters_count,
+                self._pennylane_obs_parameters_dimensions,
             ) = self.build_observable_instructions(observable)
         else:
             self._pennylane_obs_param_function = []
@@ -137,38 +175,56 @@ class PennyLaneCircuit:
         self._pennylane_circuit = self.build_pennylane_circuit()
 
     @property
-    def pennylane_circuit(self):
+    def pennylane_circuit(self) -> callable:
+        """PennyLane circuit that can be called with parameters"""
         return self._pennylane_circuit
 
     @property
     def circuit_parameter_names(self) -> list:
+        """List of circuit parameter names"""
         return self._pennylane_gates_parameters
 
     @property
     def observable_parameter_names(self) -> list:
+        """List of observable parameter names"""
         return self._pennylane_obs_parameters
 
     @property
-    def circuit_parameter_count(self) -> dict:
-        return self._pennylane_gates_parameters_count
+    def circuit_parameter_dimensions(self) -> dict:
+        """Dictionary with the dimension of each circuit parameter"""
+        return self._pennylane_gates_parameters_dimensions
 
     @property
-    def observable_parameter_count(self) -> dict:
-        return self._pennylane_obs_parameters_count
+    def observable_parameter_dimensions(self) -> dict:
+        """Dictionary with the dimension of each observable parameter"""
+        return self._pennylane_obs_parameters_dimensions
 
     @property
-    def hash(self) -> int:
+    def circuit_arguments(self) -> list:
+        """List of all circuit and observable parameters names"""
+        return self._pennylane_gates_parameters + self._pennylane_obs_parameters
 
+    @property
+    def hash(self) -> str:
+        """Hashable object of the circuit and observable for caching"""
         return str(self._qiskit_circuit) + str(self._qiskit_observable)
 
     def draw(self, engine: str = "pennylane", **kwargs):
+        """Draw the circuit with the specified engine
 
+        Args:
+            engine (str): Engine to draw the circuit. Can be either ``"pennylane"`` or ``"qiskit"``
+            **kwargs: Additional arguments for the drawing engine (only for qiskit)
+
+        Returns:
+            matplotlib Figure object of the circuit visualization
+        """
         if engine == "pennylane":
             args = []
             for name in self.circuit_parameter_names:
-                args.append(np.random.rand(self.circuit_parameter_count[name]))
+                args.append(np.random.rand(self.circuit_parameter_dimensions[name]))
             for name in self.observable_parameter_names:
-                args.append(np.random.rand(self.observable_parameter_count[name]))
+                args.append(np.random.rand(self.observable_parameter_dimensions[name]))
             args = tuple(args)
             return qml.draw_mpl(self._pennylane_circuit)(*args)
         elif engine == "qiskit":
@@ -176,29 +232,42 @@ class PennyLaneCircuit:
         else:
             raise NotImplementedError("Circuit engine not implemented")
 
-    def get_pennylane_circuit(self):
+    def get_pennylane_circuit(self) -> callable:
+        """Builds and returns the PennyLane circuit as callable function"""
         self._pennylane_circuit = self.build_pennylane_circuit()
         return self._pennylane_circuit
 
     def __call__(self, *args, **kwargs):
         return self._pennylane_circuit(*args, **kwargs)
 
-    def build_circuit_instructions(self, circuit: QuantumCircuit) -> None:
+    def build_circuit_instructions(self, circuit: QuantumCircuit) -> tuple:
+        """
+        Function to build the instructions for the PennyLane circuit from the Qiskit circuit.
 
+        This functions converts the Qiskit gates and parameter expressions to PennyLane compatible
+        gates and functions.
+
+        Args:
+            circuit (QuantumCircuit): Qiskit circuit to convert to PennyLane
+
+        Returns:
+            Tuple with lists of PennyLane gates, PennyLane gate parameter functions,
+            PennyLane gate wires, PennyLane gate parameters and PennyLane gate parameter dimensions
+        """
         pennylane_gates = []
         pennylane_gates_param_function = []
         pennylane_gates_wires = []
         pennylane_gates_parameters = []
-        pennylane_gates_parameters_count = {}
+        pennylane_gates_parameters_dimensions = {}
 
         symbol_tuple = tuple([sympify(p._symbol_expr) for p in circuit.parameters])
 
         for param in circuit.parameters:
             if param.vector.name not in pennylane_gates_parameters:
                 pennylane_gates_parameters.append(param.vector.name)
-                pennylane_gates_parameters_count[param.vector.name] = 1
+                pennylane_gates_parameters_dimensions[param.vector.name] = 1
             else:
-                pennylane_gates_parameters_count[param.vector.name] += 1
+                pennylane_gates_parameters_dimensions[param.vector.name] += 1
 
         printer, modules = _get_sympy_interface()
 
@@ -236,11 +305,24 @@ class PennyLaneCircuit:
             pennylane_gates_param_function,
             pennylane_gates_wires,
             pennylane_gates_parameters,
-            pennylane_gates_parameters_count,
+            pennylane_gates_parameters_dimensions,
         )
 
     def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
+        """
+        Function to build the instructions for the PennyLane observable from the Qiskit observable.
 
+        This functions converts the Qiskit SparsePauli and parameter expressions to PennyLane
+        compatible Pauli words and functions.
+
+        Args:
+            observable (Union[List[SparsePauliOp], SparsePauliOp]): Qiskit observable to convert
+                                                                    to PennyLane
+
+        Returns:
+            Tuple with lists of PennyLane observable parameter functions, PennyLane Pauli words,
+            PennyLane observable parameters and PennyLane observable parameter dimensions
+        """
         if observable == None:
             return None, None, None
 
@@ -262,14 +344,14 @@ class PennyLaneCircuit:
 
         # Get names of all parameters in all observables
         pennylane_obs_parameters = []
-        pennylane_obs_parameters_count = {}
+        pennylane_obs_parameters_dimensions = {}
         for obs in observable:
             for param in obs.parameters:
                 if param.vector.name not in pennylane_obs_parameters:
                     pennylane_obs_parameters.append(param.vector.name)
-                    pennylane_obs_parameters_count[param.vector.name] = 1
+                    pennylane_obs_parameters_dimensions[param.vector.name] = 1
                 else:
-                    pennylane_obs_parameters_count[param.vector.name] += 1
+                    pennylane_obs_parameters_dimensions[param.vector.name] += 1
 
         # Handle observable parameter expressions and convert them to compatible python functions
 
@@ -326,30 +408,38 @@ class PennyLaneCircuit:
                 pennylane_obs_param_function,
                 pennylane_words,
                 pennylane_obs_parameters,
-                pennylane_obs_parameters_count,
+                pennylane_obs_parameters_dimensions,
             )
         else:
             return (
                 pennylane_obs_param_function[0],
                 pennylane_words[0],
                 pennylane_obs_parameters,
-                pennylane_obs_parameters_count,
+                pennylane_obs_parameters_dimensions,
             )
 
-    @property
-    def circuit_arguments(self) -> list:
-        return self._pennylane_gates_parameters + self._pennylane_obs_parameters
-
     def build_pennylane_circuit(self):
+        """
+        Function to build the PennyLane circuit from the Qiskit circuit and observable.
+
+        The functions returns a callable PennyLane circuit that can be called with parameters.
+        The PennyLane circuit is built from the instructions previously generated from the Qiskit
+        circuit and observable.
+
+        Returns:
+            Callable PennyLane circuit
+        """
 
         @self._decorator
         def pennylane_circuit(*args):
+            """PennyLane circuit that can be called with parameters"""
 
-            # list -> slow?
+            # Collects the args values connected to the circuit parameters
             circ_param_list = sum(
                 [list(args[i]) for i in range(len(self._pennylane_gates_parameters))], []
             )
 
+            # Collects the args values connected to the observable parameters
             obs_param_list = sum(
                 [
                     list(args[len(self._pennylane_gates_parameters) + i])
@@ -371,6 +461,7 @@ class PennyLaneCircuit:
                 else:
                     op(wires=self._pennylane_gates_wires[i])
 
+            # Defines the output of the circuit
             if self._qiskit_observable == None:
                 return qml.probs(wires=range(self._num_qubits))
             elif self._qiskit_observable == "probs":

@@ -12,14 +12,14 @@ from .lowlevel_qnn_base import LowLevelQNNBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..util import Executor
 
+from ..util import Executor
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util.pennylane.pennylane_circuit import PennyLaneCircuit
 
 
 class direct_evaluation:
-    """Class for evaluation of derivatives of the QNN
+    """Container class for evaluation of derivatives of the QNN
 
     Args:
         key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative for
@@ -54,7 +54,7 @@ class direct_evaluation:
 
 
 class post_processing_evaluation:
-    """Class post processing evaluation of derivatives of the QNN
+    """Container class for the post processing evaluation of derivatives of the QNN
 
     Args:
         key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative
@@ -85,10 +85,11 @@ def _get_class_from_string(
         ParameterVectorElement,
     ]
 ) -> Union[direct_evaluation, post_processing_evaluation]:
-    """Converts an input string to the Expec data structure.
+    """Converts an input string to the direct or post processing evaluation object
 
     Args:
-        String that defines the expectation value derivative
+        val (Union[str, tuple, direct_evaluation, post_processing_evaluation,
+                ParameterVector, ParameterVectorElement]): Input string or evaluation object
 
     Returns:
         Associated Expec object
@@ -426,6 +427,31 @@ def _get_class_from_string(
 
 
 class LowLevelQNNPennyLane(LowLevelQNNBase):
+    """
+    Low level implementation of QNNs and its derivatives based on PennyLane.
+
+    Args:
+        pqc (EncodingCircuitBase) : parameterized quantum circuit in encoding circuit format
+        operator (Union[ObservableBase,list]): Operator that is used in the expectation
+            value of the QNN. Can be a list for multiple outputs.
+        executor (Executor) : Executor that is used for the evaluation of the QNN
+        result_caching : Caching of the result for each `x`, `param`, `param_op` combination
+            (default = True)
+
+    Attributes:
+    -----------
+
+    Attributes:
+        num_qubits (int): Number of qubits of the QNN
+        num_features (int): Dimension of the features of the PQC
+        num_parameters (int): Number of trainable parameters of the PQC
+        num_operator (int): Number of outputs
+        num_parameters_observable (int): Number of trainable parameters of the expectation value operator
+        multiple_output (bool): True if multiple outputs are used
+        parameters (ParameterVector): Parameter vector of the PQC
+        features (ParameterVector): Feature vector of the PQC
+        parameters_operator (ParameterVector): Parameter vector of the cost operator
+    """
 
     def __init__(
         self,
@@ -489,11 +515,16 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._qiskit_circuit, self._qiskit_observable_squared, self._executor
         )
 
-    def draw(self, **kwargs):
-        # TODO: fix or remove
-        return self._pennylane_circuit.draw(**kwargs)
-
     def set_params(self, **params) -> None:
+        """Sets the hyper-parameters of the QNN
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0__``, ``op1__``, etc.
+
+        Args:
+            params: Hyper-parameters that are adjusted, e.g. ``num_qubits=4``
+
+        """
         # Check if all parameters are valid
         valid_params = self.get_params(deep=True)
         for key, value in params.items():
@@ -613,13 +644,34 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             tuple,
         ],
     ) -> dict:
-        # TODO: DOCSTRING!!
+        """General function for evaluating the output of derivatives of the QNN.
+
+        Evaluation works for given combination of
+        input features `x` and parameters `param` and `param_op`.
+        The function includes caching of results
+
+        If `x`, `param`, and/or `param_op` are given as a nested list
+        (for example multiple sets of parameters),
+        the values are returned in a nested list.
+
+        Args:
+            x (np.ndarray): Values of the input feature data.
+            param (np.ndarray): Parameter values of the PQC parameters
+            param_op (np.ndarray): Parameter values of the operator parameters
+            values : Derivatives (or values) of the QNN that are evaluated. Higher order
+                     derivatives are given as tuples of parameters or vectors.
+
+        Results:
+            Returns a dictionary with the computed values.
+            The keys of the dictionary are given by the entries in the values tuple
+
+        """
 
         def _evaluate_todo_single_x(
             todo_class: direct_evaluation, x: np.array, param: np.array, param_obs: np.array
         ) -> np.array:
             """
-            Evaluate the derivative of the QNN with respect to a single x value
+            Helper for evaluating the derivative of the QNN with respect to a single x value
 
             Args:
                 todo_class (direct_evaluation): Class that defines the derivative to evaluate
@@ -694,7 +746,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             todo_class: direct_evaluation, x: np.array, param: np.array, param_obs: np.array
         ):
             """
-            Evaluate the derivative of the QNN with respect to all x values at once
+            Helper for evaluating the derivative of the QNN with respect to all x values at once
 
             Args:
                 todo_class (direct_evaluation): Class that defines the derivative to evaluate
@@ -923,13 +975,3 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self.result_container[caching_tuple] = value_dict
 
         return value_dict
-
-    # TODO: Remove
-    def evaluate_f(
-        self,
-        x: Union[float, np.ndarray],
-        param: Union[float, np.ndarray],
-        param_obs: Union[float, np.ndarray],
-    ) -> dict:
-
-        return self.evaluate(x, param, param_obs, "f")["f"]

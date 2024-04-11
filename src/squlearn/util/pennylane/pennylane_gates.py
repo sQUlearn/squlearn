@@ -2,25 +2,31 @@ import pennylane as qml
 
 
 def RXX(theta, wires):
+    """RXX gate."""
     return qml.PauliRot(theta, "XX", wires=wires)
 
 
 def RYY(theta, wires):
+    """RYY gate."""
     return qml.PauliRot(theta, "YY", wires=wires)
 
 
 def RZZ(theta, wires):
+    """RZZ gate."""
     return qml.PauliRot(theta, "ZZ", wires=wires)
 
 
 def RXZ(theta, wires):
+    """RXZ gate."""
     return qml.PauliRot(theta, "XZ", wires=wires)
 
 
 def reset(wires):
+    """Reset gate, implemented by measure and reset."""
     return qml.measure(wires=wires, reset=True)
 
 
+# Dictionary of conversion Qiskit gates (from string) to PennyLane gates
 qiskit_pennyland_gate_dict = {
     "i": qml.Identity,
     "h": qml.Hadamard,

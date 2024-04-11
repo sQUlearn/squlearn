@@ -6,24 +6,16 @@ from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
 from ..observables.observable_base import ObservableBase
-from ..observables.observable_derivatives import (
-    ObservableDerivatives,
-)
+from ..observables.observable_derivatives import ObservableDerivatives
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.encoding_circuit_derivatives import (
-    EncodingCircuitDerivatives,
-)
+from ..encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
 from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util import Executor
 
-from ..util.optree.optree import (
-    OpTreeList,
-    OpTreeCircuit,
-    OpTree,
-)
+from ..util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 
@@ -274,7 +266,7 @@ class Expec:
 
 
 class LowLevelQNNQiskit(LowLevelQNNBase):
-    """A class for working with QNNs and its derivatives
+    """Low level implementation of QNNs and its derivatives based on Qiskit.
 
     Args:
         pqc (EncodingCircuitBase) : parameterized quantum circuit in encoding circuit format
@@ -284,6 +276,20 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+
+    Attributes:
+    -----------
+
+    Attributes:
+        num_qubits (int): Number of qubits of the QNN
+        num_features (int): Dimension of features of the PQC
+        num_parameters (int): Number of trainable parameters of the PQC
+        num_operator (int): Number of outputs
+        num_parameters_observable (int): Number of trainable parameters of the expectation value operator
+        multiple_output (bool): True if multiple outputs are used
+        parameters (ParameterVector): Parameter vector of the PQC
+        features (ParameterVector): Feature vector of the PQC
+        parameters_operator (ParameterVector): Parameter vector of the cost operator
     """
 
     def __init__(
@@ -294,6 +300,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         optree_caching=True,
         result_caching=True,
     ) -> None:
+
         pqc = TranspiledEncodingCircuit(pqc, executor.backend)
         super().__init__(pqc, operator, executor)
 
@@ -804,7 +811,13 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
-        *values,
+        *values: Union[
+            str,
+            Expec,
+            ParameterVector,
+            ParameterVectorElement,
+            tuple,
+        ],
     ) -> dict:
         """General function for evaluating the output of derivatives of the QNN.
 

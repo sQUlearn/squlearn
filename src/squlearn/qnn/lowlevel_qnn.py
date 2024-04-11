@@ -10,6 +10,19 @@ from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 
 
 class LowLevelQNN(LowLevelQNNBase):
+    """
+    Low-level QNN factory, which creates the specific low-level QNN based on the quantum framework.
+
+    Args:
+        pqc (EncodingCircuitBase): The parameterized quantum circuit.
+        observable (Union[ObservableBase, list]): The observable(s) to measure.
+        executor (Executor): The executor for the quantum circuit.
+        *args: Additional arguments that are passed to the specific QNN.
+        **kwargs: Additional keyword arguments that are passed to the specific QNN.
+
+    Returns
+        LowLevelQNNBase: The specific low-level QNN based on the quantum framework.
+    """
 
     def __new__(
         self,

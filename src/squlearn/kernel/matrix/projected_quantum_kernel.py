@@ -19,8 +19,7 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 
-from ...qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
-from ...qnn.lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from ...qnn.lowlevel_qnn import LowLevelQNN
 from ...qnn.lowlevel_qnn_base import LowLevelQNNBase
 
 from ...observables import SinglePauli
@@ -379,14 +378,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
         # Set-up of the QNN
-        if self._executor.quantum_framework == "pennylane":
-            self._qnn = LowLevelQNNPennyLane(
-                self._encoding_circuit, self._measurement, executor, result_caching=self._caching
-            )
-        elif self._executor.quantum_framework == "qiskit":
-            self._qnn = LowLevelQNNQiskit(
-                self._encoding_circuit, self._measurement, executor, result_caching=self._caching
-            )
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+        )
 
         # Set-up of the outer kernel
         self._set_outer_kernel(outer_kernel, **kwargs)
