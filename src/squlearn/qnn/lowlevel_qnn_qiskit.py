@@ -996,13 +996,13 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             # FIRST SWAP: different observables to the first place of the array
             # swap i=2+num_nested to position 0, keep the rest in order
             if is_val_empty is False:
-                ilist = list(range(len(val.shape)))
-                swapp_list2 = [ilist[2 + num_nested]]
-                swapp_list2 += [ilist[0]] + [ilist[1]]
+                index_list = list(range(len(val.shape)))
+                swapp_list = [index_list[2 + num_nested]]
+                swapp_list += [index_list[0]] + [index_list[1]]
                 if num_nested > 0:
-                    swapp_list2 += ilist[2 : 2 + num_nested]
-                swapp_list2 += ilist[3 + num_nested :]
-                val = np.transpose(val, axes=swapp_list2)
+                    swapp_list += index_list[2 : 2 + num_nested]
+                swapp_list += index_list[3 + num_nested :]
+                val = np.transpose(val, axes=swapp_list)
 
             # store results in value_dict
             for iexpec, expec_ in enumerate(op_list):
@@ -1020,15 +1020,15 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
                     # swap the multiple outputs to third position
                     # swap the observable derivatives to the second position
                     # swap the circuit derivatives to the last position
-                    ilist = list(range(len(val_final.shape)))
-                    swapp_list3 = [0, 1]
+                    index_list = list(range(len(val_final.shape)))
+                    swapp_list = [0, 1]
                     if self.multiple_output:
-                        swapp_list3 += [ilist.pop()]
-                    if len(ilist) > 2 + num_nested:
-                        swapp_list3 += ilist[2 + num_nested :]
+                        swapp_list += [index_list.pop()]
+                    if len(index_list) > 2 + num_nested:
+                        swapp_list += index_list[2 + num_nested :]
                     if num_nested > 0:
-                        swapp_list3 += ilist[2 : 2 + num_nested]
-                    val_final = np.transpose(val_final, axes=swapp_list3)
+                        swapp_list += index_list[2 : 2 + num_nested]
+                    val_final = np.transpose(val_final, axes=swapp_list)
 
                     # Reshape for the final output, adjust x and param if needed
                     reshape_list = []
