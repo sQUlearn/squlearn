@@ -23,7 +23,7 @@ class TestSolvemini_batch:
 
     pqc = ChebyshevPQC(4, 1, 3, False)
     cost_op = SummedPaulis(4)
-    qnn = LowLevelQNN.create(pqc, cost_op, executor)
+    qnn = LowLevelQNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
     def test_wrong_optimizer(self):
