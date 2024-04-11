@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Union, List
-from sympy import lambdify,sympify
+from sympy import lambdify, sympify
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
