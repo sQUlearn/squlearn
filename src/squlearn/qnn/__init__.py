@@ -1,4 +1,5 @@
 """QNN module for classification and regression."""
+
 from .loss import SquaredLoss, LogLoss, VarianceLoss, ConstantLoss, ParameterRegularizationLoss
 from .qnnc import QNNClassifier
 from .qnnr import QNNRegressor
