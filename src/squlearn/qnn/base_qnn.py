@@ -134,6 +134,9 @@ class BaseQNN(BaseEstimator, ABC):
 
         self.executor = executor
 
+        self._encoding_circuit_ini = encoding_circuit
+        self._operator_ini = operator
+
         self._qnn = LowLevelQNN(encoding_circuit, operator, executor, result_caching=self.caching)
 
         self.shot_control = shot_control
@@ -204,10 +207,32 @@ class BaseQNN(BaseEstimator, ABC):
         else:
             return self._qnn._pqc
 
+    @encoding_circuit.setter
+    def encoding_circuit(self, encoding_circuit: EncodingCircuitBase):
+        """Set the encoding circuit."""
+        self._encoding_circuit_ini = encoding_circuit
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
+
     @property
     def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
         """Operator."""
         return self._qnn._observable
+
+    @operator.setter
+    def operator(self, operator: Union[ObservableBase, list[ObservableBase]]):
+        """Set the operator."""
+        self._operator_ini = operator
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
 
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
