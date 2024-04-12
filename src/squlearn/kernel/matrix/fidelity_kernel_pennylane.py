@@ -3,21 +3,12 @@
 from typing import Union
 import numpy as np
 
-from qiskit_machine_learning.kernels import (
-    FidelityQuantumKernel,
-    FidelityStatevectorKernel,
-    TrainableFidelityQuantumKernel,
-    TrainableFidelityStatevectorKernel,
-)
-from qiskit_algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
 from qiskit.compiler import transpile
 from qiskit_algorithms.utils import algorithm_globals
 
-from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
-
 
 from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
 from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
@@ -28,59 +19,16 @@ from functools import lru_cache
 
 class FidelityKernelPennyLane:
     """
-    Fidelity Quantum Kernel.
-
-    The Fidelity Quantum Kernel is a based on the overlap of the quantum states.
-    These quantum states
-    can be defined by a parameterized quantum circuit. The Fidelity Quantum Kernel is defined as:
-
-    .. math::
-
-        K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
-
-    This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
-    <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
-    Depending on the choice of the backend and the choice of trainable parameters, the appropriate
-    Quantum Kernel implementation is chosen.
+    Fidelity Quantum Kernel implementation based on PennyLane.
 
     Args:
-        encoding_circuit (EncodingCircuitBase): PQC encoding circuit.
-        executor (Executor): Executor object.
-        evaluate_duplicates (str), default='off_diagonal':
-            Option for evaluating duplicates ('all', 'off_diagonal', 'none').
-        mit_depol_noise (Union[str, None]), default=None:
-            Option for mitigating depolarizing noise (``"msplit"`` or ``"mmean"``) after
-            Ref. [4]. Only meaningful for
-            FQKs computed on a real backend.
-        initial_parameters (Union[np.ndarray, None], default=None):
-            Initial parameters for the encoding circuit.
-        parameter_seed (Union[int, None], default=0):
-            Seed for the random number generator for the parameter initialization, if
-            initial_parameters is None.
-        regularization  (Union[str, None], default=None):
-            Option for choosing different regularization techniques (``"thresholding"`` or
-            ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
-            linear system in the ``fit()``-procedure.
-
-    References:
-        [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
-        Nature 567, 209-212 (2019).
-        <https://www.nature.com/articles/s41586-019-0980-2>`_
-
-        [2]: `Schuld et al., Quantum Machine Learning in Feature Hilbert Spaces,
-        Phys. Rev. Lett. 122, 040504 (2019).
-        <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.040504>`_
-
-        [3]: `Schuld et al., Quantum Machine Learning Models are Kernel Methods:
-        Noise-Enhanced Quantum Embeddings, arXiv:2105.02276 (2021).
-        <https://arxiv.org/abs/2105.02276>`_
-
-        [4]: `T. Hubregtsen et al.,
-        "Training Quantum Embedding Kernels on Near-Term Quantum Computers",
-        arXiv:2105.02276v1 (2021)
-        <https://arxiv.org/abs/2105.02276>`_
-
-
+        encoding_circuit (EncodingCircuitBase): The encoding circuit.
+        executor (Executor): The executor for the quantum circuit.
+        evaluate_duplicates (str): The evaluation mode for duplicates. Options are:
+            - "all": Evaluate all duplicates.
+            - "off_diagonal": Evaluate only off-diagonal duplicates.
+            - "none": Do not evaluate any duplicates.
+        cache_size (int): The cache size for the lru_cache.
     """
 
     def __init__(

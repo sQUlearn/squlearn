@@ -11,21 +11,12 @@ from qiskit_machine_learning.kernels import (
 )
 from qiskit_algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
-from qiskit.compiler import transpile
-from qiskit_algorithms.utils import algorithm_globals
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
-
-from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
-from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
-from ...util.data_preprocessing import to_tuple, adjust_features
-
 from .fidelity_kernel_pennylane import FidelityKernelPennyLane
-
-from functools import lru_cache
 
 
 class FidelityKernel(KernelMatrixBase):
