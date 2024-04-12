@@ -13,7 +13,7 @@ import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
 
-from .pennylane_gates import qiskit_pennyland_gate_dict
+from .pennylane_gates import qiskit_pennylane_gate_dict
 from ..executor import Executor
 
 
@@ -135,22 +135,6 @@ class PennyLaneCircuit:
 
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits
-
-        if self._executor:
-            if self._executor.quantum_framework != "pennylane":
-                raise ValueError(
-                    "Executor is not compatible with PennyLane. Please provide a executor initialized with a PennyLane device!"
-                )
-            self._decorator = self._executor.pennylane_decorator
-        else:
-            device = qml.device("default.qubit")
-
-            def pennylane_decorator(pennylane_function):
-                return qml.qnode(device, diff_method="backprop", interface="autograd")(
-                    pennylane_function
-                )
-
-            self._decorator = pennylane_decorator
 
         # Build circuit instructions for the pennylane circuit from the qiskit circuit
         (
@@ -293,12 +277,12 @@ class PennyLaneCircuit:
 
             pennylane_gates_param_function.append(param_tuple)
 
-            if op.operation.name not in qiskit_pennyland_gate_dict:
+            if op.operation.name not in qiskit_pennylane_gate_dict:
                 raise NotImplementedError(
                     f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's PennyLane backend."
                 )
 
-            pennylane_gates.append(qiskit_pennyland_gate_dict[op.operation.name])
+            pennylane_gates.append(qiskit_pennylane_gate_dict[op.operation.name])
             wires = [circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)]
             pennylane_gates_wires.append(wires)
 
@@ -432,7 +416,7 @@ class PennyLaneCircuit:
             Callable PennyLane circuit
         """
 
-        @self._decorator
+        @qml.qnode(self._executor.backend, diff_method="best")
         def pennylane_circuit(*args):
             """PennyLane circuit that can be called with parameters"""
 

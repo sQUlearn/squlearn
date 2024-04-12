@@ -26,8 +26,18 @@ def reset(wires):
     return qml.measure(wires=wires, reset=True)
 
 
+def tdg(wires):
+    """T-dagger gate."""
+    return qml.adjoint(qml.T(wires=wires))
+
+
+def sdg(wires):
+    """S-dagger gate."""
+    return qml.adjoint(qml.S(wires=wires))
+
+
 # Dictionary of conversion Qiskit gates (from string) to PennyLane gates
-qiskit_pennyland_gate_dict = {
+qiskit_pennylane_gate_dict = {
     "i": qml.Identity,
     "h": qml.Hadamard,
     "x": qml.PauliX,
@@ -62,4 +72,6 @@ qiskit_pennyland_gate_dict = {
     "u": qml.U3,
     "measure": qml.measure,
     "reset": reset,
+    "tdg": tdg,
+    "sdg": sdg,
 }

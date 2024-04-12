@@ -30,7 +30,7 @@ class TestQKRR:
     def qkrr_fidelity(self) -> QKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)  # why?
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = ParamZFeatureMap(
             num_qubits=3, num_features=2, num_layers=2, entangling=True
         )
@@ -46,7 +46,7 @@ class TestQKRR:
     def qkrr_pqk(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)  # why?
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = ParamZFeatureMap(
             num_qubits=3, num_features=2, num_layers=2, entangling=True
         )

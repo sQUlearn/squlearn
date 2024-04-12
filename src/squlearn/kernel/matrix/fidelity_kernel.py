@@ -19,7 +19,7 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
 
-from ...util.pennylane.pennylane_gates import qiskit_pennyland_gate_dict
+from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
 from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
 from ...util.data_preprocessing import to_tuple, adjust_features
 
@@ -116,17 +116,18 @@ class FidelityKernel(KernelMatrixBase):
 
                 enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
                 circuit = transpile(
-                    enc_circ, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
+                    enc_circ, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
                 )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state", self._executor)
 
+                @lru_cache
                 def pennylane_circuit_executor(*args, **kwargs):
                     args_numpy = [np.array(arg) for arg in args]
                     return self._executor.pennylane_execute(
                         self._pennylane_circuit, *args_numpy, **kwargs
                     )
 
-                self._pennylane_circuit_cached = lru_cache()(pennylane_circuit_executor)
+                self._pennylane_circuit_cached = pennylane_circuit_executor
 
             else:
 
@@ -143,7 +144,7 @@ class FidelityKernel(KernelMatrixBase):
 
                 circuit = enc_circ1.compose(enc_circ2.inverse())
                 circuit = transpile(
-                    circuit, basis_gates=qiskit_pennyland_gate_dict.keys(), optimization_level=0
+                    circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
                 )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "probs", self._executor)
 

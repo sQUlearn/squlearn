@@ -38,6 +38,8 @@ class SinglePauli(ObservableBase):
         op_str (str): Pauli operator to measure.
         parameterized (bool): If True, the operator is parameterized.
 
+    Methods:
+    --------
     """
 
     def __init__(

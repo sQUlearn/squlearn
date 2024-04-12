@@ -22,11 +22,11 @@ class LowLevelQNNBase(abc.ABC):
 
     def __init__(
         self,
-        pqc: EncodingCircuitBase,
+        parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
     ) -> None:
-        self._pqc = copy.deepcopy(pqc)
+        self._pqc = copy.deepcopy(parameterized_quantum_circuit)
         self._observable = copy.deepcopy(observable)
         self._executor = executor
 

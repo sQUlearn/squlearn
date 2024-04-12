@@ -84,7 +84,7 @@ execution environment:
       executor = Executor(shots=1234)
 
 
-- A string specifying the local simulator backend: Qiskit simulators are available by
+- A string specifying the local simulator backend: Qiskit simulators are available by ``"qiskit"``,
   ``"statevector_simulator"`` and  ``"qasm_simulator"``; PennyLane simulators can be initialized by
   ``"pennylane"`` or ``"default.qubit"``.
 
@@ -96,6 +96,9 @@ execution environment:
 
       # Initialize the Executor with the qasm simulator
       executor = Executor("qasm_simulator",shots=1234)
+
+      # Initialize the Executor with qiksit, statevector for shots=None, qasm for shots>0
+      executor = Executor("qiskit")
 
       # Initialize the Executor with the PennyLane statevector simulator
       executor = Executor("pennylane")

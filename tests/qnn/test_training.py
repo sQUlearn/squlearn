@@ -13,7 +13,7 @@ from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
 
-executor = Executor("statevector_simulator")
+executor = Executor()
 
 examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 

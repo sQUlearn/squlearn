@@ -26,7 +26,7 @@ class LowLevelQNN(LowLevelQNNBase):
 
     def __new__(
         self,
-        pqc: EncodingCircuitBase,
+        parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
         *args,
@@ -34,8 +34,12 @@ class LowLevelQNN(LowLevelQNNBase):
     ):
 
         if executor.quantum_framework == "pennylane":
-            return LowLevelQNNPennyLane(pqc, observable, executor, *args, **kwargs)
+            return LowLevelQNNPennyLane(
+                parameterized_quantum_circuit, observable, executor, *args, **kwargs
+            )
         elif executor.quantum_framework == "qiskit":
-            return LowLevelQNNQiskit(pqc, observable, executor, *args, **kwargs)
+            return LowLevelQNNQiskit(
+                parameterized_quantum_circuit, observable, executor, *args, **kwargs
+            )
         else:
             raise RuntimeError("Quantum framework not supported")

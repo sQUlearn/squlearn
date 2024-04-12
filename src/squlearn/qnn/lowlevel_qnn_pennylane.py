@@ -18,7 +18,7 @@ from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tup
 from ..util.pennylane.pennylane_circuit import PennyLaneCircuit
 
 
-class direct_evaluation:
+class DirectEvaluation:
     """Container class for evaluation of derivatives of the QNN
 
     Args:
@@ -53,7 +53,7 @@ class direct_evaluation:
         self.squared = squared
 
 
-class post_processing_evaluation:
+class PostProcessingEvaluation:
     """Container class for the post processing evaluation of derivatives of the QNN
 
     Args:
@@ -73,357 +73,6 @@ class post_processing_evaluation:
         self.key = key
         self.evaluation_tuple = evaluation_tuple
         self.evaluation_function = evaluation_function
-
-
-def _get_class_from_string(
-    val: Union[
-        str,
-        tuple,
-        direct_evaluation,
-        post_processing_evaluation,
-        ParameterVector,
-        ParameterVectorElement,
-    ]
-) -> Union[direct_evaluation, post_processing_evaluation]:
-    """Converts an input string to the direct or post processing evaluation object
-
-    Args:
-        val (Union[str, tuple, direct_evaluation, post_processing_evaluation,
-                ParameterVector, ParameterVectorElement]): Input string or evaluation object
-
-    Returns:
-        Associated Expec object
-
-    """
-
-    def eval_var(value_dict: dict) -> np.ndarray:
-        """Evaluate the variance of the QNN output
-
-        Args:
-            value_dict (dict): Dictionary of QNN derivatives values
-
-        Returns:
-            Variance of the QNN output
-        """
-        return value_dict["fcc"] - np.square(value_dict["f"])
-
-    def eval_dvardx(value_dict: dict) -> np.ndarray:
-        """Evaluate the derivative of the variance with respect to the input
-
-        Args:
-            value_dict (dict): Dictionary of QNN derivatives values
-
-        Returns:
-            Derivative of the variance with respect to the input
-        """
-        return_val = np.zeros(value_dict["dfccdx"].shape)
-        for i in range(value_dict["dfccdx"].shape[-1]):
-            return_val[..., i] = value_dict["dfccdx"][..., i] - 2.0 * (
-                np.multiply(
-                    value_dict["dfdx"][..., i],
-                    value_dict["f"],
-                )
-            )
-        return return_val
-
-    def eval_dvardp(value_dict: dict) -> np.ndarray:
-        """Evaluate the derivative of the variance with respect to the parameters
-
-        Args:
-            value_dict (dict): Dictionary of QNN derivatives values
-
-        Returns:
-            Derivative of the variance with respect to the parameters
-        """
-        return_val = np.zeros(value_dict["dfccdp"].shape)
-        for i in range(value_dict["dfccdp"].shape[-1]):
-            return_val[..., i] = value_dict["dfccdp"][..., i] - 2.0 * (
-                np.multiply(
-                    value_dict["dfdp"][..., i],
-                    value_dict["f"],
-                )
-            )
-        return return_val
-
-    def eval_dvardop(value_dict: dict) -> np.ndarray:
-        """Evaluate the derivative of the variance with respect to the observable parameters
-
-        Args:
-            value_dict (dict): Dictionary of QNN derivatives values
-
-        Returns:
-            Derivative of the variance with respect to the observable parameters
-        """
-        return_val = np.zeros(value_dict["dfccdop"].shape)
-        for i in range(value_dict["dfccdop"].shape[-1]):
-            return_val[..., i] = value_dict["dfccdop"][..., i] - 2.0 * (
-                np.multiply(
-                    value_dict["dfdop"][..., i],
-                    value_dict["f"],
-                )
-            )
-        return return_val
-
-    def get_eval_laplace(todo: str) -> callable:
-        """Evaluate of the Laplace Operation on the QNN output.
-
-        Args:
-            todo (str): String that defines the type of Laplace operation
-
-        Returns:
-            Function to evaluate the Laplace operation
-        """
-
-        def eval_laplace(value_dict: dict) -> np.ndarray:
-            """Summing the diagonal of the feature Hessian matrix
-
-            Args:
-                value_dict (dict): Dictionary of QNN derivatives values
-
-            Returns:
-                Sum of the diagonal of the feature Hessian matrix
-            """
-            return_val = np.zeros(value_dict[todo].shape[:-2])
-            for i in range(value_dict[todo].shape[-1]):
-                return_val += value_dict[todo][..., i, i]
-            return return_val
-
-        return eval_laplace
-
-    def get_pick_elements(pick_indices: list, label: tuple) -> callable:
-        """
-        Function for generating the post-processing function for general derivatives
-
-        Args:
-            pick_indices (list): List of indices to pick single elements of derivatives
-                                 integer indices for specific parameters or "all" for all elements
-            label (str): Label of the derivative
-
-        Returns:
-            Function to pick single elements of derivatives
-        """
-
-        def pick_elements(value_dict: dict) -> np.ndarray:
-            """
-            Function to pick single elements of general derivatives
-
-            Args:
-                value_dict (dict): Dictionary of QNN derivatives values
-
-            Returns:
-                Picked (single) elements of the derivatives
-            """
-            val = value_dict[label]
-            if all(i == "all" for i in pick_indices):
-                # If only ParameterVectors are used, the return the full array
-                return val
-            else:
-                # If single elements occur, pick them
-                slice_tuple = tuple()  # -> tuple that is used for picking the elements
-                for i in pick_indices:
-                    if i == "all":
-                        # Keep all elements
-                        slice_tuple += (slice(None),)
-                    else:
-                        # Pick single element
-                        slice_tuple += (slice(i, i + 1, 1),)
-                # Dimension at the beginning of the array
-                extra_dim = len(val.shape) - len(slice_tuple)
-                if extra_dim > 0:
-                    slice_tuple = (slice(None),) * extra_dim + slice_tuple
-
-                # Return the picked elements
-                return val[slice_tuple]
-
-        return pick_elements
-
-    def get_direct_evaluation_from_tuple(
-        todo: tuple,
-    ) -> Union[direct_evaluation, post_processing_evaluation]:
-        """
-        Function for generating the evaluation object from a tuple
-
-        Handles derivatives of the QNN output with respect to a tuple of
-        ParameterVector and ParameterVectorElement
-
-        Args:
-            todo (tuple): Tuple of ParameterVector and ParameterVectorElement entries that
-                          define the derivative
-
-        Returns:
-            Evaluation object for the derivative, either direct_evaluation or
-            post_processing_evaluation
-        """
-
-        # Generate direct evaluation object for the derivative
-        # in case of a single ParameterVectorElement, post processing is needed
-        return_grad_param = False
-        return_grad_param_obs = False
-        return_grad_x = False
-        argnum = []
-        order = 0
-        val_tuple = tuple()
-        pick_list = []
-
-        for sub_val in todo:
-            if isinstance(sub_val, ParameterVector) or isinstance(sub_val, ParameterVectorElement):
-                # Increase order of derivative
-                order += 1
-                # Generate list for picking the single elements in post processing
-                # and the tuple for the direct evaluation
-                if isinstance(sub_val, ParameterVectorElement):
-                    val_tuple += (sub_val.vector,)
-                    pick_list.append(sub_val.index)
-                else:
-                    val_tuple += (sub_val,)
-                    pick_list.append("all")
-                # Generate argnum list and set return_grad flags
-                if "param_obs" in sub_val.name:
-                    return_grad_param_obs = True
-                    argnum.append(2)
-                elif "param" in sub_val.name:
-                    return_grad_param = True
-                    argnum.append(0)
-                elif "x" in sub_val.name:
-                    return_grad_x = True
-                    argnum.append(1)
-                else:
-                    raise ValueError("Unsupported parameter name:", sub_val.name)
-            else:
-                raise ValueError("Unsupported input type:", type(sub_val))
-
-        # Generate the direct evaluation object
-        evaluation = direct_evaluation(
-            val_tuple, order, argnum, return_grad_param, return_grad_param_obs, return_grad_x
-        )
-
-        if all(i == "all" for i in pick_list):
-            # In case of only ParameterVectors direct evaluation is enough
-            return evaluation
-        else:
-            # In case of minimal one ParameterVectorsElement,
-            # post processing is needed for picking
-            return post_processing_evaluation(
-                todo, (evaluation,), get_pick_elements(pick_list, val_tuple)
-            )
-
-    # Create the evaluation object from the input variables
-    if isinstance(val, str):
-        if val == "f":
-            return direct_evaluation("f")
-        elif val == "dfdx":
-            return direct_evaluation("dfdx", 1, argnum=[1], return_grad_x=True)
-        elif val == "dfdxdx":
-            return direct_evaluation("dfdxdx", 2, argnum=[1, 1], return_grad_x=True)
-        elif val == "laplace":
-            return post_processing_evaluation(val, ("dfdxdx",), get_eval_laplace("dfdxdx"))
-        elif val == "laplace_dp":
-            return post_processing_evaluation(val, ("dfdpdxdx",), get_eval_laplace("dfdpdxdx"))
-        elif val == "laplace_dop":
-            return post_processing_evaluation(val, ("dfdopdxdx",), get_eval_laplace("dfdopdxdx"))
-        elif val == "dfdp":
-            return direct_evaluation("dfdp", 1, argnum=[0], return_grad_param=True)
-        elif val == "dfdpdp":
-            return direct_evaluation("dfdpdp", 2, argnum=[0, 0], return_grad_param=True)
-        elif val == "dfdopdp":
-            return direct_evaluation(
-                "dfdopdp", 2, argnum=[2, 0], return_grad_param=True, return_grad_param_obs=True
-            )
-        elif val == "dfdpdop":
-            return direct_evaluation(
-                "dfdpdop", 2, argnum=[0, 2], return_grad_param=True, return_grad_param_obs=True
-            )
-        elif val == "dfdop":
-            return direct_evaluation("dfdop", 1, argnum=[2], return_grad_param_obs=True)
-        elif val == "dfdopdop":
-            return direct_evaluation("dfdopdop", 2, argnum=[2, 2], return_grad_param_obs=True)
-        elif val == "dfdpdx":
-            return direct_evaluation(
-                "dfdpdx", 2, argnum=[0, 1], return_grad_param=True, return_grad_x=True
-            )
-        elif val == "dfdxdp":
-            return direct_evaluation(
-                "dfdxdp", 2, argnum=[1, 0], return_grad_param=True, return_grad_x=True
-            )
-        elif val == "dfdxdxdp":
-            return direct_evaluation(
-                "dfdxdxdp", 3, argnum=[1, 1, 0], return_grad_param=True, return_grad_x=True
-            )
-        elif val == "dfdxdpdx":
-            return direct_evaluation(
-                "dfdxdpdx", 3, argnum=[1, 0, 1], return_grad_param=True, return_grad_x=True
-            )
-        elif val == "dfdpdxdx":
-            return direct_evaluation(
-                "dfdpdxdx", 3, argnum=[0, 1, 1], return_grad_param=True, return_grad_x=True
-            )
-        elif val == "dfdopdx":
-            return direct_evaluation(
-                "dfdopdx", 2, argnum=[2, 1], return_grad_param_obs=True, return_grad_x=True
-            )
-        elif val == "dfdopdxdx":
-            return direct_evaluation(
-                "dfdopdxdx",
-                3,
-                argnum=[2, 1, 1],
-                return_grad_param_obs=True,
-                return_grad_x=True,
-            )
-        elif val == "fcc":
-            return direct_evaluation("fcc", squared=True)
-        elif val == "dfccdx":
-            return direct_evaluation("dfccdx", 1, argnum=[1], return_grad_x=True, squared=True)
-        elif val == "dfccdxdx":
-            return direct_evaluation(
-                "dfccdxdx", 2, argnum=[1, 1], return_grad_x=True, squared=True
-            )
-        elif val == "dfccdp":
-            return direct_evaluation("dfccdp", 1, argnum=[0], return_grad_param=True, squared=True)
-        elif val == "dfccdpdp":
-            return direct_evaluation(
-                "dfccdpdp", 2, argnum=[0, 0], return_grad_param=True, squared=True
-            )
-        elif val == "dfccdopdx":
-            return direct_evaluation(
-                "dfccdopdx",
-                2,
-                argnum=[2, 1],
-                return_grad_param_obs=True,
-                return_grad_x=True,
-                squared=True,
-            )
-        elif val == "dfccdop":
-            return direct_evaluation(
-                "dfccdop", 1, argnum=[2], return_grad_param_obs=True, squared=True
-            )
-        elif val == "dfccdopdop":
-            return direct_evaluation(
-                "dfccdopdop", 2, argnum=[2, 2], return_grad_param_obs=True, squared=True
-            )
-        elif val in ("var", "varf"):
-            return post_processing_evaluation(val, ("f", "fcc"), eval_var)
-        elif val in ("dvardx", "dvarfdx"):
-            return post_processing_evaluation(val, ("f", "dfccdx", "dfdx"), eval_dvardx)
-        elif val in ("dvardp", "dvarfdp"):
-            return post_processing_evaluation(val, ("f", "dfccdp", "dfdp"), eval_dvardp)
-        elif val in ("dvardop", "dvarfdop"):
-            return post_processing_evaluation(val, ("f", "dfccdop", "dfdop"), eval_dvardop)
-        elif val == "fischer":
-            return None
-        else:
-            raise ValueError("Unknown input string:", val)
-    elif isinstance(val, tuple):
-        return get_direct_evaluation_from_tuple(val)
-    elif isinstance(val, ParameterVectorElement) or isinstance(val, ParameterVector):
-        evaluation = get_direct_evaluation_from_tuple((val,))
-        evaluation.key = val  # Replace it to remove tuple structure
-        return evaluation
-    elif isinstance(val, direct_evaluation):
-        return val  # Nothing to do
-    elif isinstance(val, post_processing_evaluation):
-        return val  # Nothing to do
-    else:
-        raise TypeError("String expected, found type:", type(val))
 
 
 class LowLevelQNNPennyLane(LowLevelQNNBase):
@@ -458,13 +107,13 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
     def __init__(
         self,
-        pqc: EncodingCircuitBase,
+        parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
         result_caching: bool = True,
     ) -> None:
 
-        super().__init__(pqc, observable, executor)
+        super().__init__(parameterized_quantum_circuit, observable, executor)
 
         # Initialize result cache
         self._result_caching = result_caching
@@ -640,8 +289,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         param_obs: Union[float, np.ndarray],
         *values: Union[
             str,
-            direct_evaluation,
-            post_processing_evaluation,
+            DirectEvaluation,
+            PostProcessingEvaluation,
             ParameterVector,
             ParameterVectorElement,
             tuple,
@@ -669,171 +318,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             The keys of the dictionary are given by the entries in the values tuple
 
         """
-
-        def _evaluate_todo_single_x(
-            todo_class: direct_evaluation, x: np.array, param: np.array, param_obs: np.array
-        ) -> np.array:
-            """
-            Helper for evaluating the derivative of the QNN with respect to a single x value
-
-            Args:
-                todo_class (direct_evaluation): Class that defines the derivative to evaluate
-                x (np.array): X value (single entry)
-                param (np.array): Parameter values (single entry)
-                param_obs (np.array): Observable parameter values (single entry)
-
-            Returns:
-                Evaluated value of the derivative
-            """
-            if todo_class.squared:
-                func = self._pennylane_circuit_squared
-            else:
-                func = self._pennylane_circuit
-
-            # Convert input to PennyLane arrays and requested gradients
-            param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
-            param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
-            x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
-
-            eval_tuple = tuple()
-            argnum_dict = {}
-            ioff = 0
-            if len(param_) > 0:
-                eval_tuple += (param_,)
-                argnum_dict[0] = ioff
-                ioff += 1
-            else:
-                argnum_dict[0] = None
-            if len(x_) > 0:
-                eval_tuple += (x_,)
-                argnum_dict[1] = ioff
-                ioff += 1
-            else:
-                argnum_dict[1] = None
-            if len(param_obs_) > 0:
-                eval_tuple += (param_obs_,)
-                argnum_dict[2] = ioff
-                ioff += 1
-            else:
-                argnum_dict[2] = None
-
-            if todo_class.order == 0:
-                # Plain function evaluation
-                # value = func(*(eval_tuple))
-                value = self._executor.pennylane_execute(func, *(eval_tuple))
-            elif todo_class.order > 0:
-                # Generate iterative derivative function for higher order derivatives
-                order = todo_class.order - 1
-                argnum = copy.copy(todo_class.argnum)
-                arg_index = argnum_dict[argnum.pop()]
-                if arg_index is None:
-                    return np.array([])
-                else:
-                    deriv = qml.jacobian(func, argnum=arg_index)
-                while order > 0:
-                    order -= 1
-                    arg_index = argnum_dict[argnum.pop()]
-                    if arg_index is None:
-                        return np.array([])
-                    else:
-                        deriv = qml.jacobian(deriv, argnum=arg_index)
-
-                hash_value = func.hash + str(todo_class.argnum)
-                deriv.hash = hash_value
-                value = self._executor.pennylane_execute(deriv, *(eval_tuple))
-
-            # Convert back to numpy array
-            return np.real_if_close(np.array(value))
-
-        def _evaluate_todo_all_x(
-            todo_class: direct_evaluation, x: np.array, param: np.array, param_obs: np.array
-        ):
-            """
-            Helper for evaluating the derivative of the QNN with respect to all x values at once
-
-            Args:
-                todo_class (direct_evaluation): Class that defines the derivative to evaluate
-                x (np.array): X values (all entries together)
-                param (np.array): Parameter values (single entry)
-                param_obs (np.array): Observable parameter values (single entry)
-
-            Returns:
-                Evaluated value of the derivative
-            """
-            if todo_class.squared:
-                func = self._pennylane_circuit_squared
-            else:
-                func = self._pennylane_circuit
-
-            # Convert input to PennyLane arrays and requested gradients
-            param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
-            param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
-            x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
-
-            eval_tuple = tuple()
-            argnum_dict = {}
-            ioff = 0
-            if len(param_) > 0:
-                eval_tuple += (param_,)
-                argnum_dict[0] = ioff
-                ioff += 1
-            else:
-                argnum_dict[0] = None
-            if len(x_) > 0:
-                eval_tuple += (x_,)
-                argnum_dict[1] = ioff
-                ioff += 1
-            else:
-                argnum_dict[1] = None
-            if len(param_obs_) > 0:
-                eval_tuple += (param_obs_,)
-                argnum_dict[2] = ioff
-                ioff += 1
-            else:
-                argnum_dict[2] = None
-
-            if todo_class.order == 0:
-                # Plain function evaluation
-                # value = func(*eval_tuple)
-                value = self._executor.pennylane_execute(func, *(eval_tuple))
-            elif todo_class.order > 0:
-                # Generate iterative derivative function for higher order derivatives
-                order = todo_class.order - 1
-                argnum = copy.copy(todo_class.argnum)
-                arg_index = argnum_dict[argnum.pop()]
-                if arg_index is None:
-                    return np.array([[]])
-                else:
-                    deriv = qml.jacobian(func, argnum=arg_index)
-                while order > 0:
-                    order -= 1
-                    arg_index = argnum_dict[argnum.pop()]
-                    if arg_index is None:
-                        return np.array([[]])
-                    else:
-                        deriv = qml.jacobian(deriv, argnum=arg_index)
-
-                # value = deriv(*eval_tuple)
-                hash_value = func.hash + str(todo_class.argnum)
-                deriv.hash = hash_value
-                value = self._executor.pennylane_execute(deriv, *(eval_tuple))
-
-            # Convert back to numpy format
-            values = np.array(value)
-            # sum over zero values entries due to dx differentiation
-            if todo_class.return_grad_x:
-                sum_t = tuple()
-                ioff = 0
-                if self.multiple_output:
-                    ioff = 1
-                for var in reversed(todo_class.argnum):
-                    if var == 1:  # dx differentiation
-                        sum_t += (ioff + 2,)
-                        ioff = ioff + 2
-                    else:
-                        ioff = ioff + 1
-                values = values.sum(axis=sum_t)
-            return np.real_if_close(values)
 
         # Pre-process the input data to the format [[x1],[x2]]
         x_inp, multi_x = adjust_features(x, self._pqc.num_features)
@@ -886,7 +370,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 # Skip if the value is already calculated
                 continue
 
-            if isinstance(todo_class, post_processing_evaluation):
+            if isinstance(todo_class, PostProcessingEvaluation):
                 # In case of post processing, the evaluation function is called later
                 # Add necessary evaluations to the values list
                 for sub_todo in todo_class.evaluation_tuple:
@@ -903,7 +387,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     # evaluate every single x, param, param_op combination separately
                     # faster evaluation for higher-order derivatives w.r.t. x
                     output = [
-                        _evaluate_todo_single_x(todo_class, x_inp_, param_inp_, param_obs_inp_)
+                        self._evaluate_todo_single_x(
+                            todo_class, x_inp_, param_inp_, param_obs_inp_
+                        )
                         for x_inp_ in x_inp
                         for param_inp_ in param_inp
                         for param_obs_inp_ in param_obs_inp
@@ -914,7 +400,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     # evaluate only param, param_op combination separately and all x together
                     # Faster evaluation for lower-order derivatives
                     output = [
-                        _evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
+                        self._evaluate_todo_all_x(todo_class, x_inpT, param_inp_, param_obs_inp_)
                         for param_inp_ in param_inp
                         for param_obs_inp_ in param_obs_inp
                     ]
@@ -978,3 +464,524 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self.result_container[caching_tuple] = value_dict
 
         return value_dict
+
+    def _evaluate_todo_single_x(
+        self, todo_class: DirectEvaluation, x: np.array, param: np.array, param_obs: np.array
+    ) -> np.array:
+        """
+        Helper for evaluating the derivative of the QNN with respect to a single x value
+
+        Args:
+            todo_class (direct_evaluation): Class that defines the derivative to evaluate
+            x (np.array): X value (single entry)
+            param (np.array): Parameter values (single entry)
+            param_obs (np.array): Observable parameter values (single entry)
+
+        Returns:
+            Evaluated value of the derivative
+        """
+        if todo_class.squared:
+            func = self._pennylane_circuit_squared
+        else:
+            func = self._pennylane_circuit
+
+        # Convert input to PennyLane arrays and requested gradients
+        param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
+        param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
+        x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
+
+        eval_tuple = tuple()
+        argnum_dict = {}
+        ioff = 0
+        if len(param_) > 0:
+            eval_tuple += (param_,)
+            argnum_dict[0] = ioff
+            ioff += 1
+        else:
+            argnum_dict[0] = None
+        if len(x_) > 0:
+            eval_tuple += (x_,)
+            argnum_dict[1] = ioff
+            ioff += 1
+        else:
+            argnum_dict[1] = None
+        if len(param_obs_) > 0:
+            eval_tuple += (param_obs_,)
+            argnum_dict[2] = ioff
+            ioff += 1
+        else:
+            argnum_dict[2] = None
+
+        if todo_class.order == 0:
+            # Plain function evaluation
+            # value = func(*(eval_tuple))
+            value = self._executor.pennylane_execute(func, *(eval_tuple))
+        elif todo_class.order > 0:
+            # Generate iterative derivative function for higher order derivatives
+            order = todo_class.order - 1
+            argnum = copy.copy(todo_class.argnum)
+            arg_index = argnum_dict[argnum.pop()]
+            if arg_index is None:
+                return np.array([])
+            else:
+                deriv = qml.jacobian(func, argnum=arg_index)
+            while order > 0:
+                order -= 1
+                arg_index = argnum_dict[argnum.pop()]
+                if arg_index is None:
+                    return np.array([])
+                else:
+                    deriv = qml.jacobian(deriv, argnum=arg_index)
+
+            hash_value = func.hash + str(todo_class.argnum)
+            deriv.hash = hash_value
+            value = self._executor.pennylane_execute(deriv, *(eval_tuple))
+
+        # Convert back to numpy array
+        return np.real_if_close(np.array(value))
+
+    def _evaluate_todo_all_x(
+        self, todo_class: DirectEvaluation, x: np.array, param: np.array, param_obs: np.array
+    ):
+        """
+        Helper for evaluating the derivative of the QNN with respect to all x values at once
+
+        Args:
+            todo_class (direct_evaluation): Class that defines the derivative to evaluate
+            x (np.array): X values (all entries together)
+            param (np.array): Parameter values (single entry)
+            param_obs (np.array): Observable parameter values (single entry)
+
+        Returns:
+            Evaluated value of the derivative
+        """
+        if todo_class.squared:
+            func = self._pennylane_circuit_squared
+        else:
+            func = self._pennylane_circuit
+
+        # Convert input to PennyLane arrays and requested gradients
+        param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
+        param_obs_ = pnp.array(param_obs, requires_grad=todo_class.return_grad_param_obs)
+        x_ = pnp.array(x, requires_grad=todo_class.return_grad_x)
+
+        eval_tuple = tuple()
+        argnum_dict = {}
+        ioff = 0
+        if len(param_) > 0:
+            eval_tuple += (param_,)
+            argnum_dict[0] = ioff
+            ioff += 1
+        else:
+            argnum_dict[0] = None
+        if len(x_) > 0:
+            eval_tuple += (x_,)
+            argnum_dict[1] = ioff
+            ioff += 1
+        else:
+            argnum_dict[1] = None
+        if len(param_obs_) > 0:
+            eval_tuple += (param_obs_,)
+            argnum_dict[2] = ioff
+            ioff += 1
+        else:
+            argnum_dict[2] = None
+
+        if todo_class.order == 0:
+            # Plain function evaluation
+            # value = func(*eval_tuple)
+            value = self._executor.pennylane_execute(func, *(eval_tuple))
+        elif todo_class.order > 0:
+            # Generate iterative derivative function for higher order derivatives
+            order = todo_class.order - 1
+            argnum = copy.copy(todo_class.argnum)
+            arg_index = argnum_dict[argnum.pop()]
+            if arg_index is None:
+                return np.array([[]])
+            else:
+                deriv = qml.jacobian(func, argnum=arg_index)
+            while order > 0:
+                order -= 1
+                arg_index = argnum_dict[argnum.pop()]
+                if arg_index is None:
+                    return np.array([[]])
+                else:
+                    deriv = qml.jacobian(deriv, argnum=arg_index)
+
+            # value = deriv(*eval_tuple)
+            hash_value = func.hash + str(todo_class.argnum)
+            deriv.hash = hash_value
+            value = self._executor.pennylane_execute(deriv, *(eval_tuple))
+
+        # Convert back to numpy format
+        values = np.array(value)
+        # sum over zero values entries due to dx differentiation
+        if todo_class.return_grad_x:
+            sum_t = tuple()
+            ioff = 0
+            if self.multiple_output:
+                ioff = 1
+            for var in reversed(todo_class.argnum):
+                if var == 1:  # dx differentiation
+                    sum_t += (ioff + 2,)
+                    ioff = ioff + 2
+                else:
+                    ioff = ioff + 1
+            values = values.sum(axis=sum_t)
+        return np.real_if_close(values)
+
+
+def _get_class_from_string(
+    val: Union[
+        str,
+        tuple,
+        DirectEvaluation,
+        PostProcessingEvaluation,
+        ParameterVector,
+        ParameterVectorElement,
+    ]
+) -> Union[DirectEvaluation, PostProcessingEvaluation]:
+    """Converts an input string to the direct or post processing evaluation object
+
+    Args:
+        val (Union[str, tuple, direct_evaluation, post_processing_evaluation,
+                ParameterVector, ParameterVectorElement]): Input string or evaluation object
+
+    Returns:
+        Associated Expec object
+
+    """
+
+    # Create the evaluation object from the input variables
+    if isinstance(val, str):
+        if val == "f":
+            return DirectEvaluation("f")
+        elif val == "dfdx":
+            return DirectEvaluation("dfdx", 1, argnum=[1], return_grad_x=True)
+        elif val == "dfdxdx":
+            return DirectEvaluation("dfdxdx", 2, argnum=[1, 1], return_grad_x=True)
+        elif val == "laplace":
+            return PostProcessingEvaluation(val, ("dfdxdx",), _get_eval_laplace("dfdxdx"))
+        elif val == "laplace_dp":
+            return PostProcessingEvaluation(val, ("dfdpdxdx",), _get_eval_laplace("dfdpdxdx"))
+        elif val == "laplace_dop":
+            return PostProcessingEvaluation(val, ("dfdopdxdx",), _get_eval_laplace("dfdopdxdx"))
+        elif val == "dfdp":
+            return DirectEvaluation("dfdp", 1, argnum=[0], return_grad_param=True)
+        elif val == "dfdpdp":
+            return DirectEvaluation("dfdpdp", 2, argnum=[0, 0], return_grad_param=True)
+        elif val == "dfdopdp":
+            return DirectEvaluation(
+                "dfdopdp", 2, argnum=[2, 0], return_grad_param=True, return_grad_param_obs=True
+            )
+        elif val == "dfdpdop":
+            return DirectEvaluation(
+                "dfdpdop", 2, argnum=[0, 2], return_grad_param=True, return_grad_param_obs=True
+            )
+        elif val == "dfdop":
+            return DirectEvaluation("dfdop", 1, argnum=[2], return_grad_param_obs=True)
+        elif val == "dfdopdop":
+            return DirectEvaluation("dfdopdop", 2, argnum=[2, 2], return_grad_param_obs=True)
+        elif val == "dfdpdx":
+            return DirectEvaluation(
+                "dfdpdx", 2, argnum=[0, 1], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdxdp":
+            return DirectEvaluation(
+                "dfdxdp", 2, argnum=[1, 0], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdxdxdp":
+            return DirectEvaluation(
+                "dfdxdxdp", 3, argnum=[1, 1, 0], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdxdpdx":
+            return DirectEvaluation(
+                "dfdxdpdx", 3, argnum=[1, 0, 1], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdpdxdx":
+            return DirectEvaluation(
+                "dfdpdxdx", 3, argnum=[0, 1, 1], return_grad_param=True, return_grad_x=True
+            )
+        elif val == "dfdopdx":
+            return DirectEvaluation(
+                "dfdopdx", 2, argnum=[2, 1], return_grad_param_obs=True, return_grad_x=True
+            )
+        elif val == "dfdopdxdx":
+            return DirectEvaluation(
+                "dfdopdxdx",
+                3,
+                argnum=[2, 1, 1],
+                return_grad_param_obs=True,
+                return_grad_x=True,
+            )
+        elif val == "fcc":
+            return DirectEvaluation("fcc", squared=True)
+        elif val == "dfccdx":
+            return DirectEvaluation("dfccdx", 1, argnum=[1], return_grad_x=True, squared=True)
+        elif val == "dfccdxdx":
+            return DirectEvaluation("dfccdxdx", 2, argnum=[1, 1], return_grad_x=True, squared=True)
+        elif val == "dfccdp":
+            return DirectEvaluation("dfccdp", 1, argnum=[0], return_grad_param=True, squared=True)
+        elif val == "dfccdpdp":
+            return DirectEvaluation(
+                "dfccdpdp", 2, argnum=[0, 0], return_grad_param=True, squared=True
+            )
+        elif val == "dfccdopdx":
+            return DirectEvaluation(
+                "dfccdopdx",
+                2,
+                argnum=[2, 1],
+                return_grad_param_obs=True,
+                return_grad_x=True,
+                squared=True,
+            )
+        elif val == "dfccdop":
+            return DirectEvaluation(
+                "dfccdop", 1, argnum=[2], return_grad_param_obs=True, squared=True
+            )
+        elif val == "dfccdopdop":
+            return DirectEvaluation(
+                "dfccdopdop", 2, argnum=[2, 2], return_grad_param_obs=True, squared=True
+            )
+        elif val in ("var", "varf"):
+            return PostProcessingEvaluation(val, ("f", "fcc"), _eval_var)
+        elif val in ("dvardx", "dvarfdx"):
+            return PostProcessingEvaluation(val, ("f", "dfccdx", "dfdx"), _eval_dvardx)
+        elif val in ("dvardp", "dvarfdp"):
+            return PostProcessingEvaluation(val, ("f", "dfccdp", "dfdp"), _eval_dvardp)
+        elif val in ("dvardop", "dvarfdop"):
+            return PostProcessingEvaluation(val, ("f", "dfccdop", "dfdop"), _eval_dvardop)
+        elif val == "fischer":
+            return None
+        else:
+            raise ValueError("Unknown input string:", val)
+    elif isinstance(val, tuple):
+        return _get_direct_evaluation_from_tuple(val)
+    elif isinstance(val, ParameterVectorElement) or isinstance(val, ParameterVector):
+        evaluation = _get_direct_evaluation_from_tuple((val,))
+        evaluation.key = val  # Replace it to remove tuple structure
+        return evaluation
+    elif isinstance(val, DirectEvaluation):
+        return val  # Nothing to do
+    elif isinstance(val, PostProcessingEvaluation):
+        return val  # Nothing to do
+    else:
+        raise TypeError("String expected, found type:", type(val))
+
+
+def _eval_var(value_dict: dict) -> np.ndarray:
+    """Evaluate the variance of the QNN output
+
+    Args:
+        value_dict (dict): Dictionary of QNN derivatives values
+
+    Returns:
+        Variance of the QNN output
+    """
+    return value_dict["fcc"] - np.square(value_dict["f"])
+
+
+def _eval_dvardx(value_dict: dict) -> np.ndarray:
+    """Evaluate the derivative of the variance with respect to the input
+
+    Args:
+        value_dict (dict): Dictionary of QNN derivatives values
+
+    Returns:
+        Derivative of the variance with respect to the input
+    """
+    return_val = np.zeros(value_dict["dfccdx"].shape)
+    for i in range(value_dict["dfccdx"].shape[-1]):
+        return_val[..., i] = value_dict["dfccdx"][..., i] - 2.0 * (
+            np.multiply(
+                value_dict["dfdx"][..., i],
+                value_dict["f"],
+            )
+        )
+    return return_val
+
+
+def _eval_dvardp(value_dict: dict) -> np.ndarray:
+    """Evaluate the derivative of the variance with respect to the parameters
+
+    Args:
+        value_dict (dict): Dictionary of QNN derivatives values
+
+    Returns:
+        Derivative of the variance with respect to the parameters
+    """
+    return_val = np.zeros(value_dict["dfccdp"].shape)
+    for i in range(value_dict["dfccdp"].shape[-1]):
+        return_val[..., i] = value_dict["dfccdp"][..., i] - 2.0 * (
+            np.multiply(
+                value_dict["dfdp"][..., i],
+                value_dict["f"],
+            )
+        )
+    return return_val
+
+
+def _eval_dvardop(value_dict: dict) -> np.ndarray:
+    """Evaluate the derivative of the variance with respect to the observable parameters
+
+    Args:
+        value_dict (dict): Dictionary of QNN derivatives values
+
+    Returns:
+        Derivative of the variance with respect to the observable parameters
+    """
+    return_val = np.zeros(value_dict["dfccdop"].shape)
+    for i in range(value_dict["dfccdop"].shape[-1]):
+        return_val[..., i] = value_dict["dfccdop"][..., i] - 2.0 * (
+            np.multiply(
+                value_dict["dfdop"][..., i],
+                value_dict["f"],
+            )
+        )
+    return return_val
+
+
+def _get_eval_laplace(todo: str) -> callable:
+    """Evaluate of the Laplace Operation on the QNN output.
+
+    Args:
+        todo (str): String that defines the type of Laplace operation
+
+    Returns:
+        Function to evaluate the Laplace operation
+    """
+
+    def eval_laplace(value_dict: dict) -> np.ndarray:
+        """Summing the diagonal of the feature Hessian matrix
+
+        Args:
+            value_dict (dict): Dictionary of QNN derivatives values
+
+        Returns:
+            Sum of the diagonal of the feature Hessian matrix
+        """
+        return_val = np.zeros(value_dict[todo].shape[:-2])
+        for i in range(value_dict[todo].shape[-1]):
+            return_val += value_dict[todo][..., i, i]
+        return return_val
+
+    return eval_laplace
+
+
+def _get_pick_elements(pick_indices: list, label: tuple) -> callable:
+    """
+    Function for generating the post-processing function for general derivatives
+
+    Args:
+        pick_indices (list): List of indices to pick single elements of derivatives
+                                integer indices for specific parameters or "all" for all elements
+        label (str): Label of the derivative
+
+    Returns:
+        Function to pick single elements of derivatives
+    """
+
+    def pick_elements(value_dict: dict) -> np.ndarray:
+        """
+        Function to pick single elements of general derivatives
+
+        Args:
+            value_dict (dict): Dictionary of QNN derivatives values
+
+        Returns:
+            Picked (single) elements of the derivatives
+        """
+        val = value_dict[label]
+        if all(i == "all" for i in pick_indices):
+            # If only ParameterVectors are used, the return the full array
+            return val
+        else:
+            # If single elements occur, pick them
+            slice_tuple = tuple()  # -> tuple that is used for picking the elements
+            for i in pick_indices:
+                if i == "all":
+                    # Keep all elements
+                    slice_tuple += (slice(None),)
+                else:
+                    # Pick single element
+                    slice_tuple += (slice(i, i + 1, 1),)
+            # Dimension at the beginning of the array
+            extra_dim = len(val.shape) - len(slice_tuple)
+            if extra_dim > 0:
+                slice_tuple = (slice(None),) * extra_dim + slice_tuple
+
+            # Return the picked elements
+            return val[slice_tuple]
+
+    return pick_elements
+
+
+def _get_direct_evaluation_from_tuple(
+    todo: tuple,
+) -> Union[DirectEvaluation, PostProcessingEvaluation]:
+    """
+    Function for generating the evaluation object from a tuple
+
+    Handles derivatives of the QNN output with respect to a tuple of
+    ParameterVector and ParameterVectorElement
+
+    Args:
+        todo (tuple): Tuple of ParameterVector and ParameterVectorElement entries that
+                        define the derivative
+
+    Returns:
+        Evaluation object for the derivative, either direct_evaluation or
+        post_processing_evaluation
+    """
+
+    # Generate direct evaluation object for the derivative
+    # in case of a single ParameterVectorElement, post processing is needed
+    return_grad_param = False
+    return_grad_param_obs = False
+    return_grad_x = False
+    argnum = []
+    order = 0
+    val_tuple = tuple()
+    pick_list = []
+
+    for sub_val in todo:
+        if isinstance(sub_val, ParameterVector) or isinstance(sub_val, ParameterVectorElement):
+            # Increase order of derivative
+            order += 1
+            # Generate list for picking the single elements in post processing
+            # and the tuple for the direct evaluation
+            if isinstance(sub_val, ParameterVectorElement):
+                val_tuple += (sub_val.vector,)
+                pick_list.append(sub_val.index)
+            else:
+                val_tuple += (sub_val,)
+                pick_list.append("all")
+            # Generate argnum list and set return_grad flags
+            if "param_obs" in sub_val.name:
+                return_grad_param_obs = True
+                argnum.append(2)
+            elif "param" in sub_val.name:
+                return_grad_param = True
+                argnum.append(0)
+            elif "x" in sub_val.name:
+                return_grad_x = True
+                argnum.append(1)
+            else:
+                raise ValueError("Unsupported parameter name:", sub_val.name)
+        else:
+            raise ValueError("Unsupported input type:", type(sub_val))
+
+    # Generate the direct evaluation object
+    evaluation = DirectEvaluation(
+        val_tuple, order, argnum, return_grad_param, return_grad_param_obs, return_grad_x
+    )
+
+    if all(i == "all" for i in pick_list):
+        # In case of only ParameterVectors direct evaluation is enough
+        return evaluation
+    else:
+        # In case of minimal one ParameterVectorsElement,
+        # post processing is needed for picking
+        return PostProcessingEvaluation(
+            todo, (evaluation,), _get_pick_elements(pick_list, val_tuple)
+        )

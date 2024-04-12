@@ -34,6 +34,8 @@ class CustomObservable(ObservableBase):
         operator_string (Union[str, list[str], tuple[str]]): String of operator to measure.
         parameterized (bool): If True, the operator is parameterized.
 
+    Methods:
+    --------
     """
 
     def __init__(

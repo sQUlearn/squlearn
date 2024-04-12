@@ -39,15 +39,14 @@ class SummedPaulis(ObservableBase):
     -----------
 
     Attributes:
-    -----------
-
-    Attributes:
         num_qubits (int): Number of qubits.
         num_parameters (int): Number of trainable parameters in the summed Paulis operator.
         op_str (Union[str,tuple[str]]): String of the Pauli operator that is  measured.
         full_sum (bool): If False, only one parameter is used for each Pauli operator.
         include_identity (bool): If True, the identity operator is included in the sum.
 
+    Methods:
+    --------
     """
 
     def __init__(

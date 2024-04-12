@@ -29,7 +29,7 @@ class TestQGPR:
     def qgpr_fidelity(self) -> QGPR:
         """QGPR module with FidelityKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(quantum_kernel=kernel, sigma=1.0e-6)
@@ -38,7 +38,7 @@ class TestQGPR:
     def qgpr_pqk(self) -> QGPR:
         """QGPR module with ProjectedQuantumKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(

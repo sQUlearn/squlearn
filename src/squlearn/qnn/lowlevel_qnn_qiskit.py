@@ -297,15 +297,17 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
     def __init__(
         self,
-        pqc: EncodingCircuitBase,
+        parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
         optree_caching=True,
         result_caching=True,
     ) -> None:
 
-        pqc = TranspiledEncodingCircuit(pqc, executor.backend)
-        super().__init__(pqc, operator, executor)
+        parameterized_quantum_circuit = TranspiledEncodingCircuit(
+            parameterized_quantum_circuit, executor.backend
+        )
+        super().__init__(parameterized_quantum_circuit, operator, executor)
 
         self._optree_caching = optree_caching
         self._result_caching = result_caching

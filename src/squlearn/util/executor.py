@@ -62,7 +62,8 @@ class Executor:
         execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
 
                                                                                                                      * A string, that specifics the simulator
-                                                                                                                       backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
+                                                                                                                       backend. For Qiskit this can be ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
+                                                                                                                       For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
                                                                                                                      * A Qiskit backend, to run the jobs on IBM Quantum
                                                                                                                        systems or simulators
                                                                                                                      * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
@@ -260,6 +261,12 @@ class Executor:
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
+        if execution == "qiskit":
+            if shots is None:
+                execution = "statevector_simulator"
+            else:
+                execution = "qasm_simulator"
+
         if isinstance(execution, str):
             # Execution is a string -> get backend
             if execution in ["statevector_simulator", "aer_simulator_statevector"]:
@@ -407,18 +414,23 @@ class Executor:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
         # Check if execution is on a remote backend
-        self._remote = False
         if self.quantum_framework == "qiskit":
             if "ibm" in self.backend_name:
                 self._remote = True
+            else:
+                self._remote = False
         elif self.quantum_framework == "pennylane":
-            local_device = (
-                "default.qubit" in str(self._pennylane_device)
-                or "default.mixed" in str(self._pennylane_device)
-                or "default.clifford" in str(self._pennylane_device)
-                or "Lightning Qubit" in str(self._pennylane_device)
+            self._remote = not any(
+                substring in str(self._pennylane_device)
+                for substring in [
+                    "default.qubit",
+                    "default.mixed",
+                    "default.clifford",
+                    "Lightning Qubit",
+                ]
             )
-            self._remote = not local_device
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
         # set initial shots
         self._shots = shots
@@ -448,27 +460,8 @@ class Executor:
 
     @property
     def quantum_framework(self) -> str:
-        """Return the quantum framework that is used in the executor.
-
-        Either "qiskit" or "pennylane"
-        """
+        """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
-
-    @property
-    def pennylane_device(self):
-        """Returns the PennyLane device that is used in the executor."""
-        if self.quantum_framework != "pennylane":
-            raise RuntimeError("PennyLane device is only available for PennyLane backends")
-        return self._pennylane_device
-
-    def pennylane_decorator(self, pennylane_function):
-        """
-        Decorator for a PennyLane circuit
-
-        Args:
-            pennylane_function (callable): The PennyLane circuit function
-        """
-        return qml.qnode(self.pennylane_device, diff_method="best")(pennylane_function)
 
     def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
         """
@@ -493,7 +486,7 @@ class Executor:
             return pennylane_circuit(*args, **kwargs)
 
         # Call function for cached execution
-        return self.pennylane_execute_cached(execute_circuit, hash_value)
+        return self._pennylane_execute_cached(execute_circuit, hash_value)
 
     def pennylane_execute_batched(
         self, pennylane_circuit: callable, arg_tuples: Union[list, tuple], **kwargs
@@ -537,15 +530,15 @@ class Executor:
 
         # Helper function for execution
         def execute_tapes():
-            return qml.execute(batched_tapes, self.pennylane_device)
+            return qml.execute(batched_tapes, self.backend)
 
         # Call function for cached execution
         if input_list:
-            return self.pennylane_execute_cached(execute_tapes, hash_value)
+            return self._pennylane_execute_cached(execute_tapes, hash_value)
         else:
-            return self.pennylane_execute_cached(execute_tapes, hash_value)[0]
+            return self._pennylane_execute_cached(execute_tapes, hash_value)[0]
 
-    def pennylane_execute_cached(self, function: callable, hash_value: Union[str, int]):
+    def _pennylane_execute_cached(self, function: callable, hash_value: Union[str, int]):
         """
         Function for cached execution of PennyLane circuits with the Executor
 
@@ -653,11 +646,6 @@ class Executor:
             return self._pennylane_device
         else:
             raise RuntimeError("Unknown quantum framework!")
-
-    @property
-    def device(self) -> Union[Backend, None, PennylaneDevice]:
-        """Returns the device that is used in the executor (equivalent to backend)."""
-        return self.backend
 
     @property
     def remote(self) -> bool:
@@ -1178,7 +1166,7 @@ class Executor:
         else:  #  default if nothing is set -> use estimator
             return "estimator"
 
-    def backend_run(self, run_input, **options):
+    def qiskit_execute(self, run_input, **options):
         """Routine that runs the given circuits on the backend.
 
         Args:
