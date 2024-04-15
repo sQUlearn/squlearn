@@ -261,15 +261,9 @@ class Executor:
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
-        if execution == "qiskit":
-            if shots is None:
-                execution = "statevector_simulator"
-            else:
-                execution = "qasm_simulator"
-
         if isinstance(execution, str):
             # Execution is a string -> get backend
-            if execution in ["statevector_simulator", "aer_simulator_statevector"]:
+            if execution in ["qiskit", "statevector_simulator", "aer_simulator_statevector"]:
                 execution = "aer_simulator_statevector"
                 self._backend = Aer.get_backend(execution)
                 if shots is None:

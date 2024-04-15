@@ -6,7 +6,10 @@ from qiskit.primitives import Estimator, Sampler, BackendEstimator, BackendSampl
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
 
+import pennylane as qml
+
 from squlearn.util import Executor
+from squlearn.util.pennylane import PennyLaneCircuit
 
 
 class TestExecutor:
@@ -41,6 +44,21 @@ class TestExecutor:
         return Executor(BackendEstimator(Aer.get_backend("aer_simulator")), seed=0)
 
     @pytest.fixture(scope="module")
+    def ExecutorPennyLane(self) -> Executor:
+        """Executor with PennyLane initialization."""
+        return Executor("pennylane", seed=0)
+
+    @pytest.fixture(scope="module")
+    def ExecutorPennyLaneShots(self) -> Executor:
+        """Executor with PennyLane initialization."""
+        return Executor("pennylane", seed=0, shots=1024)
+
+    @pytest.fixture(scope="module")
+    def ExecutorPennyLaneDevice(self) -> Executor:
+        """Executor with PennyLane initialization."""
+        return Executor(qml.device("lightning.qubit", wires=2), seed=0)
+
+    @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
         qc = QuantumCircuit(2)
@@ -61,6 +79,9 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorPennyLane",
+            "ExecutorPennyLaneShots",
+            "ExecutorPennyLaneDevice",
         ],
     )
     def test_shots(self, executor_str, request):
@@ -75,6 +96,9 @@ class TestExecutor:
             "ExecutorQasm": 1024,
             "ExecutorBackendSampler": 1024,
             "ExecutorBackendEstimator": 1024,
+            "ExecutorPennyLane": None,
+            "ExecutorPennyLaneShots": 1024,
+            "ExecutorPennyLaneDevice": None,
         }
 
         assert executor.shots == assert_dict[executor_str]
@@ -140,3 +164,49 @@ class TestExecutor:
         res = executor.get_estimator().run(simple_circuit, observable).result()
         assert res.metadata[0]["shots"] == 100
         assert np.allclose(assert_dict[executor_str], res.values[0])
+
+    @pytest.mark.parametrize(
+        "executor_str",
+        [
+            "ExecutorPennyLane",
+            "ExecutorPennyLaneShots",
+            "ExecutorPennyLaneDevice",
+        ],
+    )
+    def test_pennylane_probs(self, executor_str, request, simple_circuit):
+        """Tests the PennyLane execution of a circuit with the probs return type."""
+
+        assert_dict = {
+            "ExecutorPennyLane": np.array([0.0, 0.0, 0.0, 1.0]),
+            "ExecutorPennyLaneShots": np.array([0.0, 0.0, 0.0, 1.0]),
+            "ExecutorPennyLaneDevice": np.array([0.0, 0.0, 0.0, 1.0]),
+        }
+
+        executor = request.getfixturevalue(executor_str)
+        circuit = PennyLaneCircuit(simple_circuit, "probs", executor)
+
+        res = executor.pennylane_execute(circuit)
+        assert np.allclose(assert_dict[executor_str], res)
+
+    @pytest.mark.parametrize(
+        "executor_str",
+        [
+            "ExecutorPennyLane",
+            "ExecutorPennyLaneShots",
+            "ExecutorPennyLaneDevice",
+        ],
+    )
+    def test_pennylane_observable(self, executor_str, request, simple_circuit, observable):
+        """Tests the PennyLane execution of a circuit with an observable return type."""
+
+        assert_dict = {
+            "ExecutorPennyLane": 1.0,
+            "ExecutorPennyLaneShots": 1.0,
+            "ExecutorPennyLaneDevice": 1.0,
+        }
+
+        executor = request.getfixturevalue(executor_str)
+        circuit = PennyLaneCircuit(simple_circuit, observable, executor)
+
+        res = executor.pennylane_execute(circuit)
+        assert np.allclose(assert_dict[executor_str], res)
