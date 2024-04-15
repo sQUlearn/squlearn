@@ -87,6 +87,9 @@ class _operation:
             ent_strategy: the entangling strategy: if None, than the program knows, that this is not an entangling layer
             map: A default map, that is used, if the operation has exactly 2 variable groups and no given map (by user)
             default_map: A boolean, that checks, if the user initializes his own map
+
+        Methods:
+        --------
         """
         self.num_qubits = num_qubits
         self.variablegroup_tuple = variablegroup_tuple
@@ -749,6 +752,9 @@ class LayeredPQC:
             variable_groups_string_tuple [tuple]: Tuple of the hash values for each variable group, with that, you can search the position of each variable_group,
                 e.g. variable_groups = (x_var, x_var2,...) with type(x_var) = variable_group and variable_string_list = (hash(x_var),hash(x_var2),...)
             layer_counter [int]: counts the number of different layers of the layer class used
+
+        Methods:
+        --------
         """
         self._num_qubits = num_qubits
         self.operation_list = []

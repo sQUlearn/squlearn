@@ -6,24 +6,18 @@ from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
 from ..observables.observable_base import ObservableBase
-from ..observables.observable_derivatives import (
-    ObservableDerivatives,
-)
+from ..observables.observable_derivatives import ObservableDerivatives
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.encoding_circuit_derivatives import (
-    EncodingCircuitDerivatives,
-)
+from ..encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
 from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-from ..util.data_preprocessing import adjust_features, adjust_parameters
+from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util import Executor
 
-from ..util.optree.optree import (
-    OpTreeList,
-    OpTreeCircuit,
-    OpTree,
-)
+from ..util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
+
+from .lowlevel_qnn_base import LowLevelQNNBase
 
 
 class Expec:
@@ -182,7 +176,7 @@ class Expec:
             raise TypeError("String expected, found type:", type(val))
 
     @classmethod
-    def from_tuple(cls, val: tuple, operator: str = "O"):
+    def from_tuple(cls, val: tuple, operator: str = "O", label=None):
         """Creates an Expec object from an input tuple
 
         Args:
@@ -192,7 +186,46 @@ class Expec:
         Returns
             Associated Expec object
         """
-        return cls(val, operator, val)
+
+        circuit_tuple = tuple()  # Derivatives affecting the circuit
+        observable_tuple = tuple()  # Derivatives affecting the observable
+
+        # Split the derivative tuple into the circuit and observable part
+        for i in val:
+            if isinstance(i, ParameterVector) or isinstance(i, ParameterVectorElement):
+                if "p_op" in i.name:
+                    observable_tuple += (i,)
+                elif "p" in i.name:
+                    circuit_tuple += (i,)
+                elif "x" in i.name:
+                    circuit_tuple += (i,)
+                else:
+                    raise ValueError("Unknown parameter name:", i.name)
+            else:
+                raise ValueError("Unknown type:", type(i))
+
+        if len(circuit_tuple) == 0:
+            circuit_tuple = "I"
+        if len(observable_tuple) == 0:
+            observable_tuple = operator
+
+        if label is None:
+            label = val
+
+        return cls(circuit_tuple, observable_tuple, label)
+
+    @classmethod
+    def from_parameter_vector(cls, val: ParameterVectorElement, operator: str = "O"):
+        """Creates an Expec object from an inputted parameter
+
+        Args:
+            val (ParameterVectorElement): Parameter that is used in the differentiation.
+            operator (str): String for the operator, default='O'.
+
+        Returns
+            Associated Expec object
+        """
+        return cls.from_tuple((val,), operator, val)
 
     @classmethod
     def from_parameter(cls, val: ParameterVectorElement, operator: str = "O"):
@@ -205,7 +238,7 @@ class Expec:
         Returns
             Associated Expec object
         """
-        return cls((val,), operator, (val,))
+        return cls.from_tuple((val,), operator, val)
 
     @classmethod
     def from_variable(cls, val):
@@ -224,16 +257,16 @@ class Expec:
             return cls.from_string(val)
         elif isinstance(val, tuple):
             return cls.from_tuple(val)
+        elif isinstance(val, ParameterVector):
+            return cls.from_parameter_vector(val)
         elif isinstance(val, ParameterVectorElement):
             return cls.from_parameter(val)
-        elif isinstance(val, ParameterVector):
-            return cls.from_tuple((val,))
         else:
             raise TypeError("Unsupported type:", type(val))
 
 
-class QNN:
-    """A class for working with QNNs and its derivatives
+class LowLevelQNNQiskit(LowLevelQNNBase):
+    """Low level implementation of QNNs and its derivatives based on Qiskit.
 
     Args:
         pqc (EncodingCircuitBase) : parameterized quantum circuit in encoding circuit format
@@ -243,27 +276,41 @@ class QNN:
         optree_caching : Caching of the optree expressions (default = True recommended)
         result_caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+
+    Attributes:
+    -----------
+
+    Attributes:
+        num_qubits (int): Number of qubits of the QNN
+        num_features (int): Dimension of features of the PQC
+        num_parameters (int): Number of trainable parameters of the PQC
+        num_operator (int): Number of outputs
+        num_parameters_observable (int): Number of trainable parameters of the expectation value operator
+        multiple_output (bool): True if multiple outputs are used
+        parameters (ParameterVector): Parameter vector of the PQC
+        features (ParameterVector): Feature vector of the PQC
+        parameters_operator (ParameterVector): Parameter vector of the cost operator
+
+    Methods:
+    --------
     """
 
     def __init__(
         self,
-        pqc: EncodingCircuitBase,
+        parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
         optree_caching=True,
         result_caching=True,
     ) -> None:
-        # Executer set-up
-        self._executor = executor
 
-        # Set-up shots from backend
-        self._inital_shots = self._executor.get_shots()
+        parameterized_quantum_circuit = TranspiledEncodingCircuit(
+            parameterized_quantum_circuit, executor.backend
+        )
+        super().__init__(parameterized_quantum_circuit, operator, executor)
 
         self._optree_caching = optree_caching
         self._result_caching = result_caching
-
-        self.pqc = TranspiledEncodingCircuit(pqc, self._executor.backend)
-        self.operator = operator
 
         # Set-Up Executor
         if self._executor.optree_executor == "estimator":
@@ -285,15 +332,15 @@ class QNN:
         params = dict(num_qubits=self.num_qubits)
 
         if deep:
-            params.update(self.pqc.get_params())
-            if isinstance(self.operator, list):
-                for i, oper in enumerate(self.operator):
+            params.update(self._pqc.get_params())
+            if isinstance(self._observable, list):
+                for i, oper in enumerate(self._observable):
                     oper_dict = oper.get_params()
                     for key, value in oper_dict.items():
                         if key != "num_qubits":
                             params["op" + str(i) + "__" + key] = value
             else:
-                params.update(self.operator.get_params())
+                params.update(self._observable.get_params())
         return params
 
     def set_params(self, **params) -> None:
@@ -308,7 +355,7 @@ class QNN:
         """
 
         # Check if all parameters are valid
-        valid_params = self.get_params()
+        valid_params = self.get_params(deep=True)
         for key, value in params.items():
             if key not in valid_params:
                 raise ValueError(
@@ -319,14 +366,14 @@ class QNN:
         # Set parameters of the PQC
         dict_pqc = {}
         for key, value in params.items():
-            if key in self.pqc.get_params():
+            if key in self._pqc.get_params():
                 dict_pqc[key] = value
         if len(dict_pqc) > 0:
-            self.pqc.set_params(**dict_pqc)
+            self._pqc.set_params(**dict_pqc)
 
         # Set parameters of the operator
-        if isinstance(self.operator, list):
-            for i, oper in enumerate(self.operator):
+        if isinstance(self._observable, list):
+            for i, oper in enumerate(self._observable):
                 dict_operator = {}
                 for key, value in params.items():
                     if key == "num_qubits":
@@ -339,10 +386,10 @@ class QNN:
         else:
             dict_operator = {}
             for key, value in params.items():
-                if key in self.operator.get_params():
+                if key in self._observable.get_params():
                     dict_operator[key] = value
             if len(dict_operator) > 0:
-                self.operator.set_params(**dict_operator)
+                self._observable.set_params(**dict_operator)
 
         self._initilize_derivative()
 
@@ -350,18 +397,26 @@ class QNN:
         """Initializes the derivative classes"""
 
         num_qubits_operator = 0
-        if isinstance(self.operator, list):
-            for i in range(len(self.operator)):
-                self.operator[i].set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-                num_qubits_operator = max(num_qubits_operator, self.operator[i].num_qubits)
+        if isinstance(self._observable, list):
+            for i in range(len(self._observable)):
+                self._observable[i].set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
+                num_qubits_operator = max(num_qubits_operator, self._observable[i].num_qubits)
         else:
-            self.operator.set_map(self.pqc.qubit_map, self.pqc.num_physical_qubits)
-            num_qubits_operator = self.operator.num_qubits
+            self._observable.set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
+            num_qubits_operator = self._observable.num_qubits
+
+        self.operator_derivatives = ObservableDerivatives(self._observable, self._optree_caching)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._optree_caching)
+
+        if self._pqc.num_virtual_qubits != num_qubits_operator:
+            raise ValueError("Number of Qubits are not the same!")
+        else:
+            self._num_qubits = self._pqc.num_virtual_qubits
 
         if self._executor.optree_executor == "sampler":
             # In case of the sampler primitive, X and Y Pauli matrices have to be treated extra
             # This can be very inefficient!
-            operator_string = str(self.operator)
+            operator_string = str(self._observable)
             if "X" in operator_string or "Y" in operator_string:
                 self._split_paulis = True
                 print(
@@ -372,16 +427,6 @@ class QNN:
                 self._split_paulis = False
         else:
             self._split_paulis = False
-
-        self.operator_derivatives = ObservableDerivatives(
-            self.operator, self._optree_caching, self._split_paulis
-        )
-        self.pqc_derivatives = EncodingCircuitDerivatives(self.pqc, self._optree_caching)
-
-        if self.pqc.num_virtual_qubits != num_qubits_operator:
-            raise ValueError("Number of Qubits are not the same!")
-        else:
-            self._num_qubits = self.pqc.num_virtual_qubits
 
         # Initialize result cache
         self.result_container = {}
@@ -437,17 +482,17 @@ class QNN:
         return self.operator_derivatives.multiple_output
 
     @property
-    def parameters(self):
+    def parameters(self) -> ParameterVector:
         """Return the parameter vector of the PQC."""
         return self.pqc_derivatives.parameter_vector
 
     @property
-    def features(self):
+    def features(self) -> ParameterVector:
         """Return the feature vector of the PQC."""
         return self.pqc_derivatives.feature_vector
 
     @property
-    def parameters_operator(self):
+    def parameters_operator(self) -> ParameterVector:
         """Return the parameter vector of the cost operator."""
         return self.operator_derivatives.parameter_vector
 
@@ -771,7 +816,13 @@ class QNN:
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
         param_op: Union[float, np.ndarray],
-        *values,
+        *values: Union[
+            str,
+            Expec,
+            ParameterVector,
+            ParameterVectorElement,
+            tuple,
+        ],
     ) -> dict:
         """General function for evaluating the output of derivatives of the QNN.
 
@@ -861,24 +912,6 @@ class QNN:
                     real_todo_dic = add_to_real_todo_dic(i, real_todo_dic, value_dict)
             return real_todo_dic
 
-        def to_tuple(x):
-            """helper function for converting data into hashable tuples"""
-
-            def flatten(container):
-                for i in container:
-                    if isinstance(i, (list, tuple, np.ndarray)):
-                        for j in flatten(i):
-                            yield j
-                    else:
-                        yield i
-
-            if isinstance(x, float):
-                return tuple([x])
-            elif len(np.shape(x)) == 1:
-                return tuple(list(x))
-            else:
-                return tuple(flatten(x))
-
         # Done with the helper functions, start of the evaluate function
 
         # input adjustments for x, param, param_op to get correct stacking of values
@@ -905,7 +938,12 @@ class QNN:
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
         if self._result_caching == True:
-            caching_tuple = (to_tuple(x), to_tuple(param), to_tuple(param_op))
+            caching_tuple = (
+                to_tuple(x),
+                to_tuple(param),
+                to_tuple(param_op),
+                (self._executor.shots == None),
+            )
             value_dict = self.result_container.get(caching_tuple, {})
         else:
             value_dict = {}

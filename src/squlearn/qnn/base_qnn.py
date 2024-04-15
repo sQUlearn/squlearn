@@ -9,14 +9,15 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase
-from .qnn import QNN
+
+from .lowlevel_qnn import LowLevelQNN
 from .training import ShotControlBase
 
 
@@ -67,8 +68,6 @@ class BaseQNN(BaseEstimator, ABC):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.encoding_circuit = encoding_circuit
-        self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
@@ -134,9 +133,11 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching
-        )
+
+        self._encoding_circuit_ini = encoding_circuit
+        self._operator_ini = operator
+
+        self._qnn = LowLevelQNN(encoding_circuit, operator, executor, result_caching=self.caching)
 
         self.shot_control = shot_control
         if self.shot_control is not None:
@@ -197,6 +198,41 @@ class BaseQNN(BaseEstimator, ABC):
     def num_parameters_observable(self) -> int:
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
+
+    @property
+    def encoding_circuit(self) -> EncodingCircuitBase:
+        """Encoding circuit."""
+        if isinstance(self._qnn._pqc, TranspiledEncodingCircuit):
+            return self._qnn._pqc._encoding_circuit
+        else:
+            return self._qnn._pqc
+
+    @encoding_circuit.setter
+    def encoding_circuit(self, encoding_circuit: EncodingCircuitBase):
+        """Set the encoding circuit."""
+        self._encoding_circuit_ini = encoding_circuit
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
+
+    @property
+    def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
+        """Operator."""
+        return self._qnn._observable
+
+    @operator.setter
+    def operator(self, operator: Union[ObservableBase, list[ObservableBase]]):
+        """Set the operator."""
+        self._operator_ini = operator
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
 
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.

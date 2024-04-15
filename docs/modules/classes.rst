@@ -191,8 +191,11 @@ QNN Core
    :toctree: generated/
    :template: class.rst
 
-   qnn.qnn.QNN
-   qnn.qnn.Expec
+   qnn.lowlevel_qnn.LowLevelQNN
+   qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
+   qnn.lowlevel_qnn_qiskit.Expec
+   qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
+   qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ParameterRegularizationLoss
@@ -249,6 +252,18 @@ OpTree Data Structure
     util.optree.OpTreeMeasuredOperator
     util.optree.OpTreeContainer
     util.optree.OpTreeValue
+
+PennyLane interface
+------------------------------------
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   util.pennylane.PennyLaneCircuit
 
 
 Base Classes

@@ -83,6 +83,8 @@ class ObservableDerivatives:
         num_parameters (int): Total number of trainable parameters in the observable
         num_operators (int): Number operators in case of multiple observables
 
+    Methods:
+    --------
     """
 
     def __init__(

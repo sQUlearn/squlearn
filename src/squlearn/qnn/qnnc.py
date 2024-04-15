@@ -83,7 +83,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         clf = QNNClassifier(
             ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),
@@ -154,7 +154,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -170,7 +170,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
@@ -268,3 +268,5 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
+        if self.callback == "pbar":
+            self._pbar.close()

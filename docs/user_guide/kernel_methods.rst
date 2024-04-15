@@ -199,7 +199,7 @@ the following example:
     enc_circ = ChebyshevPQC(num_qubits=4, num_features= 1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
         encoding_circuit=enc_circ,
-        executor=Executor('statevector_simulator'),
+        executor=Executor(),
         measurement='XYZ',
         outer_kernel='gaussian'
     )
@@ -242,7 +242,7 @@ training and test data and shows how to optimize kernels.
         enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         pqk_instance = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
-            executor=Executor(Estimator()),
+            executor=Executor(),
             measurement='XYZ',
             outer_kernel='gaussian',
             parameter_seed=0
@@ -274,7 +274,7 @@ training and test data and shows how to optimize kernels.
     enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
         encoding_circuit=enc_circ,
-        executor=Executor(Estimator()),
+        executor=Executor(),
         measurement='XYZ',
         outer_kernel='gaussian',
         parameter_seed=0

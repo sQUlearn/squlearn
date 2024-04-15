@@ -71,7 +71,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
-            executor=Executor("statevector_simulator"),
+            executor=Executor(),
             measurement="XYZ",
             outer_kernel="gaussian",
             initial_parameters=param,
