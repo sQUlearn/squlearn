@@ -95,16 +95,16 @@ execution environment:
       executor = Executor("statevector_simulator")
 
       # Initialize the Executor with the qasm simulator
-      executor = Executor("qasm_simulator",shots=1234)
+      executor = Executor("qasm_simulator", shots=1234)
 
-      # Initialize the Executor with qiksit, statevector for shots=None, qasm for shots>0
+      # Initialize the Executor with qiksit is equivalent to "statevector_simulator"
       executor = Executor("qiskit")
 
       # Initialize the Executor with the PennyLane statevector simulator
       executor = Executor("pennylane")
 
       # Initialize the Executor with the PennyLane shot-based simulator
-      executor = Executor("default.qubit",shots=1234)
+      executor = Executor("default.qubit", shots=1234)
 
 - A backend following the Qiskit backend standard, e.g. a Qiskit Aer backend, a fake backend,
   a real IBM Quantum backend. This allows also the utilization
