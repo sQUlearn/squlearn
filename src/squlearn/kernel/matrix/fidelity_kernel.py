@@ -109,7 +109,8 @@ class FidelityKernel(KernelMatrixBase):
 
         elif self._executor.quantum_framework == "qiskit":
 
-            self._feature_vector = ParameterVector("x", self.num_features)
+            # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
+            self._feature_vector = ParameterVector("x_", self.num_features)
 
             self._enc_circ = self._encoding_circuit.get_circuit(
                 self._feature_vector, self._parameter_vector
