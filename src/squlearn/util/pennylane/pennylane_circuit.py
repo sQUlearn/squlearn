@@ -258,6 +258,10 @@ class PennyLaneCircuit:
         printer, modules = _get_sympy_interface()
 
         for op in circuit.data:
+            if op.operation.condition is not None:
+                raise NotImplementedError(
+                    "Conditional instructions are not supported in sQUlearn's PennyLane backend."
+                )
             param_tuple = None
             if len(op.operation.params) >= 1:
                 param_tuple = ()
