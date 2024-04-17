@@ -129,7 +129,7 @@ class OuterKernelBase:
                 param_op = parameters[qnn.num_parameters :]
                 x_result = qnn.evaluate(x, param, param_op, "f")["f"]
                 if y is not None:
-                    y_result = qnn.evaluate(x, param, param_op, "f")["f"]
+                    y_result = qnn.evaluate(y, param, param_op, "f")["f"]
                 else:
                     y_result = None
                 # Evaluate kernel
