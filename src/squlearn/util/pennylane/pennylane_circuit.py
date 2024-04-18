@@ -130,8 +130,11 @@ class PennyLaneCircuit:
     ) -> None:
 
         self._executor = executor
+        if self._executor is None:
+            self._executor = Executor()
+
         # Transpile circuit to statevector simulator basis gates to expand blocks automatically
-        self._qiskit_circuit = transpile(circuit, backend=Aer.get_backend("statevector_simulator"))
+        self._qiskit_circuit = transpile(circuit, basis_gates=qiskit_pennylane_gate_dict.keys())
 
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits

@@ -187,21 +187,20 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         def entangle_layer_iswap(QC: QuantumCircuit):
             """Createn of the entangeling layer by iSWAP neighboring qubits"""
 
-            # Manually build the iSWAP operator, since it is not available in Qiskit
-            iswap_op = Operator(
-                [
-                    [1, 0, 0, 0],
-                    [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
-                    [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
-                    [0, 0, 0, 1],
-                ]
-            )
+            # Manually build the square root iSWAP operator, since it is not available in Qiskit
+            sqr_iswap = QuantumCircuit(2)
+            sqr_iswap.cnot(0,1)
+            sqr_iswap.cs(1,0)
+            sqr_iswap.ch(1,0)
+            sqr_iswap.cs(1,0)
+            sqr_iswap.cnot(0,1)
+            iswap = sqr_iswap.to_gate(label="siswap")
 
             # Build the layer
             for i in range(0, self.num_qubits - 1, 2):
-                QC.unitary(iswap_op, [i, i + 1], label="iswap")
+                QC.append(iswap, [i, i + 1])
             for i in range(1, self.num_qubits - 1, 2):
-                QC.unitary(iswap_op, [i, i + 1], label="iswap")
+                QC.append(iswap, [i, i + 1])
 
             return QC
 
