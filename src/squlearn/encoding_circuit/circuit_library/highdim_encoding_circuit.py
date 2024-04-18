@@ -246,9 +246,9 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 def _build_siswap_gate():
     """Manually build the square root iSWAP operator, since it is not available in Qiskit"""
     sqr_iswap = QuantumCircuit(2)
-    sqr_iswap.cnot(0, 1)
+    sqr_iswap.cx(0, 1)
     sqr_iswap.cs(1, 0)
     sqr_iswap.ch(1, 0)
     sqr_iswap.cs(1, 0)
-    sqr_iswap.cnot(0, 1)
+    sqr_iswap.cx(0, 1)
     return sqr_iswap.to_gate(label="siswap")
