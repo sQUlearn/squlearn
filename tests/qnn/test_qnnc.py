@@ -29,7 +29,7 @@ class TestQNNClassifier:
     def qnn_classifier(self) -> QNNClassifier:
         """QNNClassifier module."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
@@ -41,7 +41,7 @@ class TestQNNClassifier:
     @pytest.fixture(scope="module")
     def qnn_classifier_2out(self) -> QNNClassifier:
         """QNNClassifier module."""
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()

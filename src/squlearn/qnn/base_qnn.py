@@ -9,14 +9,15 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase
-from .qnn import QNN
+
+from .lowlevel_qnn import LowLevelQNN
 from .training import ShotControlBase
 
 
@@ -67,8 +68,6 @@ class BaseQNN(BaseEstimator, ABC):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.encoding_circuit = encoding_circuit
-        self.operator = operator
         self.loss = loss
         self.optimizer = optimizer
         self.variance = variance
@@ -100,6 +99,23 @@ class BaseQNN(BaseEstimator, ABC):
             self.param_op_ini = param_op_ini
         self._param_op = self.param_op_ini.copy()
 
+        """
+        operator_qubits = []
+        total_num_qubits = encoding_circuit.num_qubits
+        for obs in operator.get_operator([0]*operator.num_parameters).paulis:
+            for n_q,q in enumerate(str(obs)):
+                if q != "I":
+                    if n_q not in operator_qubits:
+                        operator_qubits.append(total_num_qubits-n_q-1)
+        print(operator_qubits)
+        circ_decomposed = None
+        circ = encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters)
+        for instruction, qargs, cargs in encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters).decompose().data:
+            if instruction.name == "measure":
+                for qubit in qargs:
+                    if encoding_circuit.find_bit(qubit)[0] in operator_qubits:
+                        raise ValueError("There are measurements in the operator on qubits which are already measured in the circuit. Please remove these measurements or adjust the in-circuit measurements.")
+        """
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
         ):
@@ -117,9 +133,11 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching
-        )
+
+        self._encoding_circuit_ini = encoding_circuit
+        self._operator_ini = operator
+
+        self._qnn = LowLevelQNN(encoding_circuit, operator, executor, result_caching=self.caching)
 
         self.shot_control = shot_control
         if self.shot_control is not None:
@@ -180,6 +198,41 @@ class BaseQNN(BaseEstimator, ABC):
     def num_parameters_observable(self) -> int:
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
+
+    @property
+    def encoding_circuit(self) -> EncodingCircuitBase:
+        """Encoding circuit."""
+        if isinstance(self._qnn._pqc, TranspiledEncodingCircuit):
+            return self._qnn._pqc._encoding_circuit
+        else:
+            return self._qnn._pqc
+
+    @encoding_circuit.setter
+    def encoding_circuit(self, encoding_circuit: EncodingCircuitBase):
+        """Set the encoding circuit."""
+        self._encoding_circuit_ini = encoding_circuit
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
+
+    @property
+    def operator(self) -> Union[ObservableBase, list[ObservableBase]]:
+        """Operator."""
+        return self._qnn._observable
+
+    @operator.setter
+    def operator(self, operator: Union[ObservableBase, list[ObservableBase]]):
+        """Set the operator."""
+        self._operator_ini = operator
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit_ini,
+            self._operator_ini,
+            self.executor,
+            result_caching=self.caching,
+        )
 
     def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a new model to data.

@@ -45,7 +45,7 @@ class QGPC(GaussianProcessClassifier):
         X, y = load_iris(return_X_y=True)
 
         enc_circ = HubregtsenEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
-        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor("statevector_simulator"))
+        q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpc_ansatz = QGPC(quantum_kernel=q_kernel)
         qgpc_ansatz.fit(X, y)

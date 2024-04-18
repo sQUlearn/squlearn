@@ -16,6 +16,8 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
+from .fidelity_kernel_pennylane import FidelityKernelPennyLane
+
 
 class FidelityKernel(KernelMatrixBase):
     """
@@ -92,41 +94,60 @@ class FidelityKernel(KernelMatrixBase):
         self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
 
-        self._feature_vector = ParameterVector("x", self.num_features)
         if self.num_parameters > 0:
-            self._parameter_vector = ParameterVector("θ", self.num_parameters)
+            self._parameter_vector = ParameterVector("p", self.num_parameters)
         else:
             self._parameter_vector = None
 
-        self._enc_circ = self._encoding_circuit.get_circuit(
-            self._feature_vector, self._parameter_vector
-        )
-        if self._executor.is_statevector:
-            if self._parameter_vector is None:
-                self._quantum_kernel = FidelityStatevectorKernel(
-                    feature_map=self._enc_circ, shots=self._executor.get_shots()
-                )
+        if self._executor.quantum_framework == "pennylane":
+
+            self._quantum_kernel = FidelityKernelPennyLane(
+                encoding_circuit=self._encoding_circuit,
+                executor=self._executor,
+                evaluate_duplicates=self._evaluate_duplicates,
+            )
+
+        elif self._executor.quantum_framework == "qiskit":
+
+            # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
+            self._feature_vector = ParameterVector("x_", self.num_features)
+
+            self._enc_circ = self._encoding_circuit.get_circuit(
+                self._feature_vector, self._parameter_vector
+            )
+            if self._executor.is_statevector:
+                if self._parameter_vector is None:
+                    self._quantum_kernel = FidelityStatevectorKernel(
+                        feature_map=self._enc_circ,
+                        shots=self._executor.get_shots(),
+                        enforce_psd=False,
+                    )
+                else:
+                    self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                        feature_map=self._enc_circ,
+                        training_parameters=self._parameter_vector,
+                        shots=self._executor.get_shots(),
+                        enforce_psd=False,
+                    )
             else:
-                self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                    feature_map=self._enc_circ,
-                    training_parameters=self._parameter_vector,
-                    shots=self._executor.get_shots(),
-                )
+                fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                if self._parameter_vector is None:
+                    self._quantum_kernel = FidelityQuantumKernel(
+                        feature_map=self._enc_circ,
+                        fidelity=fidelity,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        enforce_psd=False,
+                    )
+                else:
+                    self._quantum_kernel = TrainableFidelityQuantumKernel(
+                        feature_map=self._enc_circ,
+                        fidelity=fidelity,
+                        training_parameters=self._parameter_vector,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        enforce_psd=False,
+                    )
         else:
-            fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
-            if self._parameter_vector is None:
-                self._quantum_kernel = FidelityQuantumKernel(
-                    feature_map=self._enc_circ,
-                    fidelity=fidelity,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                )
-            else:
-                self._quantum_kernel = TrainableFidelityQuantumKernel(
-                    feature_map=self._enc_circ,
-                    fidelity=fidelity,
-                    training_parameters=self._parameter_vector,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                )
+            raise RuntimeError("Invalid quantum framework!")
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -207,8 +228,7 @@ class FidelityKernel(KernelMatrixBase):
             raise ValueError("The following parameters could not be assigned:", params)
 
     def evaluate(self, x: np.ndarray, y: Union[np.ndarray, None] = None) -> np.ndarray:
-        """
-        Evaluates the fidelity kernel matrix.
+        """Evaluates the fidelity kernel matrix.
 
         Args:
             x (np.ndarray) :
@@ -221,7 +241,7 @@ class FidelityKernel(KernelMatrixBase):
 
         if y is None:
             y = x
-        kernel_matrix = np.zeros((x.shape[0], y.shape[0]))
+
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
@@ -230,6 +250,7 @@ class FidelityKernel(KernelMatrixBase):
             self._quantum_kernel.assign_training_parameters(self._parameters)
 
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
+
         if self._mit_depol_noise is not None:
             print("WARNING: Advanced option. Do not use it within an squlearn.kernel.ml workflow")
             if not np.array_equal(x, y):
@@ -249,10 +270,18 @@ class FidelityKernel(KernelMatrixBase):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
 
-    ###########
-    ## Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
-    ###########
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
+        """Function to mitigate depolarizing noise using msplit method.
+
+        Mitigating depolarizing noise after http://arxiv.org/abs/2105.02276v1
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Mitigated Quantum kernel matrix as 2D numpy array.
+        """
+
         msplit_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob = self._survival_probability(kernel)
         for i in range(kernel.shape[0]):
@@ -264,6 +293,15 @@ class FidelityKernel(KernelMatrixBase):
         return msplit_kernel_matrix
 
     def _get_mmean_kernel(self, kernel: np.ndarray) -> np.ndarray:
+        """
+        Function to mitigate depolarizing noise using mmean method.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Mitigated Quantum kernel matrix as 2D numpy array.
+        """
         mmean_kernel_matrix = np.zeros((kernel.shape[0], kernel.shape[1]))
         survival_prob_mean = self._survival_probability_mean(kernel)
         mmean_kernel_matrix = (
@@ -272,6 +310,14 @@ class FidelityKernel(KernelMatrixBase):
         return mmean_kernel_matrix
 
     def _survival_probability(self, kernel: np.ndarray) -> np.ndarray:
+        """Function to calculate the survival probability.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            np.ndarray: Survival probability as 1D numpy array.
+        """
         kernel_diagonal = np.diag(kernel)
         surv_prob = np.sqrt(
             (kernel_diagonal - 2 ** (-1.0 * self._num_qubits))
@@ -280,5 +326,14 @@ class FidelityKernel(KernelMatrixBase):
         return surv_prob
 
     def _survival_probability_mean(self, kernel: np.ndarray) -> float:
+        """
+        Function to calculate the mean survival probability.
+
+        Args:
+            kernel (np.ndarray): Quantum kernel matrix as 2D numpy array.
+
+        Returns:
+            float: Mean survival probability.
+        """
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)

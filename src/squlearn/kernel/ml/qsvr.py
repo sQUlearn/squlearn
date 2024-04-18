@@ -53,7 +53,7 @@ class QSVR(SVR):
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=1, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
-            executor=Executor("statevector_simulator"),
+            executor=Executor(),
             initial_parameters=np.random.rand(encoding_circuit.num_parameters))
 
         X = np.linspace(0, np.pi, 100)
