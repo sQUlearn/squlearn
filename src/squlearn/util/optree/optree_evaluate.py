@@ -755,7 +755,6 @@ def _evaluate_expectation_from_sampler(
     # Check if only the Z and I Paulis are used in the observable
     # Too late for a basis change
     for p in op_pauli_list:
-        print(p)
         if p.x.any():
             raise ValueError(
                 "Observable only with Z and I Paulis are supported, "
