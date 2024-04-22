@@ -23,18 +23,14 @@ class SGLBO(OptimizerBase, SGDMixin):
     * **bo_n_initial_points** (int): Number of initial points for the Bayesian Optimization (default: 10)
     * **bo_x0_points** (list of lists): Initial input points (default: None)
     * **bo_aqc_optimizer** (str): Method to minimize the acquisition function. "sampling" or "lbfgs" (default: "lbfgs")
-    * **bo_acq_func** (str): Acquisition function for the Bayesian Optimization (default: "EI").
-      Valid values for `acq_func` are:
-        * "LCB"
-        * "EI"
-        * "PI"
-        * "gp_hedge"
+    * **bo_acq_func** (str): Acquisition function for the Bayesian Optimization (default: "EI"). Valid values are: "LCB", "EI", "PI", "gp_hedge"
     * **bo_noise** (float): Noise for noisy observations (default: "gaussian")
     * **min_surrogate** (bool): If True, the surrogate model is minimized to find the optimal step size (default: False)
     * **log_file** (str): File to log the optimization (default: None)
 
     Args:
         options (dict): Options for the SGLBO optimizer
+
     """
 
     def __init__(self, options: dict = None, callback=default_callback) -> None:
