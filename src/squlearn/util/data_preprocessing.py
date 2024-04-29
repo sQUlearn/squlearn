@@ -89,12 +89,12 @@ def _adjust_input(
 
 def convert_to_float64(x: Union[float, np.ndarray]) -> np.ndarray:
     """ Convert to float64 format, raise Error for complex values
-    
+
     Args:
         x (Union[float, np.ndarray]): Data that is converted
-        
+
     Returns:
-        Converted numpy float64 array 
+        Converted numpy float64 array
     """
     if x.dtype != np.float64:
         x = np.real_if_close(x)
