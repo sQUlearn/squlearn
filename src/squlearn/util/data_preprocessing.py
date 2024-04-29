@@ -52,6 +52,7 @@ def _adjust_input(
     multiple_inputs = False
     error = False
     shape = np.shape(x)
+    
 
     if sum(shape) == 0 and x_length > 0:
         # Empty array although x_length not zero
@@ -83,7 +84,14 @@ def _adjust_input(
 
     if error:
         raise ValueError("Wrong format of an input variable.")
-
+    
+    if xx.dtype != np.float64:
+        
+        xx = np.real_if_close(xx)
+        if np.iscomplexobj(xx):
+            raise ValueError("Only real values for parameters and features are supported in sQUlearn!")
+        xx = np.array(xx,dtype=np.float64)
+        
     return xx, multiple_inputs
 
 
