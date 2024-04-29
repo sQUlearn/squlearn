@@ -131,6 +131,7 @@ class FidelityKernelPennyLane:
 
         if y is None:
             y = x
+
         kernel_matrix = np.ones((x.shape[0], y.shape[0]))
 
         if self._executor.is_statevector:

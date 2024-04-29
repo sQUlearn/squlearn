@@ -52,7 +52,6 @@ def _adjust_input(
     multiple_inputs = False
     error = False
     shape = np.shape(x)
-    
 
     if sum(shape) == 0 and x_length > 0:
         # Empty array although x_length not zero
@@ -84,16 +83,26 @@ def _adjust_input(
 
     if error:
         raise ValueError("Wrong format of an input variable.")
-    
-    if xx.dtype != np.float64:
-        
-        xx = np.real_if_close(xx)
-        if np.iscomplexobj(xx):
-            raise ValueError("Only real values for parameters and features are supported in sQUlearn!")
-        xx = np.array(xx,dtype=np.float64)
-        
-    return xx, multiple_inputs
 
+
+    return convert_to_float64(xx), multiple_inputs
+
+def convert_to_float64(x: Union[float, np.ndarray]) -> np.ndarray:
+    """ Convert to float64 format, raise Error for complex values
+    
+    Args:
+        x (Union[float, np.ndarray]): Data that is converted
+        
+    Returns:
+        Converted numpy float64 array 
+    """
+    if x.dtype != np.float64:
+        x = np.real_if_close(x)
+        if np.iscomplexobj(x):
+            raise ValueError("Only real values for parameters and features are supported in sQUlearn!")
+        x = np.array(x,dtype=np.float64)
+
+    return x
 
 def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> Tuple:
     """Function for converting data into hashable tuples
