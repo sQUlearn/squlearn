@@ -561,10 +561,11 @@ class PennyLaneCircuit:
                         # Calculate the expectation value of the single observables
                         # since this is more compatible with hardware backends
                         if len(self._pennylane_words[i]) == 0:
-                            return 0.0
-                        expval_list.append(
-                            qml.expval(sum([obs for obs in self._pennylane_words[i]]))
-                        )
+                            expval_list.append(0.0)
+                        else:
+                            expval_list.append(
+                                qml.expval(sum([obs for obs in self._pennylane_words[i]]))
+                            )
                 return pnp.stack(tuple(expval_list))
             else:
                 if len(obs_param_list) > 0:
@@ -582,6 +583,7 @@ class PennyLaneCircuit:
                     # since this is more compatible with hardware backends
                     if len(self._pennylane_words) == 0:
                         return 0.0
-                    return qml.expval(sum([obs for obs in self._pennylane_words]))
+                    else:
+                        return qml.expval(sum([obs for obs in self._pennylane_words]))
 
         return pennylane_circuit
