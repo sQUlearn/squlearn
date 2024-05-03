@@ -84,7 +84,29 @@ def _adjust_input(
     if error:
         raise ValueError("Wrong format of an input variable.")
 
-    return xx, multiple_inputs
+    return convert_to_float64(xx), multiple_inputs
+
+
+def convert_to_float64(x: Union[float, np.ndarray, list]) -> np.ndarray:
+    """Convert to float64 format, raise Error for complex values
+
+    Args:
+        x (Union[float, np.ndarray]): Data that is converted
+
+    Returns:
+        Converted numpy float64 array
+    """
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
+    if x.dtype != np.float64:
+        x = np.real_if_close(x)
+        if np.iscomplexobj(x):
+            raise ValueError(
+                "Only real values for parameters and features are supported in sQUlearn!"
+            )
+        x = np.array(x, dtype=np.float64)
+
+    return x
 
 
 def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> Tuple:

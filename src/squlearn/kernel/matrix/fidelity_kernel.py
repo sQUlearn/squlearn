@@ -15,6 +15,7 @@ from qiskit.circuit import ParameterVector
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
+from ...util.data_preprocessing import convert_to_float64
 
 from .fidelity_kernel_pennylane import FidelityKernelPennyLane
 
@@ -241,6 +242,9 @@ class FidelityKernel(KernelMatrixBase):
 
         if y is None:
             y = x
+
+        x = convert_to_float64(x)
+        y = convert_to_float64(y)
 
         if self._parameter_vector is not None:
             if self._parameters is None:

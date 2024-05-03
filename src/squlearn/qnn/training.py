@@ -245,17 +245,17 @@ def train(
     if isinstance(weights, np.ndarray):
         weights_values = weights
     elif weights is None:
-        weights_values = np.ones(ground_truth.shape)
+        weights_values = np.ones(np.shape(ground_truth))
     else:
         raise TypeError(f"Unknown weight format: {type(weights)}")
 
     # Tell the loss function if the cost operator parameters are optimized
     loss.set_opt_param_op(opt_param_op)
 
-    if weights_values.shape != ground_truth.shape:
+    if weights_values.shape != np.shape(ground_truth):
         raise ValueError(
             f"Shape {weights_values.shape} of weight values doesn't match shape"
-            f" {ground_truth.shape} of reference values"
+            f" {np.shape(ground_truth)} of reference values"
         )
 
     # Preprocessing of the input values in case of lists

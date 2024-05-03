@@ -13,6 +13,7 @@ from qiskit_aer import Aer
 import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
+from pennylane.operation import Observable as PennyLaneObservable
 
 from .pennylane_gates import qiskit_pennylane_gate_dict
 from ..executor import Executor
@@ -126,7 +127,14 @@ class PennyLaneCircuit:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        observable: Union[None, SparsePauliOp, List[SparsePauliOp], str] = None,
+        observable: Union[
+            None,
+            SparsePauliOp,
+            List[SparsePauliOp],
+            str,
+            PennyLaneObservable,
+            List[PennyLaneObservable],
+        ] = None,
         executor: Executor = None,
     ) -> None:
 
@@ -150,8 +158,15 @@ class PennyLaneCircuit:
             self._pennylane_gates_parameters_dimensions,
         ) = self.build_circuit_instructions(self._qiskit_circuit)
 
+        self._is_qiskit_observable = False
+        if isinstance(observable, SparsePauliOp):
+            self._is_qiskit_observable = True
+        if isinstance(observable, list):
+            if all([isinstance(obs, SparsePauliOp) for obs in observable]):
+                self._is_qiskit_observable = True
+
         # Build circuit instructions for the pennylane observable from the qiskit circuit
-        if observable is not None and not isinstance(observable, str):
+        if self._is_qiskit_observable:
             (
                 self._pennylane_obs_param_function,
                 self._pennylane_words,
@@ -544,40 +559,52 @@ class PennyLaneCircuit:
                 return qml.probs(wires=range(self._num_qubits))
             elif self._qiskit_observable == "state":
                 return qml.state()
-            elif isinstance(self._qiskit_observable, list):
-                expval_list = []
-                for i, obs in enumerate(self._pennylane_words):
+            elif self._is_qiskit_observable:
+                if isinstance(self._qiskit_observable, list):
+                    expval_list = []
+                    for i, obs in enumerate(self._pennylane_words):
+                        if len(obs_param_list) > 0:
+                            coeff_list = []
+                            for coeff in self._pennylane_obs_param_function[i]:
+                                if callable(coeff):
+                                    evaluated_param = coeff(*obs_param_list)
+                                    coeff_list.append(evaluated_param)
+                                else:
+                                    coeff_list.append(coeff)
+                            expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
+                        else:
+                            # In case no parameters are present in the observable
+                            # Calculate the expectation value of sum of the observables
+                            # since this is more compatible with hardware backends
+                            if len(self._pennylane_words[i]) == 0:
+                                expval_list.append(0.0)
+                            else:
+                                expval_list.append(
+                                    qml.expval(sum([obs for obs in self._pennylane_words[i]]))
+                                )
+                    return pnp.stack(tuple(expval_list))
+                else:
                     if len(obs_param_list) > 0:
                         coeff_list = []
-                        for coeff in self._pennylane_obs_param_function[i]:
+                        for coeff in self._pennylane_obs_param_function:
                             if callable(coeff):
                                 evaluated_param = coeff(*obs_param_list)
                                 coeff_list.append(evaluated_param)
                             else:
                                 coeff_list.append(coeff)
-                        expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
+                        return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
                     else:
                         # In case no parameters are present in the observable
-                        # Calculate the expectation value of the single observables
+                        # Calculate the expectation value of sum of the observables
                         # since this is more compatible with hardware backends
-                        expval_list.append(
-                            pnp.sum([qml.expval(obs) for obs in self._pennylane_words[i]])
-                        )
-                return pnp.stack(tuple(expval_list))
-            else:
-                if len(obs_param_list) > 0:
-                    coeff_list = []
-                    for coeff in self._pennylane_obs_param_function:
-                        if callable(coeff):
-                            evaluated_param = coeff(*obs_param_list)
-                            coeff_list.append(evaluated_param)
+                        if len(self._pennylane_words) == 0:
+                            return 0.0
                         else:
-                            coeff_list.append(coeff)
-                    return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
+                            return qml.expval(sum([obs for obs in self._pennylane_words]))
+            else:
+                if isinstance(self._qiskit_observable, list):
+                    return pnp.stack(tuple([qml.expval(obs) for obs in self._qiskit_observable]))
                 else:
-                    # In case no parameters are present in the observable
-                    # Calculate the expectation value of the single observables
-                    # since this is more compatible with hardware backends
-                    return pnp.sum([qml.expval(obs) for obs in self._pennylane_words])
+                    return qml.expval(self._qiskit_observable)
 
         return pennylane_circuit
