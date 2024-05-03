@@ -170,48 +170,48 @@ def _get_quantum_fisher_pennylane(
         Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
 
-    p_ = ParameterVector("p", encoding_circuit.num_parameters)
-    x_ = ParameterVector("x", encoding_circuit.num_features)
-    circuit = encoding_circuit.get_circuit(x_, p_)
+    parameter_vector = ParameterVector("p", encoding_circuit.num_parameters)
+    feature_vector = ParameterVector("x", encoding_circuit.num_features)
+    circuit = encoding_circuit.get_circuit(feature_vector, parameter_vector)
 
     # Adjust input
-    x_list, multi_x = adjust_features(x, encoding_circuit.num_features)
-    p_list, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
+    x_adjusted, multi_x = adjust_features(x, encoding_circuit.num_features)
+    p_adjusted, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
 
     fisher_list = []
     if mode == "p":
         pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
         fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
-        for xx in x_list:
-            xvec = pnp.array(xx, requires_grad=False)
-            for pp in p_list:
-                pvec = pnp.array(pp, requires_grad=True)
+        for x_values in x_adjusted:
+            x_values = pnp.array(x_values, requires_grad=False)
+            for p_values in p_adjusted:
+                p_values = pnp.array(p_values, requires_grad=True)
                 # pylint: disable=not-callable
-                fisher_list.append(4.0 * np.array(fisher_func(pvec, xvec)))
+                fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
     elif mode == "x":
         pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
         fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
-        for xx in x_list:
-            xvec = pnp.array(xx, requires_grad=True)
-            for pp in p_list:
-                pvec = pnp.array(pp, requires_grad=False)
+        for x_values in x_adjusted:
+            x_values = pnp.array(x_values, requires_grad=True)
+            for p_values in p_adjusted:
+                p_values = pnp.array(p_values, requires_grad=False)
                 # pylint: disable=not-callable
-                fisher_list.append(4.0 * np.array(fisher_func(pvec, xvec)))
+                fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
     elif mode == "px":
         px_ = ParameterVector(
             "px", encoding_circuit.num_parameters + encoding_circuit.num_features
         )
-        dictionary = dict(zip(list(p_) + list(x_), list(px_)))
+        dictionary = dict(zip(list(parameter_vector) + list(feature_vector), list(px_)))
         circuit.assign_parameters(dictionary, inplace=True)
         pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
         fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
-        for xx in x_list:
-            for pp in p_list:
-                xvec = pnp.array(np.concatenate((pp, xx)), requires_grad=True)
+        for x_values in x_adjusted:
+            for p_values in p_adjusted:
+                x_values = pnp.array(np.concatenate((p_values, x_values)), requires_grad=True)
                 # pylint: disable=not-callable
-                fisher_list.append(4.0 * np.array(fisher_func(xvec)))
+                fisher_list.append(4.0 * np.array(fisher_func(x_values)))
     else:
         raise ValueError("Invalid mode for QFI evaluation.")
 
@@ -220,9 +220,9 @@ def _get_quantum_fisher_pennylane(
     # Reformating in case of multiple inputs
     reshape_list = []
     if multi_x:
-        reshape_list.append(len(x_list))
+        reshape_list.append(len(x_adjusted))
     if multi_p:
-        reshape_list.append(len(p_list))
+        reshape_list.append(len(p_adjusted))
 
     if len(reshape_list) > 0:
         fisher_list = fisher_list.reshape(reshape_list + list(fisher_list[0].shape))
