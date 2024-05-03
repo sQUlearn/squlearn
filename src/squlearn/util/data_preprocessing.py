@@ -87,7 +87,7 @@ def _adjust_input(
     return convert_to_float64(xx), multiple_inputs
 
 
-def convert_to_float64(x: Union[float, np.ndarray]) -> np.ndarray:
+def convert_to_float64(x: Union[float, np.ndarray, list]) -> np.ndarray:
     """Convert to float64 format, raise Error for complex values
 
     Args:
@@ -96,6 +96,8 @@ def convert_to_float64(x: Union[float, np.ndarray]) -> np.ndarray:
     Returns:
         Converted numpy float64 array
     """
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
     if x.dtype != np.float64:
         x = np.real_if_close(x)
         if np.iscomplexobj(x):
