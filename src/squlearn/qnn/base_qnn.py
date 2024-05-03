@@ -250,17 +250,19 @@ class BaseQNN(BaseEstimator, ABC):
 
         # Set parameters of the operator
         if isinstance(self.operator, list):
+            op_params = set()
             for i, operator in enumerate(self.operator):
-                keys = [
-                    k.split("__", 1)[1]
-                    for k in params.keys()
-                    if k.startswith("op" + str(i) + "__")
-                ]
-                op_params = keys & operator.get_params(deep=True).keys()
-                if op_params:
-                    operator.set_params(
-                        **{key: params["op" + str(i) + "__" + key] for key in op_params}
-                    )
+                param_dict = {}
+                for key, value in params.items():
+                    if key == "num_qubits":
+                        param_dict[key] = value
+                        op_params.add(key)
+                    else:
+                        if key.startswith("op" + str(i) + "__"):
+                            param_dict[key.split("__", 1)[1]] = value
+                        op_params.add(key)
+                if len(param_dict) > 0:
+                    operator.set_params(**param_dict)
                     initialize_qnn = True
         else:
             op_params = params.keys() & self.operator.get_params(deep=True).keys()
