@@ -232,6 +232,7 @@ Implemented optimizers
    optimizers.LBFGSB
    optimizers.SLSQP
    optimizers.SPSA
+   optimizers.SGLBO
 
 OpTree Data Structure
 ------------------------------------
