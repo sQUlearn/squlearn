@@ -574,11 +574,14 @@ class PennyLaneCircuit:
                             expval_list.append(qml.expval(qml.Hamiltonian(coeff_list, obs)))
                         else:
                             # In case no parameters are present in the observable
-                            # Calculate the expectation value of the single observables
+                            # Calculate the expectation value of sum of the observables
                             # since this is more compatible with hardware backends
-                            expval_list.append(
-                                pnp.sum([qml.expval(obs) for obs in self._pennylane_words[i]])
-                            )
+                            if len(self._pennylane_words[i]) == 0:
+                                expval_list.append(0.0)
+                            else:
+                                expval_list.append(
+                                    qml.expval(sum([obs for obs in self._pennylane_words[i]]))
+                                )
                     return pnp.stack(tuple(expval_list))
                 else:
                     if len(obs_param_list) > 0:
@@ -592,9 +595,12 @@ class PennyLaneCircuit:
                         return qml.expval(qml.Hamiltonian(coeff_list, self._pennylane_words))
                     else:
                         # In case no parameters are present in the observable
-                        # Calculate the expectation value of the single observables
+                        # Calculate the expectation value of sum of the observables
                         # since this is more compatible with hardware backends
-                        return pnp.sum([qml.expval(obs) for obs in self._pennylane_words])
+                        if len(self._pennylane_words) == 0:
+                            return 0.0
+                        else:
+                            return qml.expval(sum([obs for obs in self._pennylane_words]))
             else:
                 if isinstance(self._qiskit_observable, list):
                     return pnp.stack(tuple([qml.expval(obs) for obs in self._qiskit_observable]))
