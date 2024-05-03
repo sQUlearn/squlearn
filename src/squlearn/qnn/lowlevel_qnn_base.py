@@ -26,8 +26,8 @@ class LowLevelQNNBase(abc.ABC):
         observable: Union[ObservableBase, list],
         executor: Executor,
     ) -> None:
-        self._pqc = copy.deepcopy(parameterized_quantum_circuit)
-        self._observable = copy.deepcopy(observable)
+        self._pqc = copy.copy(parameterized_quantum_circuit)
+        self._observable = copy.copy(observable)
         self._executor = executor
 
     @abc.abstractmethod
