@@ -961,7 +961,7 @@ class Executor:
             try:
                 job_pickle._backend = str(job.backend())
             except (QiskitError, AttributeError):
-                job_pickle._backend = self.backend
+                job_pickle._backend = str(self.backend)
 
             # overwrite result function with the obtained result
             def result_():
