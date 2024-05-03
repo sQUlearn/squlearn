@@ -242,58 +242,44 @@ class BaseQNN(BaseEstimator, ABC):
         if "encoding_circuit" in params or "operator" in params:
             initialize_qnn = True
 
-        if "num_qubits" in params:
-            self.encoding_circuit.set_params(num_qubits=params["num_qubits"])
-            if isinstance(self.operator, list):
-                for operator in self.operator:
-                    operator.set_params(num_qubits=params["num_qubits"])
-            else:
-                self.operator.set_params(num_qubits=params["num_qubits"])
-            initialize_qnn = True
-            params.pop("num_qubits")
-
         # Set encoding_circuit parameters
         ec_params = params.keys() & self.encoding_circuit.get_params(deep=True).keys()
         if ec_params:
             self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
-            for key in ec_params:
-                params.pop(key)
             initialize_qnn = True
 
         # Set parameters of the operator
         if isinstance(self.operator, list):
-            for i, oper in enumerate(self.operator):
+            for i, operator in enumerate(self.operator):
                 keys = [
                     k.split("__", 1)[1]
                     for k in params.keys()
                     if k.startswith("op" + str(i) + "__")
                 ]
-                op_params = keys & oper.get_params(deep=True).keys()
+                op_params = keys & operator.get_params(deep=True).keys()
                 if op_params:
-                    oper.set_params(
+                    operator.set_params(
                         **{key: params["op" + str(i) + "__" + key] for key in op_params}
                     )
-                    for key in op_params:
-                        params.pop("op" + str(i) + "__" + key)
                     initialize_qnn = True
         else:
             op_params = params.keys() & self.operator.get_params(deep=True).keys()
             if op_params:
                 self.operator.set_params(**{key: params[key] for key in op_params})
-                for key in op_params:
-                    params.pop(key)
                 initialize_qnn = True
 
         if initialize_qnn:
             self._initialize_lowlevel_qnn()
 
         # Set parameters of the QNN
-        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
-        if qnn_params or initialize_qnn:
+        qnn_params = (params.keys() & self._qnn.get_params(deep=True).keys()) - (
+            ec_params | op_params
+        )
+        if qnn_params:
+            self._qnn.set_params(**{key: params[key] for key in qnn_params})
+            initialize_qnn = True
 
-            if qnn_params:
-                self._qnn.set_params(**{key: params[key] for key in qnn_params})
-
+        if initialize_qnn:
             # If the number of parameters has changed, reinitialize the parameters
             if self.encoding_circuit.num_parameters != len(self.param_ini):
                 self.param_ini = self.encoding_circuit.generate_initial_parameters(
