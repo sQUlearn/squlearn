@@ -190,6 +190,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
             self._label_binarizer.fit(y)
+            self.classes_ = self._label_binarizer.classes_
 
         if len(y.shape) == 1:
             y = self._label_binarizer.transform(y).ravel()
