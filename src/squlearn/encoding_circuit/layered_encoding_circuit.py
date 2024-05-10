@@ -1269,7 +1269,7 @@ class LayeredPQC:
         """initializes a encoding circuit through a given string of gates"""
 
         def generate_function(map_string, args):
-            """ Function for creating a callable function from a string
+            """Function for creating a callable function from a string
 
             Args:
                 map_string (str): The string representation of the function
@@ -1279,7 +1279,7 @@ class LayeredPQC:
                 callable_function (function): The function that can be called with the arguments
             """
             # Split the argument string into individual variable names
-            arg_names = args.split(',')
+            arg_names = args.split(",")
 
             # Remove "np." prefix
             map_string = map_string.replace("np.", "")
@@ -1288,7 +1288,7 @@ class LayeredPQC:
             symbols = [sp.Symbol(arg) for arg in arg_names]
 
             # Parse the map_string into a SymPy expression
-            expr = sp.sympify(map_string,evaluate=False)
+            expr = sp.sympify(map_string, evaluate=False)
 
             # Create the function
             callable_function = sp.lambdify(symbols, expr, modules=np)
