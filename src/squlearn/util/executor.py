@@ -554,7 +554,7 @@ class Executor:
                 if self._caching:
 
                     # Generate hash value for caching
-                    hash_value = self._cache.hash_variable(
+                    hash_value_adjusted = self._cache.hash_variable(
                         [
                             "pennylane_execute",
                             hash_value,
@@ -563,22 +563,27 @@ class Executor:
                         ]
                     )
 
-                    result = self._cache.get_file(hash_value)
+                    result = self._cache.get_file(hash_value_adjusted)
                     cached = True
+                else:
+                    hash_value_adjusted = None
 
                 if result is None:
                     cached = False
-                    # Execute the circuit todo: implement restart
-                    self._logger.info(
-                        f"Executor start execution of pennylane circuit with hash value: {{}}".format(
-                            hash_value
+                    if self._caching:
+                        self._logger.info(
+                            f"Execution of pennylane circuit function with hash value: {{}}".format(
+                                hash_value_adjusted
+                            )
                         )
-                    )
+                    else:
+                        self._logger.info(f"Execution of pennylane circuit function")
+                    # Execution of pennylane circuit function
                     result = function()
                     self._logger.info(f"Execution of pennylane circuit successful")
-                else:
+                elif self._caching:
                     self._logger.info(
-                        f"Cached result found with hash value: {{}}".format(hash_value)
+                        f"Cached result found with hash value: {{}}".format(hash_value_adjusted)
                     )
 
                 success = True
@@ -621,7 +626,7 @@ class Executor:
             )
 
         if self._caching and not cached:
-            self._cache.store_file(hash_value, copy.copy(result))
+            self._cache.store_file(hash_value_adjusted, copy.copy(result))
 
         return result
 
