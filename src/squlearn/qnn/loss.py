@@ -450,7 +450,7 @@ class SquaredLoss(LossBase):
         and ground_truth as
 
         .. math::
-           \sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right) \frac{\partial f(x_i)}{\partial p_j}
+           2\sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right) \frac{\partial f(x_i)}{\partial p_j}
 
         Args:
             value_dict (dict): Contains calculated values of the model
