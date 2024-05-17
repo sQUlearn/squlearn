@@ -53,12 +53,12 @@ def _adjust_input(
     error = False
     shape = np.shape(x)
 
-    if sum(shape) == 0 and x_length > 0:
-        # Empty array although x_length not zero
-        error = True
-    elif shape == () and x_length == 1:
+    if shape == () and x_length == 1:
         # Single floating point number
         xx = np.array([[x]])
+    elif sum(shape) == 0 and x_length > 0:
+        # Empty array although x_length not zero
+        error = True
     elif len(shape) == 1:
         if x_length == 1:
             xx = np.array([np.array([xx]) for xx in x])

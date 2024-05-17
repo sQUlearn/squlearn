@@ -138,6 +138,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             **kwargs,
         )
         self._label_binarizer = None
+        self.classes_ = None
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict using the QNN.
@@ -189,12 +190,16 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         """
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
-            self._label_binarizer.fit(y)
-
-        if len(y.shape) == 1:
-            y = self._label_binarizer.transform(y).ravel()
+            y = self._label_binarizer.fit_transform(y)
+            self.classes_ = self._label_binarizer.classes_
         else:
             y = self._label_binarizer.transform(y)
+
+        if isinstance(self.operator, list) and len(self.operator) == 2 and y.shape[1] == 1:
+            y = np.hstack([1 - y, y])
+
+        if y.shape[1] == 1:
+            y = self._label_binarizer.transform(y).ravel()
 
         loss = self.loss
         if self.variance is not None:
