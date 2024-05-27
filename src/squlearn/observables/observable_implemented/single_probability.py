@@ -36,6 +36,9 @@ class SingleProbability(ObservableBase):
         qubit (int): Qubit to measure the probability of.
         one_state (bool): If True, measure the probability of being in state 1, otherwise state 0.
         parameterized (bool): If True, the operator is parameterized.
+
+    Methods:
+    --------
     """
 
     def __init__(

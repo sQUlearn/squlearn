@@ -9,14 +9,15 @@ from warnings import warn
 import numpy as np
 from sklearn.base import BaseEstimator
 
-
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
 from .loss import LossBase
-from .qnn import QNN
+
+from .lowlevel_qnn import LowLevelQNN
 from .training import ShotControlBase
 
 
@@ -100,23 +101,6 @@ class BaseQNN(BaseEstimator, ABC):
             self.param_op_ini = param_op_ini
         self._param_op = self.param_op_ini.copy()
 
-        """
-        operator_qubits = []
-        total_num_qubits = encoding_circuit.num_qubits
-        for obs in operator.get_operator([0]*operator.num_parameters).paulis:
-            for n_q,q in enumerate(str(obs)):
-                if q != "I":
-                    if n_q not in operator_qubits:
-                        operator_qubits.append(total_num_qubits-n_q-1)
-        print(operator_qubits)
-        circ_decomposed = None
-        circ = encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters)
-        for instruction, qargs, cargs in encoding_circuit.get_circuit([0]*encoding_circuit.num_features,[0]*encoding_circuit.num_parameters).decompose().data:
-            if instruction.name == "measure":
-                for qubit in qargs:
-                    if encoding_circuit.find_bit(qubit)[0] in operator_qubits:
-                        raise ValueError("There are measurements in the operator on qubits which are already measured in the circuit. Please remove these measurements or adjust the in-circuit measurements.")
-        """
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
         ):
@@ -134,9 +118,6 @@ class BaseQNN(BaseEstimator, ABC):
         self.pretrained = pretrained
 
         self.executor = executor
-        self._qnn = QNN(
-            self.encoding_circuit, self.operator, executor, result_caching=self.caching
-        )
 
         self.shot_control = shot_control
         if self.shot_control is not None:
@@ -162,6 +143,8 @@ class BaseQNN(BaseEstimator, ABC):
                 raise ValueError(f"Unknown callback string value {self.callback}")
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
+
+        self._initialize_lowlevel_qnn()
 
         update_params = self.get_params().keys() & kwargs.keys()
         if update_params:
@@ -255,11 +238,50 @@ class BaseQNN(BaseEstimator, ABC):
         for key in self_params:
             setattr(self, key, params[key])
 
+        initialize_qnn = False
+        if "encoding_circuit" in params or "operator" in params:
+            initialize_qnn = True
+
+        # Set encoding_circuit parameters
+        ec_params = params.keys() & self.encoding_circuit.get_params(deep=True).keys()
+        if ec_params:
+            self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
+            initialize_qnn = True
+
+        # Set parameters of the operator
+        if isinstance(self.operator, list):
+            op_params = set()
+            for i, operator in enumerate(self.operator):
+                param_dict = {}
+                for key, value in params.items():
+                    if key == "num_qubits":
+                        param_dict[key] = value
+                        op_params.add(key)
+                    else:
+                        if key.startswith("op" + str(i) + "__"):
+                            param_dict[key.split("__", 1)[1]] = value
+                        op_params.add(key)
+                if len(param_dict) > 0:
+                    operator.set_params(**param_dict)
+                    initialize_qnn = True
+        else:
+            op_params = params.keys() & self.operator.get_params(deep=True).keys()
+            if op_params:
+                self.operator.set_params(**{key: params[key] for key in op_params})
+                initialize_qnn = True
+
+        if initialize_qnn:
+            self._initialize_lowlevel_qnn()
+
         # Set parameters of the QNN
-        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
+        qnn_params = (params.keys() & self._qnn.get_params(deep=True).keys()) - (
+            ec_params | op_params
+        )
         if qnn_params:
             self._qnn.set_params(**{key: params[key] for key in qnn_params})
+            initialize_qnn = True
 
+        if initialize_qnn:
             # If the number of parameters has changed, reinitialize the parameters
             if self.encoding_circuit.num_parameters != len(self.param_ini):
                 self.param_ini = self.encoding_circuit.generate_initial_parameters(
@@ -289,3 +311,8 @@ class BaseQNN(BaseEstimator, ABC):
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Internal fit function."""
         raise NotImplementedError()
+
+    def _initialize_lowlevel_qnn(self):
+        self._qnn = LowLevelQNN(
+            self.encoding_circuit, self.operator, self.executor, result_caching=self.caching
+        )

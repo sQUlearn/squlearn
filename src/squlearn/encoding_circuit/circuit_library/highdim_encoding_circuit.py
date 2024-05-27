@@ -2,7 +2,6 @@ import numpy as np
 from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
-from qiskit.quantum_info.operators import Operator
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -77,6 +76,8 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         if self.entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self.entangling_gate)
+
+        self.siswap_gate = _build_siswap_gate()
 
     @property
     def num_parameters(self) -> int:
@@ -184,24 +185,14 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
             return QC
 
-        def entangle_layer_iswap(QC: QuantumCircuit):
+        def entangle_layer_siswap(QC: QuantumCircuit):
             """Createn of the entangeling layer by iSWAP neighboring qubits"""
-
-            # Manually build the iSWAP operator, since it is not available in Qiskit
-            iswap_op = Operator(
-                [
-                    [1, 0, 0, 0],
-                    [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
-                    [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
-                    [0, 0, 0, 1],
-                ]
-            )
 
             # Build the layer
             for i in range(0, self.num_qubits - 1, 2):
-                QC.unitary(iswap_op, [i, i + 1], label="iswap")
+                QC.append(self.siswap_gate, [i, i + 1])
             for i in range(1, self.num_qubits - 1, 2):
-                QC.unitary(iswap_op, [i, i + 1], label="iswap")
+                QC.append(self.siswap_gate, [i, i + 1])
 
             return QC
 
@@ -239,7 +230,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         for i in range(self.num_layers):
             if i != 0:
                 if self.entangling_gate == "iswap":
-                    QC = entangle_layer_iswap(QC)
+                    QC = entangle_layer_siswap(QC)
                 elif self.entangling_gate == "cx":
                     QC = entangle_layer_cx(QC)
                 else:
@@ -250,3 +241,14 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                 index_offset = 0
 
         return QC
+
+
+def _build_siswap_gate():
+    """Manually build the square root iSWAP operator, since it is not available in Qiskit"""
+    sqr_iswap = QuantumCircuit(2)
+    sqr_iswap.cx(0, 1)
+    sqr_iswap.cs(1, 0)
+    sqr_iswap.ch(1, 0)
+    sqr_iswap.cs(1, 0)
+    sqr_iswap.cx(0, 1)
+    return sqr_iswap.to_gate(label="siswap")

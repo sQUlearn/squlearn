@@ -62,6 +62,8 @@ class IsingHamiltonian(ObservableBase):
         X (str): parameter options for X term
         ZZ (str): parameter options for ZZ term
 
+    Methods:
+    --------
     """
 
     def __init__(
