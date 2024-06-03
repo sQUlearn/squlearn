@@ -1,7 +1,6 @@
 from collections import deque
 import numpy as np
-from skopt import gp_minimize
-from scipy.optimize import minimize
+from bayes_opt import BayesianOptimization, UtilityFunction
 
 from .approximated_gradients import FiniteDiffGradient
 from .optimizer_base import OptimizerBase, SGDMixin, default_callback, OptimizerResult
@@ -19,13 +18,9 @@ class SGLBO(OptimizerBase, SGDMixin):
     * **num_average** (int): Number of gradients to average (default: 1)
     * **bo_n_calls** (int): Number of iterations for the Bayesian Optimization (default: 20)
     * **bo_bounds** (List): Lower and upper bound for the search space for the Bayesian Optimization for each dimension. Each bound should be provided as a tupel (default: (0.0, 0.3))
-    * **bo_bounds_fac** (float): Factor to adapt the bounds based on the gradient information (default: None)
     * **bo_n_initial_points** (int): Number of initial points for the Bayesian Optimization (default: 10)
-    * **bo_x0_points** (list of lists): Initial input points (default: None)
-    * **bo_aqc_optimizer** (str): Method to minimize the acquisition function. "sampling" or "lbfgs" (default: "lbfgs")
-    * **bo_acq_func** (str): Acquisition function for the Bayesian Optimization (default: "EI"). Valid values are: "LCB", "EI", "PI", "gp_hedge"
-    * **bo_noise** (float): Noise for noisy observations (default: "gaussian")
-    * **min_surrogate** (bool): If True, the surrogate model is minimized to find the optimal step size (default: False)
+    * **bo_acq_func** (str): Acquisition function for the Bayesian Optimization (default: "ei"). Valid values are: "ucb", "ei", "poi"
+    * **bo_xi** (float): Exploration-exploitation trade-off parameter for the Bayesian Optimization (default: 0.01)
     * **log_file** (str): File to log the optimization (default: None)
 
     Args:
@@ -44,15 +39,11 @@ class SGLBO(OptimizerBase, SGDMixin):
         self.maxiter_total = options.get("maxiter_total", self.maxiter)
         self.eps = options.get("eps", 0.01)
         self.bo_n_calls = options.get("bo_n_calls", 20)
-        self.bo_bounds = options.get("bo_bounds", [(0.0, 0.3)])
-        self.bo_aqc_func = options.get("bo_aqc_func", "EI")
-        self.bo_aqc_optimizer = options.get("bo_aqc_optimizer", "lbfgs")
+        self.bo_bounds = options.get("bo_bounds", (0.0, 0.3))
+        self.bo_aqc_func = options.get("bo_aqc_func", "ei")
+        self.bo_xi = options.get("bo_xi", 0.01)
         self.bo_n_initial_points = options.get("bo_n_initial_points", 10)
-        self.bo_x0_points = options.get("bo_x0_points")
-        self.bo_noise = options.get("bo_noise", "gaussian")
-        self.bo_bounds_fac = options.get("bo_bounds_fac", None)
         self.log_file = options.get("log_file", None)
-        self.min_surrogate = options.get("min_surrogate", False)
         self.num_average = options.get("num_average", 1)
 
         self.callback = callback
@@ -68,9 +59,7 @@ class SGLBO(OptimizerBase, SGDMixin):
                 f"bo_n_calls: {self.bo_n_calls}\n"
                 f"bo_bounds: {self.bo_bounds}\n"
                 f"bo_aqc_func: {self.bo_aqc_func}\n"
-                f"bo_aqc_optimizer: {self.bo_aqc_optimizer}\n"
                 f"bo_n_initial_points: {self.bo_n_initial_points}\n"
-                f"bo_x0_points: {self.bo_x0_points}\n"
             )
             output = " %9s  %13s  %13s  %13s \n" % ("Iteration", "f(x)", "Gradient", "Step")
             f.write(header)
@@ -115,16 +104,6 @@ class SGLBO(OptimizerBase, SGDMixin):
             fval = fun(self.x)
             self.gradient_deque.append(grad(self.x))
             gradient = np.average(self.gradient_deque, axis=0)
-
-            # adapt bounds and x0 based on the gradient
-            if (
-                self.bo_bounds is not None
-                and self.bo_x0_points is not None
-                and self.bo_bounds_fac is not None
-            ):
-                self.bo_bounds, self.bo_x0_points = self.__adapt_bounds(
-                    self.bo_bounds, self.bo_x0_points, gradient
-                )
 
             x_updated = self.step(x=self.x, grad=gradient)
 
@@ -178,72 +157,34 @@ class SGLBO(OptimizerBase, SGDMixin):
 
             return func(updated_point)
 
-        # bayesian optimization to estimate the step size in one dimension
-        res = gp_minimize(
-            step_size_cost,
-            self.bo_bounds,
-            n_calls=self.bo_n_calls,
-            acq_func=self.bo_aqc_func,
-            acq_optimizer=self.bo_aqc_optimizer,
-            x0=self.bo_x0_points,
-            n_jobs=-1,
+        # Convert the minimization problem into a maximization problem
+        def neg_step_size_cost(x):
+            return -step_size_cost(x)
+
+        # Define the bounds for Bayesian Optimization
+        pbounds = {"x": self.bo_bounds}
+
+        acquisition_function = UtilityFunction(kind=self.bo_aqc_func, xi=self.bo_xi)
+
+        # Initialize Bayesian Optimization
+        bo = BayesianOptimization(
+            f=neg_step_size_cost,
+            pbounds=pbounds,
+            verbose=0,
             random_state=0,
-            noise=self.bo_noise,
-            n_initial_points=self.bo_n_initial_points,
+            allow_duplicate_points=True,
         )
 
-        # minimize the surrogate model to find the optimal step size
-        if self.min_surrogate:
+        # Perform the optimization
+        bo.maximize(
+            init_points=self.bo_n_initial_points,
+            n_iter=self.bo_n_calls,
+            acquisition_function=acquisition_function,
+        )
 
-            def func_surrogate(x):
-                reg = res.models[-1]
-                x = res.space.transform(x.reshape(1, -1))
-                return reg.predict(x.reshape(1, -1))[0]
-
-            res_surr = minimize(
-                func_surrogate, x0=res.x[0], method="Nelder-Mead", tol=1e-6, bounds=self.bo_bounds
-            )
-            x_val = res_surr.x
-        else:
-            x_val = res.x
+        x_val = bo.max["params"]["x"]
 
         return x_val
-
-    def __adapt_bounds(
-        self, current_bounds: list, current_x0: list, gradient: np.ndarray
-    ) -> tuple:
-        """
-        Function to adapt the bounds and initial points for gp_minimize based on the gradient information.
-
-        Args:
-            current_bounds (List): Current bounds for the search space.
-            current_x0 (List): Current initial points.
-            gradient (np.ndarray): Gradient of the objective function.
-
-        Returns:
-            Tuple: Updated bounds for the search space and initial points.
-        """
-
-        # Compute the magnitude of the gradient
-        grad_magnitude = np.linalg.norm(gradient)
-
-        # Update the bounds based on the gradient magnitude
-        updated_bounds = []
-        for bound in current_bounds:
-            lower = max(bound[0] - self.bo_bounds_fac * grad_magnitude, 0.0)
-            upper = bound[1] + self.bo_bounds_fac * grad_magnitude
-            updated_bounds.append((lower, upper))
-
-        # Update the initial points based on the updated bounds and maintaining distribution
-        updated_x0 = []
-
-        # Distribute the x0 points evenly within the updated bounds
-        for i in range(len(current_x0)):
-            t = i / len(current_x0)  # t goes from 0 to 1
-            updated_x0_point = [lower + t * (upper - lower) for (lower, upper) in updated_bounds]
-            updated_x0.append(updated_x0_point)
-
-        return updated_bounds, updated_x0
 
     def _log(self, fval, gradient, dx):
         """Function for creating a log entry of the optimization."""
