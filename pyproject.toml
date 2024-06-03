@@ -35,7 +35,7 @@ dependencies = [
     "pennylane>=0.34.0",
     "scipy>=1.5",
     "scikit-learn>=1.0",
-    "scikit-optimize>=0.8",
+    "bayesian-optimization>=1.4.3",
     "tqdm>=4.0",
 ]
 requires-python = ">=3.9"
