@@ -460,7 +460,7 @@ class PennyLaneCircuit:
                 pennylane_obs_parameters_dimensions,
             )
 
-    def build_pennylane_circuit(self):
+    def build_pennylane_circuit(self, max_diff: Union[int, None] = None):
         """
         Function to build the PennyLane circuit from the Qiskit circuit and observable.
 
@@ -472,7 +472,10 @@ class PennyLaneCircuit:
             Callable PennyLane circuit
         """
 
-        @qml.qnode(self._executor.backend, diff_method="best")
+        if max_diff is None:
+            max_diff = 1
+
+        @qml.qnode(self._executor.backend, diff_method="best", max_diff=max_diff)
         def pennylane_circuit(*args):
             """PennyLane circuit that can be called with parameters"""
 
