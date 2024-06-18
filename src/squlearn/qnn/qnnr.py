@@ -87,7 +87,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         reg = QNNRegressor(
             ChebyshevRx(4, 1, 2),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),
@@ -160,7 +160,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        return self._qnn.evaluate_f(X, self._param, self._param_op)
+        return self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
 
     def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         """Fit a model to data.
@@ -246,3 +246,5 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
+        if self.callback == "pbar":
+            self._pbar.close()

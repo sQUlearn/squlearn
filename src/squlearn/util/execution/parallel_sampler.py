@@ -8,14 +8,14 @@ from dataclasses import asdict
 from qiskit.circuit import QuantumCircuit
 from qiskit.primitives.base import SamplerResult
 from qiskit.providers import JobV1 as Job
-from qiskit import Aer, transpile
+from qiskit.compiler import transpile
 from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
 from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime import RuntimeJob
 from qiskit.primitives.utils import _circuit_key
 from qiskit.primitives.primitive_job import PrimitiveJob
-
+from qiskit_aer import Aer
 
 def _custom_result_method(self):
     return self._result

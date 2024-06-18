@@ -137,7 +137,7 @@ and the Adam optimizer for optimization.
 
     op = SummedPaulis(num_qubits = 4)
     pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
-    qnn = QNNRegressor(pqc, op, Executor("statevector_simulator"), SquaredLoss(), Adam())
+    qnn = QNNRegressor(pqc, op, Executor(), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
 

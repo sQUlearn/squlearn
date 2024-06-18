@@ -54,7 +54,7 @@ class QSVC(SVC):
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
-            executor=Executor("statevector_simulator"),
+            executor=Executor(),
             initial_parameters=np.random.rand(encoding_circuit.num_parameters)
         )
 

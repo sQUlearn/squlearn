@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 
-from qiskit import Aer, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManila, FakeBelem, FakeAthens
+from qiskit_aer import Aer
 from squlearn.util import Executor
 from squlearn.qnn import QNNRegressor
 from squlearn.observables import SummedPaulis
@@ -23,7 +24,7 @@ class TestBackendAutoSelection:
         qc.x([0, 1])
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelem(), FakeAthens(), FakeManila()]
-        executor = Executor(backends, primitive_seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000)
         qc2, info = executor.select_backend(qc)
         assert str(executor.backend) == "fake_manila"
         sampler = executor.get_sampler()
@@ -43,7 +44,7 @@ class TestBackendAutoSelection:
         qc.x([0, 1])
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelem(), FakeAthens(), FakeManila()]
-        executor = Executor(backends, primitive_seed=0, shots=10000, qpu_parallelization=2)
+        executor = Executor(backends, seed=0, shots=10000, qpu_parallelization=2)
         qc2, info = executor.select_backend(qc)
         assert str(executor.backend) == "fake_belem"
         sampler = executor.get_sampler()
@@ -63,7 +64,7 @@ class TestBackendAutoSelection:
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelem(), FakeAthens(), FakeManila()]
-        executor = Executor(backends, primitive_seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000)
         pqc = ChebyshevTower(2, 1, 2)
         obs = SummedPaulis(2)
         param = []
@@ -87,7 +88,7 @@ class TestBackendAutoSelection:
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelem(), FakeAthens(), FakeManila()]
-        executor = Executor(backends, primitive_seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000)
         pqc = ChebyshevTower(2, 1, 2)
         fqk = FidelityKernel(pqc, executor)
         qkrr = QKRR(fqk)
@@ -101,7 +102,7 @@ class TestBackendAutoSelection:
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelem(), FakeAthens(), FakeManila()]
-        executor = Executor(backends, primitive_seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000)
         pqc = ChebyshevTower(2, 1, 2)
         fqk = ProjectedQuantumKernel(pqc, executor)
         qkrr = QKRR(fqk)

@@ -40,7 +40,7 @@ class TestLayeredEncodingCircuit:
 
         # Test the I gate
         lfm.I()
-        expected_circuit.i(range(4))
+        expected_circuit.id(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
         # Test the S gate
@@ -63,9 +63,7 @@ class TestLayeredEncodingCircuit:
         expected_circuit.tdg(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
-        kernel = FidelityKernel(lfm, Executor("statevector_simulator")).evaluate(
-            np.array([[]]), np.array([[]])
-        )
+        kernel = FidelityKernel(lfm, Executor()).evaluate(np.array([[]]), np.array([[]]))
         assert np.allclose(kernel, np.array([1.0]))
 
     def test_layered_encoding_circuit_param_gates(self):
@@ -110,9 +108,9 @@ class TestLayeredEncodingCircuit:
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
-        kernel = FidelityKernel(
-            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(16)
-        ).evaluate(np.ones((1, 2)), np.ones((1, 2)))
+        kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(16)).evaluate(
+            np.ones((1, 2)), np.ones((1, 2))
+        )
         assert np.allclose(kernel, np.array([1.0]))
 
     def test_layered_encoding_circuit_entangling_gates(self):
@@ -159,9 +157,7 @@ class TestLayeredEncodingCircuit:
             add_AA(qiskit_gate)
             assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
-        kernel = FidelityKernel(lfm, Executor("statevector_simulator")).evaluate(
-            np.array([[]]), np.array([[]])
-        )
+        kernel = FidelityKernel(lfm, Executor()).evaluate(np.array([[]]), np.array([[]]))
         assert np.allclose(kernel, np.array([1.0]))
 
     def test_layered_encoding_circuit_param_entangling_gates(self):
@@ -219,9 +215,9 @@ class TestLayeredEncodingCircuit:
             offset = add_AA(qiskit_gate, p, offset)
             assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
-        kernel = FidelityKernel(
-            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(72)
-        ).evaluate(np.array([[]]), np.array([[]]))
+        kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(72)).evaluate(
+            np.array([[]]), np.array([[]])
+        )
         assert np.allclose(kernel, np.array([1.0]))
 
         # Won't run because of a bug in qiskit
@@ -256,7 +252,7 @@ class TestLayeredEncodingCircuit:
 
         assert str(lfm.draw(output="text")) == str(cpqc.draw(output="text"))
 
-        kernel = FidelityKernel(
-            lfm, Executor("statevector_simulator"), initial_parameters=0.5 * np.ones(29)
-        ).evaluate(np.array([0.5]), np.array([0.5]))
+        kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(29)).evaluate(
+            np.array([0.5]), np.array([0.5])
+        )
         assert np.allclose(kernel, np.array([1.0]))

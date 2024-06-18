@@ -10,6 +10,7 @@ import traceback
 from dataclasses import asdict
 import time
 import dill as pickle
+from packaging import version
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
@@ -19,7 +20,7 @@ from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives.base import SamplerResult, EstimatorResult
-from qiskit import Aer
+from qiskit_aer import Aer
 from qiskit_ibm_runtime import QiskitRuntimeService, Session
 from qiskit.providers import Options
 from qiskit.providers import JobV1 as Job
@@ -30,6 +31,15 @@ from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
+
+import qiskit
+if version.parse(qiskit.__version__) <= version.parse("0.45.0"):
+    from qiskit.utils import algorithm_globals
+from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
+
+from pennylane.devices import Device as PennylaneDevice
+from pennylane import QubitDevice
+import pennylane as qml
 
 from .execution import AutoSelectionBackend, ParallelEstimator, ParallelSampler
 
@@ -53,17 +63,18 @@ class Executor:
     Args:
         execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
 
-                                                                                                       * A string, that specifics the simulator
-                                                                                                         backend (``"statevector_simulator"`` or ``"qasm_simulator"``)
-                                                                                                       * A Qiskit backend, to run the jobs on IBM Quantum
-                                                                                                         systems or simulators
-                                                                                                       * A list of backends for automatic backend selection later on
-                                                                                                       * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
-                                                                                                         If no backend is provided, the backend will be automatically selected
-                                                                                                         from the available backends on this service
-                                                                                                       * A Session, to run the jobs on the Qiskit Runtime service
-                                                                                                       * A Estimator primitive (either simulator or Qiskit Runtime primitive)
-                                                                                                       * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+                                                                                                                     * A string, that specifics the simulator
+                                                                                                                       backend. For Qiskit this can be ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
+                                                                                                                       For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
+                                                                                                                     * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin for PennyLane)
+                                                                                                                     * A Qiskit backend, to run the jobs on IBM Quantum
+                                                                                                                       systems or simulators
+                                                                                                                     * A list of Qiskit backends for automatic backend selection later on
+                                                                                                                     * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
+                                                                                                                       In this case the backend has to be provided separately via ``backend=``
+                                                                                                                     * A Session, to run the jobs on the Qiskit Runtime service
+                                                                                                                     * A Estimator primitive (either simulator or Qiskit Runtime primitive)
+                                                                                                                     * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
                                                                                                        Default is the initialization with the :class:`StatevectorSimulator`.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
@@ -80,8 +91,7 @@ class Executor:
             until the execution is aborted.
         wait_restart (int): The time to wait before restarting a job in seconds.
         shots (Union[int, None]): The number of initial shots that is used for the execution.
-        primitive_seed (Union[int, None]): The seed that is used for the execution
-                                           of the primitives with simulated sampling.
+        seed (Union[int, None]): The seed that is used for finite samples in the execution.
         qpu_parallelization (Union[int, str, None]): The number of parallel executions on the QPU.
                                                      If set to ``"auto"``, the number of parallel
                                                      executions is automatically determined. If set
@@ -117,7 +127,27 @@ class Executor:
        * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
        * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
 
-    **Example: Different initializations of the Executor**
+    **Example: Different PennyLane based initializations of the Executor**
+
+    .. code-block:: python
+
+       from squlearn import Executor
+       import pennylane as qml
+
+       # Executor with a PennyLane device (statevector)
+       executor = Executor(qml.device("default.qubit"))
+
+       # Executor with a PennyLane device (shot-based)
+       executor = Executor(qml.device("default.qubit", shots=1000))
+
+       # Executor with a PennyLane lightining device
+       executor = Executor(qml.device("lightning.qubit"))
+
+       # Executor with a AWS Braket device with 4 qubits (requires a valid AWS credential to be set)
+       dev = qml.device("braket.aws.qubit", device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1", wires=4)
+       executor = Executor(dev)
+
+    **Example: Different Qiskit based initializations of the Executor**
 
     .. code-block:: python
 
@@ -140,7 +170,7 @@ class Executor:
        executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
-    **Example: Get the Executor based primitives**
+    **Example: Get the Executor based Qiskit primitives**
 
     .. jupyter-execute::
 
@@ -155,7 +185,6 @@ class Executor:
        # Get the Executor based Sampler - can be used as a normal Qiskit Sampler
        sampler = executor.get_sampler()
 
-    .. jupyter-execute::
 
        # Run a circuit with the Executor based Sampler
        from qiskit.circuit.random import random_circuit
@@ -208,9 +237,16 @@ class Executor:
     def __init__(
         self,
         execution: Union[
-            str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler, List[Backend]
-        ] = "statevector_simulator",
-        backend: Union[Backend, str, List[Backend], None] = None,
+            str,
+            Backend,
+            List[Backend],
+            QiskitRuntimeService,
+            Session,
+            BaseEstimator,
+            BaseSampler,
+            PennylaneDevice,
+        ] = "pennylane",
+        backend: Union[Backend, str, None] = None,
         options_estimator: Union[Options, qiskit_ibm_runtime_Options] = None,
         options_sampler: Union[Options, qiskit_ibm_runtime_Options] = None,
         log_file: str = "",
@@ -220,7 +256,7 @@ class Executor:
         max_jobs_retries: int = 10,
         wait_restart: int = 1,
         shots: Union[int, None] = None,
-        primitive_seed: Union[int, None] = None,
+        seed: Union[int, None] = None,
         qpu_parallelization: Union[int, str, None] = None,
         auto_backend_mode: str = "quality",
     ) -> None:
@@ -246,7 +282,12 @@ class Executor:
         if self._options_sampler is None:
             self._options_sampler = {}
 
-        self._set_seed_for_primitive = primitive_seed
+        self._set_seed_for_primitive = seed
+        self._pennylane_seed = seed
+        if seed is not None:
+            if version.parse(qiskit.__version__) <= version.parse("0.45.0"):
+                algorithm_globals.random_seed = seed
+            qiskit_algorithm_globals.random_seed = seed
 
         # Copy Executor options
         self._log_file = log_file
@@ -275,11 +316,19 @@ class Executor:
         if execution is None and backend is not None:
             # Only backend is given
             execution = backend
+
+        self._quantum_framework = "qiskit"
+        self._pennylane_device = None
+
         if isinstance(execution, str):
             # Execution is a string -> get backend
-            if execution == "statevector_simulator":
+            if execution in ["qiskit", "statevector_simulator", "aer_simulator_statevector"]:
+                execution = "aer_simulator_statevector"
                 self._backend = Aer.get_backend(execution)
-            elif execution == "qasm_simulator":
+                if shots is None:
+                    self._backend.options.shots = None
+            elif execution in ["qasm_simulator", "aer_simulator"]:
+                execution = "aer_simulator"
                 self._backend = Aer.get_backend(execution)
                 shots_backend = self._backend.options.shots
                 if shots is None:
@@ -289,9 +338,35 @@ class Executor:
                     "IBM backend are not supported by string input, since credentials are missing "
                     + execution
                 )
+            elif execution in ["pennylane", "default.qubit"]:
+                self._quantum_framework = "pennylane"
+                self._pennylane_device = qml.device("default.qubit")
+                if shots is None:
+                    shots = self._pennylane_device.shots.total_shots
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
+
+        elif isinstance(execution, QubitDevice) or isinstance(execution, PennylaneDevice):
+            self._quantum_framework = "pennylane"
+            self._pennylane_device = execution
+
+            if self._pennylane_seed is not None:
+                if hasattr(self._pennylane_device, "_rng"):
+                    self._pennylane_device._rng = np.random.default_rng(self._pennylane_seed)
+                if hasattr(self._pennylane_device, "_prng_key"):
+                    self._pennylane_device._prng_key = None
+
+            if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                if len(self._pennylane_device.shots.shot_vector) > 2:
+                    raise ValueError("Shot vector in PennyLane device is not supported yet!")
+                else:
+                    if shots is None:
+                        shots = self._pennylane_device.shots.total_shots
+            elif isinstance(self._pennylane_device.shots, int):
+                if shots is None:
+                    shots = self._pennylane_device.shots
+
         elif isinstance(execution, Backend):
             # Execution is a backend class
             if hasattr(execution, "service"):
@@ -300,7 +375,7 @@ class Executor:
             self._execution_origin = "Backend"
             if shots is None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
         elif isinstance(execution, list):
             # Execution is a list of backends -> backands will be automatically selected
@@ -329,7 +404,7 @@ class Executor:
                 raise ValueError("Unknown backend type: " + backend)
             if shots is None and self._backend is not None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
             self._execution_origin = "QiskitRuntimeService"
         elif isinstance(execution, Session):
@@ -341,13 +416,13 @@ class Executor:
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     shots = None
         elif isinstance(execution, BaseEstimator):
             self._estimator = execution
             if isinstance(self._estimator, qiskit_primitives_Estimator):
                 # this is only a hack, there is no real backend in the Primitive Estimator class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                 self._backend = self._estimator._backend
                 shots_estimator = self._estimator.options.get("shots", 0)
@@ -379,7 +454,7 @@ class Executor:
 
             if isinstance(self._sampler, qiskit_primitives_Sampler):
                 # this is only a hack, there is no real backend in the Primitive Sampler class
-                self._backend = Aer.get_backend("statevector_simulator")
+                self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
@@ -408,27 +483,50 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
-        # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-            if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
-                self._IBMQuantum = False
+        # Check if execution is on a remote backend
+        if self.quantum_framework == "qiskit":
+            if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
+                if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
+                    self._remote = False
+                else:
+                    self._remote = True
             else:
-                self._IBMQuantum = True
-        else:
-            self._IBMQuantum = False
+                self._remote = False
 
-        if self._backend_list is None:
-            self._backend_list = [self._backend]
+            if self._backend_list is None:
+                self._backend_list = [self._backend]
+            else:
+                if self._remote is False:
+                    # If fake backends are given
+                    # automatic backend selection is supported
+                    # TODO: only fake backends are supported!
+                    if (
+                        "fake" not in str(self._backend).lower()
+                        and "fake" not in str(self._backend_list).lower()
+                    ):
+                        raise ValueError(
+                            "Automatic backend selection is only supported"
+                            + " for IBM Quantum backends!"
+                        )
+
+        elif self.quantum_framework == "pennylane":
+            if self._backend_list is not None:
+                raise ValueError(
+                    "Automatic backend selection is only supported"
+                    + " for IBM Quantum backends!"
+                )
+
+            self._remote = not any(
+                substring in str(self._pennylane_device)
+                for substring in [
+                    "default.qubit",
+                    "default.mixed",
+                    "default.clifford",
+                    "Lightning Qubit",
+                ]
+            )
         else:
-            if self._IBMQuantum is False:
-                if (
-                    "fake" not in str(self._backend).lower()
-                    and "fake" not in str(self._backend_list).lower()
-                ):
-                    raise ValueError(
-                        "Automatic backend selection is only supported"
-                        + " for IBM Quantum backends!"
-                    )
+            raise RuntimeError("Unknown quantum framework!")
 
         # set initial shots
         self._shots = shots
@@ -441,20 +539,201 @@ class Executor:
         if self._caching:
             self._cache = ExecutorCache(self._logger, cache_dir)
 
-        self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
-        self._logger.info(
-            f"Executor initialized with list of backends: {{}}".format(self._backend_list)
-        )
-        self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
+        self._logger.info(f"Executor initialized with {{}}".format(self.quantum_framework))
+        if self._backend is not None:
+            self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
+        if self._backend_list is not None:
+            if len(self._backend_list) > 1:
+                self._logger.info(f"Executor initialized with backend list: {{}}".format(self._backend_list))
+        if self._service is not None:
+            self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:
             self._logger.info(
                 f"Executor initialized with session: {{}}".format(self._session.session_id)
             )
-        else:
-            self._logger.info(f"Executor initialized with session: {{}}".format(self._session))
-        self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
-        self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
+        if self._estimator is not None:
+            self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
+        if self._sampler is not None:
+            self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
+
+    @property
+    def quantum_framework(self) -> str:
+        """Return the quantum framework that is used in the executor."""
+        return self._quantum_framework
+
+    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
+        """
+        Function for executing of PennyLane circuits with the Executor with caching and restarts
+
+        Args:
+            pennylane_circuit (callable): The PennyLane circuit function
+            args: Arguments for the circuit
+            kwargs: Keyword arguments for the circuit
+
+        Returns:
+            The result of the circuit
+        """
+        # Get hash value of the circuit
+        if hasattr(pennylane_circuit, "hash"):
+            hash_value = [pennylane_circuit.hash, args]
+        else:
+            hash_value = [hash(pennylane_circuit), args]
+
+        # Helper function for execution
+        def execute_circuit():
+            return pennylane_circuit(*args, **kwargs)
+
+        # Call function for cached execution
+        return self._pennylane_execute_cached(execute_circuit, hash_value)
+
+    def pennylane_execute_batched(
+        self, pennylane_circuit: callable, arg_tuples: Union[list, tuple], **kwargs
+    ) -> Union[np.array, list]:
+        """
+        Function for batched execution of PennyLane circuits.
+
+        Args:
+            pennylane_circuit (callable): The PennyLane circuit function
+            arg_tuples (Union[list,tuple]): List of tuples with arguments for the circuit
+
+        Returns
+            Union[np.array,list]: List of results of the circuits
+        """
+        input_list = True
+        if not isinstance(pennylane_circuit, list):
+            pennylane_circuit = [pennylane_circuit]
+            input_list = False
+
+        if not isinstance(arg_tuples, list):
+            arg_tuples = [arg_tuples]
+            input_list = False
+
+        if len(pennylane_circuit) != len(arg_tuples):
+            raise ValueError("Length of pennylane_circuit and arg_tuples does not match")
+
+        # Build tapes for batched execution and get the hash value of the circuits
+        hash_value = ""
+        batched_tapes = []
+        for i, arg_tuple in enumerate(arg_tuples):
+            pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
+
+            if hasattr(pennylane_circuit[i].pennylane_circuit, "hash"):
+                hash_value += str(pennylane_circuit[i].pennylane_circuit.hash)
+            else:
+                hash_value += str(hash(pennylane_circuit[i].pennylane_circuit))
+
+            batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
+
+        hash_value = [hash_value, arg_tuples]
+
+        # Helper function for execution
+        def execute_tapes():
+            return qml.execute(batched_tapes, self.backend)
+
+        # Call function for cached execution
+        if input_list:
+            return self._pennylane_execute_cached(execute_tapes, hash_value)
+        else:
+            return self._pennylane_execute_cached(execute_tapes, hash_value)[0]
+
+    def _pennylane_execute_cached(self, function: callable, hash_value: Union[str, int]):
+        """
+        Function for cached execution of PennyLane circuits with the Executor
+
+        Args:
+            function (callable): The function that is executed
+            hash_value (Union[str,int]): Hash value for the caching
+
+        Returns:
+            The result of the circuit
+        """
+        success = False
+        critical_error = False
+        critical_error_message = None
+        for repeat in range(self._max_jobs_retries):
+
+            try:
+                result = None
+                cached = False
+                if self._caching:
+
+                    # Generate hash value for caching
+                    hash_value_adjusted = self._cache.hash_variable(
+                        [
+                            "pennylane_execute",
+                            hash_value,
+                            self._pennylane_device.name,
+                            self.shots,
+                        ]
+                    )
+
+                    result = self._cache.get_file(hash_value_adjusted)
+                    cached = True
+                else:
+                    hash_value_adjusted = None
+
+                if result is None:
+                    cached = False
+                    if self._caching:
+                        self._logger.info(
+                            f"Execution of pennylane circuit function with hash value: {{}}".format(
+                                hash_value_adjusted
+                            )
+                        )
+                    else:
+                        self._logger.info(f"Execution of pennylane circuit function")
+                    # Execution of pennylane circuit function
+                    result = function()
+                    self._logger.info(f"Execution of pennylane circuit successful")
+                elif self._caching:
+                    self._logger.info(
+                        f"Cached result found with hash value: {{}}".format(hash_value_adjusted)
+                    )
+
+                success = True
+
+            except (
+                NotImplementedError,
+                RuntimeError,
+                ValueError,
+                NotImplementedError,
+                TypeError,
+            ) as e:
+                critical_error = True
+                critical_error_message = e
+
+            except Exception as e:
+                self._logger.info(
+                    f"Executor failed to run pennylane_execute because of unknown error!"
+                )
+                self._logger.info(f"Error message: {{}}".format(e))
+                self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
+                print("Executor failed to run pennylane_execute because of unknown error!")
+                print("Error message: {{}}".format(e))
+                print("Traceback: {{}}".format(traceback.format_exc()))
+                print("Execution will be restarted")
+                success = False
+
+            if success:
+                break
+            elif critical_error is False:
+                self._logger.info(f"Restarting PennyLane execution")
+                success = False
+
+            if critical_error:
+                self._logger.info(f"Critical error detected; abort execution")
+                raise critical_error_message
+
+        if success is not True:
+            raise RuntimeError(
+                f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
+            )
+
+        if self._caching and not cached:
+            self._cache.store_file(hash_value_adjusted, copy.copy(result))
+
+        return result
 
     @property
     def execution(self) -> str:
@@ -462,9 +741,20 @@ class Executor:
         return self._execution_origin
 
     @property
-    def backend(self) -> Backend:
+    def backend(self) -> Union[Backend, None, PennylaneDevice]:
         """Returns the backend that is used in the executor."""
-        return self._backend
+
+        if self.quantum_framework == "qiskit":
+            return self._backend
+        elif self.quantum_framework == "pennylane":
+            return self._pennylane_device
+        else:
+            raise RuntimeError("Unknown quantum framework!")
+
+    @property
+    def remote(self) -> bool:
+        """Returns a boolean if the execution is on a remote backend."""
+        return self._remote
 
     @property
     def backend_list(self) -> List[Backend]:
@@ -506,6 +796,10 @@ class Executor:
 
         The estimator that is created depends on the backend that is used for the execution.
         """
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Estimator is only available for Qiskit backends")
+
         if self._estimator is not None:
             if self._session is not None and self._session_active is False:
                 # Session is expired, create a new session and a new estimator
@@ -537,7 +831,7 @@ class Executor:
                         "Missing Qiskit Runtime service for Sampler initialization!"
                     )
             else:
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = qiskit_primitives_Estimator(options=self._options_estimator)
                     self._estimator.set_options(shots=self._shots)
@@ -602,6 +896,10 @@ class Executor:
 
         The sampler that is created depends on the backend that is used for the execution.
         """
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Sampler is only available for Qiskit backends")
+
         if self._sampler is not None:
             if self._session is not None and self._session_active is False:
                 # Session is expired, create a new one and a new estimator
@@ -636,7 +934,7 @@ class Executor:
                         "Missing Qiskit Runtime service for Sampler initialization!"
                     )
             else:
-                if "statevector_simulator" in str(self._backend):
+                if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Sampler
                     self._sampler = qiskit_primitives_Sampler(options=self._options_sampler)
                     self._sampler.set_options(shots=self._shots)
@@ -734,6 +1032,10 @@ class Executor:
                     self._session_active = False
                     continue
 
+            except NotImplementedError as e:
+                critical_error = True
+                critical_error_message = e
+
             except QiskitError as e:
                 critical_error = True
                 critical_error_message = e
@@ -745,11 +1047,11 @@ class Executor:
                     f"Executor failed to run " + label + f" because of unknown error!"
                 )
                 self._logger.info(f"Error message: {{}}".format(e))
-                self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
 
             # Wait for the job to complete
             if job is None:
-                if "simulator" in str(self._backend):
+                if "simulator" in self.backend_name:
                     critical_error = True
                     critical_error_message = RuntimeError("Failed to execute job on simulator!")
             else:
@@ -769,7 +1071,7 @@ class Executor:
                             f"Executor failed to get job status because of unknown error!"
                         )
                         self._logger.info(f"Error message: {{}}".format(e))
-                        self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                        self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
                         break
 
                     if self._IBMQuantum:
@@ -810,7 +1112,7 @@ class Executor:
                                 f"Executor failed to get job result because of unknown error!"
                             )
                             self._logger.info(f"Error message: {{}}".format(e))
-                            self._logger.info(f"Traceback: {{}}".format(traceback.print_exc()))
+                            self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
                         if result_success:
                             break
                         else:
@@ -845,8 +1147,8 @@ class Executor:
             job_pickle._ws_client = None
             try:
                 job_pickle._backend = str(job.backend())
-            except QiskitError:
-                job_pickle._backend = self.backend
+            except (QiskitError, AttributeError):
+                job_pickle._backend = str(self.backend)
 
             # overwrite result function with the obtained result
             def result_():
@@ -872,6 +1174,28 @@ class Executor:
         Returns:
             A qiskit job containing the results of the run.
         """
+
+        # Checks and handles in-circuit measurements in the circuit
+        containes_incircuit_measurement = False
+        if isinstance(circuits, QuantumCircuit):
+            containes_incircuit_measurement = check_for_incircuit_measurements(
+                circuits, mode="clbits"
+            )
+        else:
+            for circuit in circuits:
+                containes_incircuit_measurement = (
+                    containes_incircuit_measurement
+                    or check_for_incircuit_measurements(circuit, mode="clbits")
+                )
+
+        if containes_incircuit_measurement:
+            if self.shots is None:
+                raise ValueError(
+                    "In-circuit measurements with the Estimator are only possible with shots."
+                )
+            else:
+                if self.is_statevector:
+                    self._swapp_to_BackendPrimitive("estimator")
 
         if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
@@ -904,6 +1228,38 @@ class Executor:
 
         return self._primitive_run(run, "estimator", hash_value)
 
+    def _swapp_to_BackendPrimitive(self, primitive: str):
+        """Helperfunction for swapping to the BackendPrimitive for the Executor.
+
+        Args:
+            primitive (str): The primitive to swap to. Either "estimator" or "sampler"
+        """
+        if self.is_statevector and self._shots is not None:
+
+            if primitive == "estimator":
+                self._estimator = qiskit_primitives_BackendEstimator(
+                    backend=self._backend, options=self._options_estimator
+                )
+                self._logger.info(
+                    "Changed from the Estimator() to the BackendEstimator() primitive"
+                )
+                self.set_shots(self._shots)
+
+            elif primitive == "sampler":
+                self._sampler = qiskit_primitives_BackendSampler(
+                    backend=self._backend, options=self._options_sampler
+                )
+                self._logger.info("Changed from the Sampler() to the BackendSampler() primitive")
+                self.set_shots(self._shots)
+            else:
+                raise ValueError("Unknown primitive type: " + primitive)
+
+        else:
+            raise ValueError(
+                "Swapping to BackendPrimitive is only possible for "
+                + "statevector simulator with shots"
+            )
+
     def sampler_run(self, circuits, parameter_values=None, **kwargs: Any) -> Job:
         """
         Function similar to the Qiskit Sampler run function, but this one includes caching,
@@ -917,6 +1273,25 @@ class Executor:
         Returns:
             A qiskit job containing the results of the run.
         """
+
+        # Check and handle conditions in the circuit
+        circuits_contains_conditions = False
+        if isinstance(circuits, QuantumCircuit):
+            circuits_contains_conditions = check_for_incircuit_measurements(
+                circuits, mode="condition"
+            )
+        else:
+            for circuit in circuits:
+                circuits_contains_conditions = (
+                    circuits_contains_conditions
+                    or check_for_incircuit_measurements(circuit, mode="condition")
+                )
+        if circuits_contains_conditions:
+            if self.shots is None:
+                raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
+            else:
+                if self.is_statevector:
+                    self._swapp_to_BackendPrimitive("sampler")
 
         if isinstance(self.sampler, qiskit_primitives_BackendSampler):
             if self._set_seed_for_primitive is not None:
@@ -974,7 +1349,7 @@ class Executor:
         else:  #  default if nothing is set -> use estimator
             return "estimator"
 
-    def backend_run(self, run_input, **options):
+    def qiskit_execute(self, run_input, **options):
         """Routine that runs the given circuits on the backend.
 
         Args:
@@ -994,76 +1369,97 @@ class Executor:
         """
         self._shots = num_shots
 
-        if num_shots is None:
-            self._logger.info("Set shots to {}".format(num_shots))
-            num_shots = 0
+        self._logger.info("Set shots to {}".format(num_shots))
 
         # Update shots in backend
-        if self._backend is not None:
-            if "statevector_simulator" not in str(self._backend):
-                self._backend.options.shots = num_shots
+        if num_shots is None:
+            num_shots = 0
 
-        # Update shots in estimator primitive
-        if self._estimator is not None:
-            if isinstance(self._estimator, qiskit_primitives_Estimator):
+        if self.quantum_framework == "pennylane":
 
-                if num_shots == 0:
-                    self._estimator.set_options(shots=None)
-                else:
+            if self._pennylane_device is not None:
+                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                    if num_shots == 0:
+                        self._pennylane_device._shots = qml.measurements.Shots(None)
+                    else:
+                        self._pennylane_device._shots = qml.measurements.Shots(num_shots)
+                elif (
+                    isinstance(self._pennylane_device.shots, int)
+                    or self._pennylane_device.shots is None
+                ):
+                    if num_shots == 0:
+                        self._pennylane_device._shots = None
+                    else:
+                        self._pennylane_device._shots = num_shots
+
+        elif self.quantum_framework == "qiskit":
+
+            # Update shots in backend
+            if self._backend is not None:
+                if self.is_statevector:
+                    self._backend.options.shots = num_shots
+
+            # Update shots in estimator primitive
+            if self._estimator is not None:
+                if isinstance(self._estimator, qiskit_primitives_Estimator):
+                    if num_shots == 0:
+                        self._estimator.set_options(shots=None)
+                    else:
+                        self._estimator.set_options(shots=num_shots)
+                    try:
+                        self._options_estimator["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
                     self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                self._estimator.set_options(shots=num_shots)
-                try:
-                    self._options_estimator["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
-                execution = self._estimator.options.get("execution")
-                execution["shots"] = num_shots
-                self._estimator.set_options(execution=execution)
-                try:
-                    self._options_estimator["execution"]["shots"] = num_shots
-                except:
-                    pass  # no options_estimator or no execution in options_estimator
-            elif isinstance(self._estimator, ParallelEstimator):
-                self._estimator.shots = num_shots
-            else:
-                raise RuntimeError("Unknown estimator type!")
-
-        # Update shots in sampler primitive
-        if self._sampler is not None:
-            if isinstance(self._sampler, qiskit_primitives_Sampler):
-                if num_shots == 0:
-                    self._sampler.set_options(shots=None)
+                    try:
+                        self._options_estimator["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
+                    execution = self._estimator.options.get("execution")
+                    execution["shots"] = num_shots
+                    self._estimator.set_options(execution=execution)
+                    try:
+                        self._options_estimator["execution"]["shots"] = num_shots
+                    except:
+                        pass  # no options_estimator or no execution in options_estimator
+                elif isinstance(self._estimator, ParallelEstimator):
+                    self._estimator.shots = num_shots
                 else:
-                    self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
-                self._sampler.set_options(shots=num_shots)
-                try:
-                    self._options_sampler["shots"] = num_shots
-                except:
-                    pass  # no option available
-            elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
-                execution = self._sampler.options.get("execution")
-                execution["shots"] = num_shots
-                self._sampler.set_options(execution=execution)
-                try:
-                    self._options_sampler["execution"]["shots"] = num_shots
-                except:
-                    pass  # no options_sampler or no execution in options_sampler
-            elif isinstance(self._sampler, ParallelSampler):
-                self._sampler.shots = num_shots
+                    raise RuntimeError("Unknown estimator type!")
 
-            else:
-                raise RuntimeError("Unknown sampler type!")
+            # Update shots in sampler primitive
+            if self._sampler is not None:
+                if isinstance(self._sampler, qiskit_primitives_Sampler):
+                    if num_shots == 0:
+                        self._sampler.set_options(shots=None)
+                    else:
+                        self._sampler.set_options(shots=num_shots)
+                    try:
+                        self._options_sampler["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
+                    self._sampler.set_options(shots=num_shots)
+                    try:
+                        self._options_sampler["shots"] = num_shots
+                    except:
+                        pass  # no option available
+                elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
+                    execution = self._sampler.options.get("execution")
+                    execution["shots"] = num_shots
+                    self._sampler.set_options(execution=execution)
+                    try:
+                        self._options_sampler["execution"]["shots"] = num_shots
+                    except:
+                        pass  # no options_sampler or no execution in options_sampler
+                elif isinstance(self._sampler, ParallelSampler):
+                    self._sampler.shots = num_shots
+                else:
+                    raise RuntimeError("Unknown sampler type!")
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
     def get_shots(self) -> int:
         """Getter for the number of shots.
@@ -1072,52 +1468,70 @@ class Executor:
             Returns the number of shots that are used for the current evaluation.
         """
         shots = self._shots
-        if self._estimator is not None or self._sampler is not None:
-            shots_estimator = 0
-            shots_sampler = 0
-            if self._estimator is not None:
-                if isinstance(self._estimator, qiskit_primitives_Estimator):
-                    shots_estimator = self._estimator.options.get("shots", 0)
-                elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
-                    shots_estimator = self._estimator.options.get("shots", 0)
-                elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
-                    execution = self._estimator.options.get("execution")
-                    shots_estimator = execution["shots"]
-                elif isinstance(self._estimator, ParallelEstimator):
-                    shots_estimator = self._estimator.shots
-                else:
-                    raise RuntimeError("Unknown estimator type!")
 
-            if self._sampler is not None:
-                if isinstance(self._sampler, qiskit_primitives_Sampler):
-                    shots_sampler = self._sampler.options.get("shots", 0)
-                elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
-                    shots_sampler = self._sampler.options.get("shots", 0)
-                elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
-                    execution = self._sampler.options.get("execution")
-                    shots_sampler = execution["shots"]
-                elif isinstance(self._sampler, ParallelSampler):
-                    shots_sampler = self._sampler.shots
-                else:
-                    raise RuntimeError("Unknown sampler type!")
+        if self.quantum_framework == "pennylane":
 
-            if self._estimator is not None and self._sampler is not None:
-                if shots_estimator != shots_sampler:
-                    raise ValueError(
-                        "The number of shots of the given \
-                                      Estimator and Sampler is not equal!"
-                    )
-            if shots_estimator is None:
+            if self._pennylane_device is not None:
+                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
+                    shots = self._pennylane_device.shots.total_shots
+                elif (
+                    isinstance(self._pennylane_device.shots, int)
+                    or self._pennylane_device.shots is None
+                ):
+                    shots = self._pennylane_device.shots
+            else:
+                return None  # No shots available
+
+        elif self.quantum_framework == "qiskit":
+
+            if self._estimator is not None or self._sampler is not None:
                 shots_estimator = 0
-            if shots_sampler is None:
                 shots_sampler = 0
+                if self._estimator is not None:
+                    if isinstance(self._estimator, qiskit_primitives_Estimator):
+                        shots_estimator = self._estimator.options.get("shots", 0)
+                    elif isinstance(self._estimator, qiskit_primitives_BackendEstimator):
+                        shots_estimator = self._estimator.options.get("shots", 0)
+                    elif isinstance(self._estimator, qiskit_ibm_runtime_Estimator):
+                        execution = self._estimator.options.get("execution")
+                        shots_estimator = execution["shots"]
+                    elif isinstance(self._estimator, ParallelEstimator):
+                        shots_estimator = self._estimator.shots
+                    else:
+                        raise RuntimeError("Unknown estimator type!")
 
-            shots = max(shots_estimator, shots_sampler)
-        elif self._backend is not None:
-            if "statevector_simulator" not in str(self._backend):
-                shots = self._backend.options.shots
-        elif self._backend_list is None:
-            return None  # No shots available
+                if self._sampler is not None:
+                    if isinstance(self._sampler, qiskit_primitives_Sampler):
+                        shots_sampler = self._sampler.options.get("shots", 0)
+                    elif isinstance(self._sampler, qiskit_primitives_BackendSampler):
+                        shots_sampler = self._sampler.options.get("shots", 0)
+                    elif isinstance(self._sampler, qiskit_ibm_runtime_Sampler):
+                        execution = self._sampler.options.get("execution")
+                        shots_sampler = execution["shots"]
+                    elif isinstance(self._sampler, ParallelSampler):
+                        shots_sampler = self._sampler.shots
+                    else:
+                        raise RuntimeError("Unknown sampler type!")
+
+                if self._estimator is not None and self._sampler is not None:
+                    if shots_estimator != shots_sampler:
+                        raise ValueError(
+                            "The number of shots of the given \
+                                        Estimator and Sampler is not equal!"
+                        )
+                if shots_estimator is None:
+                    shots_estimator = 0
+                if shots_sampler is None:
+                    shots_sampler = 0
+
+                shots = max(shots_estimator, shots_sampler)
+            elif self._backend is not None:
+                if self.is_statevector:
+                    shots = self._backend.options.shots
+            else:
+                return None  # No shots available
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
         if shots == 0:
             shots = None
@@ -1136,6 +1550,10 @@ class Executor:
 
     def create_session(self):
         """Creates a new session, is called automatically."""
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Session can only be created for Qiskit framework!")
+
         if self._service is not None:
             if self._backend is not None:
                 self._session = Session(
@@ -1150,6 +1568,10 @@ class Executor:
 
     def close_session(self):
         """Closes the current session, is called automatically."""
+
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Session can only be closed for Qiskit framework!")
+
         if self._session is not None:
             self._logger.info(f"Executor closed session: {{}}".format(self._session.session_id))
             self._session.close()
@@ -1341,15 +1763,46 @@ class Executor:
         # Check if execution is on a remote IBM backend
         if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
             if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
-                self._IBMQuantum = False
+                self._remote = False
             else:
-                self._IBMQuantum = True
+                self._remote = True
         else:
-            self._IBMQuantum = False
+            self._remote = False
 
     def unset_backend(self):
         """Unsets the backend that is used for the execution."""
         self._backend = None
+
+    @property
+    def backend_name(self) -> str:
+        """Returns the name of the backend."""
+        try:
+            return self._backend.configuration().backend_name
+        except AttributeError:
+            try:
+                return self._backend.name
+            except AttributeError:
+                return str(self._backend)
+
+    @property
+    def is_statevector(self) -> bool:
+        """Returns True if the backend is a statevector simulator."""
+
+        if self.quantum_framework == "qiskit":
+            return "statevector" in self.backend_name
+        elif self.quantum_framework == "pennylane":
+
+            statevector_device = False
+            if "default.qubit" in self._pennylane_device.name:
+                statevector_device = True
+            if "default.clifford" in self._pennylane_device.name:
+                statevector_device = True
+            if "Lightning Qubit" in self._pennylane_device.name:
+                statevector_device = True
+
+            return statevector_device
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
 
 class ExecutorEstimator(BaseEstimator):
@@ -1666,3 +2119,23 @@ class ExecutorCache:
             file.close()
         except:
             raise RuntimeError("Could not store job in cache")
+
+
+def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
+    """
+    Checks for measurements in the circuit, and returns True if there are measurements in the circuit.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to check for measurements.
+
+    Returns:
+        True if there are measurements in the circuit.
+    """
+    for op in circuit.data:
+        if mode == "all" or mode == "condition":
+            if op.operation.condition:
+                return True
+        if mode == "all" or mode == "clbits":
+            if len(op.clbits) > 0:
+                return True
+    return False

@@ -90,7 +90,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         clf = QNNClassifier(
             ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),
@@ -146,6 +146,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             **kwargs,
         )
         self._label_binarizer = None
+        self.classes_ = None
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict using the QNN.
@@ -162,7 +163,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -178,7 +179,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
@@ -197,12 +198,16 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         """
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
-            self._label_binarizer.fit(y)
-
-        if len(y.shape) == 1:
-            y = self._label_binarizer.transform(y).ravel()
+            y = self._label_binarizer.fit_transform(y)
+            self.classes_ = self._label_binarizer.classes_
         else:
             y = self._label_binarizer.transform(y)
+
+        if isinstance(self.operator, list) and len(self.operator) == 2 and y.shape[1] == 1:
+            y = np.hstack([1 - y, y])
+
+        if y.shape[1] == 1:
+            y = self._label_binarizer.transform(y).ravel()
 
         loss = self.loss
         if self.variance is not None:
@@ -276,3 +281,5 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
+        if self.callback == "pbar":
+            self._pbar.close()

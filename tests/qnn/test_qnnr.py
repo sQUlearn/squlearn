@@ -29,7 +29,7 @@ class TestQNNRegressor:
     def qnn_regressor(self) -> QNNRegressor:
         """QNNRegressor module."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
@@ -41,7 +41,7 @@ class TestQNNRegressor:
     @pytest.fixture(scope="module")
     def qnn_regressor_2out(self) -> QNNRegressor:
         """QNNRegressor module."""
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()

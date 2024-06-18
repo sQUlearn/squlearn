@@ -4,18 +4,17 @@ from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 import copy
 from typing import Union, Callable, Optional, List, Tuple
 from dataclasses import asdict
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.primitives.base import EstimatorResult
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
-from qiskit import Aer, transpile
+from qiskit.compiler import transpile
 from qiskit.primitives import Estimator as qiskit_primitives_Estimator
 from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit.primitives.utils import _circuit_key
-
+from qiskit_aer import Aer
 
 def _custom_result_method(self):
     return self._result
@@ -133,11 +132,9 @@ class ParallelEstimator(BaseEstimator):
 
     def _call(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[
-            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
-        ],
-        parameter_values: Union[List[float], List[List[float]]] = None,
+        circuits,
+        observables,
+        parameter_values = None,
         **run_options,
     ) -> EstimatorResult:
         """Has to be passed through, otherwise python will complain about the abstract method.
@@ -147,11 +144,9 @@ class ParallelEstimator(BaseEstimator):
 
     def _run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[
-            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
-        ],
-        parameter_values: Union[List[float], List[List[float]]] = None,
+        circuits,
+        observables,
+        parameter_values = None,
         **run_options,
     ) -> Job:
         """Has to be passed through, otherwise python will complain about the abstract method.
@@ -166,11 +161,9 @@ class ParallelEstimator(BaseEstimator):
 
     def run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        observables: Union[
-            List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str
-        ],
-        parameter_values: Union[List[float], List[List[float]]] = None,
+        circuits,
+        observables,
+        parameter_values = None,
         **run_options,
     ) -> Job:
         """
@@ -179,9 +172,9 @@ class ParallelEstimator(BaseEstimator):
         Input arguments are the same as in Qiskit's estimator.run()
 
         Args:
-            circuits (Union[QuantumCircuit, List[QuantumCircuit]]): The quantum circuits to be executed.
-            observables (Union[List[BaseOperator], List[PauliSumOp], List[str], BaseOperator, PauliSumOp, str]): The observables to be measured.
-            parameter_values (Union[List[float], List[List[float]]], optional): The parameter values to be used for each circuit.
+            circuits: The quantum circuits to be executed.
+            observables: The observables to be measured.
+            parameter_values: The parameter values to be used for each circuit.
             **run_options: Additional keyword arguments for the Estimator run call.
 
         """
@@ -265,13 +258,13 @@ class ParallelEstimator(BaseEstimator):
     def create_mapped_circuit(
         self,
         circuit: QuantumCircuit,
-        observable: Optional[Union[BaseOperator, PauliSumOp]] = None,
+        observable: Optional[Union[BaseOperator]] = None,
         num_parallel: Optional[int] = None,
         return_duplications: Optional[bool] = False,
         max_qubits: Optional[int] = None,
     ) -> Union[
         QuantumCircuit,
-        Tuple[QuantumCircuit, Optional[Union[BaseOperator, PauliSumOp]], Optional[int]],
+        Tuple[QuantumCircuit, Optional[Union[BaseOperator]], Optional[int]],
     ]:
         """
         Maps a given quantum circuit, optionally duplicating it to fill the backend capacity.
@@ -281,13 +274,13 @@ class ParallelEstimator(BaseEstimator):
 
         Args:
             circuit (QuantumCircuit): The quantum circuit to be mapped.
-            observable (Optional[BaseOperator, PauliSumOp], optional): The observable to be estimated. Defaults to None.
+            observable (Optional[BaseOperator], optional): The observable to be estimated. Defaults to None.
             num_parallel (Optional[int], optional): Specifies the number of times the circuit should be duplicated. Defaults to None.
             return_duplications (Optional[bool], optional): If True, returns a tuple of the mapped circuit and the number of duplications. Defaults to False.
             max_qubits (Optional[int], optional): The maximum number of qubits to use from the backend. Defaults to the number of qubits in the backend if None.
 
         Returns:
-        Union[QuantumCircuit, Tuple[QuantumCircuit, Optional[Union[BaseOperator, PauliSumOp, str]], Optional[int]]]: The mapped quantum circuit. Depending on the parameters, the return can be:
+        Union[QuantumCircuit, Tuple[QuantumCircuit, Optional[Union[BaseOperator, str]], Optional[int]]]: The mapped quantum circuit. Depending on the parameters, the return can be:
             - A single QuantumCircuit.
             - A tuple of QuantumCircuit and the number of duplications.
             - A tuple of QuantumCircuit, the duplicated observable, and the number of duplications.
@@ -370,7 +363,7 @@ class ParallelEstimator(BaseEstimator):
         return circuit, observable
 
     def duplicate_observable(
-        self, observable: Union[BaseOperator, PauliSumOp], n_duplications: int
+        self, observable: Union[BaseOperator], n_duplications: int
     ) -> SparsePauliOp:
         """
         Duplicates a given quantum observable multiple times and combines them into a single SparsePauliOp.
@@ -379,7 +372,7 @@ class ParallelEstimator(BaseEstimator):
         The duplicates are then combined into one SparsePauliOp. The coefficients of the combined observable are adjusted to account for the number of duplications.
 
         Args:
-            observable (Union[BaseOperator, PauliSumOp]): The quantum observable to be duplicated.
+            observable (Union[BaseOperator]): The quantum observable to be duplicated.
             n_duplications (int): The number of times the observable should be duplicated.
 
         Returns:

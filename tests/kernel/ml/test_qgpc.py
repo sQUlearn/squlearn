@@ -30,7 +30,7 @@ class TestQGPC:
     def qgpc_fidelity(self) -> QGPC:
         """QGPC module with FidelityKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
@@ -44,7 +44,7 @@ class TestQGPC:
     def qgpc_pqk(self) -> QGPC:
         """QGPC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
@@ -133,7 +133,7 @@ class TestQGPC:
         try:
             qgpc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to quantum kernel parameters"
+            assert False, "fitting not possible after changes to quantum kernel parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_encoding_circuit_params_can_be_changed_after_initialization(
@@ -150,7 +150,7 @@ class TestQGPC:
         try:
             qgpc_instance.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to encoding circuit parameters"
+            assert False, "fitting not possible after changes to encoding circuit parameters"
 
     def test_pqk_params_can_be_changed_after_initialization(self, qgpc_pqk, data):
         """Tests concerning the encoding circuit parameter changes."""
@@ -168,7 +168,7 @@ class TestQGPC:
         try:
             qgpc_pqk.fit(X, y)
         except:
-            assert False, f"fitting not possible after changes to encoding circuit parameters"
+            assert False, "fitting not possible after changes to encoding circuit parameters"
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_classical_params_can_be_changed_after_initialization(self, qgpc, request):
