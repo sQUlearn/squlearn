@@ -572,8 +572,9 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 first_term = np.einsum("njl,nl,nl->nj", self._outer_kernel.dKdxdx(self._qnn, self._parameters, x, y), dOdx[:,:,0], dOdx[:,:,0]) #shape (len(x), len(y))
                 second_term = np.einsum('njl,nl->nj', self._outer_kernel.dKdx(self._qnn, self._parameters, x, y) , dOdxdx[:,:,0,0]) #shape (len(x), len(y))
                 index_combinations_of_O = list(combinations(range(dOdx.shape[1]), 2)) 
-                for k, m in index_combinations_of_O:
-                    mixed_term = 2 * np.einsum('ij,i,i->ij', self._outer_kernel.dKdxdy(self._qnn, self._parameters, x, y)[:,:, k,m], dOdx[:,k,0], dOdx[:,m,0]) #shape (len(x), len(y))
+                mixed_term = np.zeros((len(x), len(y))) #i, j
+                for l, m in index_combinations_of_O:
+                    mixed_term += 2 * np.einsum('ij,i,i->ij', self._outer_kernel.dKdxdy(self._qnn, self._parameters, x, y)[:,:, l,m], dOdx[:,l,0], dOdx[:,m,0]) #shape (len(x), len(y))
                 kernel_matrix = first_term + second_term + mixed_term
             else: 
                 raise ValueError(f"{evaluation_string} is not implemented for single-dimensional data yet")
