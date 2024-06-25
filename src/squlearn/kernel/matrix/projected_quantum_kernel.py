@@ -854,8 +854,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = qnn.evaluate(x, param, param_op, "f")["f"] 
 
-        #if x is 1d 
-        if x.ndim == 0:
+        if x.ndim == 1 or (x.ndim == 2 and x.shape[1] == 1):
             return -2 * self.gamma * np.einsum('ijl, ij -> ijl', (x_result[:,None,:]-y_result),  # difference of elements (i, l) and (j, l) [i, j, l]
                                         RBF(1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result)) 
         else:
@@ -888,7 +887,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = qnn.evaluate(x, param, param_op, "f")["f"] 
 
-        if x.ndim == 0:
+        if x.ndim == 1 or (x.ndim == 2 and x.shape[1] == 1):
             return 2 * self.gamma * np.einsum('ijl, ij -> ijl', (x_result[:,None,:]-y_result),  # difference of elements (i, l) and (j, l) [i, j, l]
                                         RBF(1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result)) 
         else:
@@ -921,7 +920,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = qnn.evaluate(x, param, param_op, "f")["f"] 
 
-        if x.ndim == 1:
+        if x.ndim == 1 or (x.ndim == 2 and x.shape[1] == 1):
             return (2.0 * self.gamma) * np.einsum('ijl, ij -> ijl', 
                                                 (2.0 * self.gamma*(x_result[:,None,:]-y_result)**2-1),  # difference of elements (i, l) and (j, l) [i, j, l]
                                     RBF(1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result))  # RBF kernel [i, j]) 
@@ -953,7 +952,7 @@ class GaussianOuterKernel(OuterKernelBase):
         else:
             y_result = qnn.evaluate(x, param, param_op, "f")["f"] 
             
-        if x.ndim == 1:
+        if x.ndim == 1 or (x.ndim == 2 and x.shape[1] == 1):
             return 4.0*self.gamma**2.0*np.einsum('ijl,ij, ijp->ijlp', x_result[:, None, :]-y_result, 
                                              RBF(1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result), 
                                              x_result[:, None, :]-y_result)
