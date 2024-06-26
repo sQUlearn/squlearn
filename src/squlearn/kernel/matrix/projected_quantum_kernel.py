@@ -892,7 +892,6 @@ class GaussianOuterKernel(OuterKernelBase):
 
         Implements the analytical derivative of the Gaussian kernel with respect to x.
 
-        Only implemented for 1D data
         Args:
             qnn (QNN): QNN to be evaluated
             parameters (np.ndarray): parameters of the QNN
@@ -934,7 +933,6 @@ class GaussianOuterKernel(OuterKernelBase):
         """
         Implements the analytical derivative of the Gaussian kernel with respect to y.
 
-
         Args:
             qnn (QNN): QNN to be evaluated
             parameters (np.ndarray): parameters of the QNN
@@ -973,10 +971,8 @@ class GaussianOuterKernel(OuterKernelBase):
     def dKdxdx(
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
-        """Evaluates the QNN and returns the Gaussian projected kernel.
-
-        Only implemented for 1D data
-
+        """
+        Implements the analytical derivative of the Gaussian kernel with respect to x and x.
 
         Args:
             qnn (QNN): QNN to be evaluated
@@ -1008,10 +1004,7 @@ class GaussianOuterKernel(OuterKernelBase):
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
         """
-
         Implements the analytical derivative of the Gaussian kernel with respect to x and y.
-
-        Only implemented for 1D data
 
         Args:
             qnn (QNN): QNN to be evaluated
