@@ -858,9 +858,6 @@ class GaussianOuterKernel(OuterKernelBase):
     ) -> np.ndarray:
         """Evaluates the QNN and returns the Gaussian projected kernel
 
-        Only implemented for 1D data
-
-
         Args:
             qnn (QNN): QNN to be evaluated
             parameters (np.ndarray): parameters of the QNN
