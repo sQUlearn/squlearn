@@ -503,13 +503,14 @@ class ODELoss(LossBase):
     Args:
         ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression.
             If a callable function is given, then, a callable function for the gradient (ODE_functional_gradient) of the homogenous differential equation calculation must be provided.
-            If a sympy expression is given, then, the symbols_involved_in_ode must be provided.
-        ODE_functional_gradient (Callable): Gradient of the ODE functional. A callable
-
-
-
-
-
+            If a sympy expression is given, then, the symbols_involved_in_ODE must be provided.
+        ODE_functional_gradient (Callable): Only necessary if ODE_functional is a callable function. A callable function that returns the gradient with regards to the partial derivatives of the function, the first derivative, and the second derivative: (dF/df, dF/df_, dF/df__).
+        initial_vec (np.ndarray): Initial values of the ODE. If only one value is given, then it is a 1rst order ODE. If two values are given, then it is a 2nd order ODE.
+        boundary_handling (str): Method for handling the boundary conditions. Options are "pinned", and "floating".
+            - "pinned":   An extra term is added to the loss function to enforce the initial values of the ODE. This is term is pinned by the eta parameter. The lost function is given by: L = \sum_i=0^n_samples L_theta_i + eta*(f(x_0) - f_0)^2
+            - "floating": The initial value of the ivp is fixed by definition and the loss function is calculated without the corresponding ivp term. The QNN is allowed to "float" around the initial values.  L = \sum_i=1^n_samples L_theta_i
+        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
+        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: [x, f, f_] where x is the independent variable, f is the function and f_ is the first derivative.
     """
 
     def __init__(
@@ -519,32 +520,32 @@ class ODELoss(LossBase):
         initial_vec: np.ndarray = None,
         eta=np.float64(1.0),
         boundary_handling="pinned",
-        true_solution=None,
-        symbols_involved_in_ode=None,
+        symbols_involved_in_ODE=None,
     ):
         super().__init__()
-        self._ODE_functional = self.create_QNN_ode_loss_format(
-            ODE_functional, symbols_involved_in_ode
+        self._ODE_functional = self.create_QNN_ODE_loss_format(
+            ODE_functional, symbols_involved_in_ODE
         )  # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
-        self._ODE_functional_gradient_dp = self.create_QNN_ode_gradient_format(
-            ODE_functional_gradient, "dfdp", ODE_functional, symbols_involved_in_ode
-        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (3, n_samples, num_params)
-        self._ODE_functional_gradient_dop = self.create_QNN_ode_gradient_format(
-            ODE_functional_gradient, "dfdop", ODE_functional, symbols_involved_in_ode
-        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (3, n_samples, num_param_op)
+        self._ODE_functional_gradient_dp = self.create_QNN_ODE_gradient_format(
+            ODE_functional_gradient, "dfdp", ODE_functional, symbols_involved_in_ODE
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE, n_samples, num_param)
+        self._ODE_functional_gradient_dop = self.create_QNN_ODE_gradient_format(
+            ODE_functional_gradient, "dfdop", ODE_functional, symbols_involved_in_ODE
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE+1, n_samples, num_param_op)
         self.initial_vec = initial_vec
+        self.order_of_ODE = len(initial_vec)
         self.eta = eta
         self.boundary_handling = boundary_handling
-        self.true_solution = true_solution
 
     @property
     def loss_args_tuple(self) -> tuple:
         """Returns evaluation tuple for the squared loss calculation."""
-        if (
-            len(self.initial_vec) == 1
-        ):  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
             return ("f", "dfdx")
-        elif len(self.initial_vec) == 2:
+        elif self.order_of_ODE == 2:
+            print(
+                "WARNING: 2nd order DEs differentiate the QNN loss function by calculating the second derivative. This can be computationally expensive and inneficient. An alternative is to set-up coupled 1rst order DEs (currently not implemented)"
+            )
             return ("f", "dfdx", "dfdxdx")
 
     def get_true_solution(self) -> np.ndarray:
@@ -555,10 +556,10 @@ class ODELoss(LossBase):
         """Returns evaluation tuple for the squared loss gradient calculation."""
         if self._opt_param_op:
             if (
-                len(self.initial_vec) == 1
+                self.order_of_ODE == 1
             ):  # if only one initial value is given, we have a 1rst order ODE
                 return ("f", "dfdx", "dfdp", "dfdxdp", "dfdop", "dfdopdx")
-            elif len(self.initial_vec) == 2:
+            elif self.order_of_ODE == 2:
                 return (
                     "f",
                     "dfdx",
@@ -571,11 +572,9 @@ class ODELoss(LossBase):
                     "dfdopdxdx",
                 )
 
-        if (
-            len(self.initial_vec) == 1
-        ):  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
             return ("f", "dfdx", "dfdp", "dfdxdp")
-        elif len(self.initial_vec) == 2:
+        elif self.order_of_ODE == 2:
             return ("f", "dfdx", "dfdxdx", "dfdp", "dfdxdp", "dfdxdxdp")
 
     def derivatives_in_array_format(self, loss_values):
@@ -591,15 +590,13 @@ class ODELoss(LossBase):
             dfdxdx (np.ndarray): The second derivative values
 
         """
-        if (
-            len(self.initial_vec) == 1
-        ):  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
             return (
                 loss_values["x"],
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
-        elif len(self.initial_vec) == 2:  # if two initial value are given, we have a 2nd order ODE
+        elif self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
             return (
                 loss_values["x"],
                 loss_values["f"],
@@ -611,10 +608,10 @@ class ODELoss(LossBase):
         self, value_dict_floating: dict, gradient_calculation=True, **kwargs
     ) -> dict:
         """
-        Converts the ansatz to a floating boundary ansatz by fixing the initial values to the initial values of the ODE.
+        Converts the value_dict_floating to a floating boundary ansatz by fixing the initial values to the initial values of the ODE and setting the corresponding derivatives to zero.
 
         If 1rst order ODE: f(x_0) = f_0 and f'(x_0) free to optimize and f''(x) = 0 to save computational resources.
-        If 2nd order ODE: f(x_0) = f_0 and f'(x_0) = f_0' and f''(x).
+        If 2nd order ODE: f(x_0) = f_0 and f'(x_0) = f_0' and f''(x) free to optimize.
 
         Args:
             value_dict (dict): Contains calculated values of the model
@@ -627,9 +624,7 @@ class ODELoss(LossBase):
         """
         value_dict_floating["f"][0] = self.initial_vec[0]  # f(x_0) = f_0
 
-        if (
-            len(self.initial_vec) == 2
-        ):  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 2:  # if only one initial value is given, we have a 1rst order ODE
             value_dict_floating["dfdx"][0] = self.initial_vec[1]  # f'(x_0) = f_0'
             value_dict_floating["dfdxdx"] = value_dict_floating["dfdxdx"]
 
@@ -640,9 +635,7 @@ class ODELoss(LossBase):
             if self._opt_param_op:
                 value_dict_floating["dfdop"][0] = value_dict_floating["dfdop"][0] * 0
 
-            if (
-                len(self.initial_vec) == 2
-            ):  # if two initial value are given, we have a 2nd order ODE
+            if self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
                 value_dict_floating["dfdxdp"][0] = (
                     value_dict_floating["dfdxdp"][0] * 0
                 )  # dfdxdp = 0 because the initial values are fixed and correct by definition
@@ -692,9 +685,7 @@ class ODELoss(LossBase):
                 initial_value_loss_f = self.eta * (
                     np.square(value_dict["f"][0] - self.initial_vec[0])
                 )  # L_theta =  eta * (f(x_i) - f_0)^2 #Pinned boundary condition
-                if (
-                    len(self.initial_vec) == 2
-                ):  # if two initial value are given, we have a 2nd order ODE
+                if self.order_of_ODE == 2:
                     initial_value_loss_df = self.eta * (
                         np.square(value_dict["dfdx"][0] - self.initial_vec[1])
                     )  # L_theta =  eta * (f'(x_i) - f_0')^2
@@ -731,7 +722,6 @@ class ODELoss(LossBase):
             \end{align}
 
 
-
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
@@ -752,9 +742,7 @@ class ODELoss(LossBase):
             weights = np.ones_like(ground_truth)
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
-        weighted_diff = np.multiply(
-            (self._ODE_functional(value_dict) - ground_truth), weights
-        )  
+        weighted_diff = np.multiply((self._ODE_functional(value_dict) - ground_truth), weights)
 
         if value_dict["dfdp"].shape[0] == 0:
             d_p = np.array([])
@@ -772,9 +760,7 @@ class ODELoss(LossBase):
                         * (value_dict["f"][0] - self.initial_vec[0])
                         * value_dict["dfdp"][0, :]
                     )  # shape: (n_params)
-                    if (
-                        len(self.initial_vec) == 2
-                    ):  # if two initial value are given, we have a 2nd order ODE
+                    if self.order_of_ODE == 2:
                         d_p += (
                             2.0
                             * self.eta
@@ -789,9 +775,9 @@ class ODELoss(LossBase):
 
                 d_ODE_functional_dD = self._ODE_functional_gradient_dp(
                     value_dict
-                )  # shape: (1+len(self.initial_vec), n_samples, n_params) 
+                )  # shape: (1+self.order_of_ODE, n_samples, n_params)
 
-                if len(self.initial_vec) == 1:
+                if self.order_of_ODE == 1:
                     dfdp_like = (
                         d_ODE_functional_dD[0] * value_dict["dfdp"]
                         + d_ODE_functional_dD[1] * value_dict["dfdxdp"][:, 0, :]
@@ -824,9 +810,7 @@ class ODELoss(LossBase):
                         * (value_dict["f"][0] - self.initial_vec[0])
                         * value_dict["dfdop"][0, :]
                     )
-                    if (
-                        len(self.initial_vec) == 2
-                    ):  # if two initial value are given, we have a 2nd order ODE
+                    if self.order_of_ODE == 2:
                         d_op += (
                             2.0
                             * self.eta
@@ -836,11 +820,9 @@ class ODELoss(LossBase):
 
                 d_ODE_functional_dD = self._ODE_functional_gradient_dop(
                     value_dict
-                )  # shape: (1+len(self.initial_vec), n_samples, n_param_op)
+                )  # shape: (1+self.order_of_ODE, n_samples, n_param_op)
 
-                if (
-                    len(self.initial_vec) == 1
-                ):  # if only one initial value is given, we have a 1rst order ODE
+                if self.order_of_ODE == 1:
                     dfdop_like = (
                         d_ODE_functional_dD[0] * value_dict["dfdop"]
                         + d_ODE_functional_dD[1] * value_dict["dfdopdx"][:, 0, :]
@@ -858,23 +840,23 @@ class ODELoss(LossBase):
 
         return d_p, d_op
 
-    def create_QNN_ode_loss_format(self, ODE_functional, symbols_involved_in_ode=None):
+    def create_QNN_ODE_loss_format(self, ODE_functional, symbols_involved_in_ODE=None):
         """
         Given an ODE_functional, returns a function that takes the QNN derivatives list and returns the loss function.
 
         Args:
-            ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression. If a sympy expression is given, then, the symbols_involved_in_ode must be provided.
-            symbols_involved_in_ode (list): The list of symbols involved in the ODE problem. The list of symbols should be in order of differentiation, with the first element being the independent variable, i.e. [x, f, dfdx, dfdxdx]
+            ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression. If a sympy expression is given, then, the symbols_involved_in_ODE must be provided.
+            symbols_involved_in_ODE (list): The list of symbols involved in the ODE problem. The list of symbols should be in order of differentiation, with the first element being the independent variable, i.e. [x, f, dfdx, dfdxdx]
         Returns:
             QNN_loss (function): The loss function for the QNN with input in the format of the QNN tuple derivatives
         """
 
         if isinstance(ODE_functional, sp.Expr):  # if ode_question isinstance of sympy equation
-            if symbols_involved_in_ode is None:
+            if symbols_involved_in_ODE is None:
                 raise ValueError(
-                    "symbols_involved_in_ode must be provided if ODE_functional is a sympy equation"
-                )  # Perhaps this can be somehow improved by  list(ODE_functional.free_symbols)
-            _ODE_functional = numpyfy_sympy_loss(ODE_functional, symbols_involved_in_ode)
+                    "symbols_involved_in_ODE must be provided if ODE_functional is a sympy equation"
+                )  # Perhaps this can be somehow improved by list(ODE_functional.free_symbols)
+            _ODE_functional = numpyfy_sympy_loss(ODE_functional, symbols_involved_in_ODE)
         else:
             _ODE_functional = ODE_functional
 
@@ -891,12 +873,12 @@ class ODELoss(LossBase):
 
         return QNN_loss
 
-    def create_QNN_ode_gradient_format(
+    def create_QNN_ODE_gradient_format(
         self,
         ODE_functional_gradient,
         dimension_of_gradient_with_respect_to,
         ODE_functional,
-        symbols_involved_in_ode=None,
+        symbols_involved_in_ODE=None,
     ):
         """
         Given an ODE_functional_gradient, returns a function that takes the QNN derivatives list and returns the gradient of the loss function.
@@ -908,8 +890,8 @@ class ODELoss(LossBase):
             QNN_gradient (function): The gradient function for the QNN with input in the format of the QNN tuple derivatives
         """
         if ODE_functional_gradient is None:
-            _ODE_functional_gradient = gradient_of_f_arguments_np_from_sp(
-                ODE_functional, symbols_involved_in_ode
+            _ODE_functional_gradient = numerical_gradient_of_symbolic_equation(
+                ODE_functional, symbols_involved_in_ODE
             )
         else:
             _ODE_functional_gradient = ODE_functional_gradient
@@ -930,7 +912,7 @@ class ODELoss(LossBase):
             n_param = value_dict[dimension_of_gradient_with_respect_to].shape[1]
 
             grad_envelope_list = np.zeros(
-                (3, value_dict["x"].shape[0], n_param)
+                (len(dF_dpartial), value_dict["x"].shape[0], n_param)
             )  # shape (3, n, n_param)
             for i in range(len(dF_dpartial)):
                 grad_envelope_list[i, :, :] = np.tile(
@@ -1230,27 +1212,27 @@ class ParameterRegularizationLoss(LossBase):
         return d_p, d_op
 
 
-def numpyfy_sympy_loss(sp_ode, symbols_involved_in_ode):
+def numpyfy_sympy_loss(sp_ode, symbols_involved_in_ODE):
     """
     Given a sympy equation, returns a function that takes the QNN derivatives in a list and returns the loss value.
 
     Args:
         sp_ode (sympy equation): The sympy equation of the ODE problem
-        symbols_involved_in_ode (list): The list of symbols involved in the ODE problem the list of symbols should be in order [x, f, dfdx, dfdxdx]
+        symbols_involved_in_ODE (list): The list of symbols involved in the ODE problem the list of symbols should be in order [x, f, dfdx, dfdxdx]
     Returns:
         numpy_loss (function): The loss function for the QNN with input in the format of the QNN tuple derivatives
 
     """
 
     def numpy_loss(f_alpha_tensor):
-        return sp.lambdify(symbols_involved_in_ode, sp_ode, "numpy")(*f_alpha_tensor)
+        return sp.lambdify(symbols_involved_in_ODE, sp_ode, "numpy")(*f_alpha_tensor)
 
     return numpy_loss
 
 
-def gradient_of_f_arguments_sp(sp_ode, f_arguments):
+def symbolic_gradient(sp_ode, f_arguments):
     """
-    Calculate the gradient of a sympy equation with respect to a given set of variables,
+    Calculate the gradient of a sympy equation with respect to a given set of symbols,
     Args:
 
     sp_ode (sympy equation): The sp_ode to calculate the gradient of.
@@ -1266,24 +1248,25 @@ def gradient_of_f_arguments_sp(sp_ode, f_arguments):
     return gradients
 
 
-def gradient_of_f_arguments_np_from_sp(sp_ode, x_or_f_arguments):
+def numerical_gradient_of_symbolic_equation(sp_ode, symbols_involved_in_ODE):
     """
     Calculate the gradient of a sympy equation with respect to a given set of variables,
 
     Args:
 
     equation (sympy equation): The equation to calculate the gradient of.
-    x_or_f_arguments (list of sympy symbols): Assumes [x, f, dfdx, ...]
+    symbols_involved_in_ODE (list of sympy symbols): Assumes [x, f, dfdx, ...]
 
     Returns:
     list of sympy equations: The gradient of the equation with respect to the given variables.
 
     """
-    gradients = gradient_of_f_arguments_sp(sp_ode, x_or_f_arguments[1:])
+    gradients = symbolic_gradient(sp_ode, symbols_involved_in_ODE[1:])
 
     def np_grad_out_sp(f_alpha_tensor):
         return [
-            sp.lambdify(x_or_f_arguments, grad_i, "numpy")(*f_alpha_tensor) for grad_i in gradients
+            sp.lambdify(symbols_involved_in_ODE, grad_i, "numpy")(*f_alpha_tensor)
+            for grad_i in gradients
         ]
 
     return np_grad_out_sp
