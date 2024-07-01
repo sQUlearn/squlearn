@@ -499,6 +499,7 @@ class SquaredLoss(LossBase):
 
 class ODELoss(LossBase):
     """Squared loss for regression of Ordinary Differential Equations (ODEs).
+    Implements an ODE Loss based on Ref. [1].
 
     Args:
         ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression.
@@ -507,10 +508,15 @@ class ODELoss(LossBase):
         ODE_functional_gradient (Callable): Only necessary if ODE_functional is a callable function. A callable function that returns the gradient with regards to the partial derivatives of the function, the first derivative, and the second derivative: (dF/df, dF/df_, dF/df__).
         initial_vec (np.ndarray): Initial values of the ODE. If only one value is given, then it is a 1rst order ODE. If two values are given, then it is a 2nd order ODE.
         boundary_handling (str): Method for handling the boundary conditions. Options are "pinned", and "floating".
-            - "pinned":   An extra term is added to the loss function to enforce the initial values of the ODE. This is term is pinned by the eta parameter. The lost function is given by: L = \sum_i=0^n_samples L_theta_i + eta*(f(x_0) - f_0)^2
+            - "pinned":   An extra term is added to the loss function to enforce the initial values of the ODE. This term is pinned by the eta parameter. The lost function is given by: L = \sum_i=0^n_samples L_theta_i + eta*(f(x_0) - f_0)^2
             - "floating": The initial value of the ivp is fixed by definition and the loss function is calculated without the corresponding ivp term. The QNN is allowed to "float" around the initial values.  L = \sum_i=1^n_samples L_theta_i
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
         symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: [x, f, f_] where x is the independent variable, f is the function and f_ is the first derivative.
+
+    References
+    ----------
+    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with differentiable quantum circuits",
+    `arXiv:2011.10395 (2021). <https://arxiv.org/pdf/2011.10395>`_
     """
 
     def __init__(
@@ -608,10 +614,10 @@ class ODELoss(LossBase):
         self, value_dict_floating: dict, gradient_calculation=True, **kwargs
     ) -> dict:
         """
-        Converts the value_dict_floating to a floating boundary ansatz by fixing the initial values to the initial values of the ODE and setting the corresponding derivatives to zero.
+        Converts the value_dict_floating to a floating boundary ansatz by shifting the output values by a bias term that includes the initial values of the ODE.
 
-        If 1rst order ODE: f(x_0) = f_0 and f'(x_0) free to optimize and f''(x) = 0 to save computational resources.
-        If 2nd order ODE: f(x_0) = f_0 and f'(x_0) = f_0' and f''(x) free to optimize.
+        If 1rst order ODE: f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f'(x_0)
+        If 2nd order ODE:  f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f_b' and f''(x) = f''(x) - f''(x_0)
 
         Args:
             value_dict (dict): Contains calculated values of the model
@@ -622,25 +628,26 @@ class ODELoss(LossBase):
 
 
         """
-        value_dict_floating["f"][0] = self.initial_vec[0]  # f(x_0) = f_0
+        f_bias = value_dict_floating["f"][0] - self.initial_vec[0]  # f_b = f(x_0) - f_0
+        value_dict_floating["f"] -= f_bias  # f(x) = f(x) - f_b
 
         if self.order_of_ODE == 2:  # if only one initial value is given, we have a 1rst order ODE
-            value_dict_floating["dfdx"][0] = self.initial_vec[1]  # f'(x_0) = f_0'
-            value_dict_floating["dfdxdx"] = value_dict_floating["dfdxdx"]
+            f_bias = value_dict_floating["dfdx"][0] - self.initial_vec[1]  # f_b = f'(x_0) - f_0'
+            value_dict_floating["dfdx"] -= f_bias  # f'(x) = f'(x) - f_b
 
         if gradient_calculation:
-            value_dict_floating["dfdp"][0] = (
-                value_dict_floating["dfdp"][0] * 0
-            )  # dfdp = 0 because the initial values are fixed and correct by definition
+            df_biasdp = value_dict_floating["dfdp"][0]  # df_b/dp = df(x_0)/dp
+            value_dict_floating["dfdp"] -= df_biasdp  # df(x)/dp = df(x)/dp - df_b/dp
             if self._opt_param_op:
-                value_dict_floating["dfdop"][0] = value_dict_floating["dfdop"][0] * 0
+                df_biasdop = value_dict_floating["dfdop"][0]
+                value_dict_floating["dfdop"] -= df_biasdop
 
             if self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
-                value_dict_floating["dfdxdp"][0] = (
-                    value_dict_floating["dfdxdp"][0] * 0
-                )  # dfdxdp = 0 because the initial values are fixed and correct by definition
+                df_biasdxdp = value_dict_floating["dfdxdp"][0]  # df_b/dp = df(x_0)/dp
+                value_dict_floating["dfdxdp"] -= df_biasdxdp  # df(x)/dp = df(x)/dp - df_b/dp
                 if self._opt_param_op:
-                    value_dict_floating["dfdxdop"][0] = value_dict_floating["dfdxdop"][0] * 0
+                    df_biasdxdop = value_dict_floating["dfdxdop"][0]
+                    value_dict_floating["dfdxdop"] -= df_biasdxdop
         return value_dict_floating
 
     def value(self, value_dict: dict, **kwargs) -> float:
@@ -702,7 +709,7 @@ class ODELoss(LossBase):
                 )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, n_outputs)
             elif self.boundary_handling == "optimized":
                 raise NotImplementedError("Optimized boundary handling not implemented yet.")
-            print(functional_loss + initial_value_loss_f + initial_value_loss_df)
+            # print(functional_loss + initial_value_loss_f + initial_value_loss_df)
             return functional_loss + initial_value_loss_f + initial_value_loss_df
 
     def gradient(
@@ -742,7 +749,9 @@ class ODELoss(LossBase):
             weights = np.ones_like(ground_truth)
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
-        weighted_diff = np.multiply((self._ODE_functional(value_dict) - ground_truth), weights)
+        weighted_diff = np.multiply(
+            (self._ODE_functional(value_dict) - ground_truth), weights
+        )  # shape: (n_samples, 1)
 
         if value_dict["dfdp"].shape[0] == 0:
             d_p = np.array([])
@@ -908,7 +917,7 @@ class ODELoss(LossBase):
             """
             dF_dpartial = _ODE_functional_gradient(
                 self.derivatives_in_array_format(value_dict)
-            )  # dFdf, dFdfdx, dFdfdxdx
+            )  # [dFdf(n_samples, 1), dFdfdx(n_samples, 1)] or [1, dFdfdx(n_samples, 1)] or [dFdf(n_samples, 1), 1] if one of the derivatives returns a scalar, that is why we need to pile them up in the next step
             n_param = value_dict[dimension_of_gradient_with_respect_to].shape[1]
 
             grad_envelope_list = np.zeros(
@@ -917,7 +926,21 @@ class ODELoss(LossBase):
             for i in range(len(dF_dpartial)):
                 grad_envelope_list[i, :, :] = np.tile(
                     dF_dpartial[i], (n_param, 1)
-                ).T  # TODO: Why is necessary explain?
+                ).T  # This is necessary to broadcast the gradient to the n_param dimensions
+
+                # EXAMPLE:  dF_dpartial = [dFdf, dFdfdx]
+                # dF dpartial [array([6.77020277, 7.02029189, 7.21093346, 7.33490286]), 1]
+                # --------------------
+                # grad_envelope_list [[[6.77020277 6.77020277]
+                # [7.02029189 7.02029189]
+                # [7.21093346 7.21093346]
+                # [7.33490286 7.33490286]]
+
+                # [[1.         1.        ]
+                # [1.         1.        ]
+                # [1.         1.        ]
+                # [1.         1.        ]]]
+
             return grad_envelope_list
 
         return QNN_gradient
