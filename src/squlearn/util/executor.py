@@ -594,6 +594,7 @@ class Executor:
                 ValueError,
                 NotImplementedError,
                 TypeError,
+                qml.numpy.NonDifferentiableError,
             ) as e:
                 critical_error = True
                 critical_error_message = e
