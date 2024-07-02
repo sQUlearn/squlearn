@@ -596,13 +596,13 @@ class ODELoss(LossBase):
             dfdxdx (np.ndarray): The second derivative values
 
         """
-        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 1:  
             return (
                 loss_values["x"],
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
-        elif self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
+        elif self.order_of_ODE == 2:  
             return (
                 loss_values["x"],
                 loss_values["f"],
@@ -912,7 +912,7 @@ class ODELoss(LossBase):
             Args:
                 value_dict (dict): Contains calculated values of the model from squlearn QNN
             Returns:
-                grad_envelope_list (np.ndarray): The gradient of the loss evaluated at the n_samples input values.  shape: (3, n_samples, n_params)
+                grad_envelope_list (np.ndarray): The gradient of the loss evaluated at the n_samples input values.  shape: (order_of_ODE+1, n_samples, n_params)
 
             """
             dF_dpartial = _ODE_functional_gradient(
@@ -922,7 +922,7 @@ class ODELoss(LossBase):
 
             grad_envelope_list = np.zeros(
                 (len(dF_dpartial), value_dict["x"].shape[0], n_param)
-            )  # shape (3, n, n_param)
+            )  # shape (order_of_ODE+1, n, n_param)
             for i in range(len(dF_dpartial)):
                 grad_envelope_list[i, :, :] = np.tile(
                     dF_dpartial[i], (n_param, 1)
