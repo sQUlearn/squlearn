@@ -3,6 +3,7 @@
 import abc
 from typing import Union
 import numpy as np
+import sympy as sp
 from collections.abc import Callable
 
 
@@ -496,6 +497,455 @@ class SquaredLoss(LossBase):
         return d_p, d_op
 
 
+class ODELoss(LossBase):
+    """Squared loss for regression of Ordinary Differential Equations (ODEs).
+    Implements an ODE Loss based on Ref. [1].
+
+    Args:
+        ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression.
+            If a callable function is given, then, a callable function for the gradient (ODE_functional_gradient) of the homogenous differential equation calculation must be provided.
+            If a sympy expression is given, then, the symbols_involved_in_ODE must be provided.
+        ODE_functional_gradient (Callable): Only necessary if ODE_functional is a callable function. A callable function that returns the gradient with regards to the partial derivatives of the function, the first derivative, and the second derivative: (dF/df, dF/df_, dF/df__).
+        initial_vec (np.ndarray): Initial values of the ODE. If only one value is given, then it is a 1rst order ODE. If two values are given, then it is a 2nd order ODE.
+        boundary_handling (str): Method for handling the boundary conditions. Options are "pinned", and "floating".
+            - "pinned":   An extra term is added to the loss function to enforce the initial values of the ODE. This term is pinned by the eta parameter. The lost function is given by: L = \sum_i=0^n_samples L_theta_i + eta*(f(x_0) - f_0)^2
+            - "floating": The initial value of the ivp is fixed by definition and the loss function is calculated without the corresponding ivp term. The QNN is allowed to "float" around the initial values.  L = \sum_i=1^n_samples L_theta_i
+        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
+        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: [x, f, f_] where x is the independent variable, f is the function and f_ is the first derivative.
+
+    References
+    ----------
+    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with differentiable quantum circuits",
+    `arXiv:2011.10395 (2021). <https://arxiv.org/pdf/2011.10395>`_
+    """
+
+    def __init__(
+        self,
+        ODE_functional=None,
+        ODE_functional_gradient=None,
+        initial_vec: np.ndarray = None,
+        eta=np.float64(1.0),
+        boundary_handling="pinned",
+        symbols_involved_in_ODE=None,
+    ):
+        super().__init__()
+        self._ODE_functional = self.create_QNN_ODE_loss_format(
+            ODE_functional, symbols_involved_in_ODE
+        )  # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
+        self._ODE_functional_gradient_dp = self.create_QNN_ODE_gradient_format(
+            ODE_functional_gradient, "dfdp", ODE_functional, symbols_involved_in_ODE
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE, n_samples, num_param)
+        self._ODE_functional_gradient_dop = self.create_QNN_ODE_gradient_format(
+            ODE_functional_gradient, "dfdop", ODE_functional, symbols_involved_in_ODE
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE+1, n_samples, num_param_op)
+        self.initial_vec = initial_vec
+        self.order_of_ODE = len(initial_vec)
+        self.eta = eta
+        self.boundary_handling = boundary_handling
+
+    @property
+    def loss_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for the squared loss calculation."""
+        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
+            return ("f", "dfdx")
+        elif self.order_of_ODE == 2:
+            print(
+                "WARNING: 2nd order DEs differentiate the QNN loss function by calculating the second derivative. This can be computationally expensive and inneficient. An alternative is to set-up coupled 1rst order DEs (currently not implemented)"
+            )
+            return ("f", "dfdx", "dfdxdx")
+
+    def get_true_solution(self) -> np.ndarray:
+        return self.true_solution
+
+    @property
+    def gradient_args_tuple(self) -> tuple:
+        """Returns evaluation tuple for the squared loss gradient calculation."""
+        if self._opt_param_op:
+            if (
+                self.order_of_ODE == 1
+            ):  # if only one initial value is given, we have a 1rst order ODE
+                return ("f", "dfdx", "dfdp", "dfdxdp", "dfdop", "dfdopdx")
+            elif self.order_of_ODE == 2:
+                return (
+                    "f",
+                    "dfdx",
+                    "dfdxdx",
+                    "dfdp",
+                    "dfdxdp",
+                    "dfdxdxdp",
+                    "dfdop",
+                    "dfdopdx",
+                    "dfdopdxdx",
+                )
+
+        if self.order_of_ODE == 1:  # if only one initial value is given, we have a 1rst order ODE
+            return ("f", "dfdx", "dfdp", "dfdxdp")
+        elif self.order_of_ODE == 2:
+            return ("f", "dfdx", "dfdxdx", "dfdp", "dfdxdp", "dfdxdxdp")
+
+    def derivatives_in_array_format(self, loss_values):
+        """
+        Given a dictionary of loss_values, returns the values in the format of the QNN tuple derivatives
+
+        Args:
+            loss_values (dict): Contains calculated values of the model
+        Returns:
+            x (np.ndarray): The input values
+            f (np.ndarray): The output values
+            dfdx (np.ndarray): The first derivative values
+            dfdxdx (np.ndarray): The second derivative values
+
+        """
+        if self.order_of_ODE == 1:  
+            return (
+                loss_values["x"],
+                loss_values["f"],
+                loss_values["dfdx"][:, 0],
+            )
+        elif self.order_of_ODE == 2:  
+            return (
+                loss_values["x"],
+                loss_values["f"],
+                loss_values["dfdx"][:, 0],
+                loss_values["dfdxdx"][:, 0, 0],
+            )
+
+    def _ansatz_to_floating_boundary_ansatz(
+        self, value_dict_floating: dict, gradient_calculation=True, **kwargs
+    ) -> dict:
+        """
+        Converts the value_dict_floating to a floating boundary ansatz by shifting the output values by a bias term that includes the initial values of the ODE.
+
+        If 1rst order ODE: f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f'(x_0)
+        If 2nd order ODE:  f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f_b' and f''(x) = f''(x) - f''(x_0)
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            gradient_calculation (bool): True if the gradient is calculated
+
+        Returns:
+            value_dict_floating (dict): Contains the values of the model with the initial values set to the initial values of the ODE
+
+
+        """
+        f_bias = value_dict_floating["f"][0] - self.initial_vec[0]  # f_b = f(x_0) - f_0
+        value_dict_floating["f"] -= f_bias  # f(x) = f(x) - f_b
+
+        if self.order_of_ODE == 2:  # if only one initial value is given, we have a 1rst order ODE
+            f_bias = value_dict_floating["dfdx"][0] - self.initial_vec[1]  # f_b = f'(x_0) - f_0'
+            value_dict_floating["dfdx"] -= f_bias  # f'(x) = f'(x) - f_b
+
+        if gradient_calculation:
+            df_biasdp = value_dict_floating["dfdp"][0]  # df_b/dp = df(x_0)/dp
+            value_dict_floating["dfdp"] -= df_biasdp  # df(x)/dp = df(x)/dp - df_b/dp
+            if self._opt_param_op:
+                df_biasdop = value_dict_floating["dfdop"][0]
+                value_dict_floating["dfdop"] -= df_biasdop
+
+            if self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
+                df_biasdxdp = value_dict_floating["dfdxdp"][0]  # df_b/dp = df(x_0)/dp
+                value_dict_floating["dfdxdp"] -= df_biasdxdp  # df(x)/dp = df(x)/dp - df_b/dp
+                if self._opt_param_op:
+                    df_biasdxdop = value_dict_floating["dfdxdop"][0]
+                    value_dict_floating["dfdxdop"] -= df_biasdxdop
+        return value_dict_floating
+
+    def value(self, value_dict: dict, **kwargs) -> float:
+        r"""
+        Calculates the squared loss of the loss function for the ODE as
+
+        .. math::
+            \begin{align}
+                \mathcal{L}_{\vec{\theta}} [ \ddot f,  \dot f, f,  x] &= \sum_j^N \left(F\left( \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x\right)_j\right)^2  + \eta\left(f_{\vec{\theta}}(0) - u_0\right)^2 + \eta\left(\dot f_{\vec{\theta}}(0) - \dot u_0\right)^2
+            \end{align}
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+
+        Returns:
+            Loss value
+        """
+        if "ground_truth" not in kwargs:
+            raise AttributeError("SquaredLoss requires ground_truth.")
+        ground_truth = kwargs["ground_truth"]
+        if "weights" in kwargs and kwargs["weights"] is not None:
+            weights = kwargs["weights"]
+        else:
+            weights = np.ones_like(ground_truth)
+
+        multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
+
+        functional_loss, initial_value_loss_f, initial_value_loss_df = 0, 0, 0
+
+        if multiple_output:
+            raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
+        else:
+            if self.boundary_handling == "pinned":
+                functional_loss = np.sum(
+                    np.multiply(
+                        np.square(self._ODE_functional(value_dict) - ground_truth), weights
+                    )
+                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, 1)
+
+                initial_value_loss_f = self.eta * (
+                    np.square(value_dict["f"][0] - self.initial_vec[0])
+                )  # L_theta =  eta * (f(x_i) - f_0)^2 #Pinned boundary condition
+                if self.order_of_ODE == 2:
+                    initial_value_loss_df = self.eta * (
+                        np.square(value_dict["dfdx"][0] - self.initial_vec[1])
+                    )  # L_theta =  eta * (f'(x_i) - f_0')^2
+                else:
+                    pass
+            elif self.boundary_handling == "floating":
+                value_dict = self._ansatz_to_floating_boundary_ansatz(
+                    value_dict, gradient_calculation=False
+                )
+                functional_loss = np.sum(
+                    np.multiply(
+                        np.square(self._ODE_functional(value_dict) - ground_truth), weights
+                    )
+                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, n_outputs)
+            elif self.boundary_handling == "optimized":
+                raise NotImplementedError("Optimized boundary handling not implemented yet.")
+            # print(functional_loss + initial_value_loss_f + initial_value_loss_df)
+            return functional_loss + initial_value_loss_f + initial_value_loss_df
+
+    def gradient(
+        self, value_dict: dict, **kwargs
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+        r"""Returns the gradient of the squared loss.
+
+        Calculates the gradient of the squared loss between the values in value_dict
+        and ground_truth as
+
+        .. math::
+            \begin{align}
+                \pdv{\mathcal{L}_{\vec{\theta}}}{\theta_i} &=  \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \pdv{}{\theta_i} \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  + 2 \eta(f_{\vec{\theta}}(0)-u_0) \eval{\pdv{f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \eval{\pdv{\dot f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} \\
+                &= \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \left( \pdv{F_j}{f_{\vec{\theta}}}\pdv{f_{\vec{\theta}}}{\theta_i}
+                +  \pdv{F_j}{\dot f_{\vec{\theta}}}\pdv{\dot f_{\vec{\theta}}}{\theta_i} +  \pdv{F_j}{\ddot f_{\vec{\theta}}}\pdv{\ddot f_{\vec{\theta}}}{\theta_i}\right) 
+                + 2 \eta(f_{\vec{\theta}}(0)-u_0) \eval{\pdv{f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \eval{\pdv{\dot f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} 
+            \end{align}
+
+
+        Args:
+            value_dict (dict): Contains calculated values of the model
+            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            multiple_output (bool): True if the QNN has multiple outputs
+
+        Returns:
+            Gradient values
+        """
+
+        if "ground_truth" not in kwargs:
+            raise AttributeError("SquaredLoss requires ground_truth.")
+
+        ground_truth = kwargs["ground_truth"]
+        if "weights" in kwargs and kwargs["weights"] is not None:
+            weights = kwargs["weights"]
+        else:
+            weights = np.ones_like(ground_truth)
+        multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
+
+        weighted_diff = np.multiply(
+            (self._ODE_functional(value_dict) - ground_truth), weights
+        )  # shape: (n_samples, 1)
+
+        if value_dict["dfdp"].shape[0] == 0:
+            d_p = np.array([])
+        else:
+            if multiple_output:
+                raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
+            else:
+                # value_dict["dfdp"] shape: (n_samples, n_params)
+                # value_dict["dfdxdp"] shape: (n_samples, 1, n_params)
+                d_p = np.zeros(value_dict["dfdp"].shape[1])  # shape: (n_params)
+                if self.boundary_handling == "pinned":
+                    d_p += (
+                        2.0
+                        * self.eta
+                        * (value_dict["f"][0] - self.initial_vec[0])
+                        * value_dict["dfdp"][0, :]
+                    )  # shape: (n_params)
+                    if self.order_of_ODE == 2:
+                        d_p += (
+                            2.0
+                            * self.eta
+                            * np.sum(value_dict["dfdx"][0] - self.initial_vec[1])
+                            * value_dict["dfdxdp"][0, 0, :]
+                        )  # shape: (n_params)
+
+                elif self.boundary_handling == "floating":
+                    value_dict = self._ansatz_to_floating_boundary_ansatz(
+                        value_dict, gradient_calculation=True
+                    )
+
+                d_ODE_functional_dD = self._ODE_functional_gradient_dp(
+                    value_dict
+                )  # shape: (1+self.order_of_ODE, n_samples, n_params)
+
+                if self.order_of_ODE == 1:
+                    dfdp_like = (
+                        d_ODE_functional_dD[0] * value_dict["dfdp"]
+                        + d_ODE_functional_dD[1] * value_dict["dfdxdp"][:, 0, :]
+                    )  # shape: (n_samples, n_params)
+                else:
+                    dfdp_like = (
+                        d_ODE_functional_dD[0] * value_dict["dfdp"]
+                        + d_ODE_functional_dD[1] * value_dict["dfdxdp"][:, 0, :]
+                        + d_ODE_functional_dD[2] * value_dict["dfdxdxdp"][:, 0, 0, :]
+                    )
+
+                d_p += 2.0 * np.einsum(
+                    "j,jk->k", weighted_diff, dfdp_like
+                )  # shape: (n_samples, n_params) -> (n_params)
+
+        if not self._opt_param_op:
+            return d_p
+
+        if value_dict["dfdop"].shape[0] == 0:
+            d_op = np.array([])
+        else:
+            if multiple_output:
+                raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
+            else:
+                d_op = np.zeros(value_dict["dfdop"].shape[1])  # shape: (n_param_op)
+                if self.boundary_handling == "pinned":
+                    d_op += (
+                        2.0
+                        * self.eta
+                        * (value_dict["f"][0] - self.initial_vec[0])
+                        * value_dict["dfdop"][0, :]
+                    )
+                    if self.order_of_ODE == 2:
+                        d_op += (
+                            2.0
+                            * self.eta
+                            * np.sum(value_dict["dfdx"][0] - self.initial_vec[1])
+                            * value_dict["dfdopdx"][0, 0, :]
+                        )
+
+                d_ODE_functional_dD = self._ODE_functional_gradient_dop(
+                    value_dict
+                )  # shape: (1+self.order_of_ODE, n_samples, n_param_op)
+
+                if self.order_of_ODE == 1:
+                    dfdop_like = (
+                        d_ODE_functional_dD[0] * value_dict["dfdop"]
+                        + d_ODE_functional_dD[1] * value_dict["dfdopdx"][:, 0, :]
+                    )  # shape: (n_samples, n_param_op)
+                else:
+                    dfdop_like = (
+                        d_ODE_functional_dD[0] * value_dict["dfdop"]
+                        + d_ODE_functional_dD[1] * value_dict["dfdopdx"][:, 0, :]
+                        + d_ODE_functional_dD[2] * value_dict["dfdopdxdx"][:, 0, 0, :]
+                    )
+
+                d_op += 2.0 * np.einsum(
+                    "j,jk->k", weighted_diff, dfdop_like
+                )  # shape: (n_samples, n_param_op) -> (n_param_op)
+
+        return d_p, d_op
+
+    def create_QNN_ODE_loss_format(self, ODE_functional, symbols_involved_in_ODE=None):
+        """
+        Given an ODE_functional, returns a function that takes the QNN derivatives list and returns the loss function.
+
+        Args:
+            ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression. If a sympy expression is given, then, the symbols_involved_in_ODE must be provided.
+            symbols_involved_in_ODE (list): The list of symbols involved in the ODE problem. The list of symbols should be in order of differentiation, with the first element being the independent variable, i.e. [x, f, dfdx, dfdxdx]
+        Returns:
+            QNN_loss (function): The loss function for the QNN with input in the format of the QNN tuple derivatives
+        """
+
+        if isinstance(ODE_functional, sp.Expr):  # if ode_question isinstance of sympy equation
+            if symbols_involved_in_ODE is None:
+                raise ValueError(
+                    "symbols_involved_in_ODE must be provided if ODE_functional is a sympy equation"
+                )  # Perhaps this can be somehow improved by list(ODE_functional.free_symbols)
+            _ODE_functional = numpyfy_sympy_loss(ODE_functional, symbols_involved_in_ODE)
+        else:
+            _ODE_functional = ODE_functional
+
+        def QNN_loss(value_dict):
+            """
+            Given the squlearn QNN derivatives dictionary, returns the loss function defined by the ODE problem.
+
+            Args:
+                value_dict (dict): Contains calculated values of the model from squlearn QNN
+            Returns:
+                loss (np.ndarray): The loss evaluated at the n_samples input values.  shape: (n_samples,)
+            """
+            return _ODE_functional(self.derivatives_in_array_format(value_dict))
+
+        return QNN_loss
+
+    def create_QNN_ODE_gradient_format(
+        self,
+        ODE_functional_gradient,
+        dimension_of_gradient_with_respect_to,
+        ODE_functional,
+        symbols_involved_in_ODE=None,
+    ):
+        """
+        Given an ODE_functional_gradient, returns a function that takes the QNN derivatives list and returns the gradient of the loss function.
+
+        Args:
+            ODE_functional_gradient (Union[Callable, None]): Gradient of the ODE functional. A callable function that takes the QNN derivatives list and returns the gradient of the loss function. If None, the gradient is calculated using the sympy expression of the ODE_functional
+            dimension_of_gradient_with_respect_to (str): The dimension of the gradient with respect to the parameters. It can be "dfdp" or "dfdop"
+        Returns:
+            QNN_gradient (function): The gradient function for the QNN with input in the format of the QNN tuple derivatives
+        """
+        if ODE_functional_gradient is None:
+            _ODE_functional_gradient = numerical_gradient_of_symbolic_equation(
+                ODE_functional, symbols_involved_in_ODE
+            )
+        else:
+            _ODE_functional_gradient = ODE_functional_gradient
+
+        def QNN_gradient(value_dict):
+            """
+            Given the squlearn QNN derivatives dictionary, returns the gradient of the loss function defined by the ODE problem.
+
+            Args:
+                value_dict (dict): Contains calculated values of the model from squlearn QNN
+            Returns:
+                grad_envelope_list (np.ndarray): The gradient of the loss evaluated at the n_samples input values.  shape: (order_of_ODE+1, n_samples, n_params)
+
+            """
+            dF_dpartial = _ODE_functional_gradient(
+                self.derivatives_in_array_format(value_dict)
+            )  # [dFdf(n_samples, 1), dFdfdx(n_samples, 1)] or [1, dFdfdx(n_samples, 1)] or [dFdf(n_samples, 1), 1] if one of the derivatives returns a scalar, that is why we need to pile them up in the next step
+            n_param = value_dict[dimension_of_gradient_with_respect_to].shape[1]
+
+            grad_envelope_list = np.zeros(
+                (len(dF_dpartial), value_dict["x"].shape[0], n_param)
+            )  # shape (order_of_ODE+1, n, n_param)
+            for i in range(len(dF_dpartial)):
+                grad_envelope_list[i, :, :] = np.tile(
+                    dF_dpartial[i], (n_param, 1)
+                ).T  # This is necessary to broadcast the gradient to the n_param dimensions
+
+                # EXAMPLE:  dF_dpartial = [dFdf, dFdfdx]
+                # dF dpartial [array([6.77020277, 7.02029189, 7.21093346, 7.33490286]), 1]
+                # --------------------
+                # grad_envelope_list [[[6.77020277 6.77020277]
+                # [7.02029189 7.02029189]
+                # [7.21093346 7.21093346]
+                # [7.33490286 7.33490286]]
+
+                # [[1.         1.        ]
+                # [1.         1.        ]
+                # [1.         1.        ]
+                # [1.         1.        ]]]
+
+            return grad_envelope_list
+
+        return QNN_gradient
+
+
 class VarianceLoss(LossBase):
     r"""Variance loss for regression.
 
@@ -783,3 +1233,63 @@ class ParameterRegularizationLoss(LossBase):
                 raise ValueError("Type must be L1 or L2!")
 
         return d_p, d_op
+
+
+def numpyfy_sympy_loss(sp_ode, symbols_involved_in_ODE):
+    """
+    Given a sympy equation, returns a function that takes the QNN derivatives in a list and returns the loss value.
+
+    Args:
+        sp_ode (sympy equation): The sympy equation of the ODE problem
+        symbols_involved_in_ODE (list): The list of symbols involved in the ODE problem the list of symbols should be in order [x, f, dfdx, dfdxdx]
+    Returns:
+        numpy_loss (function): The loss function for the QNN with input in the format of the QNN tuple derivatives
+
+    """
+
+    def numpy_loss(f_alpha_tensor):
+        return sp.lambdify(symbols_involved_in_ODE, sp_ode, "numpy")(*f_alpha_tensor)
+
+    return numpy_loss
+
+
+def symbolic_gradient(sp_ode, f_arguments):
+    """
+    Calculate the gradient of a sympy equation with respect to a given set of symbols,
+    Args:
+
+    sp_ode (sympy equation): The sp_ode to calculate the gradient of.
+    f_arguments (list of sympy symbols): The variables to calculate the gradient with respect to. Assumes [f, dfdx, ...]
+
+    Returns:
+    list of sympy equations: The gradient of the sp_ode with respect to the given variables.
+
+    """
+    gradients = []
+    for f_order in f_arguments:
+        gradients.append(sp.diff(sp_ode, f_order))
+    return gradients
+
+
+def numerical_gradient_of_symbolic_equation(sp_ode, symbols_involved_in_ODE):
+    """
+    Calculate the gradient of a sympy equation with respect to a given set of variables,
+
+    Args:
+
+    equation (sympy equation): The equation to calculate the gradient of.
+    symbols_involved_in_ODE (list of sympy symbols): Assumes [x, f, dfdx, ...]
+
+    Returns:
+    list of sympy equations: The gradient of the equation with respect to the given variables.
+
+    """
+    gradients = symbolic_gradient(sp_ode, symbols_involved_in_ODE[1:])
+
+    def np_grad_out_sp(f_alpha_tensor):
+        return [
+            sp.lambdify(symbols_involved_in_ODE, grad_i, "numpy")(*f_alpha_tensor)
+            for grad_i in gradients
+        ]
+
+    return np_grad_out_sp
