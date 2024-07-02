@@ -15,7 +15,7 @@ class HEE_rzrxrz(EncodingCircuitBase):
 
     .. plot::
 
-        from squlearn.encoding_circuit import MultiControlEncodingCircuit
+        from squlearn.encoding_circuit import HEE_rzrxrz
         pqc = HEE_rzrxrz(4, 2, 1)
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
