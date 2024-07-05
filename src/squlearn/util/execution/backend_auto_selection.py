@@ -1,5 +1,8 @@
 import numpy as np
 from typing import Optional, Callable, Union, List, Tuple
+import copy
+import json
+import os
 
 # HQAA additions
 from .hqaa import parser_openqasm, heuristic
@@ -10,6 +13,7 @@ from logging import Logger
 
 from qiskit import transpile, QuantumCircuit
 from qiskit.providers import Backend, BackendV1, BackendV2
+from qiskit.providers.models import BackendProperties
 from qiskit_ibm_runtime import QiskitRuntimeService
 import mapomatic as mm
 
@@ -90,14 +94,38 @@ class AutoSelectionBackend:
         for b in self.backends:
             if isinstance(b, BackendV1):
                 continue
-            elif isinstance(b, BackendV2):
-                raise NoSuitableBackendError("Error: Only V1 backends are supported.")
+            if isinstance(b, BackendV2):
+                # V2 Backend needs some additional processing to be compatilbe with Mapomatic
+                from qiskit.providers.fake_provider.utils.json_decoder import (
+                    decode_backend_properties,
+                )
 
-        self._print("Automatic backend selection started")
-        if self.backends:
-            self._print(f"Number of backends available with given parameters:{len(self.backends)}")
-        else:
-            raise NoSuitableBackendError("No suitable backend found with given parameters")
+                if not b.props_filename:
+                    raise ValueError("No properties file has been defined")
+                with open(  # pylint: disable=unspecified-encoding
+                    os.path.join(b.dirname, b.props_filename)
+                ) as f_json:
+                    prop_config = json.load(f_json)
+                decode_backend_properties(prop_config)
+                b._properties = BackendProperties.from_dict(prop_config)
+                # Add necessary functions for Mapomatic
+                b.properties = lambda: b._properties
+
+                def configuration():
+                    config_dict = copy.copy(b._conf_dict)
+                    config_dict["num_qubits"] = config_dict["n_qubits"]
+                    config = type("config", (object,), config_dict)
+                    return config()
+
+                b.configuration = configuration
+
+            self._print("Automatic backend selection started")
+            if self.backends:
+                self._print(
+                    f"Number of backends available with given parameters:{len(self.backends)}"
+                )
+            else:
+                raise NoSuitableBackendError("No suitable backend found with given parameters")
 
     def _print(self, message: str):
         """Print message if verbose is True, if logger is set, log message."""

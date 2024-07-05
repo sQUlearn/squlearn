@@ -335,7 +335,7 @@ We set up a small Quantum Neural Network (QNN) example and train it on the most 
 .. jupyter-execute::
 
    import numpy as np
-   from qiskit_ibm_runtime.fake_provider import FakeManila, FakeBelem, FakeAthens
+   from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
    from squlearn.util import Executor
    from squlearn.qnn import QNNRegressor
    from squlearn.observables import SummedPaulis
@@ -343,7 +343,7 @@ We set up a small Quantum Neural Network (QNN) example and train it on the most 
    from squlearn.optimizers import Adam
    from squlearn.qnn.loss import SquaredLoss
 
-   backends = [FakeBelem(), FakeAthens(), FakeManila()]
+   backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
    executor = Executor(backends, shots=10000)
    qnn = QNNRegressor(
        ChebyshevPQC(2, 1),
@@ -427,13 +427,10 @@ circuits that need to be transpiled.
    * :class:`Executor <squlearn.Executor>`
    * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
    * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
-<<<<<<< HEAD
    * `Mapomatic: Automatic mapping of compiled circuits to low-noise sub-graphs <https://github.com/qiskit-community/mapomatic>`_
+   * `PennyLane Devices <https://docs.pennylane.ai/en/stable/code/api/pennylane.device.html>`_
 
 .. rubric:: References
 
 _`[1]` P. D. Nation and M. Treinish "Suppressing quantum circuit errors due to system variability".
 `PRX Quantum 4(1) 010327 <https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.4.010327>`_ (2023)
-=======
-   * `PennyLane Devices <https://docs.pennylane.ai/en/stable/code/api/pennylane.device.html>`_
->>>>>>> develop

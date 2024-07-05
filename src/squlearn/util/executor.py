@@ -1203,11 +1203,15 @@ class Executor:
                 if self.is_statevector:
                     self._swapp_to_BackendPrimitive("estimator")
 
-        if isinstance(self.estimator, qiskit_primitives_BackendEstimator):
+        # Set seed for the primitive
+        instance_estimator = self.estimator
+        if isinstance(self.estimator, ParallelEstimator):
+            instance_estimator = self.estimator._estimator
+        if isinstance(instance_estimator, qiskit_primitives_BackendEstimator):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
-        elif isinstance(self.estimator, qiskit_primitives_Estimator):
+        elif isinstance(instance_estimator, qiskit_primitives_Estimator):
             if self._set_seed_for_primitive is not None:
                 self.estimator.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
@@ -1299,11 +1303,15 @@ class Executor:
                 if self.is_statevector:
                     self._swapp_to_BackendPrimitive("sampler")
 
-        if isinstance(self.sampler, qiskit_primitives_BackendSampler):
+        # Set seed for the primitive
+        instance_sampler = self.sampler
+        if isinstance(self.sampler, ParallelSampler):
+            instance_sampler = self.sampler._sampler
+        if isinstance(instance_sampler, qiskit_primitives_BackendSampler):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
-        elif isinstance(self.sampler, qiskit_primitives_Sampler):
+        elif isinstance(instance_sampler, qiskit_primitives_Sampler):
             if self._set_seed_for_primitive is not None:
                 self.sampler.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
