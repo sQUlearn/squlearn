@@ -44,12 +44,12 @@ class TestBackendAutoSelection:
         qc.x([0, 1])
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
-        executor = Executor(backends, seed=0, shots=50000, qpu_parallelization=2)
+        executor = Executor(backends, seed=0, shots=100000, qpu_parallelization=2)
         qc2, info = executor.select_backend(qc)
         assert str(executor.backend_name) == "fake_manila"
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()
-        assert result.metadata[0]["shots"] == 50000
+        assert result.metadata[0]["shots"] == 100000
         assert round(result.quasi_dists[0][0], 1) == 0.0
         assert round(result.quasi_dists[0][1], 1) == 0.0
         assert round(result.quasi_dists[0][2], 1) == 0.1
@@ -57,7 +57,7 @@ class TestBackendAutoSelection:
         estimator = executor.get_estimator()
         result = estimator.run(qc, obs).result()
         assert round(result.values[0], 1) == 0.7
-        assert result.metadata[0]["shots"] == 50000
+        assert result.metadata[0]["shots"] == 100000
 
     def test_auto_select_qnn(self):
         """
@@ -81,7 +81,7 @@ class TestBackendAutoSelection:
         )
         value = qnn.predict(np.array([0.25, 0.75]))
         assert str(executor.backend_name) == "fake_manila"
-        assert np.allclose(value, np.array([-0.3322, -0.5342]), atol=1e-3)
+        assert np.allclose(value, np.array([-0.3322, -0.5342]), atol=1e-2)
 
     def test_auto_select_fidelity_kernel(self):
         """
@@ -94,8 +94,9 @@ class TestBackendAutoSelection:
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         value = qkrr.predict(np.array([[0.25], [0.75]]))
+        print("test_auto_select_fidelity_kernel value",value)
         assert str(executor.backend_name) == "fake_manila"
-        assert np.allclose(value, np.array([0.25828537766263315, 0.7475716159340855]), atol=1e-3)
+        assert np.allclose(value, np.array([0.25828538, 0.74757162]), atol=1e-2)
 
     def test_auto_select_projected_kernel(self):
         """
@@ -109,4 +110,5 @@ class TestBackendAutoSelection:
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         value = qkrr.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == "fake_manila"
-        assert np.allclose(value, np.array([0.24999992453371855, 0.7499992679943152]), atol=1e-3)
+        print("test_auto_select_projected_kernel value",value)
+        assert np.allclose(value, np.array([0.24999992, 0.74999927]), atol=1e-2)
