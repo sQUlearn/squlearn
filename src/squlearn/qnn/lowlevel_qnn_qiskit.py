@@ -316,11 +316,15 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         if executor.is_backend_chosen:
             # Skip transpilation for parallel qpu execution
             if not executor.qpu_parallelization:
-               parameterized_quantum_circuit = TranspiledEncodingCircuit(parameterized_quantum_circuit, executor.backend)
+                parameterized_quantum_circuit = TranspiledEncodingCircuit(
+                    parameterized_quantum_circuit, executor.backend
+                )
         else:
             # Automatically select backend (also returns a TranspiledEncodingCircuit except
             # for parallel qpu execution)
-            parameterized_quantum_circuit, _ = executor.select_backend(parameterized_quantum_circuit)
+            parameterized_quantum_circuit, _ = executor.select_backend(
+                parameterized_quantum_circuit
+            )
 
         super().__init__(parameterized_quantum_circuit, operator, executor)
 

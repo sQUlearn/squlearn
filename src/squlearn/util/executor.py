@@ -33,6 +33,7 @@ from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 from qiskit.exceptions import QiskitError
 
 import qiskit
+
 if version.parse(qiskit.__version__) <= version.parse("0.45.0"):
     from qiskit.utils import algorithm_globals
 from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
@@ -486,7 +487,10 @@ class Executor:
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-                if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
+                if (
+                    "fake" in str(self._backend).lower()
+                    or "fake" in str(self._backend_list).lower()
+                ):
                     self._remote = False
                 else:
                     self._remote = True
@@ -512,8 +516,7 @@ class Executor:
         elif self.quantum_framework == "pennylane":
             if self._backend_list is not None:
                 raise ValueError(
-                    "Automatic backend selection is only supported"
-                    + " for IBM Quantum backends!"
+                    "Automatic backend selection is only supported" + " for IBM Quantum backends!"
                 )
 
             self._remote = not any(
@@ -544,7 +547,9 @@ class Executor:
             self._logger.info(f"Executor initialized with backend: {{}}".format(self._backend))
         if self._backend_list is not None:
             if len(self._backend_list) > 1:
-                self._logger.info(f"Executor initialized with backend list: {{}}".format(self._backend_list))
+                self._logger.info(
+                    f"Executor initialized with backend list: {{}}".format(self._backend_list)
+                )
         if self._service is not None:
             self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:

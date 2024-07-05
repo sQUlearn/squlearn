@@ -17,6 +17,7 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit_aer import Aer
 
+
 def _custom_result_method(self):
     return self._result
 

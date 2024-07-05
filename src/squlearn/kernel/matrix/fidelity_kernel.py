@@ -102,7 +102,6 @@ class FidelityKernel(KernelMatrixBase):
 
         if self._executor.quantum_framework == "pennylane":
 
-
             self._quantum_kernel = FidelityKernelPennyLane(
                 encoding_circuit=self._encoding_circuit,
                 executor=self._executor,

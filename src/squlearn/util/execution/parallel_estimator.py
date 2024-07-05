@@ -16,6 +16,7 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit_aer import Aer
 
+
 def _custom_result_method(self):
     return self._result
 
@@ -134,7 +135,7 @@ class ParallelEstimator(BaseEstimator):
         self,
         circuits,
         observables,
-        parameter_values = None,
+        parameter_values=None,
         **run_options,
     ) -> EstimatorResult:
         """Has to be passed through, otherwise python will complain about the abstract method.
@@ -146,7 +147,7 @@ class ParallelEstimator(BaseEstimator):
         self,
         circuits,
         observables,
-        parameter_values = None,
+        parameter_values=None,
         **run_options,
     ) -> Job:
         """Has to be passed through, otherwise python will complain about the abstract method.
@@ -163,7 +164,7 @@ class ParallelEstimator(BaseEstimator):
         self,
         circuits,
         observables,
-        parameter_values = None,
+        parameter_values=None,
         **run_options,
     ) -> Job:
         """
