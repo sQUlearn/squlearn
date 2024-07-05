@@ -94,7 +94,7 @@ class TestBackendAutoSelection:
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         value = qkrr.predict(np.array([[0.25], [0.75]]))
-        print("test_auto_select_fidelity_kernel value",value)
+        print("test_auto_select_fidelity_kernel value", value)
         assert str(executor.backend_name) == "fake_manila"
         assert np.allclose(value, np.array([0.25828538, 0.74757162]), atol=1e-2)
 
@@ -110,5 +110,5 @@ class TestBackendAutoSelection:
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         value = qkrr.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == "fake_manila"
-        print("test_auto_select_projected_kernel value",value)
+        print("test_auto_select_projected_kernel value", value)
         assert np.allclose(value, np.array([0.24999992, 0.74999927]), atol=1e-2)
