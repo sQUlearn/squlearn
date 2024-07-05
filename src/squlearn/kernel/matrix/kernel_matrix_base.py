@@ -40,6 +40,7 @@ class KernelMatrixBase:
         self._parameters = initial_parameters
         self._parameter_seed = parameter_seed
         self._regularization = regularization
+        self._is_trainable = False
 
         if self._parameters is None:
             self._parameters = self._encoding_circuit.generate_initial_parameters(
@@ -85,6 +86,11 @@ class KernelMatrixBase:
     def feature_bounds(self) -> np.ndarray:
         """The bounds of the features of the encoding circuit."""
         return self._encoding_circuit.feature_bounds
+
+    @property
+    def is_trainable(self) -> bool:
+        """Returns True if the encoding circuit has trainable parameters."""
+        return self._is_trainable
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """

@@ -82,6 +82,11 @@ class QGPC(GaussianProcessClassifier):
         names.remove("warm_start")
         return names
 
+    def fit(self, X, y):
+        if self._quantum_kernel.is_trainable:
+            self._quantum_kernel.run_optimization(X, y)
+        return super().fit(X, y)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QGPC class.

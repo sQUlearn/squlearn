@@ -122,6 +122,11 @@ class QKRR(BaseEstimator, RegressorMixin):
             self :
                 Returns the instance itself.
         """
+
+        # check if quantum kernel is trainable
+        if self._quantum_kernel.is_trainable:
+            self._quantum_kernel.run_optimization(X, y)
+
         self.X_train = X
 
         if isinstance(self._quantum_kernel, str):

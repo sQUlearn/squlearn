@@ -102,6 +102,11 @@ class QSVR(SVR):
         names.remove("coef0")
         return names
 
+    def fit(self, X, y):
+        if self.quantum_kernel.is_trainable:
+            self.quantum_kernel.run_optimization(X, y)
+        return super().fit(X, y)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QSVR class.
