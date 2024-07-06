@@ -173,7 +173,6 @@ Quantum Kernel Core
    :toctree: generated/
    :template: class.rst
 
-   kernel.optimization.kernel_optimizer.KernelOptimizer
    kernel.optimization.negative_log_likelihood.NLL
    kernel.optimization.target_alignment.TargetAlignment
 
@@ -281,7 +280,6 @@ Base Classes
     encoding_circuit.encoding_circuit_base.EncodingCircuitBase
     kernel.matrix.kernel_matrix_base.KernelMatrixBase
     kernel.optimization.kernel_loss_base.KernelLossBase
-    kernel.optimization.kernel_optimization_base.KernelOptimizerBase
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
     qnn.loss.LossBase
