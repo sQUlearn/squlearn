@@ -1,10 +1,8 @@
-import pytest
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
-from qiskit_aer import Aer
 from squlearn.util import Executor
 from squlearn.qnn import QNNRegressor
 from squlearn.observables import SummedPaulis
@@ -72,7 +70,7 @@ class TestBackendAutoSelection:
             param_ini=param,
             param_op_ini=param_op,
         )
-        value = qnn.predict(np.array([0.25, 0.75]))
+        qnn.predict(np.array([0.25, 0.75]))
         assert str(executor.backend_name) == "fake_manila"
 
     def test_auto_select_fidelity_kernel(self):
@@ -85,8 +83,8 @@ class TestBackendAutoSelection:
         fqk = FidelityKernel(pqc, executor)
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
-        value = qkrr.predict(np.array([[0.25], [0.75]]))
-        print("test_auto_select_fidelity_kernel value", value)
+        qkrr.predict(np.array([[0.25], [0.75]]))
+
         assert str(executor.backend_name) == "fake_manila"
 
     def test_auto_select_projected_kernel(self):
@@ -99,6 +97,6 @@ class TestBackendAutoSelection:
         fqk = ProjectedQuantumKernel(pqc, executor)
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
-        value = qkrr.predict(np.array([[0.25], [0.75]]))
+        qkrr.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == "fake_manila"
-        print("test_auto_select_projected_kernel value", value)
+

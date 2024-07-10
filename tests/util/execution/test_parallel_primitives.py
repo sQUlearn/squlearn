@@ -1,9 +1,6 @@
 import pytest
-import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit_aer import Aer
-from qiskit.primitives import Estimator, Sampler, BackendEstimator, BackendSampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManilaV2
 from squlearn.util import Executor
