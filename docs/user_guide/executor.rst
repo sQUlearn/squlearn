@@ -24,7 +24,7 @@ that the Executor class can be initialized or adjusted with the corresponding ob
 Outgoing arrows indicate that the Executor class can return the corresponding object.
 
 .. image:: ../_static/util/executor.png
-    :width: 525
+    :width: 600
     :align: center
 
 Key Features of the Executor
