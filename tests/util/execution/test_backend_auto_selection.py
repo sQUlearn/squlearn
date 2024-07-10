@@ -30,7 +30,7 @@ class TestBackendAutoSelection:
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()
         assert result.metadata[0]["shots"] == 1000
-          estimator = executor.get_estimator()
+        estimator = executor.get_estimator()
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 1000
 
