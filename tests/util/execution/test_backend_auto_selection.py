@@ -99,4 +99,3 @@ class TestBackendAutoSelection:
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         qkrr.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == "fake_manila"
-
