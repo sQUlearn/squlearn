@@ -2109,7 +2109,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     The number of layers as well as the number of qubits and the construction string are available
     as hyper-parameters that can be optimized in a hyper-parameter search.
 
-    .. jupyter-execute::
+    .. code-block::
 
        from sklearn.datasets import make_regression
        from sklearn.model_selection import GridSearchCV
