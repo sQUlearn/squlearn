@@ -2113,14 +2113,13 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
        from sklearn.datasets import make_regression
        from sklearn.model_selection import GridSearchCV
-       from squlearn.encoding_circuit import LayeredEncodingCircuit, HubregtsenEncodingCircuit
+       from squlearn.encoding_circuit import LayeredEncodingCircuit
        from squlearn.kernel import ProjectedQuantumKernel, QKRR
        from squlearn.util import Executor
 
        X, y = make_regression(n_samples=40, n_features=1, noise=0.1, random_state=42)
 
-       #lec = LayeredEncodingCircuit.from_string("Ry(x)-Rz(x)-cx",1,1)
-       lec = HubregtsenEncodingCircuit(1,1,1)
+       lec = LayeredEncodingCircuit.from_string("Ry(x)-Rz(x)-cx",1,1)
        pqk = ProjectedQuantumKernel(lec,Executor())
        qkrr = QKRR(quantum_kernel=pqk)
        param_grid ={
