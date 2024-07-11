@@ -2109,7 +2109,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     The number of layers as well as the number of qubits and the construction string are available
     as hyper-parameters that can be optimized in a hyper-parameter search.
 
-    .. code-block::
+    .. jupyter-execute::
 
        from sklearn.datasets import make_regression
        from sklearn.model_selection import GridSearchCV
@@ -2128,8 +2128,8 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
            "num_layers" : [1,2]
        }
        grid_search = GridSearchCV(qkrr, param_grid, cv=2)
-       grid_search.fit(X, y)
-       print("\nBest solution: ", grid_search.best_params_)
+       # grid_search.fit(X, y)
+       # print("\nBest solution: ", grid_search.best_params_)
 
 
     Args:
