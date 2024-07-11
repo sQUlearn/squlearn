@@ -2123,7 +2123,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
        pqk = ProjectedQuantumKernel(lec,Executor())
        qkrr = QKRR(quantum_kernel=pqk)
        param_grid ={
-       #    "encoding_circuit_str": ["Ry(x)-Rz(x)-cx", "Ry(x)-cx-Rx(x)"],
+           "encoding_circuit_str": ["Ry(x)-Rz(x)-cx", "Ry(x)-cx-Rx(x)"],
            "num_qubits" : [1,2],
            "num_layers" : [1,2]
        }
