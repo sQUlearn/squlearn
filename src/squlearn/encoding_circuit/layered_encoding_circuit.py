@@ -2172,14 +2172,13 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     def set_params(self, **params) -> None:
         if "encoding_circuit_str" in params:
-            pass
-            # self._encoding_circuit_str = params["encoding_circuit_str"]
-            # self._p.total_variables_used = 0
-            # self._layered_pqc = LayeredPQC.from_string(
-            #     self._num_qubits,
-            #     self._encoding_circuit_str,
-            #     (self._x, self._p),
-            # )
+            self._encoding_circuit_str = params["encoding_circuit_str"]
+            self._p.total_variables_used = 0
+            self._layered_pqc = LayeredPQC.from_string(
+                self._num_qubits,
+                self._encoding_circuit_str,
+                (self._x, self._p),
+            )
 
         valid_params = self.get_params()
         for key, value in params.items():
