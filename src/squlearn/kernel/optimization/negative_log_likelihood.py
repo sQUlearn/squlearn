@@ -9,7 +9,7 @@ from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class NLL(KernelLossBase):
-    """
+    r"""
     Negative log likelihood loss function.
     This class can be used to compute the negative log likelihood loss function
     for a given quantum kernel
@@ -21,7 +21,7 @@ class NLL(KernelLossBase):
     .. math::
 
         L(θ) =
-        -\\frac{1}{2} log(|K_{θ} + σI|)-\\frac{1}{2} y^{T}(K_{θ} + σI)^{-1}y-\\frac{n}{2} log(2π)
+        -\frac{1}{2} log(|K_{θ} + σI|)-\frac{1}{2} y^{T}(K_{θ} + σI)^{-1}y-\frac{n}{2} log(2π)
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel to be used

@@ -21,7 +21,7 @@ from .fidelity_kernel_pennylane import FidelityKernelPennyLane
 
 
 class FidelityKernel(KernelMatrixBase):
-    """
+    r"""
     Fidelity Quantum Kernel.
 
     The Fidelity Quantum Kernel is a based on the overlap of the quantum states.
@@ -30,7 +30,7 @@ class FidelityKernel(KernelMatrixBase):
 
     .. math::
 
-        K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
+        K(x,y) = |\langle \phi(x) | \phi(y) \rangle|^2
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.

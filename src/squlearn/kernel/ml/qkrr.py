@@ -39,7 +39,7 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     Attributes:
     -----------
-        dual_coeff\_ : (np.ndarray) :
+        dual_coeff : (np.ndarray) :
             Array containing the weight vector in kernel space
         k_train (np.ndarray) :
             Training kernel matrix of shape (n_train, n_train) which is available after calling the fit procedure
@@ -96,7 +96,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.X_train = None
         self.k_testtrain = None
         self.k_train = None
-        self.dual_coeff_ = None
+        self.dual_coeff = None
 
         # Apply kwargs to set_params
         update_params = self.get_params().keys() & kwargs.keys()
@@ -141,7 +141,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         # Cholesky decomposition for providing numerical stability
         try:
             L = scipy.linalg.cholesky(self.k_train, lower=True)
-            self.dual_coeff_ = scipy.linalg.cho_solve((L, True), y)
+            self.dual_coeff = scipy.linalg.cho_solve((L, True), y)
         except np.linalg.LinAlgError:
             print("Increase regularization parameter alpha")
 
@@ -174,7 +174,7 @@ class QKRR(BaseEstimator, RegressorMixin):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        prediction = np.dot(self.k_testtrain, self.dual_coeff_)
+        prediction = np.dot(self.k_testtrain, self.dual_coeff)
         return prediction
 
     def get_params(self, deep: bool = True) -> dict:

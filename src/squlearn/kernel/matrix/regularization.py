@@ -3,7 +3,7 @@ import scipy
 
 
 def thresholding_regularization(gram_matrix):
-    """
+    r"""
     Thresholding regularization method of a Gram matrix (full or training kernel matrix)
     according to this `paper <https://arxiv.org/abs/2105.02276>`_ to recover positive
     semi-definiteness. This method only changes the negative eigenvalues of the matrix by

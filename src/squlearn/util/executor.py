@@ -1602,7 +1602,7 @@ class ExecutorEstimator(BaseEstimator):
         """Parameters of the quantum circuits.
 
         Returns:
-            Parameters, where ``parameters[i][j]`` is the j-\ :spelling:word:`th` parameter of the
+            Parameters, where ``parameters[i][j]`` is the j-th parameter of the
             i-th circuit.
         """
         return tuple(self._executor.estimator.parameters)

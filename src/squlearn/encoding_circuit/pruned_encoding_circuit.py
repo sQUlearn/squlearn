@@ -9,7 +9,7 @@ from qiskit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.data_preprocessing import adjust_features
+from ..util.data_preprocessing import adjust_features, adjust_parameters
 from ..util.qfi import get_quantum_fisher
 from ..util.executor import Executor
 
@@ -179,7 +179,7 @@ def automated_pruning(
     verbose: int = 1,
     seed: Union[int, None] = None,
 ) -> PrunedEncodingCircuit:
-    """
+    r"""
     Function for automated pruning of the parameters in the inputted parameterized quantum circuit.
 
     The algorithms for the automated pruning is based on
@@ -237,7 +237,7 @@ def automated_pruning(
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_parameter_vec(p_val, encoding_circuit.num_parameters)
+        p_val, multi = adjust_parameters(p_val, encoding_circuit.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:

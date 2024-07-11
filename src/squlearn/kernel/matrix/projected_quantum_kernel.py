@@ -670,14 +670,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
 class GaussianOuterKernel(OuterKernelBase):
-    """
+    r"""
     Implementation of the Gaussian outer kernel:
 
     .. math::
-        k(x_i, x_j) = \text{exp}\left(-\\gamma |(QNN(x_i)- QNN(x_j)|^2 \right)
+        k(x_i, x_j) = \text{exp}\left(-\gamma |(QNN(x_i)- QNN(x_j)|^2 \right)
 
     Args:
-        gamma (float): hyperparameter :math:`\\gamma` of the Gaussian kernel
+        gamma (float): hyperparameter :math:`\gamma` of the Gaussian kernel
     """
 
     def __init__(self, gamma=1.0):

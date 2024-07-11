@@ -8,7 +8,7 @@ from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class TargetAlignment(KernelLossBase):
-    """
+    r"""
     Target alignment loss function.
     This class can be used to compute the target alignment for a given quantum kernel
     :math:`K_{θ}` with variational parameters :math:`θ`.
@@ -18,8 +18,8 @@ class TargetAlignment(KernelLossBase):
     .. math::
 
         TA(K_{θ}) =
-        \\frac{\\sum_{i,j} K_{θ}(x_i, x_j) y_i y_j}
-        {\\sqrt{\\sum_{i,j} K_{θ}(x_i, x_j)^2 \\sum_{i,j} y_i^2 y_j^2}}
+        \frac{\sum_{i,j} K_{θ}(x_i, x_j) y_i y_j}
+        {\sqrt{\sum_{i,j} K_{θ}(x_i, x_j)^2 \sum_{i,j} y_i^2 y_j^2}}
 
     Args:
         quantum_kernel (KernelMatrixBase): The quantum kernel to be used
