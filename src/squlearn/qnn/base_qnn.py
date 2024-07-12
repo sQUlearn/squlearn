@@ -44,7 +44,7 @@ class BaseQNN(BaseEstimator, ABC):
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
         primitive : The Qiskit primitive that is utilized in the qnn, if a Qiskit backend
-                    is utilized in the executor.
+                    is used in the executor (not supported for PennyLane backends)
                     Default primitive is the one specified in the executor initialization,
                     if nothing is specified, the estimator will used.
                     Possible values are ``"estimator"`` or ``"sampler"``.
@@ -320,5 +320,5 @@ class BaseQNN(BaseEstimator, ABC):
 
     def _initialize_lowlevel_qnn(self):
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self.operator, self.executor, result_caching=self.caching
+            self.encoding_circuit, self.operator, self.executor, result_caching=self.caching, primitive=self.primitive
         )

@@ -367,6 +367,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             else:
                 raise ValueError("Unknown primitive:", primitive)
 
+        print("self._primitive",self._primitive)
+
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
 

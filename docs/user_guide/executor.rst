@@ -157,7 +157,7 @@ execution environment:
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
     executor = Executor(service.get_backend('ibm_kyoto'))
 
-  It is also possible to pass a list of backends from which the most suited backend is chosen
+  It is also possible to pass a list of IBM Quantum backends from which the most suited backend is chosen
   automatically (see :ref:`Automatic backend selection <autoselect>`)
 
 - Another way is to just pass the Qiskit Runtime Service to the executor. In this case, the backend
@@ -241,7 +241,7 @@ backend from the Qiskit Runtime Service and setting options for caching, logging
                          options_estimator=options # Set options for the Estimator primitive
                          )
 
-    executor.set_shots(1234) # Shots an be adjusted after initialization
+    executor.set_shots(1234) # Shots can be adjusted after initialization
 
 
 Utilizing Executor Primitives in Qiskit Routines
