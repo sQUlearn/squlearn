@@ -481,9 +481,19 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             Evaluated value of the derivative
         """
         if todo_class.squared:
-            func = self._pennylane_circuit_squared
+            hash_func = self._pennylane_circuit_squared.hash
+            if todo_class.order <= 1:
+                func = self._pennylane_circuit_squared
+            else:
+                func = self._pennylane_circuit_squared.build_pennylane_circuit(
+                    max_diff=todo_class.order
+                )
         else:
-            func = self._pennylane_circuit
+            hash_func = self._pennylane_circuit.hash
+            if todo_class.order <= 1:
+                func = self._pennylane_circuit
+            else:
+                func = self._pennylane_circuit.build_pennylane_circuit(max_diff=todo_class.order)
 
         # Convert input to PennyLane arrays and requested gradients
         param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
@@ -533,8 +543,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 else:
                     deriv = qml.jacobian(deriv, argnum=arg_index)
 
-            hash_value = func.hash + str(todo_class.argnum)
-            deriv.hash = hash_value
+            deriv.hash = hash_func + str(todo_class.argnum)
             value = self._executor.pennylane_execute(deriv, *(eval_tuple))
 
         # Convert back to numpy array
@@ -556,9 +565,19 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             Evaluated value of the derivative
         """
         if todo_class.squared:
-            func = self._pennylane_circuit_squared
+            hash_func = self._pennylane_circuit_squared.hash
+            if todo_class.order <= 1:
+                func = self._pennylane_circuit_squared
+            else:
+                func = self._pennylane_circuit_squared.build_pennylane_circuit(
+                    max_diff=todo_class.order
+                )
         else:
-            func = self._pennylane_circuit
+            hash_func = self._pennylane_circuit.hash
+            if todo_class.order <= 1:
+                func = self._pennylane_circuit
+            else:
+                func = self._pennylane_circuit.build_pennylane_circuit(max_diff=todo_class.order)
 
         # Convert input to PennyLane arrays and requested gradients
         param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
@@ -608,9 +627,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 else:
                     deriv = qml.jacobian(deriv, argnum=arg_index)
 
-            # value = deriv(*eval_tuple)
-            hash_value = func.hash + str(todo_class.argnum)
-            deriv.hash = hash_value
+            deriv.hash = hash_func + str(todo_class.argnum)
             value = self._executor.pennylane_execute(deriv, *(eval_tuple))
 
         # Convert back to numpy format
