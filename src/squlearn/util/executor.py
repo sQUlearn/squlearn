@@ -516,7 +516,11 @@ class Executor:
         elif self.quantum_framework == "pennylane":
             if self._backend_list is not None:
                 raise ValueError(
-                    "Automatic backend selection is only supported" + " for IBM Quantum backends!"
+                    "Automatic backend selection is only supported for IBM Quantum backends!"
+                )
+            if self.qpu_parallelization:
+                raise ValueError(
+                    "QPU parallelization is not supported for PennyLane devices!"
                 )
 
             self._remote = not any(

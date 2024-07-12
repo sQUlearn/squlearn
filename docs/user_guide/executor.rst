@@ -61,6 +61,14 @@ The Executor class provides the following key comfort features when executing a 
 - **Qiskit Session handling:** Automatically manages the creation and handling of Qiskit sessions.
   If Sessions are time out, the Executor automatically creates a new session and re-executes the
   job.
+- **Automatic backend selection (IBM Quantum only):** The Executor class can automatically select the most suitable
+  backend for the quantum job. The selection process is facilitated by the Mapomatic tool `[1]`_.
+  The Executor can be initialized with a list of backends, a Qiskit Runtime Service, or a Qiskit
+  Session, and the most suitable backend is chosen automatically. The selection process can be
+  set to two modes: ``"quality"`` and ``"speed"``.
+- **In-QPU parallelization (Qiskit only):** The Executor class supports QPU (Quantum Processing Unit)
+  parallelization for Qiskit backends, enabling simultaneous measurements of the same quantum
+  circuit on the quantum hardware by duplicating the circuit.
 
 Initialization of the Executor class
 ------------------------------------
@@ -304,10 +312,10 @@ Executor class.
 
 .. _autoselect:
 
-Automatic backend selection
----------------------------
+Automatic backend selection (IBM Quantum only)
+----------------------------------------------
 
-sQUlearn offers automatic determination of the most suitable backend for the
+sQUlearn offers automatic determination of the most suitable Qiskit backend for the
 Quantum Machine Learning (QML) problem. This is facilitated by initializing the Executor with a
 list of supported backends, which includes real IBM backends or simulated fake backends.
 Alternatively, users can pass a Service from Qiskit IBM Runtime, where all appropriate backends
@@ -382,10 +390,10 @@ Quantum Kernel Ridge Regression (QKRR) in which the backend is chosen automatica
    qkrr.fit(X_train, y_train)
 
 
-In-QPU parallelization
-----------------------
+In-QPU parallelization (Qiskit only)
+------------------------------------
 
-The Executor class supports QPU (Quantum Processing Unit) parallelization, enabling simultaneous
+The Executor class supports QPU (Quantum Processing Unit) parallelization for Qiskit backends, enabling simultaneous
 measurements of the same quantum circuit on the quantum hardware by duplicating the circuit.
 This feature significantly enhances the efficiency of quantum computation by reducing the number
 of required shots.
