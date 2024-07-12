@@ -43,9 +43,7 @@ class KernelOptimizer(KernelMatrixBase):
             if initial_parameters is not None
             else self._quantum_kernel.parameters
         )
-        self._opt_result = None
-        self._optimal_value = None
-        self._optimal_point = None
+        self._optimal_parameters = None
         self._is_trainable = True
 
     def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
@@ -67,14 +65,12 @@ class KernelOptimizer(KernelMatrixBase):
         # Perform kernel optimization
         loss_function = partial(self._loss.compute, data=X, labels=y)
         opt_result = self._optimizer.minimize(fun=loss_function, x0=self._initial_parameters)
-        self._optimal_value = opt_result.fun
-        self._optimal_point = opt_result.x
-        self._opt_result = opt_result
+        self._optimal_parameters = opt_result.x
 
         # Assign optimal parameters to the quantum kernel
-        self.assign_parameters(self._opt_result.x)
+        self._quantum_kernel.assign_parameters(self._optimal_parameters)
 
-        return self._opt_result
+        return opt_result
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """Evaluate the kernel matrix using the current parameters.
@@ -87,3 +83,11 @@ class KernelOptimizer(KernelMatrixBase):
             np.ndarray: The evaluated kernel matrix.
         """
         return self._quantum_kernel.evaluate(x, y)
+
+    def get_optimal_parameters(self) -> np.ndarray:
+        """Get the optimal parameters.
+
+        Returns:
+            np.ndarray: The optimal parameters.
+        """
+        return self._optimal_parameters
