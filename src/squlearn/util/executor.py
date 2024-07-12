@@ -1,6 +1,5 @@
 import numpy as np
 import logging
-from logging.handlers import RotatingFileHandler
 from logging import handlers
 import copy
 from pathlib import Path
@@ -77,7 +76,7 @@ class Executor:
                                                                                                                      * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                                                                                                                      * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-                                                                                                       Default is the initialization with the :class:`StatevectorSimulator`.
+                                                                                                       Default is the initialization with PennyLane.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
                                              Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
@@ -270,8 +269,6 @@ class Executor:
         self._IBMQuantum = False
         self._session_active = False
         self._execution_origin = ""
-
-        initial_shots = shots
 
         # Copy estimator options and make a dict
         self._options_estimator = options_estimator

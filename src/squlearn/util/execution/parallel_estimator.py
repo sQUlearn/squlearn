@@ -33,7 +33,6 @@ class ParallelEstimator(BaseEstimator):
                                          Defaults to a standard transpile function if not provided.
         options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for
                                                                    the instance.
-
     """
 
     def __init__(
@@ -177,7 +176,6 @@ class ParallelEstimator(BaseEstimator):
             observables: The observables to be measured.
             parameter_values: The parameter values to be used for each circuit.
             **run_options: Additional keyword arguments for the Estimator run call.
-
         """
         dupl_circuits = []
         dupl_observables = []
@@ -348,6 +346,7 @@ class ParallelEstimator(BaseEstimator):
 
         Args:
             circuit (QuantumCircuit): The quantum circuit to be simplified.
+            observable: The observable to be simplified
 
         Returns:
             QuantumCircuit: The simplified quantum circuit.

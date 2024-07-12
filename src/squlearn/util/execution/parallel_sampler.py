@@ -31,7 +31,6 @@ class ParallelSampler(BaseSampler):
         num_parallel (int, optional): The number of times the circuit is duplicated. Defaults to None, which means automatic determination.
         transpiler (callable, optional): A function for transpiling quantum circuits. Defaults to a standard transpile function if not provided.
         options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for the instance.
-
     """
 
     def __init__(
