@@ -24,6 +24,7 @@ class TestProjectedQuantumKernel:
             "dKdx": sp.diff(sympy_K, x),
             "dKdy": sp.diff(sympy_K, y),
             "dKdxdx": sp.diff(sp.diff(sympy_K, x), x),
+            "dKdp": sp.diff(sympy_K, p),
         }
 
         return x, y, gamma_sp, p, sympy_values
@@ -88,11 +89,12 @@ class TestProjectedQuantumKernel:
         values = kernel.evaluate_derivatives(
             [x_num], [y_num], ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]
         )
-
-        for key in ["K", "dKdx", "dKdy", "dKdxdx"]:
-            assert np.isclose(
-                float(values[key][0][0]), float(sympy_num_values[key]), atol=1e-7
-            ), f"Mismatch in {key}: {values[key][0][0]} vs {sympy_num_values[key]}"
+        for key in ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]:
+            assert np.allclose(
+                np.array(values[key]).flatten().astype(float),
+                np.array(sympy_num_values[key]).astype(float),
+                atol=1e-7,
+            )
 
     def test_multi_variable_derivatives(self, setup_multi_variable):
         x0, y0, x1, y1, gamma_sp, p0, p1, sympy_values = setup_multi_variable
