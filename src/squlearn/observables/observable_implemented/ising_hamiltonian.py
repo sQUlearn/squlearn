@@ -108,10 +108,11 @@ class IsingHamiltonian(ObservableBase):
         elif self.X == "F":
             num_parameters += self.num_qubits
 
-        if self.ZZ == "S":
-            num_parameters += 1
-        elif self.ZZ == "F":
-            num_parameters += (self.num_qubits * (self.num_qubits - 1)) // 2
+        if self.num_qubits > 1:
+            if self.ZZ == "S":
+                num_parameters += 1
+            elif self.ZZ == "F":
+                num_parameters += (self.num_qubits * (self.num_qubits - 1)) // 2
 
         return num_parameters
 
