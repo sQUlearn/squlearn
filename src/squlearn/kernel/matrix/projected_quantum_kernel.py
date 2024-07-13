@@ -531,14 +531,16 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         if todo[2:] == "dx":
                             dOdx = self._qnn.evaluate(x, param, param_op, "dfdx")[
                                 "dfdx"
-                            ] # shape (n, num_qubits*len(measurement), 1)
+                            ]  # shape (n, num_qubits*len(measurement), 1)
                         elif todo[2:] == "dy":
                             dOdx = self._qnn.evaluate(x, param, param_op, "dfdx")[
                                 "dfdx"
-                            ] # shape (n, num_qubits*len(measurement), 1)
+                            ]  # shape (n, num_qubits*len(measurement), 1)
                         kernel_matrix = np.einsum(
                             "njl,nl->nj",
-                            self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to=todo[2:]),
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to=todo[2:]
+                            ),
                             dOdx[:, :, 0],
                         )  # shape (len(x), len(y))
                     elif todo == "dKdp":
@@ -550,11 +552,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         ]  # shape (n, num_qubits*len(measurement), param.shape[0])
                         kernel_matrix = np.einsum(
                             "njl,nlm->mnj",
-                            self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to="dx"),
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to="dx"
+                            ),
                             dOxdp[:, :, :],
                         ) + np.einsum(
                             "njl,nlm->mnj",
-                            self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to="dy"),
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to="dy"
+                            ),
                             dOydp[:, :, :],
                         )  # shape (len(x), len(y), num_parameters)
 
@@ -579,14 +585,16 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         )  # shape (len(x), len(y))
                         mixed_term = np.zeros((len(x), len(y)))  # i, j
                         for l in range(dOdx.shape[1]):
-                            for m in range(dOdx.shape[1]): 
+                            for m in range(dOdx.shape[1]):
                                 if l != m:
                                     mixed_term += 1 * np.einsum(
                                         "ij,i,i->ij",
-                                        self._outer_kernel.dKdxdy(self._qnn, self._parameters, x, y)[:, :, l, m],
+                                        self._outer_kernel.dKdxdy(
+                                            self._qnn, self._parameters, x, y
+                                        )[:, :, l, m],
                                         dOdx[:, l, 0],
                                         dOdx[:, m, 0],
-                                    )# shape (len(x), len(y))
+                                    )  # shape (len(x), len(y))
                         kernel_matrix = first_term + second_term + mixed_term
                     else:
                         raise ValueError(
@@ -597,39 +605,45 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         if todo[2:] == "dx":
                             dOdx = self._qnn.evaluate(x, param, param_op, "dfdx")[
                                 "dfdx"
-                            ] # shape (n, num_qubits*len(measurement), num_features)
+                            ]  # shape (n, num_qubits*len(measurement), num_features)
                             print("num_features?", dOdx.shape)
                         elif todo[2:] == "dy":
                             dOdx = self._qnn.evaluate(y, param, param_op, "dfdx")[
                                 "dfdx"
-                            ] # shape (n, num_qubits*len(measurement), num_features)
+                            ]  # shape (n, num_qubits*len(measurement), num_features)
                         kernel_matrix = np.einsum(
                             "njl,nlm->mnj",
-                            self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to=todo[2:]),
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to=todo[2:]
+                            ),
                             dOdx[:, :, :],
                         )  # shape (num_features, len(x), len(y))
                     elif todo == "dKdp":
-                         dOxdp = self._qnn.evaluate(x, param, param_op, "dfdp")[
+                        dOxdp = self._qnn.evaluate(x, param, param_op, "dfdp")[
                             "dfdp"
-                        ] # shape (n, num_qubits*len(measurement), num_params)
-                         dOydp = self._qnn.evaluate(y, param, param_op, "dfdp")[
+                        ]  # shape (n, num_qubits*len(measurement), num_params)
+                        dOydp = self._qnn.evaluate(y, param, param_op, "dfdp")[
                             "dfdp"
-                        ] # shape (n, num_qubits*len(measurement), num_params)
-                         kernel_matrix = np.einsum(
-                             "njl,nlm->mnj",
-                             self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to="dx"),
-                             dOxdp[:, :, :],
-                         ) + np.einsum(
-                             "njl,nlm->mnj",
-                             self._outer_kernel.dKdx(self._qnn, self._parameters, x, y, with_respect_to="dy"),
-                             dOydp[:, :, :],
-                         )  # shape (num_parameters, len(x), len(y))
-                        
+                        ]  # shape (n, num_qubits*len(measurement), num_params)
+                        kernel_matrix = np.einsum(
+                            "njl,nlm->mnj",
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to="dx"
+                            ),
+                            dOxdp[:, :, :],
+                        ) + np.einsum(
+                            "njl,nlm->mnj",
+                            self._outer_kernel.dKdx(
+                                self._qnn, self._parameters, x, y, with_respect_to="dy"
+                            ),
+                            dOydp[:, :, :],
+                        )  # shape (num_parameters, len(x), len(y))
+
                     else:
                         raise ValueError(
                             f"{todo} is not implemented for multi-dimensional data yet"
                         )
-                
+
                 value_dict[todo] = kernel_matrix
 
         if self._caching:
@@ -879,7 +893,12 @@ class GaussianOuterKernel(OuterKernelBase):
         return RBF(length_scale=1.0 / np.sqrt(2.0 * self.gamma))(x_result, y_result)
 
     def dKdx(
-        self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None, with_respect_to: str = "dx"
+        self,
+        qnn: LowLevelQNNBase,
+        parameters: np.ndarray,
+        x: np.ndarray,
+        y: np.ndarray = None,
+        with_respect_to: str = "dx",
     ) -> np.ndarray:
         """
 
@@ -910,7 +929,8 @@ class GaussianOuterKernel(OuterKernelBase):
 
         coefficient_sign = -1 if with_respect_to == "dx" else 1
         return (
-            coefficient_sign * 2
+            coefficient_sign
+            * 2
             * self.gamma
             * np.einsum(
                 "ijl, ij -> ijl",
