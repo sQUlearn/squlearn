@@ -1,7 +1,6 @@
 """Projected Quantum Kernel class"""
 
 from typing import Union, List
-from itertools import combinations
 import numpy as np
 from abc import abstractmethod
 
