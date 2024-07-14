@@ -562,8 +562,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                                 self._qnn, self._parameters, x, y, with_respect_to="dy"
                             ),
                             dOydp[:, :, :],
-                        )  # shape (len(x), len(y), num_parameters)
-
+                        )  # shape (num_parameters, len(x), len(y))
                     elif todo == "dKdxdx":
                         dOdx = self._qnn.evaluate(x, param, param_op, "dfdx")[
                             "dfdx"
