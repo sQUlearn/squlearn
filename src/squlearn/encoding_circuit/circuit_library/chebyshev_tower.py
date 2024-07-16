@@ -48,6 +48,7 @@ class ChebyshevTower(EncodingCircuitBase):
         rotation_gate: str = "ry",
         hadamard_start: bool = True,
         arrangement: str = "block",
+        tower: bool = True,
     ) -> None:
         super().__init__(num_qubits, num_features)
 
@@ -57,6 +58,7 @@ class ChebyshevTower(EncodingCircuitBase):
         self.rotation_gate = rotation_gate
         self.hadamard_start = hadamard_start
         self.arrangement = arrangement
+        self.tower = tower
 
         if self.rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
@@ -87,6 +89,7 @@ class ChebyshevTower(EncodingCircuitBase):
         params["rotation_gate"] = self.rotation_gate
         params["hadamard_start"] = self.hadamard_start
         params["arrangement"] = self.arrangement
+        params["tower"] = self.tower
         return params
 
     def get_circuit(
@@ -169,7 +172,7 @@ class ChebyshevTower(EncodingCircuitBase):
                         )
                     iqubit += 1
                     if self.arrangement == "block":
-                        icheb += 1
+                        icheb = 1 + icheb if self.tower else 1
                     elif self.arrangement == "alternating":
                         index_offset += 1
 
@@ -177,7 +180,7 @@ class ChebyshevTower(EncodingCircuitBase):
                     index_offset += 1
                     icheb = 1
                 elif self.arrangement == "alternating":
-                    icheb += 1
+                    icheb = 1 + icheb if self.tower else 1
 
             # Entangling layer
             if layer + 1 < self.num_layers:
