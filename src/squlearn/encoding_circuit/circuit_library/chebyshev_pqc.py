@@ -197,8 +197,7 @@ class ChebyshevPQC(EncodingCircuitBase):
                 f"Unknown value for nonlinearity: {kwargs['nonlinearity']}."
                 " Possible values are 'arccos' and 'arctan'"
             )
-        super().set_params(**kwargs)
-        return self
+        return super().set_params(**kwargs)
 
     def get_circuit(
         self,
