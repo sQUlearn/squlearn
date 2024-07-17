@@ -36,6 +36,8 @@ class ChebyshevTower(EncodingCircuitBase):
         arrangement (str): Arrangement of the layers, either ``block`` or ``alternating``.
                           ``block``: The features are stacked together, ``alternating``:
                           The features are placed alternately (default: ``block``).
+        phi_map (str): Mapping function to use for the feature encoding. Either ``arccos``
+                       or ``arctan`` (default: ``arccos``)
     """
 
     def __init__(
@@ -48,6 +50,7 @@ class ChebyshevTower(EncodingCircuitBase):
         rotation_gate: str = "ry",
         hadamard_start: bool = True,
         arrangement: str = "block",
+        phi_map: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
 
@@ -57,6 +60,7 @@ class ChebyshevTower(EncodingCircuitBase):
         self.rotation_gate = rotation_gate
         self.hadamard_start = hadamard_start
         self.arrangement = arrangement
+        self.phi_map = phi_map
 
         if self.rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
@@ -64,10 +68,27 @@ class ChebyshevTower(EncodingCircuitBase):
         if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
+        if self.phi_map not in ("arccos", "arctan"):
+            raise ValueError("Unknown value for phi_map: ", phi_map)
+
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the Chebyshev Tower encoding (equal 0 here)."""
         return 0
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the ChebyshevPQC encoding circuit."""
+        bounds = np.zeros((self.num_features, 2))
+        if self.phi_map == "arccos":
+            bounds[:, 0] = -1.0
+            bounds[:, 1] = 1.0
+        elif self.phi_map == "arctan":
+            bounds[:, 0] = -np.inf
+            bounds[:, 1] = np.inf
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
+        return bounds
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -87,6 +108,7 @@ class ChebyshevTower(EncodingCircuitBase):
         params["rotation_gate"] = self.rotation_gate
         params["hadamard_start"] = self.hadamard_start
         params["arrangement"] = self.arrangement
+        params["phi_map"] = self.phi_map
         return params
 
     def get_circuit(
@@ -121,9 +143,20 @@ class ChebyshevTower(EncodingCircuitBase):
                 QC.cx(i, i + 1)
             return QC
 
-        def mapping(x, i):
-            """Non-linear mapping for x: alpha*i*arccos(x)"""
-            return self.alpha * i * np.arccos(x)
+        if self.phi_map == "arccos":
+
+            def mapping(x, i):
+                """Non-linear mapping for x: alpha*i*arccos(x)"""
+                return self.alpha * i * np.arccos(x)
+
+        elif self.phi_map == "arctan":
+
+            def mapping(x, i):
+                """Non-linear mapping for x: alpha*i*arctan(x)"""
+                return self.alpha * i * np.arctan(x)
+
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
 
         nfeature = len(features)
 

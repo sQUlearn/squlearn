@@ -46,6 +46,8 @@ class ChebyshevPQC(EncodingCircuitBase):
                                or ``rzz`` (default: ``crz``)
         alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
                        that appear in the arccos encoding. (default: 4.0)
+        phi_map (str): Mapping function to use for the feature encoding. Either ``arccos``
+                       or ``arctan`` (default: ``arccos``)
 
     References
     ----------
@@ -61,14 +63,18 @@ class ChebyshevPQC(EncodingCircuitBase):
         closed: bool = True,
         entangling_gate: str = "crz",
         alpha: float = 4.0,
+        phi_map: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.entangling_gate = entangling_gate
         self.alpha = alpha
+        self.phi_map = phi_map
         if self.entangling_gate not in ("crz", "rzz"):
             raise ValueError("Unknown value for entangling_gate: ", entangling_gate)
+        if self.phi_map not in ("arccos", "arctan"):
+            raise ValueError("Unknown value for phi_map: ", phi_map)
 
     @property
     def num_parameters(self) -> int:
@@ -143,8 +149,14 @@ class ChebyshevPQC(EncodingCircuitBase):
     def feature_bounds(self) -> np.ndarray:
         """The bounds of the features of the ChebyshevPQC encoding circuit."""
         bounds = np.zeros((self.num_features, 2))
-        bounds[:, 0] = -1.0
-        bounds[:, 1] = 1.0
+        if self.phi_map == "arccos":
+            bounds[:, 0] = -1.0
+            bounds[:, 1] = 1.0
+        elif self.phi_map == "arctan":
+            bounds[:, 0] = -np.inf
+            bounds[:, 1] = np.inf
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
         return bounds
 
     def get_params(self, deep: bool = True) -> dict:
@@ -162,6 +174,9 @@ class ChebyshevPQC(EncodingCircuitBase):
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed
         params["entangling_gate"] = self.entangling_gate
+        params["alpha"] = self.alpha
+        params["phi_map"] = self.phi_map
+
         return params
 
     def get_circuit(
@@ -182,9 +197,20 @@ class ChebyshevPQC(EncodingCircuitBase):
             Returns the circuit in Qiskit's QuantumCircuit format
         """
 
-        def phi_map(a, x):
-            """Helper function for returning a*arccos(x)"""
-            return a * np.arccos(x)
+        if self.phi_map == "arccos":
+
+            def phi_map(a, x):
+                """Helper function for returning a*arccos(x)"""
+                return a * np.arccos(x)
+
+        elif self.phi_map == "arctan":
+
+            def phi_map(a, x):
+                """Helper function for returning a*arctan(x)"""
+                return a * np.arctan(x)
+
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
 
         nfeature = len(features)
         nparam = len(parameters)

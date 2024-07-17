@@ -27,6 +27,8 @@ class ChebyshevRx(EncodingCircuitBase):
         closed (bool): If true, the last and the first qubit are entangled (default: false)
         alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
                        that appear in the arccos encoding. (default: 4.0)
+        phi_map (str): Mapping function to use for the feature encoding. Either ``arccos``
+                       or ``arctan`` (default: ``arccos``)
     """
 
     def __init__(
@@ -36,11 +38,15 @@ class ChebyshevRx(EncodingCircuitBase):
         num_layers: int = 1,
         closed: bool = False,
         alpha: float = 4.0,
+        phi_map: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.alpha = alpha
+        self.phi_map = phi_map
+        if self.phi_map not in ("arccos", "arctan"):
+            raise ValueError("Unknown value for phi_map: ", phi_map)
 
     @property
     def num_parameters(self) -> int:
@@ -86,6 +92,20 @@ class ChebyshevRx(EncodingCircuitBase):
 
         return param
 
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the ChebyshevPQC encoding circuit."""
+        bounds = np.zeros((self.num_features, 2))
+        if self.phi_map == "arccos":
+            bounds[:, 0] = -1.0
+            bounds[:, 1] = 1.0
+        elif self.phi_map == "arctan":
+            bounds[:, 0] = -np.inf
+            bounds[:, 1] = np.inf
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
+        return bounds
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevRx encoding circuit
@@ -100,6 +120,8 @@ class ChebyshevRx(EncodingCircuitBase):
         params = super().get_params()
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed
+        params["alpha"] = self.alpha
+        params["phi_map"] = self.phi_map
         return params
 
     def get_circuit(
@@ -131,9 +153,20 @@ class ChebyshevRx(EncodingCircuitBase):
 
             return QC
 
-        def mapping(a, x):
-            """Helper function for returning a*arccos(x)"""
-            return a * np.arccos(x)
+        if self.phi_map == "arccos":
+
+            def mapping(a, x):
+                """Helper function for returning a*arccos(x)"""
+                return a * np.arccos(x)
+
+        elif self.phi_map == "arctan":
+
+            def mapping(a, x):
+                """Helper function for returning a*arctan(x)"""
+                return a * np.arctan(x)
+
+        else:
+            raise ValueError("Unknown value for phi_map: ", self.phi_map)
 
         nfeature = len(features)
         nparam = len(parameters)
