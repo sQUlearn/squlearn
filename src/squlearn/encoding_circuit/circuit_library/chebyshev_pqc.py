@@ -219,13 +219,13 @@ class ChebyshevPQC(EncodingCircuitBase):
 
         if self.nonlinearity == "arccos":
 
-            def phi_map(a, x):
+            def mapping(a, x):
                 """Helper function for returning a*arccos(x)"""
                 return a * np.arccos(x)
 
         elif self.nonlinearity == "arctan":
 
-            def phi_map(a, x):
+            def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
                 return a * np.arctan(x)
 
@@ -251,7 +251,7 @@ class ChebyshevPQC(EncodingCircuitBase):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(
-                    phi_map(
+                    mapping(
                         parameters[index_offset % nparam], features[feature_offset % nfeature]
                     ),
                     i,
