@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Union
 
@@ -89,11 +91,6 @@ class ChebyshevTower(EncodingCircuitBase):
         elif self.nonlinearity == "arctan":
             bounds[:, 0] = -np.inf
             bounds[:, 1] = np.inf
-        else:
-            raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
-                " Possible values are 'arccos' and 'arctan'"
-            )
         return bounds
 
     def get_params(self, deep: bool = True) -> dict:
@@ -116,6 +113,24 @@ class ChebyshevTower(EncodingCircuitBase):
         params["arrangement"] = self.arrangement
         params["nonlinearity"] = self.nonlinearity
         return params
+
+    def set_params(self, **kwargs) -> ChebyshevTower:
+        """
+        Sets value of the encoding circuit hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
+        """
+        if "nonlinearity" in kwargs and kwargs["nonlinearity"] not in (
+            "arccos",
+            "arctan",
+        ):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {kwargs['nonlinearity']}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
+        super().set_params(**kwargs)
+        return self
 
     def get_circuit(
         self,
@@ -160,12 +175,6 @@ class ChebyshevTower(EncodingCircuitBase):
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arctan(x)"""
                 return self.alpha * i * np.arctan(x)
-
-        else:
-            raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
-                " Possible values are 'arccos' and 'arctan'"
-            )
 
         nfeature = len(features)
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Union
 
@@ -105,11 +107,6 @@ class ChebyshevRx(EncodingCircuitBase):
         elif self.nonlinearity == "arctan":
             bounds[:, 0] = -np.inf
             bounds[:, 1] = np.inf
-        else:
-            raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
-                " Possible values are 'arccos' and 'arctan'"
-            )
         return bounds
 
     def get_params(self, deep: bool = True) -> dict:
@@ -129,6 +126,24 @@ class ChebyshevRx(EncodingCircuitBase):
         params["alpha"] = self.alpha
         params["nonlinearity"] = self.nonlinearity
         return params
+
+    def set_params(self, **kwargs) -> ChebyshevRx:
+        """
+        Sets value of the encoding circuit hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
+        """
+        if "nonlinearity" in kwargs and kwargs["nonlinearity"] not in (
+            "arccos",
+            "arctan",
+        ):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {kwargs['nonlinearity']}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
+        super().set_params(**kwargs)
+        return self
 
     def get_circuit(
         self,
@@ -170,12 +185,6 @@ class ChebyshevRx(EncodingCircuitBase):
             def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
                 return a * np.arctan(x)
-
-        else:
-            raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
-                " Possible values are 'arccos' and 'arctan'"
-            )
 
         nfeature = len(features)
         nparam = len(parameters)
