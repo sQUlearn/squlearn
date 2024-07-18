@@ -186,14 +186,23 @@ class EncodingCircuitBase:
                 fm2 (EncodingCircuitBase): left / second encoding circuit
             """
 
-            def __init__(self, fm1: EncodingCircuitBase, fm2: EncodingCircuitBase):
-                if fm1.num_qubits != fm2.num_qubits:
-                    raise ValueError("Number of qubits is not equal in both encoding circuits.")
+            def __init__(self, num_qubits: int, fm1: EncodingCircuitBase, fm2: EncodingCircuitBase):
+
+                fm1.set_params(num_qubits=num_qubits)
+                fm2.set_params(num_qubits=num_qubits)
 
                 super().__init__(fm1.num_qubits, max(fm1.num_features, fm2.num_features))
 
-                self._fm1 = fm1
-                self._fm2 = fm2
+                self.fm1 = fm1
+                self.fm2 = fm2
+
+
+            @classmethod
+            def create_from_fm(cls, fm1: EncodingCircuitBase, fm2: EncodingCircuitBase):
+                if fm1.num_qubits != fm2.num_qubits:
+                    raise ValueError("Number of qubits is not equal in both encoding circuits.")
+
+                return cls(fm1.num_qubits, fm1, fm2)
 
             @property
             def num_parameters(self) -> int:
@@ -201,7 +210,7 @@ class EncodingCircuitBase:
 
                 Is equal to the sum of both trainable parameters.
                 """
-                return self._fm1.num_parameters + self._fm2.num_parameters
+                return self.fm1.num_parameters + self.fm2.num_parameters
 
             @property
             def parameter_bounds(self) -> np.ndarray:
@@ -210,7 +219,7 @@ class EncodingCircuitBase:
                 Is equal to the sum of both bounds.
                 """
                 return np.concatenate(
-                    (self._fm1.parameter_bounds, self._fm2.parameter_bounds), axis=0
+                    (self.fm1.parameter_bounds, self.fm2.parameter_bounds), axis=0
                 )
 
             @property
@@ -220,17 +229,17 @@ class EncodingCircuitBase:
                 Is equal to the maximum and minimum of both bounds.
                 """
 
-                feature_bounds1 = self._fm1.feature_bounds
-                feature_bounds2 = self._fm2.feature_bounds
+                feature_bounds1 = self.fm1.feature_bounds
+                feature_bounds2 = self.fm2.feature_bounds
                 feature_bounds_values = np.zeros((self.num_features, 2))
 
-                min_num_feature = min(self._fm1.num_features, self._fm2.num_features)
+                min_num_feature = min(self.fm1.num_features, self.fm2.num_features)
 
-                if self._fm1.num_features == self.num_features:
-                    feature_bounds_values = self._fm1.feature_bounds
+                if self.fm1.num_features == self.num_features:
+                    feature_bounds_values = self.fm1.feature_bounds
 
-                if self._fm2.num_features == self.num_features:
-                    feature_bounds_values = self._fm2.feature_bounds
+                if self.fm2.num_features == self.num_features:
+                    feature_bounds_values = self.fm2.feature_bounds
 
                 for i in range(min_num_feature):
                     feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
@@ -251,8 +260,8 @@ class EncodingCircuitBase:
 
                 return np.concatenate(
                     (
-                        self._fm1.generate_initial_parameters(seed),
-                        self._fm2.generate_initial_parameters(seed),
+                        self.fm1.generate_initial_parameters(seed),
+                        self.fm2.generate_initial_parameters(seed),
                     ),
                     axis=0,
                 )
@@ -271,18 +280,18 @@ class EncodingCircuitBase:
                 Return:
                     Dictionary with hyper-parameters and values.
                 """
-                params = dict(fm1=self._fm1, fm2=self._fm2)
+                params = dict(fm1=self.fm1, fm2=self.fm2)
                 if deep:
-                    deep_items = self._fm1.get_params().items()
+                    deep_items = self.fm1.get_params().items()
                     for k, val in deep_items:
                         if k != "num_qubits":
                             params["fm1__" + k] = val
-                    deep_items = self._fm2.get_params().items()
+                    deep_items = self.fm2.get_params().items()
                     for k, val in deep_items:
                         if k != "num_qubits":
                             params["fm2__" + k] = val
 
-                params["num_qubits"] = self._fm1.get_params()["num_qubits"]
+                params["num_qubits"] = self.fm1.get_params()["num_qubits"]
 
                 return params
 
@@ -310,11 +319,12 @@ class EncodingCircuitBase:
                     if key == "num_qubits":
                         fm1_dict["num_qubits"] = value
                         fm2_dict["num_qubits"] = value
+                        self._num_qubits = value
 
                 if len(fm1_dict) > 0:
-                    self._fm1.set_params(**fm1_dict)
+                    self.fm1.set_params(**fm1_dict)
                 if len(fm2_dict) > 0:
-                    self._fm2.set_params(**fm2_dict)
+                    self.fm2.set_params(**fm2_dict)
 
             def get_circuit(
                 self,
@@ -334,13 +344,13 @@ class EncodingCircuitBase:
                     Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
                 """
 
-                circ1 = self._fm1.get_circuit(
-                    features[: self._fm1.num_features], parameters[: self._fm1.num_parameters]
+                circ1 = self.fm1.get_circuit(
+                    features[: self.fm1.num_features], parameters[: self.fm1.num_parameters]
                 )
-                circ2 = self._fm2.get_circuit(
-                    features[: self._fm2.num_features], parameters[self._fm1.num_parameters :]
+                circ2 = self.fm2.get_circuit(
+                    features[: self.fm2.num_features], parameters[self.fm1.num_parameters :]
                 )
 
-                return circ1.compose(circ2, range(self._fm1.num_qubits))
+                return circ1.compose(circ2, range(self.fm1.num_qubits))
 
-        return ComposedEncodingCircuit(self, x)
+        return ComposedEncodingCircuit.create_from_fm(self, x)
