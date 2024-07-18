@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Union
 
@@ -131,7 +133,7 @@ class EncodingCircuitBase:
         param["num_features"] = self._num_features
         return param
 
-    def set_params(self, **params) -> None:
+    def set_params(self, **params) -> EncodingCircuitBase:
         """
         Sets value of the encoding circuit hyper-parameters.
 
@@ -150,7 +152,7 @@ class EncodingCircuitBase:
             except:
                 setattr(self, "_" + key, value)
 
-        return None
+        return self
 
     def __mul__(self, x):
         return self.__add__(x)
