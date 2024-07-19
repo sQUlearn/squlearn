@@ -502,14 +502,12 @@ class ODELoss(LossBase):
     Implements an ODE Loss based on Ref. [1].
 
     Args:
-        ODE_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE (Homogeneous diferential equation). This can be a callable function or a sympy expression.
-            If a callable function is given, then, a callable function for the gradient (ODE_functional_gradient) of the homogenous differential equation calculation must be provided.
-            If a sympy expression is given, then, the symbols_involved_in_ODE must be provided.
-        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: [x, f, f_] where x is the independent variable, f is the function and f_ is the first derivative.
-        initial_values (np.ndarray): Initial values of the ODE. If only one value is given, then it is a 1rst order ODE. If two values are given, then it is a 2nd order ODE.
+        ODE_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential equation). Must be a sympy expression and ``symbols_involved_in_ODE`` must be provided.
+        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: ``[x, f, f_]`` where each element is a sympy symbol corresponding to the independent variable, the dependent variable, and the first derivative of the dependent variable, respectively.
+        initial_values (np.ndarray): Initial values of the ODE. The length of the array must match the order of the ODE. 
         boundary_handling (str): Method for handling the boundary conditions. Options are "pinned", and "floating".
-            - "pinned":   An extra term is added to the loss function to enforce the initial values of the ODE. This term is pinned by the eta parameter. The lost function is given by: L = \sum_i=0^n_samples L_theta_i + eta*(f(x_0) - f_0)^2
-            - "floating": An extra bias term that optimizes the initial value is added to the trial function. The QNN is allowed to "float" around to find the optimizal solution.
+            - ``pinned``:   An extra term is added to the loss function to enforce the initial values of the ODE. This term is pinned by the ``eta`` parameter. The lost function is given by: $L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2 $, $f(x) = \langle QNN(x, \theta) \rangle$.
+            - ``floating``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN function to be optimized. The lost function is given by: $L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = \langle QNN(x, \theta) \rangle$ + f_b$, with $f_b = \langle QNN(x_0, \theta) \rangle$ - f_0$.
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
 
     References
@@ -660,7 +658,7 @@ class ODELoss(LossBase):
         f_bias = value_dict_floating["f"][0] - self.initial_values[0]  # f_b = f(x_0) - f_0
         value_dict_floating["f"] -= f_bias  # f(x) = f(x) - f_b
 
-        if self.order_of_ODE == 2:  # if only one initial value is given, we have a 1rst order ODE
+        if self.order_of_ODE == 2:  
             f_bias = (
                 value_dict_floating["dfdx"][0] - self.initial_values[1]
             )  # f_b = f'(x_0) - f_0'
@@ -673,7 +671,7 @@ class ODELoss(LossBase):
                 df_biasdop = value_dict_floating["dfdop"][0]
                 value_dict_floating["dfdop"] -= df_biasdop
 
-            if self.order_of_ODE == 2:  # if two initial value are given, we have a 2nd order ODE
+            if self.order_of_ODE == 2:  
                 df_biasdxdp = value_dict_floating["dfdxdp"][0]  # df_b/dp = df(x_0)/dp
                 value_dict_floating["dfdxdp"] -= df_biasdxdp  # df(x)/dp = df(x)/dp - df_b/dp
                 if self._opt_param_op:
