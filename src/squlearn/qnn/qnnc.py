@@ -188,6 +188,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             y: Labels
             weights: Weights for each data point
         """
+        X, y = self._validate_input(X, y, incremental=False, reset=False)
+
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
             y = self._label_binarizer.fit_transform(y)

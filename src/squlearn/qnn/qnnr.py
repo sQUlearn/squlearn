@@ -165,6 +165,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             y: Labels
             weights: Weights for each data point
         """
+        X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         loss = self.loss
         if self.variance is not None:
