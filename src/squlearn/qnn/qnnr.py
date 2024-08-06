@@ -146,6 +146,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
+        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+
         if not self._is_fitted and not self.pretrained:
             warn("The model is not fitted.")
 
