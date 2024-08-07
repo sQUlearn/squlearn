@@ -79,7 +79,7 @@ class TestQGPC:
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_predict(self, qgpc, request, data):
-        """Tests concerning the predict function of the QNNClassifier.
+        """Tests concerning the predict function of the QGPC.
 
         Tests include
             - whether the prediction output is correct
@@ -97,8 +97,27 @@ class TestQGPC:
         assert np.allclose(y_pred, y)
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
+    def test_list_input(self, qgpc, request, data):
+        """Tests concerning the predict function of the QGPC with list input.
+
+        Tests include
+            - whether the prediction output is correct
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qgpc_instance = request.getfixturevalue(qgpc)
+
+        X, y = data
+        qgpc_instance.fit(X.tolist(), y.tolist())
+
+        y_pred = qgpc_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+        assert np.allclose(y_pred, y)
+
+    @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_predict_probability(self, qgpc, request, data):
-        """Tests concerning the predict function of the QNNClassifier.
+        """Tests concerning the predict function of the QGPC.
 
         Tests include
             - whether the prediction output is correct
