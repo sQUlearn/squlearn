@@ -63,8 +63,8 @@ class TestShotsFromRSTD:
             shot_control=ShotsFromRSTD(),
             parameter_seed=0,
         )
-        x_train = np.arange(-0.2, 0.3, 0.1)
-        y_train = np.abs(x_train)
+        x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+        y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
         reference = np.array([0.31176001, 0.09348281, -0.05118243, -0.25693387, -0.43025503])
@@ -86,8 +86,8 @@ class TestShotsFromRSTD:
             shot_control=ShotsFromRSTD(),
             parameter_seed=0,
         )
-        x_train = np.arange(-0.2, 0.3, 0.1)
-        y_train = np.array([np.abs(x_train), np.square(x_train)]).T
+        x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+        y_train = np.hstack([np.abs(x_train), np.square(x_train)])
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
         reference = np.array(
@@ -126,8 +126,8 @@ class TestZeroParam:
                 variance=0.005,
                 parameter_seed=0,
             )
-            x_train = np.arange(-0.2, 0.3, 0.1)
-            y_train = np.abs(x_train)
+            x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+            y_train = np.abs(x_train).ravel()
         else:
             qnn = QNNClassifier(
                 pqc,
@@ -138,8 +138,8 @@ class TestZeroParam:
                 variance=0.005,
                 parameter_seed=0,
             )
-            x_train = np.arange(-0.2, 0.3, 0.1)
-            y_train = np.array([0, 1, 1, 0, 0])
+            x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+            y_train = np.array([0, 1, 1, 0, 0]).ravel()
 
         return qnn, x_train, y_train
 
