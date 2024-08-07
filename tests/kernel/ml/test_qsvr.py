@@ -95,6 +95,23 @@ class TestQSVR:
         assert y_pred.shape == y.shape
 
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
+    def test_list_input(self, qsvr, request, data):
+        """Tests concerning the predict function of the QSVR with list input.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvr_instance = request.getfixturevalue(qsvr)
+
+        X, y = data
+        qsvr_instance.fit(X.tolist(), y.tolist())
+
+        y_pred = qsvr_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+
+    @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_kernel_params_can_be_changed_after_initialization(self, qsvr, request, data):
         """Tests concerning the kernel parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
