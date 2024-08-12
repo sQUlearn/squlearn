@@ -118,14 +118,13 @@ class QKRR(BaseEstimator, RegressorMixin):
                 matrix of shape (n_samples, n_samples).
             y (np.ndarray) : Target values or labels of shape (n_samples,)
 
-        Returns:
-            self :
-                Returns the instance itself.
+        Return:
+            Returns an instance of self.
         """
 
-        # check if quantum kernel is trainable
-        if self._quantum_kernel.is_trainable:
-            self._quantum_kernel.run_optimization(X, y)
+        X, y = self._validate_data(
+            X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+        )
 
         self.X_train = X
 
@@ -135,6 +134,10 @@ class QKRR(BaseEstimator, RegressorMixin):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            # check if quantum kernel is trainable
+            if self._quantum_kernel.is_trainable:
+                self._quantum_kernel.run_optimization(self.X_train, y)
+
             self.k_train = self._quantum_kernel.evaluate(x=self.X_train)  # set up kernel matrix
         else:
             raise ValueError(
@@ -168,6 +171,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         """
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
+
+        X = self._validate_data(X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":

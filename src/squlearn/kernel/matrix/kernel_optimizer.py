@@ -72,6 +72,17 @@ class KernelOptimizer(KernelMatrixBase):
 
         return opt_result
 
+    def assign_parameters(self, parameters: np.ndarray):
+        """
+        Set the training parameters of the encoding circuit to numerical values
+
+        Args:
+            parameters (np.ndarray) :
+                Array containing numerical values to be assigned to the trainable parameters
+                of the encoding circuit
+        """
+        self._quantum_kernel.assign_parameters(parameters)
+
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """Evaluate the kernel matrix using the current parameters.
 

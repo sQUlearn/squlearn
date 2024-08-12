@@ -83,6 +83,18 @@ class QGPC(GaussianProcessClassifier):
         return names
 
     def fit(self, X, y):
+        """Fit Gaussian process classification model.
+
+        Args:
+            X : array-like of shape (n_samples, n_features) or list of object
+                Feature vectors or other representations of training data.
+
+            y : array-like of shape (n_samples,)
+                Target values, must be binary.
+
+        Return:
+            Returns an instance of self.
+        """
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
