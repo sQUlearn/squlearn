@@ -179,4 +179,4 @@ class QSVR(SVR):
                 self.quantum_kernel.set_params(
                     **{key: params[key] for key in quantum_kernel_params}
                 )
-        return self 
+        return self
