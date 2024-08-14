@@ -106,16 +106,18 @@ class QGPR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
+    def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
         The fit method of the QGPR class just calculates the training kernel matrix.
         Depending on the choice of normalize_y the target values are normalized.
 
         Args:
-            X: The training data of shape (n_samples, n_features). If
-                quantum_kernel == "precomputed" this is instead a precomputed training kernel
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                The training data.
+                If quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples)
-            y: Target values of shape (n_samples,)
+            y: array-like of shape (n_samples,)
+                Target values.
 
         Returns:
             self: object

@@ -156,15 +156,17 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
         return self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
 
-    def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def partial_fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a model to data.
 
         This method will update the models parameters to fit the provided data.
         It won't reinitialize the models parameters.
 
         Args:
-            X: Input data
-            y: Labels
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
             weights: Weights for each data point
         """
         X, y = self._validate_input(X, y, incremental=False, reset=False)
@@ -236,7 +238,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                 )
         self._is_fitted = True
 
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
         """Internal fit function."""
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)

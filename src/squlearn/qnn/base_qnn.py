@@ -182,14 +182,16 @@ class BaseQNN(BaseEstimator, ABC):
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
 
-    def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 
         This method will reinitialize the models parameters and fit it to the provided data.
 
         Args:
-            X: Input data
-            y: Labels
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like of shape (n_samples,)
+                Labels
             weights: Weights for each data point
         """
         self._param = self.param_ini.copy()
