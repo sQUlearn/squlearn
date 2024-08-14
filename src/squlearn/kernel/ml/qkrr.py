@@ -122,6 +122,10 @@ class QKRR(BaseEstimator, RegressorMixin):
             self :
                 Returns the instance itself.
         """
+        X, y = self._validate_data(
+            X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+        )
+
         self.X_train = X
 
         if isinstance(self._quantum_kernel, str):
@@ -163,6 +167,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         """
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
+
+        X = self._validate_data(X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
