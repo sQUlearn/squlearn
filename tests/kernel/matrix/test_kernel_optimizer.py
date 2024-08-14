@@ -71,7 +71,7 @@ def test_kernel_optimizer_for_regressor_classes(
     kernel_optimizer, regression_data = setup_kernel_optimizer_for_regressor
 
     model = high_level_class(quantum_kernel=kernel_optimizer)
-    model.fit(regression_data[0].reshape(-1,1), regression_data[1])
+    model.fit(regression_data[0].reshape(-1, 1), regression_data[1])
     assert kernel_optimizer.get_optimal_parameters() is not None
     assert kernel_optimizer._optimizer is not None
 
