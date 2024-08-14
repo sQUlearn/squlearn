@@ -1,4 +1,3 @@
-
 from typing import Callable, Union
 import numpy as np
 
@@ -22,23 +21,23 @@ class QELMClassifier(BaseQELM, ClassifierMixin):
     Parameters:
         encoding_circuit: EncodingCircuitBase
             The encoding circuit to use for encoding the data.
-        executor: Executor  
+        executor: Executor
     """
 
     def __init__(
         self,
         encoding_circuit: EncodingCircuitBase,
         executor: Executor,
-        ml_model: str = 'mlp', # or 'linear'
+        ml_model: str = "mlp",  # or 'linear'
         num_operators: int = 100,
         operator_seed: int = 0,
-        operators: Union[ObservableBase, list[ObservableBase]] = None,
+        operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
-        ) -> None:
-        
+    ) -> None:
+
         super().__init__(
             encoding_circuit,
             executor,
@@ -52,39 +51,9 @@ class QELMClassifier(BaseQELM, ClassifierMixin):
             caching,
         )
 
-        if self.ml_model == 'mlp':
+        if self.ml_model == "mlp":
             self.ml_model = MLPClassifier(hidden_layer_sizes=(10,), max_iter=300, random_state=42)
-        elif self.ml_model == 'linear':
+        elif self.ml_model == "linear":
             self._ml_model = LogisticRegression()
         else:
             raise ValueError("Invalid ml_model. Please choose 'mlp' or 'linear'.")
-
-
-    def fit(self, X, y):
-        """
-        Fit the model to the data.
-
-        Parameters:
-            X: np.ndarray
-                The input data.
-            y: np.ndarray
-                The target data.
-        """
-
-        X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
-        self.ml_model.fit(X_qnn, y)
-
-    def predict(self, X):
-        """
-        Predict the target data.
-
-        Parameters:
-            X: np.ndarray
-                The input data.
-
-        Returns:
-            np.ndarray: The predicted target data.
-        """
-
-        X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
-        return self.ml_model.predict(X_qnn)

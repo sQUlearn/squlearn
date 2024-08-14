@@ -7,12 +7,12 @@ from qiskit.quantum_info import random_pauli_list, SparsePauliOp
 from qiskit.quantum_info.operators.random import random_unitary
 
 
-
 from ..observables.observable_base import ObservableBase
 from ..observables import CustomObservable, SinglePauli
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
 from ..qnn.lowlevel_qnn import LowLevelQNN
+
 
 class BaseQELM(BaseEstimator, ABC):
 
@@ -20,16 +20,16 @@ class BaseQELM(BaseEstimator, ABC):
         self,
         encoding_circuit: EncodingCircuitBase,
         executor: Executor,
-        ml_model: str = 'linear', # or 'mlp'
+        ml_model: str = "linear",  # or 'mlp'
         ml_model_options: Union[dict, None] = None,
         num_operators: int = 100,
         operator_seed: int = 0,
-        operators: Union[ObservableBase, list[ObservableBase],str] = "random_paulis",
+        operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         caching: bool = True,
-        ) -> None:
+    ) -> None:
 
         super().__init__()
 
@@ -49,7 +49,20 @@ class BaseQELM(BaseEstimator, ABC):
         self._initialize_observables()
         self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
-        self._initialize_parameters()
+
+        if self.param_ini is None:
+            initialize_parameters = True
+        else:
+            initialize_parameters = len(self.param_ini)!=self._qnn.num_parameters
+
+        if self.param_op_ini is None:
+            initialize_parameters_obs = True
+        else:
+            initialize_parameters_obs = len(self.param_op_ini)!=self._qnn.num_parameters_observable
+
+
+        self._initialize_parameters(initialize_parameters,
+                                    initialize_parameters_obs)
 
     @property
     def used_operators(self):
@@ -59,13 +72,47 @@ class BaseQELM(BaseEstimator, ABC):
     def qnn(self):
         return self._qnn
 
+    def fit(self, X, y):
+        """
+        Fit the model to the data.
+
+        Parameters:
+            X: np.ndarray
+                The input data.
+            y: np.ndarray
+                The target data.
+        """
+        X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
+        self._ml_model.fit(X_qnn, y)
+
+    def predict(self, X):
+        """
+        Predict the target data.
+
+        Parameters:
+            X: np.ndarray
+                The input data.
+
+        Returns:
+            np.ndarray: The predicted target data.
+        """
+        X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
+        return self._ml_model.predict(X_qnn)
+
     def _initialize_observables(self):
 
         if isinstance(self.operators, str):
             if self.operators == "random_paulis":
                 # Generate random operators
-                paulis = random_pauli_list(self.encoding_circuit.num_qubits,self.num_operators,seed=self.operator_seed,phase=False)
-                self._operators = [CustomObservable(self.encoding_circuit.num_qubits,str(p)) for p in paulis]
+                paulis = random_pauli_list(
+                    self.encoding_circuit.num_qubits,
+                    self.num_operators,
+                    seed=self.operator_seed,
+                    phase=False,
+                )
+                self._operators = [
+                    CustomObservable(self.encoding_circuit.num_qubits, str(p)) for p in paulis
+                ]
             elif self.operators == "single_paulis":
                 # Generate single qubit Pauli operators
                 self._operators = []
@@ -80,32 +127,19 @@ class BaseQELM(BaseEstimator, ABC):
             elif isinstance(self.operators, list):
                 self._operators = self.operators
             else:
-                raise ValueError("Invalid operators. Must be an ObservableBase object or a list of ObservableBase objects or None.")
+                raise ValueError(
+                    "Invalid operators. Must be an ObservableBase object or a list of ObservableBase objects or None."
+                )
             self.num_operators = len(self._operators)
 
-    def _initialize_parameters(self):
+    def _initialize_parameters(self, parameters:bool=True, parameters_optimizers:bool=True):
 
-        if self.param_ini is not None:
-            if len(self.param_ini) != self.encoding_circuit.num_parameters:
-                self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                    seed=self.parameter_seed
-                )
-        else:
+        if parameters:
             self.param_ini = self.encoding_circuit.generate_initial_parameters(
                 seed=self.parameter_seed
             )
 
-        num_op_parameters = sum(operator.num_parameters for operator in self._operators)
-        if self.param_op_ini is not None:
-            if len(self.param_ini) != self.encoding_circuit.num_parameters:
-                if num_op_parameters != len(self.param_op_ini):
-                    self.param_op_ini = np.concatenate(
-                        [
-                            operator.generate_initial_parameters(seed=self.parameter_seed)
-                            for operator in self._operators
-                        ]
-                    )
-        else:
+        if parameters_optimizers:
             self.param_op_ini = np.concatenate(
                 [
                     operator.generate_initial_parameters(seed=self.parameter_seed)
@@ -117,7 +151,6 @@ class BaseQELM(BaseEstimator, ABC):
         self._qnn = LowLevelQNN(
             self.encoding_circuit, self._operators, self.executor, result_caching=self.caching
         )
-
 
     @abstractmethod
     def _initialize_ml_model(self):
@@ -214,7 +247,6 @@ class BaseQELM(BaseEstimator, ABC):
 
         # Set encoding_circuit parameters
         ec_params = params.keys() & self.encoding_circuit.get_params(deep=True).keys()
-        print("ec_params",ec_params)
         if ec_params:
             self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
             if self.encoding_circuit.num_parameters != len(self.param_ini):
@@ -224,10 +256,14 @@ class BaseQELM(BaseEstimator, ABC):
         qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
         if qnn_params:
             self._qnn.set_params(**{key: params[key] for key in qnn_params})
-            if self._qnn.num_parameters != len(self.param_ini) or self._qnn.num_parameters_observable != len(self.param_op_ini):
+            if self._qnn.num_parameters != len(
+                self.param_ini
+            ) or self._qnn.num_parameters_observable != len(self.param_op_ini):
                 self._initialize_parameters()
 
         if "parameter_seed" in params:
             self.parameter_seed = params["parameter_seed"]
             params.pop("parameter_seed")
-            initialize_lowlevel_qnn = True
+            self._initialize_parameters()
+
+        return self
