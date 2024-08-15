@@ -1,11 +1,9 @@
-from abc import abstractmethod, ABC
-from typing import Callable, Union
 import numpy as np
+from typing import Union, List
+from abc import abstractmethod, ABC
+
 from sklearn.base import BaseEstimator
-
-from qiskit.quantum_info import random_pauli_list, SparsePauliOp
-from qiskit.quantum_info.operators.random import random_unitary
-
+from qiskit.quantum_info.random import random_pauli_list
 
 from ..observables.observable_base import ObservableBase
 from ..observables import CustomObservable, SinglePauli
@@ -14,17 +12,46 @@ from ..util import Executor
 from ..qnn.lowlevel_qnn import LowLevelQNN
 
 
-class BaseQELM(BaseEstimator, ABC):
+class BaseQRC(BaseEstimator, ABC):
+    """Base class for Quantum Reservoir Computing (QRC) models.
+
+    Args:
+        encoding_circuit (EncodingCircuitBase): The encoding circuit to use for encoding the data
+                                                into the reservoir.
+        executor (Executor): Executor instance
+        ml_model (str): The classical machine learning model to use (default: linear), possible
+                        values are ``"mlp"``, ``"linear"``, and ``"kernel"``.
+                        Implementation depends on the child.
+        ml_model_options (dict): The options for the machine learning model
+                                 (default options of the sklearn model are used if None)
+        operators (Union[ObservableBase, list[ObservableBase], str]): Strategy for generating the
+                                                                      operators used to measure the
+                                                                      quantum reservoir. Possible values are:
+
+                                                                        * ``"random_paulis"`` generates random Pauli operators (default).
+                                                                        * ``"single_paulis"`` generates single qubit Pauli operators.
+
+                                                                      Alternatively, a list of ObservableBase objects can be provided.
+        num_operators (int): The number of random Pauli operators to generate for
+                             ``"operators = random_paulis"`` (default: 100).
+        operator_seed (int): The seed for the random operator generation for
+                             ``"operators = random_paulis"`` (default: 0).
+        param_ini (Union[np.ndarray, None]): The parameters for the encoding circuit (optional).
+        param_op_ini (Union[np.ndarray, None]): The initial parameters for the operators (optional).
+        parameter_seed (Union[int, None]): The seed for the initial parameter generation
+                                           (if no parameters are given).
+        caching (bool): Whether to cache the results of the evaluated expectation values.
+    """
 
     def __init__(
         self,
         encoding_circuit: EncodingCircuitBase,
         executor: Executor,
-        ml_model: str = "linear",  # or 'mlp'
+        ml_model: str = "linear",
         ml_model_options: Union[dict, None] = None,
+        operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
         num_operators: int = 100,
         operator_seed: int = 0,
-        operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
@@ -53,53 +80,53 @@ class BaseQELM(BaseEstimator, ABC):
         if self.param_ini is None:
             initialize_parameters = True
         else:
-            initialize_parameters = len(self.param_ini)!=self._qnn.num_parameters
+            initialize_parameters = len(self.param_ini) != self._qnn.num_parameters
 
         if self.param_op_ini is None:
             initialize_parameters_obs = True
         else:
-            initialize_parameters_obs = len(self.param_op_ini)!=self._qnn.num_parameters_observable
+            initialize_parameters_obs = (
+                len(self.param_op_ini) != self._qnn.num_parameters_observable
+            )
 
-
-        self._initialize_parameters(initialize_parameters,
-                                    initialize_parameters_obs)
+        self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
     @property
-    def used_operators(self):
+    def used_operators(self) -> List[ObservableBase]:
+        """Returns the operators used in the QNN model."""
         return self._operators
 
     @property
-    def qnn(self):
+    def qnn(self) -> LowLevelQNN:
+        """Returns the underlying low-level QNN object."""
         return self._qnn
 
-    def fit(self, X, y):
-        """
-        Fit the model to the data.
+    def fit(self, X, y) -> None:
+        """Fit a new Quantum Reservoir Computing model to data.
 
-        Parameters:
-            X: np.ndarray
-                The input data.
-            y: np.ndarray
-                The target data.
+        Args:
+            X: Input data
+            y: Labels
         """
+        X, y = self._validate_input(X, y, incremental=False, reset=False)
         X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
         self._ml_model.fit(X_qnn, y)
 
-    def predict(self, X):
-        """
-        Predict the target data.
+    def predict(self, X) -> np.ndarray:
+        """Predict using the Quantum Reservoir Computing.
 
-        Parameters:
-            X: np.ndarray
-                The input data.
+        Args:
+            X : The input data.
 
         Returns:
-            np.ndarray: The predicted target data.
+            np.ndarray : The predicted values.
         """
+        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
         X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
         return self._ml_model.predict(X_qnn)
 
-    def _initialize_observables(self):
+    def _initialize_observables(self) -> None:
+        """Create the observables for the QNN model."""
 
         if isinstance(self.operators, str):
             if self.operators == "random_paulis":
@@ -132,8 +159,16 @@ class BaseQELM(BaseEstimator, ABC):
                 )
             self.num_operators = len(self._operators)
 
-    def _initialize_parameters(self, parameters:bool=True, parameters_optimizers:bool=True):
+    def _initialize_parameters(
+        self, parameters: bool = True, parameters_optimizers: bool = True
+    ) -> None:
+        """
+        Initialize the parameters of the QNN model.
 
+        Args:
+            parameters (bool): If True, initialize the parameters of the encoding circuit.
+            parameters_optimizers (bool): If True, initialize the parameters of the operators
+        """
         if parameters:
             self.param_ini = self.encoding_circuit.generate_initial_parameters(
                 seed=self.parameter_seed
@@ -147,13 +182,15 @@ class BaseQELM(BaseEstimator, ABC):
                 ]
             )
 
-    def _initialize_lowlevel_qnn(self):
+    def _initialize_lowlevel_qnn(self) -> None:
+        """Initialize the low-level QNN object."""
         self._qnn = LowLevelQNN(
             self.encoding_circuit, self._operators, self.executor, result_caching=self.caching
         )
 
     @abstractmethod
-    def _initialize_ml_model(self):
+    def _initialize_ml_model(self) -> None:
+        """Initialize the machine learning model, has to be implemented in the child class"""
         raise NotImplementedError
 
     def get_params(self, deep: bool = True) -> dict:
@@ -175,8 +212,16 @@ class BaseQELM(BaseEstimator, ABC):
 
         return params
 
-    def set_params(self, **params):
+    def set_params(self, **params) -> "BaseQRC":
+        """
+        Sets the hyper-parameters of the QLEM model.
 
+        Args:
+            params (dict): A dictionary of hyper-parameters to set.
+
+        Returns:
+            BaseQRC: The modified QLEM model.
+        """
         initialize_observables = False
         initialize_lowlevel_qnn = False
         initialize_ml_model = False
@@ -267,3 +312,16 @@ class BaseQELM(BaseEstimator, ABC):
             self._initialize_parameters()
 
         return self
+
+    def _validate_input(self, X, y, incremental, reset):
+        X, y = self._validate_data(
+            X,
+            y,
+            accept_sparse=["csr", "csc"],
+            multi_output=True,
+            y_numeric=True,
+            reset=reset,
+        )
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = column_or_1d(y, warn=True)
+        return X, y
