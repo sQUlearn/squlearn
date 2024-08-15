@@ -77,9 +77,13 @@ class BaseQRC(BaseEstimator, ABC):
         self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
 
-        initialize_parameters = self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-        initialize_parameters_obs = self.param_op_ini is None or len(self.param_op_ini) != self._qnn.num_parameters_observable
-
+        initialize_parameters = (
+            self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+        )
+        initialize_parameters_obs = (
+            self.param_op_ini is None
+            or len(self.param_op_ini) != self._qnn.num_parameters_observable
+        )
 
         self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
@@ -274,10 +278,15 @@ class BaseQRC(BaseEstimator, ABC):
         if initialize_lowlevel_qnn:
             self._initialize_lowlevel_qnn()
             # Reinitialize parameters if the number of parameters has changed
-            initialize_parameters = self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-            initialize_parameters_obs = self.param_op_ini is None or len(self.param_op_ini) != self._qnn.num_parameters_observable
+            initialize_parameters = (
+                self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+            )
+            initialize_parameters_obs = (
+                self.param_op_ini is None
+                or len(self.param_op_ini) != self._qnn.num_parameters_observable
+            )
 
-            self._initialize_parameters(initialize_parameters,initialize_parameters_obs)
+            self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
         if initialize_ml_model:
             self._initialize_ml_model()
