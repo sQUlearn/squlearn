@@ -40,7 +40,7 @@ def get_classification_data(num_samples=100, num_features=2, noise_std=0.1):
 def setup_kernel_optimizer_for_regressor():
     enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     q_kernel = FidelityKernel(
-        encoding_circuit=enc_circ, executor=Executor("pennylane"), parameter_seed=0
+        encoding_circuit=enc_circ, executor=Executor("pennylane"), parameter_seed=0, regularization="tikhonov"
     )
     nll_loss = NLL(quantum_kernel=q_kernel)
     optimzer = Adam(options={"maxiter": 20, "lr": 0.1})
@@ -54,7 +54,7 @@ def setup_kernel_optimizer_for_regressor():
 def setup_kernel_optimizer_for_classifier():
     enc_circ = YZ_CX_EncodingCircuit(2, num_features=2, num_layers=2, c=1.0)
     q_kernel = FidelityKernel(
-        encoding_circuit=enc_circ, executor=Executor("pennylane"), parameter_seed=0
+        encoding_circuit=enc_circ, executor=Executor("pennylane"), parameter_seed=0, regularization="tikhonov"
     )
     nll_loss = NLL(quantum_kernel=q_kernel)
     optimzer = Adam(options={"maxiter": 20, "lr": 0.1})
@@ -81,14 +81,14 @@ def test_kernel_optimizer_for_regressor_classes(
 # The matrix is not positive definite, possibly due to numerical instability or insufficient regularization.
 # Investigate the root cause and implement a solution to ensure the matrix is always positive definite.
 
-# #@pytest.mark.parametrize("high_level_class", [QGPC, QSVC])
-# def test_kernel_opimizer_for_classification_classes(
-#     setup_kernel_optimizer_for_classifier,
-#     high_level_class,
-# ):
-#     kernel_optimizer, classification_data = setup_kernel_optimizer_for_classifier
+@pytest.mark.parametrize("high_level_class", [QGPC, QSVC])
+def test_kernel_opimizer_for_classification_classes(
+    setup_kernel_optimizer_for_classifier,
+    high_level_class,
+):
+    kernel_optimizer, classification_data = setup_kernel_optimizer_for_classifier
 
-#     model = high_level_class(quantum_kernel=kernel_optimizer)
-#     model.fit(classification_data[0], classification_data[1])
-#     assert kernel_optimizer.get_optimal_parameters() is not None
-#     assert kernel_optimizer._optimizer is not None
+    model = high_level_class(quantum_kernel=kernel_optimizer)
+    model.fit(classification_data[0], classification_data[1])
+    assert kernel_optimizer.get_optimal_parameters() is not None
+    assert kernel_optimizer._optimizer is not None
