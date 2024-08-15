@@ -77,17 +77,9 @@ class BaseQRC(BaseEstimator, ABC):
         self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
 
-        if self.param_ini is None:
-            initialize_parameters = True
-        else:
-            initialize_parameters = len(self.param_ini) != self._qnn.num_parameters
+        initialize_parameters = self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+        initialize_parameters_obs = self.param_op_ini is None or len(self.param_op_ini) != self._qnn.num_parameters_observable
 
-        if self.param_op_ini is None:
-            initialize_parameters_obs = True
-        else:
-            initialize_parameters_obs = (
-                len(self.param_op_ini) != self._qnn.num_parameters_observable
-            )
 
         self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
@@ -244,13 +236,13 @@ class BaseQRC(BaseEstimator, ABC):
             initialize_ml_model = True
 
         if "ml_model" in params or "ml_model_options" in params:
-            if "ml_model_options" in params:
+            if "ml_model" in params:
                 self.ml_model = params["ml_model"]
                 params.pop("ml_model")
             if "ml_model_options" in params:
                 self.ml_model_options = params["ml_model_options"]
                 params.pop("ml_model_options")
-            initialize_lowlevel_qnn = True
+            initialize_ml_model = True
 
         if "num_operators" in params or "operator_seed" in params or "operators" in params:
             if "num_operators" in params:
@@ -281,6 +273,11 @@ class BaseQRC(BaseEstimator, ABC):
 
         if initialize_lowlevel_qnn:
             self._initialize_lowlevel_qnn()
+            # Reinitialize parameters if the number of parameters has changed
+            initialize_parameters = self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+            initialize_parameters_obs = self.param_op_ini is None or len(self.param_op_ini) != self._qnn.num_parameters_observable
+
+            self._initialize_parameters(initialize_parameters,initialize_parameters_obs)
 
         if initialize_ml_model:
             self._initialize_ml_model()
