@@ -311,8 +311,16 @@ class BaseQNN(BaseEstimator, ABC):
         return self
 
     @abstractmethod
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         raise NotImplementedError()
 
     def _initialize_lowlevel_qnn(self):
