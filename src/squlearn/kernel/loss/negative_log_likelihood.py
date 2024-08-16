@@ -59,7 +59,9 @@ class NLL(KernelLossBase):
         """
 
         if self._quantum_kernel is None:
-            raise ValueError("Quantum kernel is not set, please set the quantum kernel with set_quantum_kernel method")
+            raise ValueError(
+                "Quantum kernel is not set, please set the quantum kernel with set_quantum_kernel method"
+            )
 
         # Bind training parameters
         self._quantum_kernel.assign_parameters(parameter_values)
