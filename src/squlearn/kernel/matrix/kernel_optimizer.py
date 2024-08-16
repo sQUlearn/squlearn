@@ -55,7 +55,7 @@ class KernelOptimizer(KernelMatrixBase):
         return self._is_fitted
 
     def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
-        """ Run the optimization and return the result.
+        """Run the optimization and return the result.
 
         Args:
             X (np.ndarray): The input data.
@@ -84,7 +84,7 @@ class KernelOptimizer(KernelMatrixBase):
         return opt_result
 
     def assign_parameters(self, parameters: np.ndarray):
-        """ Set the training parameters of the encoding circuit to numerical values
+        """Set the training parameters of the encoding circuit to numerical values
 
         Args:
             parameters (np.ndarray): Array containing numerical values to be assigned to
@@ -95,7 +95,7 @@ class KernelOptimizer(KernelMatrixBase):
         self._initial_parameters = parameters
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
-        """ Evaluate the kernel matrix using the current parameters.
+        """Evaluate the kernel matrix using the current parameters.
 
         Args:
             x (np.ndarray): Vector of training or test data.
@@ -115,7 +115,7 @@ class KernelOptimizer(KernelMatrixBase):
         return self._optimal_parameters
 
     def set_params(self, **params):
-        """ Sets value of the kernel optimizer hyper-parameters.
+        """Sets value of the kernel optimizer hyper-parameters.
 
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``
@@ -153,7 +153,7 @@ class KernelOptimizer(KernelMatrixBase):
         return self
 
     def get_params(self, deep=True) -> dict:
-        """ Returns hyper-parameters and their values of the fidelity kernel.
+        """Returns hyper-parameters and their values of the fidelity kernel.
 
         Args:
             deep (bool): If True, also the parameters for
