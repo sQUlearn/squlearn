@@ -4,9 +4,9 @@ import numpy as np
 from functools import partial
 from typing import Optional, Sequence
 
-from squlearn.kernel.matrix.kernel_matrix_base import KernelMatrixBase
-from squlearn.kernel.optimization.kernel_loss_base import KernelLossBase
-from squlearn.optimizers.optimizer_base import OptimizerBase
+from .kernel_matrix_base import KernelMatrixBase
+from ..loss.kernel_loss_base import KernelLossBase
+from ...optimizers.optimizer_base import OptimizerBase
 
 
 class KernelOptimizer(KernelMatrixBase):
@@ -46,6 +46,8 @@ class KernelOptimizer(KernelMatrixBase):
         self._optimal_parameters = None
         self._is_trainable = True
         self._is_fitted = False
+
+        self._loss.set_quantum_kernel(self._quantum_kernel)
 
     @property
     def is_fitted(self) -> bool:
@@ -89,7 +91,9 @@ class KernelOptimizer(KernelMatrixBase):
             parameters (np.ndarray): Array containing numerical values to be assigned to
                                      the trainable parameters of the encoding circuit
         """
+        self._is_fitted = False
         self._quantum_kernel.assign_parameters(parameters)
+        self._initial_parameters = parameters
 
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """Evaluate the kernel matrix using the current parameters.

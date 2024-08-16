@@ -9,24 +9,21 @@ from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 
 class NLL(KernelLossBase):
-    """
+    r"""
     Negative log likelihood loss function.
     This class can be used to compute the negative log likelihood loss function
     for a given quantum kernel
-    :math:`K_{θ}` with variational parameters :math:`θ`.
+    :math:`K_{\theta}` with variational parameters :math:`\theta`.
     The definition of the function is taken from Equation 5.8 Chapter 5.4 of Ref. [1].
 
     The log-likelihood function is defined as:
 
     .. math::
 
-        L(θ) =
-        -\\frac{1}{2} log(|K_{θ} + σI|)-\\frac{1}{2} y^{T}(K_{θ} + σI)^{-1}y-\\frac{n}{2} log(2π)
+        L(\theta) = -\frac{1}{2} log(|K_{\theta} + \sigmaI|)-\frac{1}{2} y^{T}(K_{\theta}
+        + \sigmaI)^{-1}y-\frac{n}{2} log(2\pi)
 
     Args:
-        quantum_kernel (KernelMatrixBase): The quantum kernel to be used
-            (either a fidelity quantum kernel (FQK)
-            or projected quantum kernel (PQK) must be provided).
         sigma: (float), default=0.0: Hyperparameter for the regularization strength.
 
     References
@@ -39,24 +36,26 @@ class NLL(KernelLossBase):
     --------
     """
 
-    def __init__(self, quantum_kernel: KernelMatrixBase, sigma=0.0):
-        super().__init__(quantum_kernel)
+    def __init__(self, sigma=0.0):
+        super().__init__()
         self._sigma = sigma
 
-    # ProjectedQuantumKernel might cause errors since its not present in original KernelLoss
     def compute(
-        self, parameter_values: Sequence[float], data: np.ndarray, labels: np.ndarray
+        self,
+        parameter_values: np.ndarray,
+        data: np.ndarray,
+        labels: np.ndarray,
     ) -> float:
         """Compute the negative log likelihood loss function.
 
         Args:
-            parameter_values: (Sequence[float]):
-                The parameter values for the variational quantum kernel parameters.
-            data (np.ndarray): The  training data to be used for the kernel matrix.
+            parameter_values (np.ndarray): The parameter values for the variational quantum
+                                           kernel parameters.
+            data (np.ndarray): The training data to be used for the kernel matrix.
             labels (np.ndarray): The training labels.
 
         Returns:
-            float: The negative log likelihood loss function.
+            float: The negative log likelihood loss value.
         """
 
         # Bind training parameters
