@@ -45,6 +45,12 @@ class KernelOptimizer(KernelMatrixBase):
         )
         self._optimal_parameters = None
         self._is_trainable = True
+        self._is_fitted = False
+
+    @property
+    def is_fitted(self) -> bool:
+        """Returns whether the quantum kernel has been fitted."""
+        return self._is_fitted
 
     def run_optimization(self, X: np.ndarray, y: np.ndarray = None):
         """Run the optimization and return the result.
@@ -56,11 +62,12 @@ class KernelOptimizer(KernelMatrixBase):
         Returns:
             OptimizeResult: The optimization result.
         """
-        num_params = self._quantum_kernel.num_parameters
-        if num_params == 0:
-            raise ValueError(
-                "Quantum kernel cannot be fit because there are no training parameters specified."
-            )
+
+        if self._is_fitted:
+            return None
+
+        if self._quantum_kernel.num_parameters == 0:
+            return None
 
         # Perform kernel optimization
         loss_function = partial(self._loss.compute, data=X, labels=y)
@@ -69,6 +76,8 @@ class KernelOptimizer(KernelMatrixBase):
 
         # Assign optimal parameters to the quantum kernel
         self._quantum_kernel.assign_parameters(self._optimal_parameters)
+
+        self._is_fitted = True
 
         return opt_result
 
@@ -101,3 +110,64 @@ class KernelOptimizer(KernelMatrixBase):
             np.ndarray: The optimal parameters.
         """
         return self._optimal_parameters
+
+    def set_params(self, **params):
+        """
+        Sets value of the kernel optimizer hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``
+        """
+
+        # Create dictionary of valid parameters
+        valid_params = self.get_params(deep=True).keys()
+        for key in params.keys():
+            # Check if parameter is valid
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. "
+                    f"Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        if "quantum_kernel" in params:
+            self._quantum_kernel = params["quantum_kernel"]
+            self._is_fitted = False
+        if "loss" in params:
+            self._loss = params["loss"]
+            self._is_fitted = False
+        if "optimizer" in params:
+            self._optimizer = params["optimizer"]
+            self._is_fitted = False
+        if "initial_parameters" in params:
+            self._initial_parameters = params["initial_parameters"]
+            self._is_fitted = False
+
+        # Set parameters of the Quantum Kernel and its underlying objects
+        quantum_kernel_params = self._quantum_kernel.get_params().keys() & params.keys()
+        if quantum_kernel_params:
+            self._quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
+            self._is_fitted = False
+
+        return self
+
+    def get_params(self, deep=True) -> dict:
+        """
+        Returns hyper-parameters and their values of the fidelity kernel.
+
+        Args:
+            deep (bool): If True, also the parameters for
+                         contained objects are returned (default=True).
+
+        Return:
+            Dictionary with hyper-parameters and values.
+        """
+        params = {}
+        params["quantum_kernel"] = self._quantum_kernel
+        params["loss"] = self._loss
+        params["optimizer"] = self._optimizer
+        params["initial_parameters"] = self._initial_parameters
+
+        if deep:
+            params.update(self._quantum_kernel.get_params(deep=deep))
+
+        return params
