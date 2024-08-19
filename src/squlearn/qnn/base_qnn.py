@@ -8,6 +8,7 @@ from warnings import warn
 
 import numpy as np
 from sklearn.base import BaseEstimator
+from sklearn.utils import column_or_1d
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -326,3 +327,16 @@ class BaseQNN(BaseEstimator, ABC):
             result_caching=self.caching,
             primitive=self.primitive,
         )
+
+    def _validate_input(self, X, y, incremental, reset):
+        X, y = self._validate_data(
+            X,
+            y,
+            accept_sparse=["csr", "csc"],
+            multi_output=True,
+            y_numeric=True,
+            reset=reset,
+        )
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = column_or_1d(y, warn=True)
+        return X, y

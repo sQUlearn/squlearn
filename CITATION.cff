@@ -29,6 +29,7 @@ preferred-citation:
       affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
     - family-names: Hagelüken
       given-names: Manuel
+      orcid: https://orcid.org/0009-0007-9852-3190
       affilliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
     - family-names: Roth
       given-names: Marco
@@ -36,5 +37,5 @@ preferred-citation:
       affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
   year: 2023
   month: 11
-  doi: 10.48550/arXiv.2311.08990
+  doi: 10.48550/arXiv.2311.08990 
   url: https://arxiv.org/abs/2311.08990

@@ -157,6 +157,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
+        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+
         if not self._is_fitted and not self.pretrained:
             raise RuntimeError("The model is not fitted.")
 
@@ -196,6 +198,8 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             y: Labels
             weights: Weights for each data point
         """
+        X, y = self._validate_input(X, y, incremental=False, reset=False)
+
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
             y = self._label_binarizer.fit_transform(y)

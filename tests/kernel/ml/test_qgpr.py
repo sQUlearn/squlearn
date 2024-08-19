@@ -73,6 +73,23 @@ class TestQGPR:
         assert isinstance(y_pred, np.ndarray)
 
     @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
+    def test_list_input(self, qgpr, request, data):
+        """Tests concerning the predict function of the QGPR with list input.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qgpr_instance = request.getfixturevalue(qgpr)
+
+        X, y = data
+        qgpr_instance.fit(X.tolist(), y.tolist())
+
+        y_pred = qgpr_instance.predict(X)
+        assert y_pred.shape == y.shape
+        assert isinstance(y_pred, np.ndarray)
+
+    @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
     def test_return_cov(self, qgpr, request, data):
         """Tests concerning the predict function of the QGPR.
 
