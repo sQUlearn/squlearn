@@ -29,10 +29,8 @@ class ParamZFeatureMap(EncodingCircuitBase):
 
     """
 
-    def __init__(
-        self, num_qubits: int, num_features: int, num_layers: int = 2, entangling: bool = False
-    ) -> None:
-        super().__init__(num_qubits, num_features)
+    def __init__(self, num_qubits: int, num_layers: int = 2, entangling: bool = False) -> None:
+        super().__init__(num_qubits)
         self._num_layers = num_layers
         self._entangling = entangling
 

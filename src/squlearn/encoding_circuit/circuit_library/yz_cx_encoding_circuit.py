@@ -36,12 +36,11 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_layers: int = 1,
         closed: bool = True,
         c: float = 1.0,
     ) -> None:
-        super().__init__(num_qubits, num_features)
+        super().__init__(num_qubits)
         self.closed = closed
 
         self._num_layers = num_layers

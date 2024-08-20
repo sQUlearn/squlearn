@@ -16,9 +16,9 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int, num_features: int) -> None:
+    def __init__(self, num_qubits: int) -> None:
         self._num_qubits = num_qubits
-        self._num_features = num_features
+        # self._num_features = 0
 
     @property
     def num_qubits(self) -> int:
@@ -29,6 +29,10 @@ class EncodingCircuitBase:
     def num_features(self) -> int:
         """The dimension of the features in the encoding circuit."""
         return self._num_features
+
+    @num_features.setter
+    def num_features(self, value):
+        self._num_features = value
 
     @property
     def num_parameters(self) -> int:

@@ -60,14 +60,13 @@ class ChebyshevPQC(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_layers: int = 1,
         closed: bool = True,
         entangling_gate: str = "crz",
         alpha: float = 4.0,
         nonlinearity: str = "arccos",
     ) -> None:
-        super().__init__(num_qubits, num_features)
+        super().__init__(num_qubits)
         self.num_layers = num_layers
         self.closed = closed
         self.entangling_gate = entangling_gate
