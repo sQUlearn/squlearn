@@ -145,13 +145,19 @@ class BaseQNN(BaseEstimator, ABC):
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
 
-        self._initialize_lowlevel_qnn()
+        # self._initialize_lowlevel_qnn()
 
-        update_params = self.get_params().keys() & kwargs.keys()
-        if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
+        # update_params = self.get_params().keys() & kwargs.keys()
+        # if update_params:
+        #     self.set_params(**{key: kwargs[key] for key in update_params})
 
         self._is_fitted = self.pretrained
+        self.kwargs = kwargs
+
+    def __update_params(self):
+        update_params = self.get_params().keys() & self.kwargs.keys()
+        if update_params:
+            self.set_params(**{key: self.kwargs[key] for key in update_params})
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -194,6 +200,12 @@ class BaseQNN(BaseEstimator, ABC):
                 Labels
             weights: Weights for each data point
         """
+
+        # set num_features and initialize the low level qnn
+        self.encoding_circuit.num_features = X.shape[1]
+        self._initialize_lowlevel_qnn()
+        self.__update_params()
+
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
         self._is_fitted = False
@@ -211,6 +223,8 @@ class BaseQNN(BaseEstimator, ABC):
         """
         # Create a dictionary of all public parameters
         params = super().get_params(deep=False)
+
+        self._initialize_lowlevel_qnn()
 
         if deep:
             params.update(self._qnn.get_params(deep=True))

@@ -124,7 +124,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     def _initialize_pennylane_circuit(self):
         """Function to initialize the PennyLane circuit function of the QNN"""
 
-        # Parameter vectors for the PQC and the observable
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
         self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)

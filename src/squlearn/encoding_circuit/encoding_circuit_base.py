@@ -18,7 +18,6 @@ class EncodingCircuitBase:
 
     def __init__(self, num_qubits: int) -> None:
         self._num_qubits = num_qubits
-        # self._num_features = 0
 
     @property
     def num_qubits(self) -> int:
