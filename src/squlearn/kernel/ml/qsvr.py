@@ -73,25 +73,28 @@ class QSVR(SVR):
         quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
+        # need to save the kwargs as the kernel params, because of the lazy initialization of the kernel
         self.quantum_kernel = quantum_kernel
+        self._kernel_params = kwargs
 
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
-            # Apply kwargs to set_params of quantum kernel
-            quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-            if quantum_kernel_update_params:
-                self.quantum_kernel.set_params(
-                    **{key: kwargs[key] for key in quantum_kernel_update_params}
-                )
-                # remove quantum_kernel_kwargs for SVR initialization
-                for key in quantum_kernel_update_params:
-                    kwargs.pop(key, None)
+        # ----- moved to 'fit' -----
+        # if isinstance(self.quantum_kernel, KernelMatrixBase):
+        #     # Apply kwargs to set_params of quantum kernel
+        #     quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
+        #     if quantum_kernel_update_params:
+        #         self.quantum_kernel.set_params(
+        #             **{key: kwargs[key] for key in quantum_kernel_update_params}
+        #         )
+        #         # remove quantum_kernel_kwargs for SVR initialization
+        #         for key in quantum_kernel_update_params:
+        #             kwargs.pop(key, None)
 
-            super().__init__(
-                kernel=self.quantum_kernel.evaluate,
-                **kwargs,
-            )
-        else:
-            super().__init__(kernel="precomputed", **kwargs)
+        #     super().__init__(
+        #         kernel=self.quantum_kernel.evaluate,
+        #         **kwargs,
+        #     )
+        # else:
+        #     super().__init__(kernel="precomputed", **kwargs)
 
     @classmethod
     def _get_param_names(cls):
@@ -101,6 +104,34 @@ class QSVR(SVR):
         names.remove("degree")
         names.remove("coef0")
         return names
+
+    def __init_kernel(self, X):
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            self.quantum_kernel.encoding_circuit.num_features = X.shape[1]
+
+            # Apply kwargs to set_params of quantum kernel
+            quantum_kernel_update_params = (
+                self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
+            )
+            if quantum_kernel_update_params:
+                self.quantum_kernel.set_params(
+                    **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+                )
+                # remove quantum_kernel_kwargs for SVR initialization
+                for key in quantum_kernel_update_params:
+                    self._kernel_params.pop(key, None)
+
+            super().__init__(
+                kernel=self.quantum_kernel.evaluate,
+                **self._kernel_params,
+            )
+        else:
+            super().__init__(kernel="precomputed", **self.kwargs)
+
+    # add additional calls to the fit method
+    def fit(self, X, y, sample_weight=None):
+        self.__init_kernel(X)
+        return super().fit(X, y, sample_weight)
 
     def get_params(self, deep: bool = True) -> dict:
         """

@@ -363,6 +363,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         self._measurement_input = measurement
         self._outer_kernel_input = outer_kernel
         self._caching = caching
+        self._executor = executor
 
         # Set-up measurement operator
         if isinstance(measurement, str):
@@ -377,10 +378,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
-        # Set-up of the QNN
-        self._qnn = LowLevelQNN(
-            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
-        )
+        # -----moved to 'get_params' ----
+        # # Set-up of the QNN
+        # self._qnn = LowLevelQNN(
+        #     self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+        # )
 
         # Set-up of the outer kernel
         self._set_outer_kernel(outer_kernel, **kwargs)
@@ -407,14 +409,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             else:
                 raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
 
-        # Check if the number of parameters is correct
-        if self._parameters is not None:
-            if len(self._parameters) != self.num_parameters:
-                raise ValueError(
-                    "Number of initial parameters is wrong, expected number: {}".format(
-                        self.num_parameters
-                    )
-                )
+        # ------ moved to 'evaluate_qnn' -----
+        # # Check if the number of parameters is correct
+        # if self._parameters is not None:
+        #     if len(self._parameters) != self.num_parameters:
+        #         raise ValueError(
+        #             "Number of initial parameters is wrong, expected number: {}".format(
+        #                 self.num_parameters
+        #             )
+        #         )
 
     @property
     def num_features(self) -> int:
@@ -436,6 +439,16 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """Outer kernel class of the Projected Quantum Kernel"""
         return self._outer_kernel
 
+    def __check_num_params(self):
+        """Check if the number of parameters is correct"""
+        if self._parameters is not None:
+            if len(self._parameters) != self.num_parameters:
+                raise ValueError(
+                    "Number of initial parameters is wrong, expected number: {}".format(
+                        self.num_parameters
+                    )
+                )
+
     def evaluate_qnn(self, x: np.ndarray) -> np.ndarray:
         """Evaluates the QNN for the given data x.
 
@@ -444,6 +457,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated output of the QNN as numpy array
         """
+
+        self.__check_num_params()
 
         # Copy parameters in QNN form
         if self._parameters is None and self.num_parameters == 0:
@@ -488,6 +503,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
+
+        # make sure the lowlevel qnn is initialized
+        self.__initialize_lowlevel_qnn()
+
         params = super().get_params(deep=False)
         params.update(self._outer_kernel.get_params())
         params["measurement"] = self._measurement_input
@@ -667,6 +686,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._outer_kernel = outer_kernel
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
+
+    def __initialize_lowlevel_qnn(self):
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit,
+            self._measurement,
+            self._executor,
+            result_caching=self._caching,
+        )
 
 
 class GaussianOuterKernel(OuterKernelBase):

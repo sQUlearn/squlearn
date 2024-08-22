@@ -41,10 +41,11 @@ class KernelMatrixBase:
         self._parameter_seed = parameter_seed
         self._regularization = regularization
 
-        if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(
-                self._parameter_seed
-            )
+        # ----- moved to 'evaluate' -----
+        # if self._parameters is None:
+        #     self._parameters = self._encoding_circuit.generate_initial_parameters(
+        #         self._parameter_seed
+        #     )
 
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
@@ -98,6 +99,9 @@ class KernelMatrixBase:
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
+
+        self.__generate_initial_parameters()
+
         raise NotImplementedError()
 
     def evaluate_pairwise(self, x: np.ndarray, y: np.ndarray = None) -> float:
@@ -143,6 +147,12 @@ class KernelMatrixBase:
         """
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
+
+    def __generate_initial_parameters(self):
+        if self._parameters is None:
+            self._parameters = self._encoding_circuit.generate_initial_parameters(
+                self._parameter_seed
+            )
 
     def __add__(self, x):
         """
