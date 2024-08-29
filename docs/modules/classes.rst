@@ -66,6 +66,7 @@ Encoding Circuits
    encoding_circuit.ParamZFeatureMap
    encoding_circuit.QiskitEncodingCircuit
    encoding_circuit.QCNNEncodingCircuit
+   encoding_circuit.RandomLayeredEncodingCircuit
 
 Encoding Circuit Tools
 ------------------------------------
