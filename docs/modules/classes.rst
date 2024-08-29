@@ -67,6 +67,7 @@ Encoding Circuits
    encoding_circuit.QiskitEncodingCircuit
    encoding_circuit.QCNNEncodingCircuit
    encoding_circuit.RandomLayeredEncodingCircuit
+   encoding_circuit.RandomEncodingCircuit
 
 Encoding Circuit Tools
 ------------------------------------
