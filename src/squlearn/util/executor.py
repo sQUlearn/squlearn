@@ -315,9 +315,10 @@ class Executor:
             self._backend = execution
             self._execution_origin = "Backend"
             if shots is None:
-                shots = self._backend.options.shots
-                if self.is_statevector:
-                    shots = None
+                if hasattr(self._backend.options, "shots"):
+                    shots = self._backend.options.shots
+                    if self.is_statevector:
+                        shots = None
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
             if isinstance(backend, str):
