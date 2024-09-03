@@ -77,6 +77,20 @@ class TestQNNRegressor:
         assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
         assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
 
+    def test_list_input(self, qnn_regressor, data):
+        """Test concerning the fit function with list y.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        qnn_regressor.fit(X.tolist(), y.tolist())
+        assert qnn_regressor._is_fitted
+        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+
     def test_fit_2out(self, qnn_regressor_2out, data):
         """Tests concerning the fit function of the QNNRegressor for 2 outputs.
 

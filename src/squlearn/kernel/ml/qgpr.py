@@ -121,6 +121,15 @@ class QGPR(BaseEstimator, RegressorMixin):
             self: object
             QuantumGaussianProcessRegressor class instance.
         """
+        X, y = self._validate_data(
+            X,
+            y,
+            multi_output=True,
+            y_numeric=True,
+            ensure_2d=True,
+            dtype="numeric",
+        )
+
         self.X_train = X
 
         if isinstance(self._quantum_kernel, str):
@@ -184,6 +193,8 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Covariance of joint predictive distribution a query points.
                 Only returned when `return_cov` is True.
         """
+
+        X = self._validate_data(X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")

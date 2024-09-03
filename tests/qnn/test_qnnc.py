@@ -74,6 +74,20 @@ class TestQNNClassifier:
         assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
         assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
 
+    def test_list_input(self, qnn_classifier, data):
+        """Test concerning the fit function with list y.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        qnn_classifier.fit(X.tolist(), y.tolist())
+        assert qnn_classifier._is_fitted
+        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
+
     def test_fit_2out(self, qnn_classifier_2out, data):
         """Tests concerning the fit function of the QNNClassifier with 2 outputs.
 
