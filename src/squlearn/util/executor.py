@@ -601,16 +601,20 @@ class Executor:
                 critical_error_message = e
 
             except Exception as e:
-                self._logger.info(
-                    f"Executor failed to run pennylane_execute because of unknown error!"
-                )
-                self._logger.info(f"Error message: {{}}".format(e))
-                self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
-                print("Executor failed to run pennylane_execute because of unknown error!")
-                print("Error message: {{}}".format(e))
-                print("Traceback: {{}}".format(traceback.format_exc()))
-                print("Execution will be restarted")
-                success = False
+                if repeat == self._max_jobs_retries-1:
+                    critical_error = True
+                    critical_error_message = e
+                else:
+                    self._logger.info(
+                        f"Executor failed to run pennylane_execute because of unknown error!"
+                    )
+                    self._logger.info("Error message: {}".format(str(e)))
+                    self._logger.info("Traceback: {}".format(str(traceback.format_exc())))
+                    print("Executor failed to run pennylane_execute because of unknown error!")
+                    print("Error message: {}".format(str(e)))
+                    print("Traceback: {}".format(str(traceback.format_exc())))
+                    print("Execution will be restarted")
+                    success = False
 
             if success:
                 break
