@@ -601,7 +601,7 @@ class Executor:
                 critical_error_message = e
 
             except Exception as e:
-                if repeat == self._max_jobs_retries-1:
+                if repeat == self._max_jobs_retries - 1:
                     critical_error = True
                     critical_error_message = e
                 else:
