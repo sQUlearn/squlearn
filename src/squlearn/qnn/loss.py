@@ -691,7 +691,7 @@ class ODELoss(LossBase):
                 df_biasdop = value_dict_floating["dfdop"][0]
                 value_dict_floating["dfdop"] -= df_biasdop
 
-            if self.order_of_ODE == 2:  
+            if self.order_of_ODE == 2:
                 df_biasdxdp = value_dict_floating["dfdxdp"][0]  # df_b/dp = df(x_0)/dp
                 value_dict_floating["dfdxdp"] -= df_biasdxdp  # df(x)/dp = df(x)/dp - df_b/dp
                 if self._opt_param_op:
