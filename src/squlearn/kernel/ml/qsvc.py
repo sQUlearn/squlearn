@@ -103,6 +103,31 @@ class QSVC(SVC):
         names.remove("coef0")
         return names
 
+    def fit(self, X, y):
+        """
+        Fit the QSVC model according to the given training data.
+
+        Args:
+            X (array-like, sparse matrix):  Training data of shape (n_samples, n_features)
+                                            or (n_samples, n_samples)
+                                            Training vectors, where `n_samples` is the number of samples
+                                            and `n_features` is the number of features.
+                                            For kernel="precomputed", the expected shape of X is
+                                            (n_samples, n_samples).
+
+            y (array-like): Lables with shape (n_samples,)
+
+            sample_weight (array-like): Weights of shape (n_samples,), default=None
+                                        Per-sample weights. Rescale C per sample. Higher weights
+                                        force the classifier to put more emphasis on these points.
+
+        Return:
+            Returns an instance of self.
+        """
+        if self.quantum_kernel.is_trainable:
+            self.quantum_kernel.run_optimization(X, y)
+        return super().fit(X, y)
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the QSVC class.

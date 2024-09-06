@@ -12,7 +12,6 @@ from sklearn.utils import column_or_1d
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
