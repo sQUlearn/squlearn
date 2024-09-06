@@ -498,16 +498,34 @@ class SquaredLoss(LossBase):
 
 
 class ODELoss(LossBase):
-    """Squared loss for regression of Ordinary Differential Equations (ODEs).
+    r"""Squared loss for regression of Ordinary Differential Equations (ODEs).
+
     Implements an ODE Loss based on Ref. [1].
 
     Args:
-        ODE_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential equation). Must be a sympy expression and ``symbols_involved_in_ODE`` must be provided.
-        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.  The list must be ordered as follows: ``[x, f, f_]`` where each element is a sympy symbol corresponding to the independent variable, the dependent variable, and the first derivative of the dependent variable, respectively.
-        initial_values (np.ndarray): Initial values of the ODE. The length of the array must match the order of the ODE. 
-        boundary_handling (str): Method for handling the boundary conditions. Options are "pinned", and "floating".
-            - ``pinned``:   An extra term is added to the loss function to enforce the initial values of the ODE. This term is pinned by the ``eta`` parameter. The lost function is given by: $L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2 $, $f(x) = \langle QNN(x, \theta) \rangle$.
-            - ``floating``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN function to be optimized. The lost function is given by: $L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = \langle QNN(x, \theta) \rangle$ + f_b$, with $f_b = \langle QNN(x_0, \theta) \rangle$ - f_0$.
+        ODE_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential
+                                     equation). Must be a sympy expression and
+                                     ``symbols_involved_in_ODE`` must be provided.
+        symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.
+                                        The list must be ordered as follows: ``[x, f, f_]``
+                                        where each element is a sympy symbol corresponding to
+                                        the independent variable, the dependent variable, and
+                                        the first derivative of the dependent variable,
+                                        respectively.
+        initial_values (np.ndarray): Initial values of the ODE. The length of the array
+                                     must match the order of the ODE.
+        boundary_handling (str): Method for handling the boundary conditions. 
+                                 Options are ``'pinned'``, and ``'floating'``:
+
+                                 - ``'pinned'``:   An extra term is added to the loss function to 
+                                   enforce the initial values of the ODE. This term is pinned by 
+                                   the ``eta`` parameter. The lost function is given by: 
+                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2 $, $f(x) = \langle QNN(x, \theta) \rangle`.
+                                 - ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is 
+                                   added to the trial QNN function to be optimized. 
+                                   The lost function is given by: 
+                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = \langle QNN(x, \theta) \rangle$ + f_b`, with :math:`f_b = \langle QNN(x_0, \theta) \rangle$ - f_0`.
+
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
 
     References

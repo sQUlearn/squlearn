@@ -10,49 +10,67 @@ from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
 
 class KyriienkoEncodingCircuit(EncodingCircuitBase):
     r"""
-    Collection of encoding circuits introduced by Kyriienko et al. [1], to solve differential equations: 
-        - ``chebyshev_tower`` encoding (Eq. 15), 
-        - ``chebyshev_sparse`` encoding (Eq. 14) 
-        - ``chebyshev_product`` encoding (Eq. 5).
-    Each encoding circuit is followed by a variational circuit as defined in reference [1], RZ-RX-RZ layers followed by entangling layers. Two arrangements are possible:
-    - ``HEA``: Hardware Efficient Ansatz, with consecutive entangling layers (See Figure 5a or Section IIIB in [1])
-    - ``ABA``: Alternating Block Ansatz with consecutive shifted entangling layers in each block (See Figure 5b or Section IIIB in [1])
+    Collection of encoding circuits introduced by Kyriienko et al. in reference [1].
 
-    **Example for 4 qubits, a 2 dimensional feature vector, 1 encoding layer, 2 variational layers, variational arrangement ABA and Chebyshev tower encoding:**
+    The following circuits are implemented:
+
+    * ``chebyshev_tower`` encoding (Eq. 15),
+    * ``chebyshev_sparse`` encoding (Eq. 14)
+    * ``chebyshev_product`` encoding (Eq. 5).
+
+    Each encoding circuit is followed by a variational circuit as defined in reference [1],
+    RZ-RX-RZ layers followed by entangling layers. Two arrangements are possible:
+
+    * ``HEA``: Hardware Efficient Ansatz, with consecutive entangling layers
+      (See Figure 5a or Section IIIB in [1])
+    * ``ABA``: Alternating Block Ansatz with consecutive shifted entangling layers in
+      each block (See Figure 5b or Section IIIB in [1])
+
+    **Example: 4 qubits, a 2 dimensional feature vector, 1 encoding layer, 2 variational layers, variational arrangement ABA and Chebyshev tower encoding:**
 
     .. plot::
 
         from squlearn.encoding_circuit import KyriienkoEncodingCircuit
-        pqc = KyriienkoEncodingCircuit(4, num_features=1, num_encoding_layers=1, num_variational_layers=2, variational_arrangement="ABA")
+        pqc = KyriienkoEncodingCircuit(4, 1, num_encoding_layers=1, num_variational_layers=2,
+                                       variational_arrangement="ABA")
         pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
 
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
-        encoding_style (str): Style of the encoding. Options are "chebyshev_tower" (default), "chebyshev_sparse" and "chebyshev_product"  (see reference [1], Equation  15, 14 and 5 respectively)
-        variational_arrangement (str): Arrangement of the variational layers. Options are ``HEA`` (default) and ``ABA`` (see reference [1], section IIIB)
+        encoding_style (str): Style of the encoding. Options are ``'chebyshev_tower'`` (default),
+                              ``'chebyshev_sparse'`` and ``'chebyshev_product'``
+                              (see reference [1], Equation  15, 14 and 5 respectively)
+        variational_arrangement (str): Arrangement of the variational layers. Options are
+                                       ``'HEA'`` (default) and ``'ABA'`` (see reference [1],
+                                       section IIIB)
         num_encoding_layers (int): Number of encoding layers (default: 1)
         num_variational_layers (int): Number of variational layers (default: 1)
-        rotation_gate (str): Rotation gate to use. Either ``rx``, ``ry`` or ``rz`` (default: ``ry`` as in reference [1])
+        rotation_gate (str): Rotation gate to use. Either ``'rx'``, ``'ry'`` or
+                             ``'rz'`` (default: ``'ry'`` as in reference [1])
         num_features (int): Dimension of the feature vector (default: 1)
-        block_width (int): Only necessary for arrangement `ABA`. Width (vertical) of each blocks for the ABA arrangement (default: 2), also refered as Nb in the paper. Must be a divisor of the number of qubits
-        block_depth (int): Only necessary for arrangement `ABA`. Depth (horizontal) of each blocks for the ABA arrangement (default: 1), also refered as b in the paper.
+        block_width (int): Only necessary for arrangement ``'ABA'``. Width (vertical) of each
+                           blocks for the ABA arrangement (default: 2), also refered as Nb in
+                           the paper. Must be a divisor of the number of qubits
+        block_depth (int): Only necessary for arrangement ``'ABA'``. Depth (horizontal) of each
+                           blocks for the ABA arrangement (default: 1), also refered as b in
+                           the paper.
 
     References
     ----------
-    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with differentiable quantum circuits",
-    `arXiv:2011.10395 (2021). <https://arxiv.org/pdf/2011.10395>`_
+    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with differentiable
+    quantum circuits", `arXiv:2011.10395 (2021). <https://arxiv.org/pdf/2011.10395>`_
     """
 
     def __init__(
         self,
         num_qubits: int,
+        num_features: int = 1,
         encoding_style: str = "chebyshev_tower",
         variational_arrangement: str = "HEA",
         num_encoding_layers: int = 1,
         num_variational_layers: int = 1,
         rotation_gate: str = "ry",
-        num_features: int = 1,
         block_width: int = 2,
         block_depth: int = 1,
     ) -> None:
