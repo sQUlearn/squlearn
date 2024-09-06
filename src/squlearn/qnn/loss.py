@@ -514,17 +514,19 @@ class ODELoss(LossBase):
                                         respectively.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
                                      must match the order of the ODE.
-        boundary_handling (str): Method for handling the boundary conditions. 
+        boundary_handling (str): Method for handling the boundary conditions.
                                  Options are ``'pinned'``, and ``'floating'``:
 
-                                 - ``'pinned'``:   An extra term is added to the loss function to 
-                                   enforce the initial values of the ODE. This term is pinned by 
-                                   the ``eta`` parameter. The lost function is given by: 
-                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2 $, $f(x) = \langle QNN(x, \theta) \rangle`.
-                                 - ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is 
-                                   added to the trial QNN function to be optimized. 
-                                   The lost function is given by: 
-                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = \langle QNN(x, \theta) \rangle$ + f_b`, with :math:`f_b = \langle QNN(x_0, \theta) \rangle$ - f_0`.
+                                 * ``'pinned'``:   An extra term is added to the loss function to
+                                   enforce the initial values of the ODE. This term is pinned by
+                                   the ``eta`` parameter. The lost function is given by:
+                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
+                                   with :math:`f(x) = QNN(x, \theta)`.
+                                 * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is
+                                   added to the trial QNN function to be optimized.
+                                   The lost function is given by:
+                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
+                                   with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
 
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
 
@@ -661,8 +663,8 @@ class ODELoss(LossBase):
         """
         Converts the value_dict_floating to a floating boundary ansatz by shifting the output values by a bias term that includes the initial values of the ODE.
 
-        If 1rst order ODE: f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f'(x_0)
-        If 2nd order ODE:  f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f_b' and f''(x) = f''(x) - f''(x_0)
+        If 1rst order ODE: :math:`f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f'(x_0)`
+        If 2nd order ODE: :math:`f(x) = f(x) - f_b, with f_b = f(x_0) - f_0 and f'(x) = f'(x) - f_b' and f''(x) = f''(x) - f''(x_0)`
 
         Args:
             value_dict (dict): Contains calculated values of the model
@@ -676,7 +678,7 @@ class ODELoss(LossBase):
         f_bias = value_dict_floating["f"][0] - self.initial_values[0]  # f_b = f(x_0) - f_0
         value_dict_floating["f"] -= f_bias  # f(x) = f(x) - f_b
 
-        if self.order_of_ODE == 2:  
+        if self.order_of_ODE == 2:
             f_bias = (
                 value_dict_floating["dfdx"][0] - self.initial_values[1]
             )  # f_b = f'(x_0) - f_0'
@@ -770,6 +772,7 @@ class ODELoss(LossBase):
 
         .. math::
             \begin{align}
+                
                 \pdv{\mathcal{L}_{\vec{\theta}}}{\theta_i} &=  \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \pdv{}{\theta_i} \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  + 2 \eta(f_{\vec{\theta}}(0)-u_0) \eval{\pdv{f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \eval{\pdv{\dot f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} \\
                 &= \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \left( \pdv{F_j}{f_{\vec{\theta}}}\pdv{f_{\vec{\theta}}}{\theta_i}
                 +  \pdv{F_j}{\dot f_{\vec{\theta}}}\pdv{\dot f_{\vec{\theta}}}{\theta_i} +  \pdv{F_j}{\ddot f_{\vec{\theta}}}\pdv{\ddot f_{\vec{\theta}}}{\theta_i}\right) 
