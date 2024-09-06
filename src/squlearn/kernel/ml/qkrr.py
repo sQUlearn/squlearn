@@ -103,7 +103,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
+    def fit(self, X, y):
         """
         Fit the Quantum Kernel Ridge regression model.
 
@@ -113,10 +113,11 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            X (np.ndarray) : Training data of shape (n_samples, n_features). If
-                quantum_kernel == "precomputed" this is instead a precomputed training kernel
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                If quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples).
-            y (np.ndarray) : Target values or labels of shape (n_samples,)
+            y: array-like of shape (n_samples,)
+                Target values or labels
 
         Return:
             Returns an instance of self.
