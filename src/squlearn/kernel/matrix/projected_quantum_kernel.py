@@ -498,7 +498,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         )
                     )
 
-            self._initialized = True
+            self._is_initialized = True
 
     @property
     def num_features(self) -> int:
@@ -711,9 +711,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             Dictionary with hyper-parameters and values.
         """
 
-        # make sure the lowlevel qnn is initialized
-        self.__initialize_lowlevel_qnn()
-
         params = super().get_params(deep=False)
         params.update(self._outer_kernel.get_params())
         params["measurement"] = self._measurement_input
@@ -893,14 +890,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._outer_kernel = outer_kernel
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
-
-    def __initialize_lowlevel_qnn(self):
-        self._qnn = LowLevelQNN(
-            self._encoding_circuit,
-            self._measurement,
-            self._executor,
-            result_caching=self._caching,
-        )
 
     def __check_num_params(self):
         """Check if the number of parameters is correct"""

@@ -157,7 +157,7 @@ class FidelityKernel(KernelMatrixBase):
             else:
                 raise RuntimeError("Invalid quantum framework!")
 
-            self._initialized = True
+            self._is_initialized = True
 
     def get_params(self, deep: bool = True) -> dict:
         """
