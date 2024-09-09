@@ -119,10 +119,10 @@ class QGPR(BaseEstimator, RegressorMixin):
             y: array-like of shape (n_samples,)
                 Target values.
 
-        Returns:
-            self: object
-            QuantumGaussianProcessRegressor class instance.
+        Return:
+            Returns an instance of self.
         """
+
         X, y = self._validate_data(
             X,
             y,
@@ -140,6 +140,11 @@ class QGPR(BaseEstimator, RegressorMixin):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
+
+            # check if quantum kernel is trainable
+            if self._quantum_kernel.is_trainable:
+                self._quantum_kernel.run_optimization(self.X_train, y)
+
             if self.full_regularization:
                 if self._quantum_kernel._regularization is not None:
                     warnings.warn(

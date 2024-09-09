@@ -12,7 +12,6 @@ from sklearn.utils import column_or_1d
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -325,8 +324,16 @@ class BaseQNN(BaseEstimator, ABC):
         return self
 
     @abstractmethod
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         raise NotImplementedError()
 
     def _initialize_lowlevel_qnn(self):

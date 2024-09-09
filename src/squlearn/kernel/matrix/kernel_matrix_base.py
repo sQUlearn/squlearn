@@ -1,12 +1,13 @@
-from typing import Union
 import numpy as np
+from typing import Union
+from abc import ABC, abstractmethod
 
 from .regularization import thresholding_regularization, tikhonov_regularization
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
 
-class KernelMatrixBase:
+class KernelMatrixBase(ABC):
     """
     Base class for defining quantum kernels.
 
@@ -40,6 +41,7 @@ class KernelMatrixBase:
         self._parameters = initial_parameters
         self._parameter_seed = parameter_seed
         self._regularization = regularization
+        self._is_trainable = False
 
         # ----- moved to 'evaluate' -----
         # if self._parameters is None:
@@ -87,6 +89,12 @@ class KernelMatrixBase:
         """The bounds of the features of the encoding circuit."""
         return self._encoding_circuit.feature_bounds
 
+    @property
+    def is_trainable(self) -> bool:
+        """Returns True if the encoding circuit has trainable parameters."""
+        return self._is_trainable
+
+    @abstractmethod
     def evaluate(self, x: np.ndarray, y: np.ndarray = None) -> np.ndarray:
         """
         Computes the quantum kernel matrix.
@@ -236,6 +244,7 @@ class KernelMatrixBase:
             params.update(self._encoding_circuit.get_params(deep=True))
         return params
 
+    @abstractmethod
     def set_params(self, **params):
         """
         Sets value of the fidelity kernel hyper-parameters.

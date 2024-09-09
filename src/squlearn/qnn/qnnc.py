@@ -275,7 +275,15 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         self._is_fitted = True
 
     def _fit(self, X, y, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
