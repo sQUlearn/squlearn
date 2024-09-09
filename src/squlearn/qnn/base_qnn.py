@@ -144,19 +144,13 @@ class BaseQNN(BaseEstimator, ABC):
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
 
-        # self._initialize_lowlevel_qnn()
-
-        # update_params = self.get_params().keys() & kwargs.keys()
-        # if update_params:
-        #     self.set_params(**{key: kwargs[key] for key in update_params})
-
         self._is_fitted = self.pretrained
-        self.kwargs = kwargs
+        self._qnn_params = kwargs
 
     def __update_params(self):
-        update_params = self.get_params().keys() & self.kwargs.keys()
+        update_params = self.get_params().keys() & self._qnn_params.keys()
         if update_params:
-            self.set_params(**{key: self.kwargs[key] for key in update_params})
+            self.set_params(**{key: self._qnn_params[key] for key in update_params})
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -222,8 +216,6 @@ class BaseQNN(BaseEstimator, ABC):
         """
         # Create a dictionary of all public parameters
         params = super().get_params(deep=False)
-
-        self._initialize_lowlevel_qnn()
 
         if deep:
             params.update(self._qnn.get_params(deep=True))

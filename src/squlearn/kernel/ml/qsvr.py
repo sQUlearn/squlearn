@@ -1,3 +1,4 @@
+import numpy as np
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 from sklearn.svm import SVR
@@ -77,25 +78,6 @@ class QSVR(SVR):
         self.quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
-        # ----- moved to 'fit' -----
-        # if isinstance(self.quantum_kernel, KernelMatrixBase):
-        #     # Apply kwargs to set_params of quantum kernel
-        #     quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-        #     if quantum_kernel_update_params:
-        #         self.quantum_kernel.set_params(
-        #             **{key: kwargs[key] for key in quantum_kernel_update_params}
-        #         )
-        #         # remove quantum_kernel_kwargs for SVR initialization
-        #         for key in quantum_kernel_update_params:
-        #             kwargs.pop(key, None)
-
-        #     super().__init__(
-        #         kernel=self.quantum_kernel.evaluate,
-        #         **kwargs,
-        #     )
-        # else:
-        #     super().__init__(kernel="precomputed", **kwargs)
-
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
@@ -105,14 +87,24 @@ class QSVR(SVR):
         names.remove("coef0")
         return names
 
-    def __init_kernel(self, X):
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
+    def __set_num_features(self, X) -> None:
+        if len(X.shape) == 1:
+            self.quantum_kernel.encoding_circuit.num_features = 1
+        else:
             self.quantum_kernel.encoding_circuit.num_features = X.shape[1]
+
+    def __initialize_kernel(self, X):
+        """Fully initializes the kernel and handels all the nessessary logic. This method should only be called in the fit method of the high level classes."""
+
+        if isinstance(self.quantum_kernel, KernelMatrixBase):
+            self.__set_num_features(X)
+            self.quantum_kernel._initialize_kernel()
 
             # Apply kwargs to set_params of quantum kernel
             quantum_kernel_update_params = (
                 self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
             )
+
             if quantum_kernel_update_params:
                 self.quantum_kernel.set_params(
                     **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
@@ -126,7 +118,7 @@ class QSVR(SVR):
                 **self._kernel_params,
             )
         else:
-            super().__init__(kernel="precomputed", **self.kwargs)
+            super().__init__(kernel="precomputed", **self._kernel_params)
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -149,7 +141,7 @@ class QSVR(SVR):
         Return:
             Returns an instance of self.
         """
-        self.__init_kernel(X)
+        self.__initialize_kernel(X)
 
         if self.quantum_kernel.is_trainable:
             self.quantum_kernel.run_optimization(X, y)

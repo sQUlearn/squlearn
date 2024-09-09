@@ -30,7 +30,7 @@ class EncodingCircuitBase:
         return self._num_features
 
     @num_features.setter
-    def num_features(self, value):
+    def num_features(self, value: int):
         self._num_features = value
 
     @property
