@@ -97,11 +97,22 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
+        self._kernel_params = kwargs
 
-        # Apply kwargs to set_params
-        update_params = self.get_params().keys() & kwargs.keys()
+    def __set_num_features(self, X) -> None:
+        if len(X.shape) == 1:
+            self._quantum_kernel.encoding_circuit.num_features = 1
+        else:
+            self._quantum_kernel.encoding_circuit.num_features = X.shape[1]
+
+    def __initialize_kernel(self, X) -> None:
+        self.__set_num_features(X)
+        self._quantum_kernel._initialize_kernel()
+
+        # Apply kernel_params (kwargs) to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
         if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})
 
     def fit(self, X, y):
         """
@@ -122,6 +133,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         Return:
             Returns an instance of self.
         """
+
+        self.__initialize_kernel(X)
 
         X, y = self._validate_data(
             X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
