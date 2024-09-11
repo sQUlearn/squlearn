@@ -133,7 +133,6 @@ class EncodingCircuitBase:
         """
         param = {}
         param["num_qubits"] = self._num_qubits
-        param["num_features"] = self._num_features
         return param
 
     def set_params(self, **params) -> EncodingCircuitBase:
