@@ -93,7 +93,7 @@ class QSVC(SVC):
         else:
             self._quantum_kernel.encoding_circuit.num_features = X.shape[1]
 
-    def __initialize_kernel(self, X):
+    def __initialize(self, X):
         """Fully initializes the kernel and handels all the nessessary logic. This method should only be called in the fit method of the high level classes."""
 
         if isinstance(self._quantum_kernel, KernelMatrixBase):
@@ -140,7 +140,7 @@ class QSVC(SVC):
         Return:
             Returns an instance of self.
         """
-        self.__initialize_kernel(X)
+        self.__initialize(X)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
