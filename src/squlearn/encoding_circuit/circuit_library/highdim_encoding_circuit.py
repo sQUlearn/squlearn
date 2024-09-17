@@ -53,13 +53,14 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
+        num_features: int = None,
         cycling: bool = True,
         cycling_type: str = "saw",
         num_layers: Union[None, int] = None,
         layer_type: str = "rows",
         entangling_gate: str = "iswap",
     ) -> None:
-        super().__init__(num_qubits)
+        super().__init__(num_qubits, num_features)
 
         self.cycling = cycling
         self.cycling_type = cycling_type

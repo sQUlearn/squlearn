@@ -31,8 +31,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     1273–1278 (2019). <https://doi.org/10.1038/s41567-019-0648-8>`_
     """
 
-    def __init__(self, num_qubits: int = 0, default: bool = False) -> None:
-        super().__init__(num_qubits)
+    def __init__(
+        self, num_qubits: int = 0, num_features: int = None, default: bool = False
+    ) -> None:
+        super().__init__(num_qubits, num_features)
         self._num_parameters = 0
         self._left_qubits = [i for i in range(num_qubits)]
         self._operations_list = []

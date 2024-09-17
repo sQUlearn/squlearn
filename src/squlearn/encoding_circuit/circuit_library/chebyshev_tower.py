@@ -46,6 +46,7 @@ class ChebyshevTower(EncodingCircuitBase):
         self,
         num_qubits: int,
         num_chebyshev: int,
+        num_features: int = None,
         alpha: float = 1.0,
         num_layers: int = 1,
         rotation_gate: str = "ry",
@@ -53,7 +54,7 @@ class ChebyshevTower(EncodingCircuitBase):
         arrangement: str = "block",
         nonlinearity: str = "arccos",
     ) -> None:
-        super().__init__(num_qubits)
+        super().__init__(num_qubits, num_features)
 
         self.num_chebyshev = num_chebyshev
         self.alpha = alpha

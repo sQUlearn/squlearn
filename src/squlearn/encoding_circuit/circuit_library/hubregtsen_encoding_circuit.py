@@ -41,10 +41,11 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         self,
         num_qubits: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = True,
         final_encoding=False,
     ) -> None:
-        super().__init__(num_qubits)
+        super().__init__(num_qubits, num_features)
 
         self.num_layers = num_layers
         self.closed = closed

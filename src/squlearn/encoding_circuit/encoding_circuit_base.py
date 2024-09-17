@@ -16,8 +16,9 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
+        self._num_features = num_features
 
     @property
     def num_qubits(self) -> int:

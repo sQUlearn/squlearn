@@ -38,10 +38,11 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         self,
         num_qubits: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = True,
         final_encoding=False,
     ) -> None:
-        super().__init__(num_qubits)
+        super().__init__(num_qubits, num_features)
 
         if self.num_qubits < 2:
             raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")

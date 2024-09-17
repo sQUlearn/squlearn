@@ -37,11 +37,12 @@ class ChebyshevRx(EncodingCircuitBase):
         self,
         num_qubits: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = False,
         alpha: float = 4.0,
         nonlinearity: str = "arccos",
     ) -> None:
-        super().__init__(num_qubits)
+        super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.alpha = alpha
