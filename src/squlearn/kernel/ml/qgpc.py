@@ -63,18 +63,6 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
-        # quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-        # if quantum_kernel_update_params:
-        #     self.quantum_kernel.set_params(
-        #         **{key: kwargs[key] for key in quantum_kernel_update_params}
-        #     )
-        #     # remove quantum_kernel_kwargs for SVR initialization
-        #     for key in quantum_kernel_update_params:
-        #         kwargs.pop(key, None)
-
-        # super().__init__(**kwargs)
-        # self.kernel = kernel_wrapper(self._quantum_kernel)
-
     @classmethod
     def _get_param_names(cls):
         names = GaussianProcessClassifier._get_param_names()
@@ -82,15 +70,9 @@ class QGPC(GaussianProcessClassifier):
         names.remove("warm_start")
         return names
 
-    def __set_num_features(self, X) -> None:
-        if len(X.shape) == 1:
-            self.quantum_kernel.encoding_circuit.num_features = 1
-        else:
-            self.quantum_kernel.encoding_circuit.num_features = X.shape[1]
+    def __initialize(self, X):
 
-    def __initialize_kernel(self, X):
-
-        self.__set_num_features(X)
+        self.quantum_kernel._set_num_features(X)
         self.quantum_kernel._initialize_kernel()
 
         quantum_kernel_update_params = (
@@ -120,9 +102,7 @@ class QGPC(GaussianProcessClassifier):
         Return:
             Returns an instance of self.
         """
-        self.__initialize_kernel(X)
-
-        print("outer kernel", self._quantum_kernel._outer_kernel)
+        self.__initialize(X)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)

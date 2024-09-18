@@ -44,12 +44,6 @@ class KernelMatrixBase(ABC):
         self._is_trainable = False
         self._is_initialized = False
 
-    def _initialize_kernel(self):
-        """
-        Fully initializes the kernel and handels all the nessessary logic. This method should only be called in the fit method of the high level classes.
-        """
-        self.__generate_initial_parameters()
-
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
         """
@@ -109,8 +103,6 @@ class KernelMatrixBase(ABC):
             Returns the quantum kernel matrix as 2D numpy array.
         """
 
-        # self.__generate_initial_parameters()
-
         raise NotImplementedError()
 
     def evaluate_pairwise(self, x: np.ndarray, y: np.ndarray = None) -> float:
@@ -157,7 +149,16 @@ class KernelMatrixBase(ABC):
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
 
-    def __generate_initial_parameters(self):
+    def _set_num_features(self, X: np.ndarray) -> None:
+        """Sets feature dimension of the encoding circuit"""
+        raise NotImplementedError
+
+    def _initialize_kernel(self) -> None:
+        """Fully initializes the kernel"""
+        self.__generate_initial_parameters()
+
+    def __generate_initial_parameters(self) -> None:
+        """Generates the initial parameters for the encoding circuit"""
         if self._parameters is None:
             self._parameters = self._encoding_circuit.generate_initial_parameters(
                 self._parameter_seed

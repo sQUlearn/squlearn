@@ -99,14 +99,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.dual_coeff_ = None
         self._kernel_params = kwargs
 
-    def __set_num_features(self, X) -> None:
-        if len(X.shape) == 1:
-            self._quantum_kernel.encoding_circuit.num_features = 1
-        else:
-            self._quantum_kernel.encoding_circuit.num_features = X.shape[1]
-
-    def __initialize_kernel(self, X) -> None:
-        self.__set_num_features(X)
+    def __initialize(self, X) -> None:
+        self._quantum_kernel._set_num_features(X)
         self._quantum_kernel._initialize_kernel()
 
         # Apply kernel_params (kwargs) to set_params
@@ -134,7 +128,7 @@ class QKRR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
 
-        self.__initialize_kernel(X)
+        self.__initialize(X)
 
         X, y = self._validate_data(
             X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
