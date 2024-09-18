@@ -119,15 +119,9 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         self._result_caching = result_caching
         self.result_container = {}
 
-        self._initialize_pennylane_circuit()
+        self._preprocess_observable()
 
-    def _initialize_pennylane_circuit(self):
-        """Function to initialize the PennyLane circuit function of the QNN"""
-
-        self._x = ParameterVector("x", self._pqc.num_features)
-        self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
-
+    def _preprocess_observable(self):
         # Pre-process the observable
         if isinstance(self._observable, ObservableBase):
             # Single output, single observable
@@ -156,6 +150,13 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                 ioff = ioff + obs.num_parameters
         else:
             raise ValueError("Observable must be of type ObservableBase or list")
+
+    def _initialize_pennylane_circuit(self):
+        """Function to initialize the PennyLane circuit function of the QNN"""
+
+        self._x = ParameterVector("x", self._pqc.num_features)
+        self._param = ParameterVector("param", self._pqc.num_parameters)
+        self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
 
         # PennyLane Circuit function of the QNN
         self._pennylane_circuit = PennyLaneCircuit(

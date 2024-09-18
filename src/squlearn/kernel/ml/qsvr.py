@@ -87,17 +87,11 @@ class QSVR(SVR):
         names.remove("coef0")
         return names
 
-    def __set_num_features(self, X) -> None:
-        if len(X.shape) == 1:
-            self._quantum_kernel.encoding_circuit.num_features = 1
-        else:
-            self._quantum_kernel.encoding_circuit.num_features = X.shape[1]
-
     def __initialize(self, X):
         """Fully initializes the kernel and handels all the nessessary logic. This method should only be called in the fit method of the high level classes."""
 
         if isinstance(self._quantum_kernel, KernelMatrixBase):
-            self.__set_num_features(X)
+            self._quantum_kernel._set_num_features(X)
             self._quantum_kernel._initialize_kernel()
 
             # Apply kernel_params (kwargs) to set_params of quantum kernel
