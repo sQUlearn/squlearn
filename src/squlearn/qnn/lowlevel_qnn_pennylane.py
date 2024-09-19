@@ -121,51 +121,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         self._preprocess_observable()
 
-    def _preprocess_observable(self):
-        # Pre-process the observable
-        if isinstance(self._observable, ObservableBase):
-            # Single output, single observable
-            self._multiple_output = False
-            self._num_operators = 1
-            self._num_parameters_observable = self._observable.num_parameters
-            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
-            self._qiskit_observable = self._observable.get_operator(self._param_obs)
-            self._qiskit_observable_squared = self._qiskit_observable.power(2).simplify()
-        elif isinstance(self._observable, list):
-            # Multiple outputs, multiple observables
-            self._multiple_output = True
-            self._num_operators = len(self._observable)
-            self._num_parameters_observable = 0
-            for obs in self._observable:
-                self._num_parameters_observable += obs.num_parameters
-            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
-            self._qiskit_observable = []
-            self._qiskit_observable_squared = []
-            ioff = 0
-            for obs in self._observable:
-                self._qiskit_observable.append(obs.get_operator(self._param_obs[ioff:]))
-                self._qiskit_observable_squared.append(
-                    self._qiskit_observable[-1].power(2).simplify()
-                )
-                ioff = ioff + obs.num_parameters
-        else:
-            raise ValueError("Observable must be of type ObservableBase or list")
-
-    def _initialize_pennylane_circuit(self):
-        """Function to initialize the PennyLane circuit function of the QNN"""
-
-        self._x = ParameterVector("x", self._pqc.num_features)
-        self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
-
-        # PennyLane Circuit function of the QNN
-        self._pennylane_circuit = PennyLaneCircuit(
-            self._qiskit_circuit, self._qiskit_observable, self._executor
-        )
-        # PennyLane Circuit function with a squared observable
-        self._pennylane_circuit_squared = PennyLaneCircuit(
-            self._qiskit_circuit, self._qiskit_observable_squared, self._executor
-        )
+        if self._pqc.num_features is not None:
+            self._initialize_pennylane_circuit()
 
     def set_params(self, **params) -> None:
         """Sets the hyper-parameters of the QNN
@@ -213,8 +170,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     dict_operator[key] = value
             if len(dict_operator) > 0:
                 self._observable.set_params(**dict_operator)
-
-        self._initialize_pennylane_circuit()
 
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
@@ -464,6 +419,52 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self.result_container[caching_tuple] = value_dict
 
         return value_dict
+
+    def _preprocess_observable(self) -> None:
+        # Pre-process the observable
+        if isinstance(self._observable, ObservableBase):
+            # Single output, single observable
+            self._multiple_output = False
+            self._num_operators = 1
+            self._num_parameters_observable = self._observable.num_parameters
+            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
+            self._qiskit_observable = self._observable.get_operator(self._param_obs)
+            self._qiskit_observable_squared = self._qiskit_observable.power(2).simplify()
+        elif isinstance(self._observable, list):
+            # Multiple outputs, multiple observables
+            self._multiple_output = True
+            self._num_operators = len(self._observable)
+            self._num_parameters_observable = 0
+            for obs in self._observable:
+                self._num_parameters_observable += obs.num_parameters
+            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
+            self._qiskit_observable = []
+            self._qiskit_observable_squared = []
+            ioff = 0
+            for obs in self._observable:
+                self._qiskit_observable.append(obs.get_operator(self._param_obs[ioff:]))
+                self._qiskit_observable_squared.append(
+                    self._qiskit_observable[-1].power(2).simplify()
+                )
+                ioff = ioff + obs.num_parameters
+        else:
+            raise ValueError("Observable must be of type ObservableBase or list")
+
+    def _initialize_pennylane_circuit(self) -> None:
+        """Function to initialize the PennyLane circuit function of the QNN"""
+
+        self._x = ParameterVector("x", self._pqc.num_features)
+        self._param = ParameterVector("param", self._pqc.num_parameters)
+        self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
+
+        # PennyLane Circuit function of the QNN
+        self._pennylane_circuit = PennyLaneCircuit(
+            self._qiskit_circuit, self._qiskit_observable, self._executor
+        )
+        # PennyLane Circuit function with a squared observable
+        self._pennylane_circuit_squared = PennyLaneCircuit(
+            self._qiskit_circuit, self._qiskit_observable_squared, self._executor
+        )
 
     def _evaluate_todo_single_x(
         self, todo_class: DirectEvaluation, x: np.array, param: np.array, param_obs: np.array

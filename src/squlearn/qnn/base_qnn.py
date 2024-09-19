@@ -147,11 +147,6 @@ class BaseQNN(BaseEstimator, ABC):
         self._is_fitted = self.pretrained
         self._qnn_params = kwargs
 
-    def __update_params(self):
-        update_params = self.get_params().keys() & self._qnn_params.keys()
-        if update_params:
-            self.set_params(**{key: self._qnn_params[key] for key in update_params})
-
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["_pbar"]
@@ -181,6 +176,16 @@ class BaseQNN(BaseEstimator, ABC):
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
 
+    @property
+    def num_features(self) -> int:
+        """Number of features of the PQC."""
+        return self.encoding_circuit.num_features
+
+    @num_features.setter
+    def num_features(self, value: int) -> None:
+        """Set the number of features of the PQC."""
+        self.encoding_circuit.num_features = value
+
     def fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 
@@ -195,7 +200,7 @@ class BaseQNN(BaseEstimator, ABC):
         """
 
         # set num_features and initialize the low level qnn
-        self.encoding_circuit.num_features = X.shape[1]
+        self.__set_num_features(X)
         self._initialize_lowlevel_qnn()
         self.__update_params()
 
@@ -328,7 +333,7 @@ class BaseQNN(BaseEstimator, ABC):
         """
         raise NotImplementedError()
 
-    def _initialize_lowlevel_qnn(self):
+    def _initialize_lowlevel_qnn(self) -> None:
         self._qnn = LowLevelQNN(
             self.encoding_circuit, self.operator, self.executor, result_caching=self.caching
         )
@@ -345,3 +350,12 @@ class BaseQNN(BaseEstimator, ABC):
         if y.ndim == 2 and y.shape[1] == 1:
             y = column_or_1d(y, warn=True)
         return X, y
+
+    def __update_params(self) -> None:
+        update_params = self.get_params().keys() & self._qnn_params.keys()
+        if update_params:
+            self.set_params(**{key: self._qnn_params[key] for key in update_params})
+
+    def __set_num_features(self, X: np.ndarray) -> None:
+        """Set the number of features of the PQC."""
+        self.num_features = X.shape[1]
