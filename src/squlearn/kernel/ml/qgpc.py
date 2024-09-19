@@ -3,6 +3,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 from squlearn.kernel.matrix.kernel_util import kernel_wrapper
 from sklearn.gaussian_process import GaussianProcessClassifier
+import numpy as np
 
 
 class QGPC(GaussianProcessClassifier):
@@ -69,25 +70,6 @@ class QGPC(GaussianProcessClassifier):
         names.remove("kernel")
         names.remove("warm_start")
         return names
-
-    def __initialize(self, X):
-
-        self.quantum_kernel._set_num_features(X)
-        self.quantum_kernel._initialize_kernel()
-
-        quantum_kernel_update_params = (
-            self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
-        )
-        if quantum_kernel_update_params:
-            self.quantum_kernel.set_params(
-                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
-            )
-            # remove quantum_kernel_kwargs for SVR initialization
-            for key in quantum_kernel_update_params:
-                self._kernel_params.pop(key, None)
-
-        super().__init__(**self._kernel_params)
-        self.kernel = kernel_wrapper(self._quantum_kernel)
 
     def fit(self, X, y):
         """Fit Gaussian process classification model.
@@ -170,3 +152,22 @@ class QGPC(GaussianProcessClassifier):
         """Sets quantum kernel"""
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
+
+    def __initialize(self, X: np.ndarray) -> None:
+        """Initialize the model with the known feature vector"""
+        self.quantum_kernel._set_num_features(X)
+        self.quantum_kernel._initialize_kernel()
+
+        quantum_kernel_update_params = (
+            self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
+        )
+        if quantum_kernel_update_params:
+            self.quantum_kernel.set_params(
+                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+            )
+            # remove quantum_kernel_kwargs for SVR initialization
+            for key in quantum_kernel_update_params:
+                self._kernel_params.pop(key, None)
+
+        super().__init__(**self._kernel_params)
+        self.kernel = kernel_wrapper(self._quantum_kernel)

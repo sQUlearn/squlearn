@@ -87,33 +87,6 @@ class QSVR(SVR):
         names.remove("coef0")
         return names
 
-    def __initialize(self, X):
-        """Fully initializes the kernel and handels all the nessessary logic. This method should only be called in the fit method of the high level classes."""
-
-        if isinstance(self._quantum_kernel, KernelMatrixBase):
-            self._quantum_kernel._set_num_features(X)
-            self._quantum_kernel._initialize_kernel()
-
-            # Apply kernel_params (kwargs) to set_params of quantum kernel
-            quantum_kernel_update_params = (
-                self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
-            )
-
-            if quantum_kernel_update_params:
-                self._quantum_kernel.set_params(
-                    **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
-                )
-                # remove quantum_kernel params (kwargs) for SVR initialization
-                for key in quantum_kernel_update_params:
-                    self._kernel_params.pop(key, None)
-
-            super().__init__(
-                kernel=self._quantum_kernel.evaluate,
-                **self._kernel_params,
-            )
-        else:
-            super().__init__(kernel="precomputed", **self._kernel_params)
-
     def fit(self, X, y, sample_weight=None):
         """
         Fit the QSVR model according to the given training data.
@@ -194,3 +167,30 @@ class QSVR(SVR):
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self
+
+    def __initialize(self, X: np.ndarray) -> None:
+        """Initialize the model with the known feature vector"""
+
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            self._quantum_kernel._set_num_features(X)
+            self._quantum_kernel._initialize_kernel()
+
+            # Apply kernel_params (kwargs) to set_params of quantum kernel
+            quantum_kernel_update_params = (
+                self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
+            )
+
+            if quantum_kernel_update_params:
+                self._quantum_kernel.set_params(
+                    **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+                )
+                # remove quantum_kernel params (kwargs) for SVR initialization
+                for key in quantum_kernel_update_params:
+                    self._kernel_params.pop(key, None)
+
+            super().__init__(
+                kernel=self._quantum_kernel.evaluate,
+                **self._kernel_params,
+            )
+        else:
+            super().__init__(kernel="precomputed", **self._kernel_params)

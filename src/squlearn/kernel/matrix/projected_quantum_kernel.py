@@ -498,11 +498,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         if self.num_features is None:
             self._set_num_features(x)
 
+        if not self._is_initialized:
+            self._initialize_kernel()
+
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = np.array([])
-
-        if self._parameters is None:
-            self._initialize_kernel()
 
         kernel_matrix = self._outer_kernel(self._qnn, self._parameters, x, y)
         if (self._regularization is not None) and (
@@ -839,14 +839,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
-    def _set_num_features(self, X) -> None:
+    def _set_num_features(self, X: np.ndarray) -> None:
         """Sets feature dimension of the encoding circuit"""
         if len(X.shape) == 1:
             self.num_features = 1
         else:
             self.num_features = X.shape[1]
 
-    def _set_up_qnn(self):
+    def _set_up_qnn(self) -> None:
         """Set-up of the QNN"""
         self._qnn = LowLevelQNN(
             self._encoding_circuit,
@@ -855,7 +855,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             result_caching=self._caching,
         )
 
-    def _set_up_measurement_operator(self):
+    def _set_up_measurement_operator(self) -> None:
         """Set-up of the observable"""
         if isinstance(self._measurement_input, str):
             self._measurement = []
@@ -873,7 +873,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 "Unknown type of measurement: {}".format(type(self._measurement_input))
             )
 
-    def _initialize_kernel(self):
+    def _initialize_kernel(self) -> None:
         """Initializes the quantum kernel."""
 
         if not self._is_initialized:

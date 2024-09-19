@@ -310,7 +310,7 @@ class FidelityKernel(KernelMatrixBase):
         else:
             self.num_features = X.shape[1]
 
-    def _initialize_kernel(self):
+    def _initialize_kernel(self) -> None:
         """Initializes the quantum kernel."""
 
         if not self._is_initialized:

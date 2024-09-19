@@ -103,15 +103,6 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         self._kernel_params = kwargs
 
-    def __initialize(self, X) -> None:
-        self._quantum_kernel._set_num_features(X)
-        self._quantum_kernel._initialize_kernel()
-
-        # Apply kwargs to set_params
-        update_params = self.get_params().keys() & self._kernel_params.keys()
-        if update_params:
-            self.set_params(**{key: self._kernel_params[key] for key in update_params})
-
     def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
         The fit method of the QGPR class just calculates the training kernel matrix.
@@ -324,3 +315,13 @@ class QGPR(BaseEstimator, RegressorMixin):
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self
+
+    def __initialize(self, X: np.ndarray) -> None:
+        """Initialize the model with the known feature vector"""
+        self._quantum_kernel._set_num_features(X)
+        self._quantum_kernel._initialize_kernel()
+
+        # Apply kwargs to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
+        if update_params:
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})
