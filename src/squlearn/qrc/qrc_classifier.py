@@ -26,33 +26,32 @@ class QRCClassifier(BaseQRC, ClassifierMixin):
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit to use for encoding the data
-                                                into the reservoir.
+            into the reservoir.
         executor (Executor): Executor instance
         ml_model (str): The classical machine learning model to use (default: linear), possible
-                        values are:
+            values are:
 
-                            * ``"mlp"`` for a multi-layer perceptron calsification model.
-                            * ``"linear"`` for a single layer perceptron.
-                            * ``"kernel"`` for a Support Vector Classifier with a RBF kernel.
+                * ``"mlp"`` for a multi-layer perceptron calsification model.
+                * ``"linear"`` for a single layer perceptron.
+                * ``"kernel"`` for a Support Vector Classifier with a RBF kernel.
 
-        ml_model_options (dict): The options for the machine learning model
-                                 (default options of the sklearn model are used if None)
+        ml_model_options (dict): The options for the machine learning model. Default options of the
+            sklearn model are used if None.
         operators (Union[ObservableBase, list[ObservableBase], str]): Strategy for generating the
-                                                                      operators used to measure the
-                                                                      quantum reservoir. Possible values are:
+            operators used to measure the quantum reservoir. Possible values are:
 
-                                                                        * ``"random_paulis"`` generates random Pauli operators (default).
-                                                                        * ``"single_paulis"`` generates single qubit Pauli operators.
+                * ``"random_paulis"`` generates random Pauli operators (default).
+                * ``"single_paulis"`` generates single qubit Pauli operators.
 
-                                                                      Alternatively, a list of ObservableBase objects can be provided.
+            Alternatively, a list of ObservableBase objects can be provided.
         num_operators (int): The number of random Pauli operators to generate for
-                             ``"operators = random_paulis"`` (default: 100).
+            ``"operators = random_paulis"`` (default: 100).
         operator_seed (int): The seed for the random operator generation for
-                             ``"operators = random_paulis"`` (default: 0).
-        param_ini (Union[np.ndarray, None]): The parameters for the encoding circuit (optional).
-        param_op_ini (Union[np.ndarray, None]): The initial parameters for the operators (optional).
-        parameter_seed (Union[int, None]): The seed for the initial parameter generation
-                                           (if no parameters are given).
+            ``"operators = random_paulis"`` (default: 0).
+        param_ini (Union[np.ndarray, None]): The parameters for the encoding circuit.
+        param_op_ini (Union[np.ndarray, None]): The initial parameters for the operators.
+        parameter_seed (Union[int, None]): The seed for the initial parameter generation if no
+            parameters are given.
         caching (bool): Whether to cache the results of the evaluated expectation values.
 
     See Also
