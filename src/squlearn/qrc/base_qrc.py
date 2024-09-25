@@ -240,34 +240,27 @@ class BaseQRC(BaseEstimator, ABC):
 
         if "ml_model" in params or "ml_model_options" in params:
             if "ml_model" in params:
-                self.ml_model = params["ml_model"]
-                params.pop("ml_model")
+                self.ml_model = params.pop("ml_model")
             if "ml_model_options" in params:
-                self.ml_model_options = params["ml_model_options"]
-                params.pop("ml_model_options")
+                self.ml_model_options = params.pop("ml_model_options")
             initialize_ml_model = True
 
         if "num_operators" in params or "operator_seed" in params or "operators" in params:
             if "num_operators" in params:
-                self.num_operators = params["num_operators"]
-                params.pop("num_operators")
+                self.num_operators = params.pop("num_operators")
             if "operator_seed" in params:
-                self.operator_seed = params["operator_seed"]
-                params.pop("operator_seed")
+                self.operator_seed = params.pop("operator_seed")
             if "operators" in params:
-                self.operators = params["operators"]
-                params.pop("operators")
+                self.operators = params.pop("operators")
             initialize_observables = True
             initialize_lowlevel_qnn = True
             initialize_ml_model = True
 
         if "param_ini" in params:
-            self.param_ini = params["param_ini"]
-            params.pop("param_ini")
+            self.param_ini = params.pop("param_ini")
 
         if "param_op_ini" in params:
-            self.param_op_ini = params["param_op_ini"]
-            params.pop("param_op_ini")
+            self.param_op_ini = params.pop("param_op_ini")
 
         if initialize_observables:
             self._initialize_observables()
@@ -291,8 +284,7 @@ class BaseQRC(BaseEstimator, ABC):
             self._initialize_ml_model()
 
         if "caching" in params:
-            self.caching = params["caching"]
-            params.pop("caching")
+            self.caching = params.pop("caching")
             self._qnn.result_caching = self.caching
 
         # Set encoding_circuit parameters
@@ -312,8 +304,7 @@ class BaseQRC(BaseEstimator, ABC):
                 self._initialize_parameters()
 
         if "parameter_seed" in params:
-            self.parameter_seed = params["parameter_seed"]
-            params.pop("parameter_seed")
+            self.parameter_seed = params.pop("parameter_seed")
             self._initialize_parameters()
 
         return self
