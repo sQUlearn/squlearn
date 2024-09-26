@@ -20,6 +20,7 @@ QML Regressors
    kernel.ml.QKRR
    kernel.ml.QGPR
    qnn.QNNRegressor
+   qrc.QRCRegressor
 
 
 QML Classifiers
@@ -35,7 +36,7 @@ QML Classifiers
    kernel.ml.QSVC
    kernel.ml.QGPC
    qnn.QNNClassifier
-
+   qrc.QRCClassifier
 
 Circuit Design
 ====================================
@@ -283,6 +284,7 @@ Base Classes
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
     qnn.loss.LossBase
+    qrc.base_qrc.BaseQRC
 
 
 

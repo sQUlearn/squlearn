@@ -439,7 +439,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         # Set-up of the QNN
         self._qnn = LowLevelQNN(
-            self._encoding_circuit, self._measurement, executor, result_caching=self._caching
+            self._encoding_circuit, self._measurement, executor, caching=self._caching
         )
 
         # Set-up of the outer kernel

@@ -324,7 +324,7 @@ class BaseQNN(BaseEstimator, ABC):
 
     def _initialize_lowlevel_qnn(self):
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self.operator, self.executor, result_caching=self.caching
+            self.encoding_circuit, self.operator, self.executor, caching=self.caching
         )
 
     def _validate_input(self, X, y, incremental, reset):
