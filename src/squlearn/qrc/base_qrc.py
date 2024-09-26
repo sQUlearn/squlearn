@@ -3,6 +3,7 @@ from typing import Union, List
 from abc import abstractmethod, ABC
 
 from sklearn.base import BaseEstimator
+from sklearn.utils import column_or_1d
 from qiskit.quantum_info.random import random_pauli_list
 
 from ..observables.observable_base import ObservableBase
@@ -180,7 +181,7 @@ class BaseQRC(BaseEstimator, ABC):
     def _initialize_lowlevel_qnn(self) -> None:
         """Initialize the low-level QNN object."""
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self._operators, self.executor, result_caching=self.caching
+            self.encoding_circuit, self._operators, self.executor, caching=self.caching
         )
 
     @abstractmethod
@@ -217,10 +218,6 @@ class BaseQRC(BaseEstimator, ABC):
         Returns:
             BaseQRC: The modified QLEM model.
         """
-        initialize_observables = False
-        initialize_lowlevel_qnn = False
-        initialize_ml_model = False
-
         # Create dictionary of valid parameters
         valid_params = self.get_params().keys()
         for key in params.keys():
@@ -231,41 +228,35 @@ class BaseQRC(BaseEstimator, ABC):
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
 
-        if "num_qubits" in params:
-            self.encoding_circuit.set_params(num_qubits=params["num_qubits"])
-            params.pop("num_qubits")
-            initialize_observables = True
+        # Set parameters
+        self_params = params.keys() & self.get_params(deep=False).keys()
+        for key in self_params:
+            setattr(self, key, params[key])
+
+        initialize_lowlevel_qnn = False
+
+        # Set encoding_circuit parameters
+        ec_params = params.keys() & self.encoding_circuit.get_params(deep=True).keys()
+        if ec_params:
+            self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
             initialize_lowlevel_qnn = True
-            initialize_ml_model = True
 
-        if "ml_model" in params or "ml_model_options" in params:
-            if "ml_model" in params:
-                self.ml_model = params.pop("ml_model")
-            if "ml_model_options" in params:
-                self.ml_model_options = params.pop("ml_model_options")
-            initialize_ml_model = True
-
-        if "num_operators" in params or "operator_seed" in params or "operators" in params:
-            if "num_operators" in params:
-                self.num_operators = params.pop("num_operators")
-            if "operator_seed" in params:
-                self.operator_seed = params.pop("operator_seed")
-            if "operators" in params:
-                self.operators = params.pop("operators")
-            initialize_observables = True
+        # Set qnn parameters
+        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys() - ec_params
+        if qnn_params:
+            self._qnn.set_params(**{key: params[key] for key in qnn_params})
             initialize_lowlevel_qnn = True
-            initialize_ml_model = True
 
-        if "param_ini" in params:
-            self.param_ini = params.pop("param_ini")
-
-        if "param_op_ini" in params:
-            self.param_op_ini = params.pop("param_op_ini")
-
-        if initialize_observables:
+        if (
+            "num_qubits" in params
+            or "num_operators" in params
+            or "operator_seed" in params
+            or "operators" in params
+        ):
             self._initialize_observables()
             initialize_lowlevel_qnn = True
-            initialize_ml_model = True
+        if "ml_model" in params or "ml_model_options" in params:
+            self._initialize_ml_model()
 
         if initialize_lowlevel_qnn:
             self._initialize_lowlevel_qnn()
@@ -280,31 +271,7 @@ class BaseQRC(BaseEstimator, ABC):
 
             self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
-        if initialize_ml_model:
-            self._initialize_ml_model()
-
-        if "caching" in params:
-            self.caching = params.pop("caching")
-            self._qnn.result_caching = self.caching
-
-        # Set encoding_circuit parameters
-        ec_params = params.keys() & self.encoding_circuit.get_params(deep=True).keys()
-        if ec_params:
-            self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
-            if self.encoding_circuit.num_parameters != len(self.param_ini):
-                self._initialize_parameters()
-
-        # Set qnn parameters
-        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys()
-        if qnn_params:
-            self._qnn.set_params(**{key: params[key] for key in qnn_params})
-            if self._qnn.num_parameters != len(
-                self.param_ini
-            ) or self._qnn.num_parameters_observable != len(self.param_op_ini):
-                self._initialize_parameters()
-
         if "parameter_seed" in params:
-            self.parameter_seed = params.pop("parameter_seed")
             self._initialize_parameters()
 
         return self
