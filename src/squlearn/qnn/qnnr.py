@@ -90,6 +90,54 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         reg.fit(X_train, y_train)
         y_pred = reg.predict(X_test[:5])
 
+    **Differential Evolution Solver Example**
+
+    .. code-block::
+        import numpy as np
+        import sympy as sp
+        import matplotlib.pyplot as plt
+        from squlearn import Executor
+        from squlearn.encoding_circuit import KyriienkoEncodingCircuit
+        from squlearn.observables import SummedPaulis
+        from squlearn.qnn import QNNRegressor, ODELoss, get_lr_decay
+        from squlearn.optimizers import Adam
+
+
+        t, y, dydt, = sp.symbols("t y dydt")
+        eq = sp.cos(t)*y + dydt
+        initial_values = [1.0]
+
+        loss_ODE = ODELoss(
+            eq,
+            symbols_involved_in_ODE=[t, y, dydt],
+            initial_values=initial_values,
+            boundary_handling="pinned",
+        )
+
+        circuit = KyriienkoEncodingCircuit(
+            num_qubits=8,
+            encoding_style="chebyshev_tower",
+            variational_arrangement="HEA",
+            num_features=1,
+            num_encoding_layers=1,
+            num_variational_layers=3,
+        )
+        observable = SummedPaulis(8, include_identity=False)
+
+        param_observable = observable.generate_initial_parameters(seed=1)
+        param_initial = circuit.generate_initial_parameters(seed=1)
+
+        ode_regressor = QNNRegressor(
+            circuit,
+            observable,
+            Executor("pennylane"),
+            loss_ODE,
+            Adam(options={"maxiter": 130, "tol": 0.00009, "lr": get_lr_decay(0.05, 0.02, 130)}),
+            param_initial,
+            param_observable,
+            opt_param_op=False,
+        )
+
     Methods:
     --------
 

@@ -507,11 +507,11 @@ class ODELoss(LossBase):
                                      equation). Must be a sympy expression and
                                      ``symbols_involved_in_ODE`` must be provided.
         symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.
-                                        The list must be ordered as follows: ``[x, f, f_]``
+                                        The list must be ordered as follows: ``[x, f, dfdx]``
                                         where each element is a sympy symbol corresponding to
-                                        the independent variable, the dependent variable, and
-                                        the first derivative of the dependent variable,
-                                        respectively.
+                                        the independent variable (``x``), the dependent variable (``f``), and
+                                        the first derivative of the dependent variable (``dxfx``),
+                                        respectively. There are no requirements for the symbols beyond the correct order, for example, ``[t, y, dydt]``.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
                                      must match the order of the ODE.
         boundary_handling (str): Method for handling the boundary conditions.
@@ -529,6 +529,38 @@ class ODELoss(LossBase):
                                    with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
 
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
+
+    **Example**
+
+    1. Implements a loss function for the ODE $\cos(t) y + \frac{dy(t)}{dt} = 0$ with initial value $y(0) = 0.1$.
+
+    .. code-block::
+
+        t, y, dydt, = sp.symbols("t y dydt")
+        eq = sp.cos(t)*y + dydt
+        initial_values = [0.1]
+
+        loss_ODE = ODELoss(
+            eq,
+            symbols_involved_in_ODE=[t, y, dydt],
+            initial_values=initial_values,
+            boundary_handling="pinned",
+        )
+
+    2. Implements a loss function for the ODE $\left(df(x)/dx\right)^2 + f(x) = 0$ with initial values $f(0) = 0.5$.
+
+    .. code-block::
+
+        x, f, dfdx = sp.symbols("x f dfdx")
+        eq = dfdx**2 + f
+        initial_values = [0.5]
+
+        loss_ODE = ODELoss(
+            eq,
+            symbols_involved_in_ODE=[x, f, dfdx],
+            initial_values=initial_values,
+            boundary_handling="pinned",
+        )
 
     References
     ----------
@@ -645,13 +677,13 @@ class ODELoss(LossBase):
         """
         if self.order_of_ODE == 1:
             return (
-                loss_values["x"],
+                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
         elif self.order_of_ODE == 2:
             return (
-                loss_values["x"],
+                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
                 loss_values["dfdxdx"][:, 0, 0],
@@ -781,11 +813,11 @@ class ODELoss(LossBase):
 
         .. math::
             \begin{align}
-                
-                \pdv{\mathcal{L}_{\vec{\theta}}}{\theta_i} &=  \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \pdv{}{\theta_i} \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  + 2 \eta(f_{\vec{\theta}}(0)-u_0) \eval{\pdv{f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \eval{\pdv{\dot f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} \\
-                &= \sum_j^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \left( \pdv{F_j}{f_{\vec{\theta}}}\pdv{f_{\vec{\theta}}}{\theta_i}
-                +  \pdv{F_j}{\dot f_{\vec{\theta}}}\pdv{\dot f_{\vec{\theta}}}{\theta_i} +  \pdv{F_j}{\ddot f_{\vec{\theta}}}\pdv{\ddot f_{\vec{\theta}}}{\theta_i}\right) 
-                + 2 \eta(f_{\vec{\theta}}(0)-u_0) \eval{\pdv{f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \eval{\pdv{\dot f_{\vec{\theta}}(x)}{\theta_i}}_{x=0} 
+                \frac{\partial \mathcal{L}_{\vec{\theta}}}{\partial \theta_i} &=  \sum_{j=1}^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \frac{\partial}{\partial \theta_i} \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  \\
+                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} \\ 
+                &= \sum_{j=1}^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \left( \frac{\partial F_j}{\partial f_{\vec{\theta}}}\frac{\partial f_{\vec{\theta}}}{\partial \theta_i}
+                +  \frac{\partial F_j}{\partial \dot f_{\vec{\theta}}}\frac{\partial \dot f_{\vec{\theta}}}{\partial \theta_i} +  \frac{\partial F_j}{\partial \ddot f_{\vec{\theta}}}\frac{\partial \ddot f_{\vec{\theta}}}{\partial \theta_i}\right) \\
+                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0}
             \end{align}
 
 
