@@ -90,9 +90,11 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         reg.fit(X_train, y_train)
         y_pred = reg.predict(X_test[:5])
 
+        
     **Differential Evolution Solver Example**
 
     .. code-block::
+    
         import numpy as np
         import sympy as sp
         import matplotlib.pyplot as plt

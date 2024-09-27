@@ -677,13 +677,17 @@ class ODELoss(LossBase):
         """
         if self.order_of_ODE == 1:
             return (
-                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
+                loss_values["x"][
+                    :, 0
+                ],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
         elif self.order_of_ODE == 2:
             return (
-                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
+                loss_values["x"][
+                    :, 0
+                ],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
                 loss_values["dfdxdx"][:, 0, 0],
