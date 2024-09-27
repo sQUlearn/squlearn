@@ -504,31 +504,29 @@ class ODELoss(LossBase):
 
     Args:
         ODE_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential
-                                     equation). Must be a sympy expression and
-                                     ``symbols_involved_in_ODE`` must be provided.
+            equation). Must be a sympy expression and ``symbols_involved_in_ODE`` must be provided.
         symbols_involved_in_ODE (list): List of sympy symbols involved in the ODE functional.
-                                        The list must be ordered as follows: ``[x, f, dfdx]``
-                                        where each element is a sympy symbol corresponding to
-                                        the independent variable (``x``), the dependent variable (``f``), and
-                                        the first derivative of the dependent variable (``dxfx``),
-                                        respectively. There are no requirements for the symbols beyond the correct order, for example, ``[t, y, dydt]``.
+            The list must be ordered as follows: ``[x, f, dfdx]`` where each element is a sympy
+            symbol corresponding to the independent variable (``x``), the dependent variable
+            (``f``), and the first derivative of the dependent variable (``dxfx``), respectively.
+            There are no requirements for the symbols beyond the correct order, for example,
+            ``[t, y, dydt]``.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
-                                     must match the order of the ODE.
+            must match the order of the ODE.
         boundary_handling (str): Method for handling the boundary conditions.
-                                 Options are ``'pinned'``, and ``'floating'``:
+            Options are ``'pinned'``, and ``'floating'``:
 
-                                 * ``'pinned'``:   An extra term is added to the loss function to
-                                   enforce the initial values of the ODE. This term is pinned by
-                                   the ``eta`` parameter. The lost function is given by:
-                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
-                                   with :math:`f(x) = QNN(x, \theta)`.
-                                 * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is
-                                   added to the trial QNN function to be optimized.
-                                   The lost function is given by:
-                                   :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
-                                   with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
+            * ``'pinned'``:  An extra term is added to the loss function to enforce the initial 
+                             values of the ODE. This term is pinned by the ``eta`` parameter. The 
+                             ost function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
+                             with :math:`f(x) = QNN(x, \theta)`.
+            * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN
+                              function to be optimized. The lost function is given by:
+                              :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
+                              with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
 
-        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
+        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned"
+            boundary handling method.
 
     **Example**
 
