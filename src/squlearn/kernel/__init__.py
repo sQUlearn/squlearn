@@ -1,14 +1,14 @@
-from . import matrix, ml, optimization
+from . import matrix, ml, loss
 
-from .matrix import FidelityKernel, ProjectedQuantumKernel
+from .matrix import FidelityKernel, ProjectedQuantumKernel, KernelOptimizer
 from .ml import QKRR, QGPC, QGPR, QSVR, QSVC
 
 __all__ = [
     "matrix",
     "ml",
-    "optimization",
     "FidelityKernel",
     "ProjectedQuantumKernel",
+    "KernelOptimizer",
     "QKRR",
     "QGPC",
     "QGPR",
