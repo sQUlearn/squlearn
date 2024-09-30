@@ -12,7 +12,6 @@ from sklearn.utils import column_or_1d
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
@@ -182,14 +181,16 @@ class BaseQNN(BaseEstimator, ABC):
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
 
-    def fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 
         This method will reinitialize the models parameters and fit it to the provided data.
 
         Args:
-            X: Input data
-            y: Labels
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like of shape (n_samples,)
+                Labels
             weights: Weights for each data point
         """
         self._param = self.param_ini.copy()
@@ -309,13 +310,21 @@ class BaseQNN(BaseEstimator, ABC):
         return self
 
     @abstractmethod
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         raise NotImplementedError()
 
     def _initialize_lowlevel_qnn(self):
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self.operator, self.executor, result_caching=self.caching
+            self.encoding_circuit, self.operator, self.executor, caching=self.caching
         )
 
     def _validate_input(self, X, y, incremental, reset):

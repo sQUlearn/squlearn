@@ -103,7 +103,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
+    def fit(self, X, y):
         """
         Fit the Quantum Kernel Ridge regression model.
 
@@ -113,15 +113,16 @@ class QKRR(BaseEstimator, RegressorMixin):
         for providing numerical stability.
 
         Args:
-            X (np.ndarray) : Training data of shape (n_samples, n_features). If
-                quantum_kernel == "precomputed" this is instead a precomputed training kernel
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                If quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples).
-            y (np.ndarray) : Target values or labels of shape (n_samples,)
+            y: array-like of shape (n_samples,)
+                Target values or labels
 
-        Returns:
-            self :
-                Returns the instance itself.
+        Return:
+            Returns an instance of self.
         """
+
         X, y = self._validate_data(
             X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
         )
@@ -134,6 +135,10 @@ class QKRR(BaseEstimator, RegressorMixin):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            # check if quantum kernel is trainable
+            if self._quantum_kernel.is_trainable:
+                self._quantum_kernel.run_optimization(self.X_train, y)
+
             self.k_train = self._quantum_kernel.evaluate(x=self.X_train)  # set up kernel matrix
         else:
             raise ValueError(

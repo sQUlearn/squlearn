@@ -63,6 +63,10 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
 
         # Apply kwargs to set_params of quantum kernel
+
+        print("self.quantum_kernel", self.quantum_kernel)
+        print("kwargs", kwargs)
+
         quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
         if quantum_kernel_update_params:
             self.quantum_kernel.set_params(
@@ -81,6 +85,23 @@ class QGPC(GaussianProcessClassifier):
         names.remove("kernel")
         names.remove("warm_start")
         return names
+
+    def fit(self, X, y):
+        """Fit Gaussian process classification model.
+
+        Args:
+            X : array-like of shape (n_samples, n_features) or list of object
+                Feature vectors or other representations of training data.
+
+            y : array-like of shape (n_samples,)
+                Target values, must be binary.
+
+        Return:
+            Returns an instance of self.
+        """
+        if self._quantum_kernel.is_trainable:
+            self._quantum_kernel.run_optimization(X, y)
+        return super().fit(X, y)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -103,6 +124,7 @@ class QGPC(GaussianProcessClassifier):
         params["quantum_kernel"] = self._quantum_kernel
         if deep:
             params.update(self._quantum_kernel.get_params(deep=deep))
+
         return params
 
     def set_params(self, **params) -> None:
