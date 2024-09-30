@@ -21,14 +21,15 @@ from ..util import Executor
 class QNNRegressor(BaseQNN, RegressorMixin):
     """Quantum Neural Network for Regression.
 
-    This class implements a quantum neural network (QNN) for regression with a scikit-learn interface.
-    A parameterized quantum circuit and a possibly parameterized operator are used as a ML model.
-    They are trained according to a specified loss using the specified optimizer. Mini-batch
-    training is possible.
+    This class implements a quantum neural network (QNN) for regression with a scikit-learn
+    interface. A parameterized quantum circuit and a possibly parameterized operator are used as
+    a ML model. They are trained according to a specified loss using the specified optimizer.
+    Mini-batch training is possible.
 
     Args:
-        encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the QNN.
-            For a list of encoding circuits, check this list of implemented :ref:`encoding_circuits`.
+        encoding_circuit (EncodingCircuitBase): The parameterized quantum circuit (PQC) part of the
+            QNN. For a list of encoding circuits, check this list of implemented
+            :ref:`encoding_circuits`.
         operator (Union[ObservableBase, list[ObservableBase]]): The operator that
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
@@ -89,6 +90,56 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         )
         reg.fit(X_train, y_train)
         y_pred = reg.predict(X_test[:5])
+
+
+    **Differential Evolution Solver Example**
+
+    .. code-block::
+
+        import numpy as np
+        import sympy as sp
+        import matplotlib.pyplot as plt
+        from squlearn import Executor
+        from squlearn.encoding_circuit import KyriienkoEncodingCircuit
+        from squlearn.observables import SummedPaulis
+        from squlearn.qnn import QNNRegressor, ODELoss, get_lr_decay
+        from squlearn.optimizers import Adam
+
+
+        t, y, dydt, = sp.symbols("t y dydt")
+        eq = 20 * sp.exp(-20 * t * 0.1) * sp.sin(20 * t) + 20 * 0.1 * y  + dydt
+        initial_values = [1.0]
+
+        loss_ODE = ODELoss(
+            eq,
+            symbols_involved_in_ODE=[t, y, dydt],
+            initial_values=initial_values,
+            boundary_handling="pinned",
+        )
+
+        circuit = KyriienkoEncodingCircuit(
+            num_qubits=6,
+            encoding_style="chebyshev_tower",
+            variational_arrangement="HEA",
+            num_features=1,
+            num_encoding_layers=1,
+            num_variational_layers=5,
+        )
+        observable = SummedPaulis(6, include_identity=False)
+
+        param_observable = observable.generate_initial_parameters(seed=1)
+        param_initial = circuit.generate_initial_parameters(seed=1)
+
+        ode_regressor = QNNRegressor(
+            circuit,
+            observable,
+            Executor("pennylane"),
+            loss_ODE,
+            Adam(options={"maxiter": 150, "tol": 0.00009, "lr": get_lr_decay(0.05, 0.02, 150)}),
+            param_initial,
+            param_observable,
+            opt_param_op=False,
+        )
 
     Methods:
     --------
