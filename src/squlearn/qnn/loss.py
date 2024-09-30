@@ -513,17 +513,17 @@ class ODELoss(LossBase):
             ``[t, y, dydt]``.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
             must match the order of the ODE.
-        boundary_handling (str): Method for handling the boundary conditions.
-            Options are ``'pinned'``, and ``'floating'``:
+        boundary_handling (str): Method for handling the boundary conditions. Options are
+            ``'pinned'``, and ``'floating'``:
 
-            * ``'pinned'``:  An extra term is added to the loss function to enforce the initial 
-                             values of the ODE. This term is pinned by the ``eta`` parameter. The 
-                             ost function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
-                             with :math:`f(x) = QNN(x, \theta)`.
-            * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN
-                              function to be optimized. The lost function is given by:
-                              :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
-                              with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
+                * ``'pinned'``:  An extra term is added to the loss function to enforce the initial
+                  values of the ODE. This term is pinned by the ``eta`` parameter. The
+                  loss function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
+                  with :math:`f(x) = QNN(x, \theta)`.
+                * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN
+                  function to be optimized. The loss function is given by:
+                  :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
+                  with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
 
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned"
             boundary handling method.
