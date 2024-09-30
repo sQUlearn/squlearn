@@ -65,10 +65,12 @@ Encoding Circuits
    encoding_circuit.MultiControlEncodingCircuit
    encoding_circuit.ChebyshevRx
    encoding_circuit.ParamZFeatureMap
+   encoding_circuit.KyriienkoEncodingCircuit
    encoding_circuit.QiskitEncodingCircuit
    encoding_circuit.QCNNEncodingCircuit
    encoding_circuit.RandomLayeredEncodingCircuit
    encoding_circuit.RandomEncodingCircuit
+
 
 Encoding Circuit Tools
 ------------------------------------
@@ -200,6 +202,7 @@ QNN Core
    qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
+   qnn.loss.ODELoss
    qnn.loss.ParameterRegularizationLoss
 
 Tools for training QNNs
