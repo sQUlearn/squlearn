@@ -106,7 +106,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
 
 
         t, y, dydt, = sp.symbols("t y dydt")
-        eq = sp.cos(t)*y + dydt
+        eq = 20 * sp.exp(-20 * t * 0.1) * sp.sin(20 * t) + 20 * 0.1 * y  + dydt
         initial_values = [1.0]
 
         loss_ODE = ODELoss(
@@ -117,14 +117,14 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         )
 
         circuit = KyriienkoEncodingCircuit(
-            num_qubits=8,
+            num_qubits=6,
             encoding_style="chebyshev_tower",
             variational_arrangement="HEA",
             num_features=1,
             num_encoding_layers=1,
-            num_variational_layers=3,
+            num_variational_layers=5,
         )
-        observable = SummedPaulis(8, include_identity=False)
+        observable = SummedPaulis(6, include_identity=False)
 
         param_observable = observable.generate_initial_parameters(seed=1)
         param_initial = circuit.generate_initial_parameters(seed=1)
@@ -134,7 +134,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             observable,
             Executor("pennylane"),
             loss_ODE,
-            Adam(options={"maxiter": 130, "tol": 0.00009, "lr": get_lr_decay(0.05, 0.02, 130)}),
+            Adam(options={"maxiter": 150, "tol": 0.00009, "lr": get_lr_decay(0.05, 0.02, 150)}),
             param_initial,
             param_observable,
             opt_param_op=False,

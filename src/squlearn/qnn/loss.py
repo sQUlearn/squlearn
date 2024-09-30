@@ -514,7 +514,7 @@ class ODELoss(LossBase):
                                         respectively. There are no requirements for the symbols beyond the correct order, for example, ``[t, y, dydt]``.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
                                      must match the order of the ODE.
-        boundary_handling (str): Method for handling the boundary conditions.
+        boundary_handling (str, default = ``'pinned'``): Method for handling the boundary conditions.
                                  Options are ``'pinned'``, and ``'floating'``:
 
                                  * ``'pinned'``:   An extra term is added to the loss function to
@@ -528,7 +528,7 @@ class ODELoss(LossBase):
                                    :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
                                    with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
 
-        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
+        eta (float, default = 1.0): Weight for the initial values of the ODE in the loss function for the "pinned" boundary handling method.
 
     **Example**
 
@@ -547,19 +547,20 @@ class ODELoss(LossBase):
             boundary_handling="pinned",
         )
 
-    2. Implements a loss function for the ODE $\left(df(x)/dx\right)^2 + f(x) = 0$ with initial values $f(0) = 0.5$.
+    2. Implements a loss function for the ODE $\left(df(x)/dx\right) - cos(f(x)) = 0$ with initial values $f(0) = 0.$.
 
     .. code-block::
 
         x, f, dfdx = sp.symbols("x f dfdx")
-        eq = dfdx**2 + f
-        initial_values = [0.5]
+        eq = dfdx - sp.cos(f)
+        initial_values = [0]
 
         loss_ODE = ODELoss(
             eq,
             symbols_involved_in_ODE=[x, f, dfdx],
             initial_values=initial_values,
             boundary_handling="pinned",
+            eta=1.2,
         )
 
     References
