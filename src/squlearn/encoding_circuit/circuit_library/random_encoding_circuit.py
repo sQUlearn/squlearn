@@ -74,7 +74,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     Parameterized gates can have different randomly picked encodings for the features and
     parameters.
 
-    The probabilites for picking certain gates and encodings can be adjusted with the
+    The weights for picking certain gates and encodings can be adjusted with the
     ``gate_weights`` and ``encoding_weights`` dictionaries.
     Default values are set in the ``default_gate_weights`` and ``default_encoding_weights``
     dictionaries. In the default values, the parameterized gates are more likely to be drawn.

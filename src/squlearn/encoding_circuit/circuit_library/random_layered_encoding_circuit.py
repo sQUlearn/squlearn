@@ -62,7 +62,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
 
     def _generate_circuit_string(self) -> str:
         """Generates a random Layered encoding circuit string."""
-        actions = [
+        gates = [
             "H",
             "X",
             "Y",
@@ -112,13 +112,13 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         ]
 
         random.seed(self.seed)
-        gates_with_x = [action for action in actions if "(x)" in action]
+        gates_with_x = [action for action in gates if "(x)" in action]
         weights = [
             self.feature_probability if "(x)" in action else 1 - self.feature_probability
-            for action in actions
+            for action in gates
         ]
         num_layers = random.randint(self.min_num_layers, self.max_num_layers)
-        layers = random.choices(actions, k=num_layers, weights=weights)
+        layers = random.choices(gates, k=num_layers, weights=weights)
 
         min_x = (self.num_features - 1) // self.num_qubits + 1
         if min_x > self.min_num_layers:
