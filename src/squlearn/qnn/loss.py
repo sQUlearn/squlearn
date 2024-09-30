@@ -588,7 +588,7 @@ class ODELoss(LossBase):
         self._verify_size_of_ivp_with_order_of_ODE(initial_values, symbols_involved_in_ODE)
         self._ODE_functional = self._create_QNN_ODE_loss_format(
             ODE_functional, symbols_involved_in_ODE
-        ) # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
+        )  # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
         self._ODE_functional_gradient_dp = self._create_QNN_ODE_gradient_format(
             ODE_functional,
             symbols_involved_in_ODE,
@@ -691,18 +691,14 @@ class ODELoss(LossBase):
         """
         if self.order_of_ODE == 1:
             return (
-                loss_values["x"][
-                    :, 0
-                ],  # For 1D problems (single variable ODEs), i.e.,
+                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e.,
                 #     loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
         elif self.order_of_ODE == 2:
             return (
-                loss_values["x"][
-                    :, 0
-                ],  # For 1D problems (single variable ODEs), i.e.,
+                loss_values["x"][:, 0],  # For 1D problems (single variable ODEs), i.e.,
                 #     loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
