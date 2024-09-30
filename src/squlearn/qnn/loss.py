@@ -401,7 +401,8 @@ class SquaredLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+            same
 
         Returns:
             Loss value
@@ -426,7 +427,8 @@ class SquaredLoss(LossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
 
         Returns:
             Loss value
@@ -451,12 +453,14 @@ class SquaredLoss(LossBase):
         and ground_truth as
 
         .. math::
-           2\sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right) \frac{\partial f(x_i)}{\partial p_j}
+           2\sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right)
+           \frac{\partial f(x_i)}{\partial p_j}
 
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
             multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
@@ -518,19 +522,22 @@ class ODELoss(LossBase):
 
                 * ``'pinned'``:  An extra term is added to the loss function to enforce the initial
                   values of the ODE. This term is pinned by the ``eta`` parameter. The
-                  loss function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
+                  loss function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f},
+                  f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
                   with :math:`f(x) = QNN(x, \theta)`.
-                * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial QNN
-                  function to be optimized. The loss function is given by:
-                  :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)$, $f(x) = QNN(x, \theta) $ + f_b`,
-                  with :math:`f_b =  QNN(x_0, \theta) $ - f_0`.
+                * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial
+                  QNN function to be optimized. The loss function is given by:
+                  :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)`,
+                  with :math:`f(x) = QNN(x, \theta) + f_b`, and
+                  :math:`f_b =  QNN(x_0, \theta) - f_0`.
 
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned"
             boundary handling method.
 
     **Example**
 
-    1. Implements a loss function for the ODE $\cos(t) y + \frac{dy(t)}{dt} = 0$ with initial value $y(0) = 0.1$.
+    1. Implements a loss function for the ODE :math:`\cos(t) y + \frac{dy(t)}{dt} = 0` with
+    initial value :math:`y(0) = 0.1`.
 
     .. code-block::
 
@@ -545,24 +552,27 @@ class ODELoss(LossBase):
             boundary_handling="pinned",
         )
 
-    2. Implements a loss function for the ODE $\left(df(x)/dx\right)^2 + f(x) = 0$ with initial values $f(0) = 0.5$.
+    2. Implements a loss function for the ODE :math:`\left(df(x)/dx\right) - cos(f(x)) = 0`
+       with initial values :math:`f(0) = 0.`.
 
     .. code-block::
 
         x, f, dfdx = sp.symbols("x f dfdx")
-        eq = dfdx**2 + f
-        initial_values = [0.5]
+        eq = dfdx - sp.cos(f)
+        initial_values = [0]
 
         loss_ODE = ODELoss(
             eq,
             symbols_involved_in_ODE=[x, f, dfdx],
             initial_values=initial_values,
             boundary_handling="pinned",
+            eta=1.2,
         )
 
     References
     ----------
-    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with differentiable quantum circuits",
+    [1]: O. Kyriienko et al., "Solving nonlinear differential equations with
+    differentiable quantum circuits",
     `arXiv:2011.10395 (2021). <https://arxiv.org/pdf/2011.10395>`_
     """
 
@@ -578,17 +588,19 @@ class ODELoss(LossBase):
         self._verify_size_of_ivp_with_order_of_ODE(initial_values, symbols_involved_in_ODE)
         self._ODE_functional = self._create_QNN_ODE_loss_format(
             ODE_functional, symbols_involved_in_ODE
-        )  # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
+        ) # F[x, f, f_, f__] returns the value of the ODE functional shape: (n_samples, n_outputs)
         self._ODE_functional_gradient_dp = self._create_QNN_ODE_gradient_format(
             ODE_functional,
             symbols_involved_in_ODE,
             "dfdp",
-        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE, n_samples, num_param)
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape:
+        #    (order_of_ODE, n_samples, num_param)
         self._ODE_functional_gradient_dop = self._create_QNN_ODE_gradient_format(
             ODE_functional,
             symbols_involved_in_ODE,
             "dfdop",
-        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape: (order_of_ODE+1, n_samples, num_param_op)
+        )  # (dF/df, dF/df_, dF/df__) returns the value of the ODE functional shape:
+        #    (order_of_ODE+1, n_samples, num_param_op)
         self.initial_values = initial_values
         self.order_of_ODE = (
             len(symbols_involved_in_ODE) - 2
@@ -651,18 +663,22 @@ class ODELoss(LossBase):
         order_of_ODE = len(symbols_involved_in_ODE) - 2
         if order_of_ODE != len(initial_values):
             raise ValueError(
-                f"Initial values must have the same length as the order of the ODE. Order of ODE: {len(symbols_involved_in_ODE)-2}, Length of initial values: {len(initial_values)}"
+                f"Initial values must have the same length as the order of the ODE. Order of ODE:"
+                f"{len(symbols_involved_in_ODE)-2},"
+                f"Length of initial values: {len(initial_values)}"
             )
         elif order_of_ODE == 2:
             print(
-                "WARNING: 2nd order DEs differentiate the QNN loss function by calculating the second derivative. This can be computationally expensive and inneficient. An alternative is to set-up coupled 1rst order DEs (currently not implemented)"
+                "WARNING: 2nd order DEs differentiate the QNN loss function by calculating the"
+                " second derivative. This can be computationally expensive and inneficient."
+                " An alternative is to set-up coupled 1rst order DEs (currently not implemented)"
             )
         elif order_of_ODE > 2:
             raise ValueError("Currently, only 1rst and 2nd order ODEs are supported")
 
-    def derivatives_in_array_format(self, loss_values):
+    def _derivatives_in_array_format(self, loss_values):
         """
-        Given a dictionary of loss_values, returns the values in the format of the QNN tuple derivatives
+        Given a dictionary of loss_values, returns the values as tuples
 
         Args:
             loss_values (dict): Contains calculated values of the model
@@ -677,7 +693,8 @@ class ODELoss(LossBase):
             return (
                 loss_values["x"][
                     :, 0
-                ],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
+                ],  # For 1D problems (single variable ODEs), i.e.,
+                #     loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
             )
@@ -685,7 +702,8 @@ class ODELoss(LossBase):
             return (
                 loss_values["x"][
                     :, 0
-                ],  # For 1D problems (single variable ODEs), i.e., loss_values["x"].shape = (n_samples, 1)
+                ],  # For 1D problems (single variable ODEs), i.e.,
+                #     loss_values["x"].shape = (n_samples, 1)
                 loss_values["f"],
                 loss_values["dfdx"][:, 0],
                 loss_values["dfdxdx"][:, 0, 0],
@@ -752,7 +770,7 @@ class ODELoss(LossBase):
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            ground_truth (np.ndarray): The true values :math:`f_{ref}\left(x_i\right)`
             weights (np.ndarray): Weight for each data point, if None all data points
                                   count the same
 
@@ -801,7 +819,8 @@ class ODELoss(LossBase):
                     np.multiply(
                         np.square(self._ODE_functional(value_dict) - ground_truth), weights
                     )
-                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, n_outputs)
+                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2,
+                #    shape (n_samples, n_outputs)
             # print(functional_loss + initial_value_loss_f + initial_value_loss_df)
             return functional_loss + initial_value_loss_f + initial_value_loss_df
 
@@ -815,19 +834,30 @@ class ODELoss(LossBase):
 
         .. math::
             \begin{align}
-                \frac{\partial \mathcal{L}_{\vec{\theta}}}{\partial \theta_i} &=  \sum_{j=1}^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \frac{\partial}{\partial \theta_i} \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  \\
-                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} \\ 
-                &= \sum_{j=1}^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j\right) \left( \frac{\partial F_j}{\partial f_{\vec{\theta}}}\frac{\partial f_{\vec{\theta}}}{\partial \theta_i}
-                +  \frac{\partial F_j}{\partial \dot f_{\vec{\theta}}}\frac{\partial \dot f_{\vec{\theta}}}{\partial \theta_i} +  \frac{\partial F_j}{\partial \ddot f_{\vec{\theta}}}\frac{\partial \ddot f_{\vec{\theta}}}{\partial \theta_i}\right) \\
-                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0) \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0}
+                \frac{\partial \mathcal{L}_{\vec{\theta}}}{\partial \theta_i} &=  \sum_{j=1}^N 2
+                \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j
+                \right) \frac{\partial}{\partial \theta_i} \left(F[ \ddot f_{\vec{\theta}},
+                \dot f_{\vec{\theta}}, f_{\vec{\theta}}, x]_j \right)  \\
+                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}
+                {\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0)
+                \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0} \\
+                &= \sum_{j=1}^N 2 \left(F[ \ddot f_{\vec{\theta}},  \dot f_{\vec{\theta}},
+                f_{\vec{\theta}}, x]_j\right) \left( \frac{\partial F_j}{\partial f_{\vec{\theta}}}
+                \frac{\partial f_{\vec{\theta}}}{\partial \theta_i}
+                +  \frac{\partial F_j}{\partial \dot f_{\vec{\theta}}}\frac{\partial \dot
+                f_{\vec{\theta}}}{\partial \theta_i} +  \frac{\partial F_j}{\partial \ddot
+                f_{\vec{\theta}}}\frac{\partial \ddot f_{\vec{\theta}}}{\partial \theta_i}\right)\\
+                &\quad + 2 \eta(f_{\vec{\theta}}(0)-u_0) \left. \frac{\partial f_{\vec{\theta}}(x)}
+                {\partial \theta_i} \right|_{x=0} + 2 \eta(\dot f_{\vec{\theta}}(0)- \dot u_0)
+                \left. \frac{\partial \dot f_{\vec{\theta}}(x)}{\partial \theta_i} \right|_{x=0}
             \end{align}
 
 
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points 
-                                  count the same
+            weights (np.ndarray): Weight for each data point, if None all data points
+                count the same
             multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
@@ -968,7 +998,8 @@ class ODELoss(LossBase):
         if isinstance(ODE_functional, sp.Expr):  # if ode_question isinstance of sympy equation
             if symbols_involved_in_ODE is None:
                 raise ValueError(
-                    "symbols_involved_in_ODE must be provided if ODE_functional is a sympy equation"
+                    "symbols_involved_in_ODE must be provided"
+                    " if ODE_functional is a sympy equation"
                 )  # Perhaps this can be somehow improved by list(ODE_functional.free_symbols)
             _ODE_functional = lambda f_alpha_tensor: sp.lambdify(
                 symbols_involved_in_ODE, ODE_functional, "numpy"
@@ -976,7 +1007,7 @@ class ODELoss(LossBase):
         else:
             raise ValueError("Only sympy expressions are allowed")
 
-        return lambda value_dict: _ODE_functional(self.derivatives_in_array_format(value_dict))
+        return lambda value_dict: _ODE_functional(self._derivatives_in_array_format(value_dict))
 
     def _create_QNN_ODE_gradient_format(
         self,
@@ -1041,7 +1072,7 @@ class ODELoss(LossBase):
                                                  shape: (order_of_ODE+1, n_samples, n_params)
 
             """
-            dF_dpartial = _ODE_functional_gradient(self.derivatives_in_array_format(value_dict))
+            dF_dpartial = _ODE_functional_gradient(self._derivatives_in_array_format(value_dict))
             # [dFdf(n_samples, 1), dFdfdx(n_samples, 1)] or [1, dFdfdx(n_samples, 1)] or
             # [dFdf(n_samples, 1), 1] if one of the derivatives returns a scalar,
             # that is why we need to pile them up in the next step
