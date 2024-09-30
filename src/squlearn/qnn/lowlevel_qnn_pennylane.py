@@ -84,7 +84,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
-        result_caching : Caching of the result for each `x`, `param`, `param_op` combination
+        caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
 
     Attributes:
@@ -110,13 +110,13 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
-        result_caching: bool = True,
+        caching: bool = True,
     ) -> None:
 
         super().__init__(parameterized_quantum_circuit, observable, executor)
 
         # Initialize result cache
-        self._result_caching = result_caching
+        self.caching = caching
         self.result_container = {}
 
         self._initialize_pennylane_circuit()
@@ -341,7 +341,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
-        if self._result_caching == True:
+        if self.caching == True:
             caching_tuple = (
                 to_tuple(x),
                 to_tuple(param),
@@ -460,7 +460,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             value_dict[post.key] = post.evaluation_function(value_dict)
 
         # Store the updated dictionary for the theta value
-        if self._result_caching:
+        if self.caching:
             self.result_container[caching_tuple] = value_dict
 
         return value_dict
