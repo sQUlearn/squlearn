@@ -1807,18 +1807,12 @@ class Executor:
         """Returns True if the backend is a statevector simulator."""
 
         if self.quantum_framework == "qiskit":
-            return "statevector" in self.backend_name
+            return "statevector" in self.backend_name.lower()
         elif self.quantum_framework == "pennylane":
-
-            statevector_device = False
-            if "default.qubit" in self._pennylane_device.name:
-                statevector_device = True
-            if "default.clifford" in self._pennylane_device.name:
-                statevector_device = True
-            if "Lightning Qubit" in self._pennylane_device.name:
-                statevector_device = True
-
-            return statevector_device
+            return any(
+                name in self._pennylane_device.name.lower()
+                for name in ["default.qubit", "default.clifford", "lightning.qubit"]
+            )
         else:
             raise RuntimeError("Unknown quantum framework!")
 
