@@ -119,6 +119,9 @@ class QKRR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
 
+        X = np.array(X)
+        y = np.array(y)
+
         self.__initialize(X)
 
         X, y = self._validate_data(
