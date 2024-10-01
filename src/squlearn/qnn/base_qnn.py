@@ -334,7 +334,7 @@ class BaseQNN(BaseEstimator, ABC):
             self.encoding_circuit,
             self.operator,
             self.executor,
-            result_caching=self.caching,
+            caching=self.caching,
             primitive=self.primitive,
         )
 
