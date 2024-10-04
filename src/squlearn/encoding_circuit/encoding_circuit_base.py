@@ -16,9 +16,10 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int, num_features: int = None) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None, num_layers: int = None) -> None:
         self._num_qubits = num_qubits
         self._num_features = num_features
+        self._num_layers = num_layers
 
     @property
     def num_qubits(self) -> int:
@@ -33,6 +34,13 @@ class EncodingCircuitBase:
     @num_features.setter
     def num_features(self, value: int):
         self._num_features = value
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""  #
+        if self._num_features is None:
+            return 1
+        return self._num_layers
 
     @property
     def num_parameters(self) -> int:
@@ -88,6 +96,9 @@ class EncodingCircuitBase:
         Return:
             Returns the circuit in qiskit QuantumCircuit format
         """
+
+        if self.num_layers * self.num_qubits > self.num_features:
+            raise Exception
 
         raise NotImplementedError()
 
@@ -373,3 +384,15 @@ class EncodingCircuitBase:
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
+
+
+class EncodingSlotsMismatchError(Exception):
+    """Exception raised when the number of encoding slots does not match the number of features."""
+
+    def __init__(self, num_slots, num_features):
+        self.num_slots = num_slots
+        self.num_features = num_features
+        self.message = (
+            f"Encoding slots ({num_slots}) do not match the number of features ({num_features})."
+        )
+        super().__init__(self.message)
