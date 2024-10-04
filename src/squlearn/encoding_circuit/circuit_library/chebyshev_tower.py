@@ -131,7 +131,7 @@ class ChebyshevTower(EncodingCircuitBase):
             )
         return super().set_params(**kwargs)
 
-    def get_circuit(
+    def _get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray] = None,

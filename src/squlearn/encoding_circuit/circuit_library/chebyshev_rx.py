@@ -144,7 +144,33 @@ class ChebyshevRx(EncodingCircuitBase):
             )
         return super().set_params(**kwargs)
 
-    def get_circuit(
+    def get_cheb_indices(self, flatten: bool = True):
+        """
+        Function that returns the indices of the parameters involved in the Chebyshev encoding.
+
+        Args:
+            flatten (bool): If true, the indices are returned as a flat list, otherwise
+                            as a list of lists, where the outer list corresponds to the layers
+                            (default: True)
+        """
+        cheb_index = []
+        index_offset = 0
+        for layer in range(self.num_layers):
+            cheb_index_layer = []
+            for i in range(self.num_qubits):
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
+
+            for i in range(self.num_qubits):
+                index_offset += 1
+
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
+        return cheb_index
+
+    def _get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
@@ -209,29 +235,3 @@ class ChebyshevRx(EncodingCircuitBase):
             QC = entangle_layer(QC)
 
         return QC
-
-    def get_cheb_indices(self, flatten: bool = True):
-        """
-        Function that returns the indices of the parameters involved in the Chebyshev encoding.
-
-        Args:
-            flatten (bool): If true, the indices are returned as a flat list, otherwise
-                            as a list of lists, where the outer list corresponds to the layers
-                            (default: True)
-        """
-        cheb_index = []
-        index_offset = 0
-        for layer in range(self.num_layers):
-            cheb_index_layer = []
-            for i in range(self.num_qubits):
-                cheb_index_layer.append(index_offset)
-                index_offset += 1
-
-            for i in range(self.num_qubits):
-                index_offset += 1
-
-            if flatten:
-                cheb_index += cheb_index_layer
-            else:
-                cheb_index.append(cheb_index_layer)
-        return cheb_index

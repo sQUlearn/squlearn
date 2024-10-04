@@ -81,7 +81,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         params["final_encoding"] = self.final_encoding
         return params
 
-    def get_circuit(
+    def _get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],

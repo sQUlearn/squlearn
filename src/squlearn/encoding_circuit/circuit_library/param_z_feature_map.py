@@ -66,7 +66,7 @@ class ParamZFeatureMap(EncodingCircuitBase):
         """The number of layers of the encoding circuit."""
         return self._num_layers
 
-    def get_circuit(
+    def _get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],

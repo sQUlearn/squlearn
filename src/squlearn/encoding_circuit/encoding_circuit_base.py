@@ -16,10 +16,9 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int, num_features: int = None, num_layers: int = None) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
         self._num_features = num_features
-        self._num_layers = num_layers
 
     @property
     def num_qubits(self) -> int:
@@ -34,13 +33,6 @@ class EncodingCircuitBase:
     @num_features.setter
     def num_features(self, value: int):
         self._num_features = value
-
-    @property
-    def num_layers(self) -> int:
-        """The number of layers of the encoding circuit."""  #
-        if self._num_features is None:
-            return 1
-        return self._num_layers
 
     @property
     def num_parameters(self) -> int:
@@ -85,7 +77,7 @@ class EncodingCircuitBase:
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -97,10 +89,18 @@ class EncodingCircuitBase:
             Returns the circuit in qiskit QuantumCircuit format
         """
 
-        if self.num_layers * self.num_qubits > self.num_features:
-            raise Exception
+        expected_slots = self.get_encoding_slots()
 
-        raise NotImplementedError()
+        if self.num_features > expected_slots:
+            raise EncodingSlotsMismatchError(
+                num_slots=expected_slots, num_features=self.num_features
+            )
+
+        return self._get_circuit(features, parameters)
+
+    def get_encoding_slots(self):
+        num_layers = getattr(self, "num_layers", 1)
+        return num_layers * self.num_qubits
 
     def draw(
         self,
@@ -167,6 +167,26 @@ class EncodingCircuitBase:
                 setattr(self, "_" + key, value)
 
         return self
+
+    def _get_circuit(
+        self,
+        features: Union[ParameterVector, np.ndarray],
+        parameters: Union[ParameterVector, np.ndarray],
+    ) -> QuantumCircuit:
+        """
+        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
+
+        Args:
+            features Union[ParameterVector,np.ndarray]: Input vector of the features
+                from which the gate inputs are obtained
+            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                from which the gate inputs are obtained
+
+        Return:
+            Returns the circuit in qiskit QuantumCircuit format
+        """
+
+        raise NotImplementedError()
 
     def __mul__(self, x):
         return self.__add__(x)

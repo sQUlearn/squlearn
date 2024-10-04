@@ -103,7 +103,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         params["entangling_gate"] = self.entangling_gate
         return params
 
-    def get_circuit(
+    def _get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray] = None,
