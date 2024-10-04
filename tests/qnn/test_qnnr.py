@@ -57,6 +57,7 @@ class TestQNNRegressor:
             - whether the prediction output is correct
         """
         X, y = data
+        qnn_regressor._initialize_lowlevel_qnn()
         assert not qnn_regressor._is_fitted
         with pytest.warns(UserWarning, match="The model is not fitted."):
             y_pred = qnn_regressor.predict(X)

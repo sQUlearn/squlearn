@@ -31,7 +31,9 @@ class TestBaseQNN:
         operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock = MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock._initialize_lowlevel_qnn()
+        return qnn_mock
 
     @pytest.fixture(scope="module")
     def qnn_multi_op(self) -> MockBaseQNN:
@@ -42,7 +44,9 @@ class TestBaseQNN:
         operator = [IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S") for _ in range(5)]
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock = MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock._initialize_lowlevel_qnn()
+        return qnn_mock
 
     def test_set_params_invalid_param(self, qnn_single_op: MockBaseQNN):
         """

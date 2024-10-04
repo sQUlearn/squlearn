@@ -199,8 +199,13 @@ class BaseQNN(BaseEstimator, ABC):
             weights: Weights for each data point
         """
 
+        X = np.array(X)
+        y = np.array(y)
+
         # set num_features and initialize the low level qnn
+        # if self.num_features is None:
         self.__set_num_features(X)
+
         self._initialize_lowlevel_qnn()
         self.__update_params()
 
@@ -356,6 +361,7 @@ class BaseQNN(BaseEstimator, ABC):
         if update_params:
             self.set_params(**{key: self._qnn_params[key] for key in update_params})
 
-    def __set_num_features(self, X: np.ndarray) -> None:
+    def __set_num_features(self, X) -> None:
         """Set the number of features of the PQC."""
         self.num_features = X.shape[1]
+        print(f"Number of features set to {X.shape[1]}")
