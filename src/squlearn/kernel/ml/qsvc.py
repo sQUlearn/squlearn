@@ -196,4 +196,4 @@ class QSVC(SVC):
                 **self._kernel_params,
             )
         else:
-            super().__init__(kernel="precomputed", **self.kwargs)
+            super().__init__(kernel="precomputed", **self._kernel_params)

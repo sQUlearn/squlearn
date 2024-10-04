@@ -89,6 +89,7 @@ class TestProjectedQuantumKernel:
         values = kernel.evaluate_derivatives(
             [x_num], [y_num], ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]
         )
+
         for key in ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]:
             assert np.allclose(
                 np.array(values[key]).flatten().astype(float),

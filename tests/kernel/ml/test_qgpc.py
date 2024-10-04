@@ -54,6 +54,7 @@ class TestQGPC:
     def test_that_qgpc_params_are_present(self):
         """Asserts that all classical parameters are present in the QGPC."""
         qgpc_instance = QGPC(quantum_kernel=MagicMock())
+        qgpc_instance._QGPC__initialize(0)
         assert list(qgpc_instance.get_params(deep=False).keys()) == [
             "copy_X_train",
             "max_iter_predict",

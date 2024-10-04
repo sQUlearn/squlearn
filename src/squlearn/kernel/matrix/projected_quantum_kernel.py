@@ -839,7 +839,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
-    def _set_num_features(self, X: np.ndarray) -> None:
+    def _set_num_features(self, X) -> None:
         """Sets feature dimension of the encoding circuit"""
         if len(X.shape) == 1:
             self.num_features = 1

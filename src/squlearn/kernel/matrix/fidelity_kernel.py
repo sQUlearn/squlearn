@@ -201,6 +201,9 @@ class FidelityKernel(KernelMatrixBase):
         if not self._is_initialized:
             self._initialize_kernel()
 
+        if self._parameters is None:
+            self._generate_initial_parameters()
+
         if y is None:
             y = x
 
@@ -303,7 +306,7 @@ class FidelityKernel(KernelMatrixBase):
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)
 
-    def _set_num_features(self, X: np.ndarray) -> None:
+    def _set_num_features(self, X) -> None:
         """Sets feature dimension of the encoding circuit"""
         if len(X.shape) == 1:
             self.num_features = 1

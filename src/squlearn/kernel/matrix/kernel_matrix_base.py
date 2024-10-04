@@ -67,6 +67,8 @@ class KernelMatrixBase(ABC):
         Returns the numeric values of the trainable parameters assigned to the
         encoding circuit as np.ndarray
         """
+        if self._parameters is None:
+            self._generate_initial_parameters()
         return self._parameters
 
     @property
@@ -149,20 +151,17 @@ class KernelMatrixBase(ABC):
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
 
-    def _set_num_features(self, X: np.ndarray) -> None:
+    def _set_num_features(self, X) -> None:
         """Sets feature dimension of the encoding circuit"""
         raise NotImplementedError
 
     def _initialize_kernel(self) -> None:
         """Fully initializes the kernel"""
-        self.__generate_initial_parameters()
+        self._generate_initial_parameters()
 
-    def __generate_initial_parameters(self) -> None:
+    def _generate_initial_parameters(self) -> None:
         """Generates the initial parameters for the encoding circuit"""
-        if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(
-                self._parameter_seed
-            )
+        self._parameters = self._encoding_circuit.generate_initial_parameters(self._parameter_seed)
 
     def __add__(self, x):
         """

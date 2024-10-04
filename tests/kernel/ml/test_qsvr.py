@@ -54,6 +54,7 @@ class TestQSVR:
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
         qsvr_instance = QSVR(MagicMock())
+        qsvr_instance._QSVR__initialize(0)
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             "C",
             "cache_size",
@@ -190,10 +191,10 @@ class TestQSVR:
 
         qsvr_instance.set_params(regularization="tikhonov")
 
-        qsvr_instance.quantum_kernel._regularize_matrix = MagicMock()
-        qsvr_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+        qsvr_instance._quantum_kernel._regularize_matrix = MagicMock()
+        qsvr_instance._quantum_kernel._regularize_matrix.side_effect = lambda x: x
 
         qsvr_instance.fit(X, y)
         qsvr_instance.predict(X)
 
-        assert qsvr_instance.quantum_kernel._regularize_matrix.call_count == 2
+        assert qsvr_instance._quantum_kernel._regularize_matrix.call_count == 2
