@@ -1711,7 +1711,7 @@ class Executor:
         )
 
         mode = options.get("mode", self._auto_backend_mode)
-        useHQAA = options.get("useHQAA", False)
+        use_HQAA = options.get("useHQAA", False)
 
         if isinstance(self._qpu_parallelization, int):
             if isinstance(circuit, QuantumCircuit):
