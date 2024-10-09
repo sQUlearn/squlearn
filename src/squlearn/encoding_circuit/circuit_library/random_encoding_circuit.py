@@ -359,9 +359,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
-        param = {}
-        param["num_qubits"] = self._num_qubits
-        param["num_features"] = self._num_features
+        param = super().get_params()
         param["seed"] = self.seed
         param["min_gates"] = self.min_gates
         param["max_gates"] = self.max_gates
