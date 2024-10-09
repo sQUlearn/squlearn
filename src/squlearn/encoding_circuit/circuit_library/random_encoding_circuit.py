@@ -112,7 +112,7 @@ parameterized_gates = [k for k in available_gates.keys() if available_gates[k][2
 
 
 class RandomEncodingCircuit(EncodingCircuitBase):
-    """
+    r"""
     Random parameterized encoding circuit with randomly picked gates, qubits and feature encodings.
 
     The random ciruit generation picks gates from a large set of gates
