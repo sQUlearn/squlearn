@@ -17,8 +17,6 @@ from qiskit.circuit.library import (
     CZGate,
     CHGate,
     SwapGate,
-)
-from qiskit.circuit.library import (
     RXGate,
     RYGate,
     RZGate,
@@ -27,8 +25,11 @@ from qiskit.circuit.library import (
     CRXGate,
     CRYGate,
     CRZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
 )
-from qiskit.circuit.library import RXXGate, RYYGate, RZZGate, RZXGate
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -63,6 +64,51 @@ default_encoding_weights = {
     "arccos_x": 0.0,
     "p_times_arccos_x": 0.0,
 }
+
+# Available gates with number of qubits and parameterized
+available_gates = {
+    "x": (XGate, 1, False),
+    "y": (YGate, 1, False),
+    "z": (ZGate, 1, False),
+    "h": (HGate, 1, False),
+    "s": (SGate, 1, False),
+    "t": (TGate, 1, False),
+    "cx": (CXGate, 2, False),
+    "cy": (CYGate, 2, False),
+    "cz": (CZGate, 2, False),
+    "ch": (CHGate, 2, False),
+    "swap": (SwapGate, 2, False),
+    "rx": (RXGate, 1, True),
+    "ry": (RYGate, 1, True),
+    "rz": (RZGate, 1, True),
+    "p": (PhaseGate, 1, True),
+    "cp": (CPhaseGate, 2, True),
+    "crx": (CRXGate, 2, True),
+    "cry": (CRYGate, 2, True),
+    "crz": (CRZGate, 2, True),
+    "rxx": (RXXGate, 2, True),
+    "ryy": (RYYGate, 2, True),
+    "rzz": (RZZGate, 2, True),
+    "rzx": (RZXGate, 2, True),
+}
+
+# Different encodings for the parameters and features
+available_encodings = {
+    "p": (lambda x, p: p, "p"),
+    "x": (lambda x, p: x, "x"),
+    "p_times_x": (lambda x, p: x * p, "px"),
+    "pi_times_x": (lambda x, p: np.pi * x, "x"),
+    "arctan_x": (lambda x, p: np.arctan(x), "x"),
+    "p_times_arctan_x": (lambda x, p: p * np.arctan(x), "px"),
+    "arccos_x": (lambda x, p: np.arccos(x), "x"),
+    "p_times_arccos_x": (lambda x, p: p * np.arccos(x), "px"),
+}
+# List of encodings with features
+feature_encodings = [e for e in available_encodings.keys() if "x" in available_encodings[e][1]]
+# List of encodings with parameters
+parameter_encodings = [e for e in available_encodings.keys() if "p" in available_encodings[e][1]]
+# List of parameterized gates
+parameterized_gates = [k for k in available_gates.keys() if available_gates[k][2]]
 
 
 class RandomEncodingCircuit(EncodingCircuitBase):
@@ -124,7 +170,6 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.gate_weights = gate_weights
         self.seed = seed
 
-        self._init_gates()
         self._gen_random_config(self.seed)
 
     def get_circuit(
@@ -150,13 +195,15 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         parameter_counter = 0
         parameterized_gate_counter = 0
         for igate, gate in enumerate(self._picked_gates):
-            is_parameterized = self._gates[gate][2]
+            is_parameterized = available_gates[gate][2]
             qubits_arg = self._picked_qubits[igate]
             # switch between parameterized and non-parameterized gates
             if is_parameterized:
-                encoding = self._encodings[self._picked_encodings[parameterized_gate_counter]][0]
+                encoding = available_encodings[self._picked_encodings[parameterized_gate_counter]][
+                    0
+                ]
                 qc.append(
-                    self._gates[gate][0](
+                    available_gates[gate][0](
                         encoding(
                             features[self._feature_indices[feature_counter]],
                             parameters[parameter_counter % self.num_parameters],
@@ -164,73 +211,20 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                     ),
                     list(qubits_arg),
                 )
-                if self._picked_encodings[parameterized_gate_counter] in self._feature_encodings:
+                if self._picked_encodings[parameterized_gate_counter] in feature_encodings:
                     feature_counter += 1
-                if self._picked_encodings[parameterized_gate_counter] in self._parameter_encodings:
+                if self._picked_encodings[parameterized_gate_counter] in parameter_encodings:
                     parameter_counter = (parameter_counter + 1) % self.num_parameters
                 parameterized_gate_counter += 1
             else:
-                qc.append(self._gates[gate][0](), list(qubits_arg))
+                qc.append(available_gates[gate][0](), list(qubits_arg))
 
         return qc
-
-    def _init_gates(self):
-        """Initializes the gates and encodings, only one initialization needed."""
-
-        # Available gates with number of qubits and parameterized
-        self._gates = {
-            "x": (XGate, 1, False),
-            "y": (YGate, 1, False),
-            "z": (ZGate, 1, False),
-            "h": (HGate, 1, False),
-            "s": (SGate, 1, False),
-            "t": (TGate, 1, False),
-            "cx": (CXGate, 2, False),
-            "cy": (CYGate, 2, False),
-            "cz": (CZGate, 2, False),
-            "ch": (CHGate, 2, False),
-            "swap": (SwapGate, 2, False),
-            "rx": (RXGate, 1, True),
-            "ry": (RYGate, 1, True),
-            "rz": (RZGate, 1, True),
-            "p": (PhaseGate, 1, True),
-            "cp": (CPhaseGate, 2, True),
-            "crx": (CRXGate, 2, True),
-            "cry": (CRYGate, 2, True),
-            "crz": (CRZGate, 2, True),
-            "rxx": (RXXGate, 2, True),
-            "ryy": (RYYGate, 2, True),
-            "rzz": (RZZGate, 2, True),
-            "rzx": (RZXGate, 2, True),
-        }
-
-        # Different encodings for the parameters and features
-        self._encodings = {
-            "p": (lambda x, p: p, "p"),
-            "x": (lambda x, p: x, "x"),
-            "p_times_x": (lambda x, p: x * p, "px"),
-            "pi_times_x": (lambda x, p: np.pi * x, "x"),
-            "arctan_x": (lambda x, p: np.arctan(x), "x"),
-            "p_times_arctan_x": (lambda x, p: p * np.arctan(x), "px"),
-            "arccos_x": (lambda x, p: np.arccos(x), "x"),
-            "p_times_arccos_x": (lambda x, p: p * np.arccos(x), "px"),
-        }
-        # List of encodings with features
-        self._feature_encodings = [
-            e for e in self._encodings.keys() if "x" in self._encodings[e][1]
-        ]
-        # List of encodings with parameters
-        self._parameter_encodings = [
-            e for e in self._encodings.keys() if "p" in self._encodings[e][1]
-        ]
-
-        # List of parameterized gates
-        self._parameterized_gates = [k for k in self._gates.keys() if self._gates[k][2]]
 
     @property
     def included_gates(self) -> list:
         """Returns the list of gates from which the random circuit is drawn."""
-        return self._gates.keys()
+        return available_gates.keys()
 
     def _gen_random_config(self, seed: int):
         """Generates a random configuration for the random encoding circuit."""
@@ -244,7 +238,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
         # Determine the probability of each gate to be drawn in the random selection
         # Dictionary with all gates and probability 0
-        gate_weights = dict(zip(self._gates.keys(), [0.0] * len(self._gates.keys())))
+        gate_weights = dict(zip(available_gates.keys(), [0.0] * len(available_gates.keys())))
 
         # Update the dictionary with the inputted gate_weights
         if set(self.gate_weights.keys()) - set(gate_weights.keys()):
@@ -257,10 +251,10 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
         # Pick the encodings for parameterized gates
         # Get the number of parameterized gates
-        num_param_gates = sum(
-            [1 for gate in self._picked_gates if gate in self._parameterized_gates], 0
+        num_param_gates = sum([1 for gate in self._picked_gates if gate in parameterized_gates], 0)
+        encoding_weights = dict(
+            zip(available_encodings.keys(), [0.0] * len(available_encodings.keys()))
         )
-        encoding_weights = dict(zip(self._encodings.keys(), [0.0] * len(self._encodings.keys())))
         if set(self.encoding_weights.keys()) - set(encoding_weights.keys()):
             raise ValueError("Inputted encoding_weights contains not supported keys!")
         encoding_weights.update(self.encoding_weights)
@@ -270,23 +264,19 @@ class RandomEncodingCircuit(EncodingCircuitBase):
             k=num_param_gates,
         )
 
-        num_feature_gates = sum(
-            [1 for p in self._picked_encodings if p in self._feature_encodings], 0
-        )
+        num_feature_gates = sum([1 for p in self._picked_encodings if p in feature_encodings], 0)
 
         # In case there are not enough gates with features, add additional gates with features
         if num_feature_gates < self.num_features:
-            probabilities_feature = [gate_weights[gate] for gate in self._parameterized_gates]
+            probabilities_feature = [gate_weights[gate] for gate in parameterized_gates]
             extra_gates = random.choices(
-                self._parameterized_gates,
+                parameterized_gates,
                 weights=probabilities_feature,
                 k=self.num_features - num_feature_gates,
             )
-            feature_encoding_probabilities = [
-                encoding_weights[gate] for gate in self._feature_encodings
-            ]
+            feature_encoding_probabilities = [encoding_weights[gate] for gate in feature_encodings]
             extra_encodings = random.choices(
-                self._feature_encodings,
+                feature_encodings,
                 weights=feature_encoding_probabilities,
                 k=self.num_features - num_feature_gates,
             )
@@ -305,7 +295,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                 popped_gate = False
                 # Try to remove a non-parameterized gate first
                 for i, p in enumerate(self._picked_gates):
-                    if p not in self._parameterized_gates:
+                    if p not in parameterized_gates:
                         self._picked_gates.pop(i)
                         popped_gate = True
                         break
@@ -336,11 +326,11 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
         # Qubit asignments for the gates
         self._picked_qubits = [
-            tuple(random.sample(range(self.num_qubits), self._gates[gate][1]))
+            tuple(random.sample(range(self.num_qubits), available_gates[gate][1]))
             for gate in self._picked_gates
         ]
         self._num_parameters = sum(
-            [1 for p in self._picked_encodings if p in self._parameter_encodings], 0
+            [1 for p in self._picked_encodings if p in parameter_encodings], 0
         )
 
     @property

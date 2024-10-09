@@ -129,7 +129,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             layers.append(random.choice(gates_with_x))
             random.shuffle(layers)
 
-        return "-".join(layers) + "-"
+        return "-".join(layers)
 
     def _build_layered_encoding_circuit(self) -> LayeredEncodingCircuit:
         """Builds and returns the LayeredEncodingCircuit object from the fm_str."""
