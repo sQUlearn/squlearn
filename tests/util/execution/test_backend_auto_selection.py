@@ -70,7 +70,7 @@ class TestBackendAutoSelection:
             param_ini=param,
             param_op_ini=param_op,
         )
-        qnn.predict(np.array([0.25, 0.75]))
+        qnn.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == "fake_manila"
 
     def test_auto_select_fidelity_kernel(self):
