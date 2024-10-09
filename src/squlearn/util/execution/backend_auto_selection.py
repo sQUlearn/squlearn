@@ -404,7 +404,7 @@ class AutoSelectionBackend:
         else:
             return (final_circuit.layout.initial_layout, score), final_circuit, least_busy_backend
 
-    def evaluate_via_HQAA(
+    def _evaluate_via_HQAA(
         self, backends: list[Backend], small_qc: QuantumCircuit
     ) -> Tuple[QuantumCircuit, Backend, float, List]:
         """
