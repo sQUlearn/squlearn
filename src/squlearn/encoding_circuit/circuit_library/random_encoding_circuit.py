@@ -177,7 +177,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
-        """
+        r"""
         Returns the random encoding circuit.
 
         Args:
@@ -339,7 +339,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         return self._num_parameters
 
     def get_params(self, deep: bool = True) -> dict:
-        """
+        r"""
         Returns hyper-parameters and their values of the random encoding circuit.
 
         Args:
@@ -358,7 +358,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         return param
 
     def set_params(self, **params):
-        """
+        r"""
         Sets value of the random encoding circuit hyper-parameters.
 
         Args:

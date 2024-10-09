@@ -144,7 +144,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray] = None,
     ) -> QuantumCircuit:
-        """
+        r"""
         Returns the quantum circuit of the Random Layered encoding circuit.
 
         Args:
@@ -162,7 +162,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         return self._layered_encoding_circuit.get_circuit(features, parameter)
 
     def get_params(self, deep: bool = True) -> dict:
-        """
+        r"""
         Returns hyper-parameters and their values of the Random Layered encoding circuit
 
         Args:
@@ -180,7 +180,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         return params
 
     def set_params(self, **params) -> EncodingCircuitBase:
-        """
+        r"""
         Sets value of the random layered encoding circuit hyper-parameters.
 
         The random circuit is regenerated with the new hyper-parameters.
