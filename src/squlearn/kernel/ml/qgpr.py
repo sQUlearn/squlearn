@@ -106,21 +106,32 @@ class QGPR(BaseEstimator, RegressorMixin):
         if update_params:
             self.set_params(**{key: kwargs[key] for key in update_params})
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
+    def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
         The fit method of the QGPR class just calculates the training kernel matrix.
         Depending on the choice of normalize_y the target values are normalized.
 
         Args:
-            X: The training data of shape (n_samples, n_features). If
-                quantum_kernel == "precomputed" this is instead a precomputed training kernel
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                The training data.
+                If quantum_kernel == "precomputed" this is instead a precomputed training kernel
                 matrix of shape (n_samples, n_samples)
-            y: Target values of shape (n_samples,)
+            y: array-like of shape (n_samples,)
+                Target values.
 
-        Returns:
-            self: object
-            QuantumGaussianProcessRegressor class instance.
+        Return:
+            Returns an instance of self.
         """
+
+        X, y = self._validate_data(
+            X,
+            y,
+            multi_output=True,
+            y_numeric=True,
+            ensure_2d=True,
+            dtype="numeric",
+        )
+
         self.X_train = X
 
         if isinstance(self._quantum_kernel, str):
@@ -129,6 +140,11 @@ class QGPR(BaseEstimator, RegressorMixin):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
+
+            # check if quantum kernel is trainable
+            if self._quantum_kernel.is_trainable:
+                self._quantum_kernel.run_optimization(self.X_train, y)
+
             if self.full_regularization:
                 if self._quantum_kernel._regularization is not None:
                     warnings.warn(
@@ -184,6 +200,8 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Covariance of joint predictive distribution a query points.
                 Only returned when `return_cov` is True.
         """
+
+        X = self._validate_data(X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")

@@ -275,8 +275,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
-        optree_caching : Caching of the optree expressions (default = True recommended)
-        result_caching : Caching of the result for each `x`, `param`, `param_op` combination
+        caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
         primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
                          ``"estimator"`` or ``"sampler"``. If None, the primitive is set according
@@ -305,13 +304,17 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
-        optree_caching=True,
-        result_caching=True,
-        primitive: Union[str, None] = None,
+        caching=True,
+        primitive: Union[str, None] = None
     ) -> None:
 
-        self._optree_caching = optree_caching
-        self._result_caching = result_caching
+        parameterized_quantum_circuit = TranspiledEncodingCircuit(
+            parameterized_quantum_circuit, executor.backend
+        )
+        super().__init__(parameterized_quantum_circuit, operator, executor)
+
+        self.caching = caching
+
 
         if executor.is_backend_chosen:
             # Skip transpilation for parallel qpu execution
@@ -455,8 +458,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             self._observable.set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
             num_qubits_operator = self._observable.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(self._observable, self._optree_caching)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._optree_caching)
+        self.operator_derivatives = ObservableDerivatives(self._observable)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc)
 
         if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -987,7 +990,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
-        if self._result_caching == True:
+        if self.caching == True:
             caching_tuple = (
                 to_tuple(x),
                 to_tuple(param),
@@ -1170,7 +1173,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         value_dict["param_op"] = param_op
 
         # Store the updated dictionary for the theta value
-        if self._result_caching:
+        if self.caching:
             self.result_container[caching_tuple] = value_dict
 
         return value_dict

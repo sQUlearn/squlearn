@@ -66,20 +66,20 @@ class FiniteDiffGradient(ApproxGradientBase):
             g = np.zeros(len(x))
             for i in range(len(x)):
                 dx = np.eye(1, len(x), k=i)[0] * self.eps
-                g[i] = (self.fun(x + dx) - f0) / self.eps
+                g[i] = ((self.fun(x + dx) - f0)) / self.eps  # Extract scalar
 
         elif self.formula == "backwards":
             f0 = self.fun(x)
             g = np.zeros(len(x))
             for i in range(len(x)):
                 dx = np.eye(1, len(x), k=i)[0] * self.eps
-                g[i] = (f0 - self.fun(x - dx)) / self.eps
+                g[i] = ((f0 - self.fun(x - dx))) / self.eps  # Extract scalar
 
         elif self.formula == "central":
             g = np.zeros(len(x))
             for i in range(len(x)):
                 dx = np.eye(1, len(x), k=i)[0] * self.eps
-                g[i] = (self.fun(x + dx) - self.fun(x - dx)) / (2.0 * self.eps)
+                g[i] = ((self.fun(x + dx) - self.fun(x - dx))) / (2.0 * self.eps)  # Extract scalar
 
         elif self.formula == "five-point":
             g = np.zeros(len(x))
@@ -90,7 +90,9 @@ class FiniteDiffGradient(ApproxGradientBase):
                     + 8.0 * self.fun(x + 1.0 * dx)
                     - 8.0 * self.fun(x - 1.0 * dx)
                     + 1.0 * self.fun(x - 2.0 * dx)
-                ) / (12.0 * self.eps)
+                ) / (
+                    12.0 * self.eps
+                )  # Extract scalar
         else:
             raise ValueError("Wrong value of type: " + self.formula)
 
