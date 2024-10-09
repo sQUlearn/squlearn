@@ -278,8 +278,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
         primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
-                         ``"estimator"`` or ``"sampler"``. If None, the primitive is set according
-                         to the executor. (default = None)
+            ``"estimator"`` or ``"sampler"``. If None, the primitive is set according to the
+            executor. (default = None)
 
     Attributes:
     -----------
