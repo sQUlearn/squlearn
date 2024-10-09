@@ -708,7 +708,7 @@ class ODELoss(LossBase):
     def _ansatz_to_floating_boundary_ansatz(
         self, value_dict_floating: dict, gradient_calculation=True, **kwargs
     ) -> dict:
-        """
+        r"""
         Converts the value_dict_floating to a floating boundary ansatz by shifting the output
         values by a bias term that includes the initial values of the ODE.
 
@@ -971,7 +971,7 @@ class ODELoss(LossBase):
         return d_p, d_op
 
     def _create_QNN_ODE_loss_format(self, ODE_functional, symbols_involved_in_ODE=None):
-        """
+        r"""
         Given an ODE_functional, returns a function that takes the QNN derivatives list and
         returns the loss function.
 
@@ -1011,7 +1011,7 @@ class ODELoss(LossBase):
         symbols_involved_in_ODE,
         dimension_of_gradient_with_respect_to,
     ):
-        """
+        r"""
         Given an ODE_functional_gradient, returns a function that takes the QNN derivatives list
         and returns the gradient of the loss function.
 
@@ -1025,7 +1025,7 @@ class ODELoss(LossBase):
         """
 
         def numerical_gradient_of_symbolic_equation(sp_ode, symbols_involved_in_ODE):
-            """
+            r"""
             Calculate the gradient of a sympy equation with respect to a given set of variables,
 
             Args:
@@ -1056,7 +1056,7 @@ class ODELoss(LossBase):
         )
 
         def QNN_gradient(value_dict):
-            """
+            r"""
             Given the squlearn QNN derivatives dictionary, returns the gradient of the loss
             function defined by the ODE problem.
 

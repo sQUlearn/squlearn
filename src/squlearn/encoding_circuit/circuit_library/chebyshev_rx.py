@@ -13,7 +13,7 @@ class ChebyshevRx(EncodingCircuitBase):
     """
     Simple Chebyshev encoding circuit build from  Rx gates
 
-    **Example for 4 qubits, a 2 dimensional  feature vector and 2 layers:**
+    **Example for 4 qubits, a 2 dimensional feature vector and 2 layers:**
 
     .. plot::
 

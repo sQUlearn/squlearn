@@ -14,7 +14,7 @@ from ..qnn.lowlevel_qnn import LowLevelQNN
 
 
 class BaseQRC(BaseEstimator, ABC):
-    """Base class for Quantum Reservoir Computing (QRC) models.
+    r"""Base class for Quantum Reservoir Computing (QRC) models.
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit to use for encoding the data

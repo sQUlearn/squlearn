@@ -14,7 +14,7 @@ from ..util import Executor
 
 
 class QRCRegressor(BaseQRC, RegressorMixin):
-    """Quantum Reservoir Computing for regression.
+    r"""Quantum Reservoir Computing for regression.
 
     This class implements a Quantum Reservoir Computing (QRC) framework designed for
     regression tasks. In QRC, data is encoded into a quantum system—referred to as the
