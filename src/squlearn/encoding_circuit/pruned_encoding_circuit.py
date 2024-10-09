@@ -179,7 +179,7 @@ def automated_pruning(
     verbose: int = 1,
     seed: Union[int, None] = None,
 ) -> PrunedEncodingCircuit:
-    """
+    r"""
     Function for automated pruning of the parameters in the inputted parameterized quantum circuit.
 
     The algorithms for the automated pruning is based on
