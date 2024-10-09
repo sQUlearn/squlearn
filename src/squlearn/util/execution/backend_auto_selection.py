@@ -245,7 +245,7 @@ class AutoSelectionBackend:
         else:
             return backend_by_family
 
-    def tensor_circuits(self, circuit_list: List[QuantumCircuit]) -> QuantumCircuit:
+    def _tensor_circuits(self, circuit_list: List[QuantumCircuit]) -> QuantumCircuit:
         """Tensor all circuits in the list to create a combined circuit.
 
         Args:
