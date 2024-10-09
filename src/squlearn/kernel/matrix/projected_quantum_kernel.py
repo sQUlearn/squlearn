@@ -85,7 +85,7 @@ class OuterKernelBase:
         y: np.ndarray = None,
         with_respect_to: str = "dx",
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the outer kernel with respect to x.
 
         Args:
@@ -103,7 +103,7 @@ class OuterKernelBase:
     def dKdxdx(
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the outer kernel with respect to x and x.
 
         Args:
@@ -120,7 +120,7 @@ class OuterKernelBase:
     def dKdxdy(
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the outer kernel with respect to x and y.
 
         Args:
@@ -540,7 +540,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     def evaluate_derivatives(
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
-        """
+        r"""
         Evaluates the Projected Quantum Kernel and its derivatives for the given data points x and y.
 
         Args:
@@ -866,7 +866,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
 class GaussianOuterKernel(OuterKernelBase):
-    """
+    r"""
     Implementation of the Gaussian outer kernel:
 
     .. math::
@@ -922,7 +922,7 @@ class GaussianOuterKernel(OuterKernelBase):
         y: np.ndarray = None,
         with_respect_to: str = "dx",
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the Gaussian kernel with respect to x.
 
         Args:
@@ -932,7 +932,8 @@ class GaussianOuterKernel(OuterKernelBase):
             y (np.ndarray): second optional input data (n, num_features)
 
         Returns:
-            np.ndarray: derivative of the Gaussian projected kernel of shape (len(X), len(Y), num_qubits*len(measurement))
+            np.ndarray: derivative of the Gaussian projected kernel of shape
+                (len(X), len(Y), num_qubits*len(measurement))
         """
 
         param = parameters[: qnn.num_parameters]
@@ -965,7 +966,7 @@ class GaussianOuterKernel(OuterKernelBase):
     def dKdxdx(
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the Gaussian kernel with respect to x and x.
 
         Args:
@@ -975,7 +976,8 @@ class GaussianOuterKernel(OuterKernelBase):
             y (np.ndarray): second optional input data
 
         Returns:
-            np.ndarray: derivative dKdxdx of the Gaussian projected kernel shape (len(X), len(Y), num_qubits*len(measurement))
+            np.ndarray: derivative dKdxdx of the Gaussian projected kernel shape
+                (len(X), len(Y), num_qubits*len(measurement))
         """
 
         param = parameters[: qnn.num_parameters]
@@ -997,7 +999,7 @@ class GaussianOuterKernel(OuterKernelBase):
     def dKdxdy(
         self, qnn: LowLevelQNNBase, parameters: np.ndarray, x: np.ndarray, y: np.ndarray = None
     ) -> np.ndarray:
-        """
+        r"""
         Implements the analytical derivative of the Gaussian kernel with respect to x and y.
 
         Args:
@@ -1007,7 +1009,8 @@ class GaussianOuterKernel(OuterKernelBase):
             y (np.ndarray): second optional input data
 
         Returns:
-            np.ndarray: derivative dKdxdy of the Gaussian projected kernel shape (len(X), len(Y), num_qubits*len(measurement), 1)
+            np.ndarray: derivative dKdxdy of the Gaussian projected kernel shape
+                (len(X), len(Y), num_qubits*len(measurement), 1)
         """
 
         param = parameters[: qnn.num_parameters]

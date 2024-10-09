@@ -29,7 +29,7 @@ class TestBaseQRC:
         return MockBaseQRC(encoding_circuit, executor)
 
     def test_set_params_invalid_param(self, qrc_class: MockBaseQRC):
-        """
+        r"""
         Test if setting an invalid parameter raises a ValueError.
 
         Args:
@@ -42,7 +42,7 @@ class TestBaseQRC:
             qrc_class.set_params(invalid_param=3)
 
     def test_set_params_seed(self, qrc_class: MockBaseQRC):
-        """
+        r"""
         Test `set_params` with `parameter_seed`.
 
         Args:
@@ -55,7 +55,7 @@ class TestBaseQRC:
         assert qrc_class.parameter_seed == 42
 
     def test_set_params_num_qubits(self, qrc_class: MockBaseQRC):
-        """
+        r"""
         Test `set_params` with `num_qubits` for QRC base class.
 
         Args:
@@ -70,7 +70,7 @@ class TestBaseQRC:
         assert qrc_class._qnn.num_qubits == 5
 
     def test_set_params_num_operators(self, qrc_class: MockBaseQRC):
-        """
+        r"""
         Test `set_params` with `num_operators` for QRC base class
 
         Args:
