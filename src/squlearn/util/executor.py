@@ -1698,7 +1698,7 @@ class Executor:
         verbose = options.get("verbose", False)
         logger = self._logger
 
-        AutoSelBack = AutoSelectionBackend(
+        auto_selection_backend = AutoSelectionBackend(
             backends_to_use=self.backend_list,
             min_num_qubits=min_num_qubits,
             max_num_qubits=max_num_qubits,
@@ -1731,7 +1731,7 @@ class Executor:
             for _ in range(self._qpu_parallelization - 1):
                 mapped_circuit.tensor(real_circuit, inplace=True)
 
-            info, transpiled_circuit, backend = AutoSelBack.evaluate(
+            info, transpiled_circuit, backend = auto_selection_backend.evaluate(
                 mapped_circuit, mode=mode, useHQAA=useHQAA
             )
 
@@ -1739,7 +1739,7 @@ class Executor:
 
         else:
             if isinstance(circuit, QuantumCircuit):
-                info, transpiled_circuit, backend = AutoSelBack.evaluate(
+                info, transpiled_circuit, backend = auto_selection_backend.evaluate(
                     circuit, mode=mode, useHQAA=useHQAA
                 )
                 return_circ = transpiled_circuit
@@ -1751,7 +1751,7 @@ class Executor:
 
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
-                    info, transpiled_circuit, backend = AutoSelBack.evaluate(
+                    info, transpiled_circuit, backend = auto_selection_backend.evaluate(
                         qiskit_circuit, mode=mode, useHQAA=useHQAA
                     )
                     return transpiled_circuit
