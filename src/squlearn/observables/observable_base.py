@@ -45,6 +45,7 @@ class ObservableBase(ABC):
                                            qubits are mapped to the output qubits.
             num_all_qubits (int): The total number of qubits in the system.
         """
+
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
         self._is_mapped = True

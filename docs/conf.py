@@ -106,10 +106,12 @@ latex_elements = {
 
 # intersphinx
 intersphinx_mapping = {
-    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit/", None),
+    "pennylane": ("https://docs.pennylane.ai/en/stable/", None),
+    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit/1.1/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
+    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/0.27/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "sklearn": ("https://scikit-learn.org/stable/", None),
+    "sklearn": ("https://scikit-learn.org/1.4/", None),
 }
 
 suppress_warnings = ["myst.header", "config.cache"]

@@ -145,6 +145,8 @@ Execution Tools
    :template: class.rst
 
    Executor
+   util.executor.ExecutorEstimator
+   util.executor.ExecutorSampler
 
 
 Core
