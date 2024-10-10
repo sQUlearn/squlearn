@@ -1732,7 +1732,7 @@ class Executor:
                 mapped_circuit.tensor(real_circuit, inplace=True)
 
             info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                mapped_circuit, mode=mode, useHQAA=useHQAA
+                mapped_circuit, mode=mode, useHQAA=use_HQAA
             )
 
             return_circ = circuit
@@ -1740,7 +1740,7 @@ class Executor:
         else:
             if isinstance(circuit, QuantumCircuit):
                 info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                    circuit, mode=mode, useHQAA=useHQAA
+                    circuit, mode=mode, useHQAA=use_HQAA
                 )
                 return_circ = transpiled_circuit
 
@@ -1752,7 +1752,7 @@ class Executor:
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
                     info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                        qiskit_circuit, mode=mode, useHQAA=useHQAA
+                        qiskit_circuit, mode=mode, useHQAA=use_HQAA
                     )
                     return transpiled_circuit
 
