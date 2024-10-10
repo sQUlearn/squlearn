@@ -35,6 +35,7 @@ dependencies = [
     "pennylane>=0.34.0",
     "scipy>=1.5",
     "scikit-learn>=1.0,<1.4.2",
+    "bayesian-optimization>=1.4.3",
     "tqdm>=4.0",
     "mapomatic>=0.10.0",
     "networkx>=3.0",
