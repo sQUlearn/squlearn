@@ -1,6 +1,6 @@
 import pytest
-
 import numpy as np
+
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManilaV2
@@ -8,6 +8,7 @@ from squlearn.util import Executor
 
 
 class TestParallelExecutor:
+
     @pytest.mark.parametrize("parallel_mode", ["auto", 2])
     def test_parallel_sampler(self, parallel_mode):
         """
@@ -34,4 +35,4 @@ class TestParallelExecutor:
         estimator = executor.get_estimator()
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 10000
-        assert np.allclose(result.values,np.array([0.6684]))
+        assert np.allclose(result.values, np.array([0.6684]))
