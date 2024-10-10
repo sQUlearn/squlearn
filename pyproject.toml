@@ -45,17 +45,9 @@ dynamic = ["version", "description"]
 dev = [
     "black",
     "flit",
-    "myst-parser",
     "nbmake",
-    "nbsphinx",
-    "nbsphinx_link",
     "pylint",
     "pytest",
-    "sphinx",
-    "sphinxcontrib-spelling",
-    "sphinx-rtd-theme",
-    "sphinx-sitemap",
-    "jupyter-sphinx",
 ]
 examples = [
     "jupyter",
@@ -65,6 +57,19 @@ examples = [
     "pylatexenc>=2.10",
     "seaborn",
     "scikit-optimize",
+]
+docs = [
+    "ipykernel",
+    "matplotlib>=3.5",
+    "myst-parser",
+    "nbsphinx",
+    "nbsphinx_link",
+    "pylatexenc>=2.10",
+    "sphinx",
+    "sphinxcontrib-spelling",
+    "sphinx-rtd-theme<3.0.0",
+    "sphinx-sitemap",
+    "jupyter-sphinx",
 ]
 
 [project.urls]
