@@ -278,8 +278,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
         primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
-                         ``"estimator"`` or ``"sampler"``. If None, the primitive is set according
-                         to the executor. (default = None)
+            ``"estimator"`` or ``"sampler"``. If None, the primitive is set according to the
+            executor. (default = None)
 
     Attributes:
     -----------
@@ -305,7 +305,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         operator: Union[ObservableBase, list],
         executor: Executor,
         caching=True,
-        primitive: Union[str, None] = None
+        primitive: Union[str, None] = None,
     ) -> None:
 
         parameterized_quantum_circuit = TranspiledEncodingCircuit(
@@ -314,7 +314,6 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         super().__init__(parameterized_quantum_circuit, operator, executor)
 
         self.caching = caching
-
 
         if executor.is_backend_chosen:
             # Skip transpilation for parallel qpu execution

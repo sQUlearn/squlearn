@@ -245,7 +245,7 @@ class AutoSelectionBackend:
         else:
             return backend_by_family
 
-    def tensor_circuits(self, circuit_list: List[QuantumCircuit]) -> QuantumCircuit:
+    def _tensor_circuits(self, circuit_list: List[QuantumCircuit]) -> QuantumCircuit:
         """Tensor all circuits in the list to create a combined circuit.
 
         Args:
@@ -404,7 +404,7 @@ class AutoSelectionBackend:
         else:
             return (final_circuit.layout.initial_layout, score), final_circuit, least_busy_backend
 
-    def evaluate_via_HQAA(
+    def _evaluate_via_HQAA(
         self, backends: list[Backend], small_qc: QuantumCircuit
     ) -> Tuple[QuantumCircuit, Backend, float, List]:
         """

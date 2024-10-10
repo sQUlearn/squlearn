@@ -59,11 +59,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
         primitive (Union[str,None], default=None): The primitive that is utilized in the qnn.
-                                                   Default primitive is the one specified in the
-                                                   executor initialization, if nothing is
-                                                   specified, the estimator will used.
-                                                   Possible values are ``"estimator"`` or
-                                                   ``"sampler"``.
+            Default primitive is the one specified in the executor initialization, if nothing is
+            specified, the estimator will used. Possible values are ``"estimator"`` or
+            ``"sampler"``.
 
     See Also
     --------
