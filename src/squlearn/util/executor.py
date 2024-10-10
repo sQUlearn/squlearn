@@ -1920,7 +1920,7 @@ class ExecutorEstimator(BaseEstimator):
 
     @property
     def parameters(self):
-        """Parameters of the quantum circuits.
+        r"""Parameters of the quantum circuits.
 
         Returns:
             Parameters, where ``parameters[i][j]`` is the j-\ :spelling:word:`th` parameter of the
