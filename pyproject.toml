@@ -47,21 +47,15 @@ dynamic = ["version", "description"]
 dev = [
     "black",
     "flit",
-<<<<<<< HEAD
-=======
     "jupyter-sphinx",
     "myst-parser",
->>>>>>> 05acb182722a5813a74469d29e50cca1b9037b5d
     "nbmake",
     "pylint",
     "pytest",
-<<<<<<< HEAD
-=======
     "sphinx",
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme",
     "sphinx-sitemap",
->>>>>>> 05acb182722a5813a74469d29e50cca1b9037b5d
 ]
 examples = [
     "jupyter",
