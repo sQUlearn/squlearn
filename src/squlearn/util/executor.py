@@ -77,7 +77,7 @@ class Executor:
                 * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                 * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-            Default is the initialization with PennyLane's 
+            Default is the initialization with PennyLane's
             :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
             Only mandatory if a service is provided.
