@@ -5,7 +5,7 @@ import json
 import os
 
 # HQAA additions
-from .hqaa import parser_openqasm, heuristic
+from .hqaa import parse_openqasm, heuristic
 from qiskit import qasm3
 import networkx as nx
 
@@ -421,7 +421,7 @@ class AutoSelectionBackend:
             backends = [backends]
         # HQAA requires the qasm3 format of the circuit.
         qasm_string = qasm3.dumps(small_qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)
-        circuit_parsed = parser_openqasm(qasm_string, small_qc.num_qubits)
+        circuit_parsed = parse_openqasm(qasm_string, small_qc.num_qubits)
         Gnx = nx.DiGraph()
         best_score = 1
         for backend in backends:
