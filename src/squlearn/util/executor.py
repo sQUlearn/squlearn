@@ -61,28 +61,30 @@ class Executor:
     :doc:`User Guide: The Executor Class </user_guide/executor>`
 
     Args:
-        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
+        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]):
+            The execution environment, possible inputs are:
 
-                                                                                                                     * A string, that specifics the simulator
-                                                                                                                       backend. For Qiskit this can be ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
-                                                                                                                       For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
-                                                                                                                     * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin for PennyLane)
-                                                                                                                     * A Qiskit backend, to run the jobs on IBM Quantum
-                                                                                                                       systems or simulators
-                                                                                                                     * A list of Qiskit backends for automatic backend selection later on
-                                                                                                                     * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
-                                                                                                                       In this case the backend has to be provided separately via ``backend=``
-                                                                                                                     * A Session, to run the jobs on the Qiskit Runtime service
-                                                                                                                     * A Estimator primitive (either simulator or Qiskit Runtime primitive)
-                                                                                                                     * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+                * A string, that specifics the simulator backend. For Qiskit this can be
+                    ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
+                    For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
+                * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin
+                    for PennyLane)
+                * A Qiskit backend, to run the jobs on IBM Quantum systems or simulators
+                * A list of Qiskit backends for automatic backend selection later on
+                * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
+                    In this case the backend has to be provided separately via ``backend=``
+                * A Session, to run the jobs on the Qiskit Runtime service
+                * A Estimator primitive (either simulator or Qiskit Runtime primitive)
+                * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-                                                                                                       Default is the initialization with PennyLane.
+            Default is the initialization with PennyLane's 
+            :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
-                                             Only mandatory if a service is provided.
+            Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
-                                                           primitives.
+            primitives.
         options_sampler (Union[Options, Options, None]): The options for the created sampler
-                                                         primitives.
+            primitives.
         log_file (str): The name of the log file, if empty, no log file is created.
         caching (Union[bool, None]): Whether to cache the results of the jobs.
         cache_dir (str): The directory where to cache the results of the jobs.
@@ -93,14 +95,13 @@ class Executor:
         shots (Union[int, None]): The number of initial shots that is used for the execution.
         seed (Union[int, None]): The seed that is used for finite samples in the execution.
         qpu_parallelization (Union[int, str, None]): The number of parallel executions on the QPU.
-                                                     If set to ``"auto"``, the number of parallel
-                                                     executions is automatically determined. If set
-                                                     to ``None``, no parallelization is used.
-                                                     Default is ``None``.
+            If set to ``"auto"``, the number of parallel executions is automatically determined.
+            If set to ``None``, no parallelization is used. Default is ``None``.
         auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
 
-                                    * ``"quality"``: Automatically selects the best backend for the provided circuit. This is the default value.
-                                    * ``"speed"``: Automatically selects the backend with the smallest queue.
+            * ``"quality"``: Automatically selects the best backend for the provided circuit.
+                This is the default value.
+            * ``"speed"``: Automatically selects the backend with the smallest queue.
 
     Attributes:
     -----------
@@ -131,21 +132,26 @@ class Executor:
 
     .. code-block:: python
 
-       from squlearn import Executor
-       import pennylane as qml
+        from squlearn import Executor
+        import pennylane as qml
 
-       # Executor with a PennyLane device (statevector)
-       executor = Executor(qml.device("default.qubit"))
+        # Executor with a PennyLane device (statevector)
+        executor = Executor(qml.device("default.qubit"))
 
-       # Executor with a PennyLane device (shot-based)
-       executor = Executor(qml.device("default.qubit", shots=1000))
+        # Executor with a PennyLane device (shot-based)
+        executor = Executor(qml.device("default.qubit", shots=1000))
 
-       # Executor with a PennyLane lightining device
-       executor = Executor(qml.device("lightning.qubit"))
+        # Executor with a PennyLane lightining device
+        executor = Executor(qml.device("lightning.qubit"))
 
-       # Executor with a AWS Braket device with 4 qubits (requires a valid AWS credential to be set)
-       dev = qml.device("braket.aws.qubit", device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1", wires=4)
-       executor = Executor(dev)
+        # Executor with a AWS Braket device with 4 qubits
+        # (requires a valid AWS credential to be set)
+        dev = qml.device(
+            "braket.aws.qubit",
+            device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1",
+            wires=4
+        )
+        executor = Executor(dev)
 
     **Example: Different Qiskit based initializations of the Executor**
 
