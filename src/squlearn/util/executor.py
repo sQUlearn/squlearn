@@ -1687,12 +1687,19 @@ class Executor:
         self._set_seed_for_primitive = seed
 
     def select_backend(self, circuit, **options):
+        """Selects the best backend for a given circuit and options.
+
+        Args:
+            circuit: Either a QuantumCircuit or an EncodingCircuitBase
+            **options: Additional options for backend selection
+
+        Returns:
+            A tuple containing the best backend and the transpiled circuit
+        """
         from ..encoding_circuit.encoding_circuit_base import (
             EncodingCircuitBase,
-        )  # check why not outside
+        )
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
-
-        # todo implement options:
 
         min_num_qubits = options.get("min_num_qubits", None)
         max_num_qubits = options.get("max_num_qubits", None)
