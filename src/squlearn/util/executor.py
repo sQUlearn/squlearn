@@ -878,7 +878,7 @@ class Executor:
                         self._estimator, num_parallel=self._qpu_parallelization
                     )
                 else:
-                    raise ValueError(
+                    raise TypeError(
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
@@ -981,7 +981,7 @@ class Executor:
                         self._sampler, num_parallel=self._qpu_parallelization
                     )
                 else:
-                    raise ValueError(
+                    raise TypeError(
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
