@@ -266,7 +266,6 @@ class Executor:
         self._service = None
         self._estimator = None
         self._sampler = None
-        self._IBMQuantum = False
         self._session_active = False
         self._execution_origin = ""
 
@@ -537,7 +536,7 @@ class Executor:
         self._inital_num_shots = self.get_shots()
 
         if self._caching is None:
-            self._caching = self._IBMQuantum
+            self._caching = self.remote
 
         if self._caching:
             self._cache = ExecutorCache(self._logger, cache_dir)
@@ -823,7 +822,7 @@ class Executor:
             # Create a new Estimator
             shots = self.get_shots()
             initialize_parallel_estimator = True
-            if self._IBMQuantum:
+            if self.remote:
                 if self._session is not None:
                     if self._session_active is False:
                         self.create_session()
@@ -924,7 +923,7 @@ class Executor:
             shots = self.get_shots()
             initialize_parallel_sampler = True
 
-            if self._IBMQuantum:
+            if self.remote:
                 if self._session is not None:
                     if self._session_active is False:
                         self.create_session()
@@ -1084,7 +1083,7 @@ class Executor:
                         self._logger.info(f"Traceback: {{}}".format(traceback.format_exc()))
                         break
 
-                    if self._IBMQuantum:
+                    if self.remote:
                         time.sleep(1)
                     else:
                         time.sleep(0.01)
