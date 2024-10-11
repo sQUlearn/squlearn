@@ -19,6 +19,7 @@ import mapomatic as mm
 # HQAA additions
 from .hqaa import parse_openqasm, heuristic
 
+
 def get_num_qubits(backend):
     """Gets the number of qubits of a backend.
 
