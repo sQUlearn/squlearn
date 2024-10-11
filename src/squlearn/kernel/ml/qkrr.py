@@ -11,7 +11,7 @@ from ..matrix.regularization import thresholding_regularization, tikhonov_regula
 
 
 class QKRR(BaseEstimator, RegressorMixin):
-    """
+    r"""
     Quantum Kernel Ridge Regression.
 
     This class implements the Quantum Kernel Ridge Regression analogous to KRR [1] in scikit-learn

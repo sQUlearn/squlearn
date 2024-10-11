@@ -20,6 +20,7 @@ QML Regressors
    kernel.ml.QKRR
    kernel.ml.QGPR
    qnn.QNNRegressor
+   qrc.QRCRegressor
 
 
 QML Classifiers
@@ -35,7 +36,7 @@ QML Classifiers
    kernel.ml.QSVC
    kernel.ml.QGPC
    qnn.QNNClassifier
-
+   qrc.QRCClassifier
 
 Circuit Design
 ====================================
@@ -64,8 +65,12 @@ Encoding Circuits
    encoding_circuit.MultiControlEncodingCircuit
    encoding_circuit.ChebyshevRx
    encoding_circuit.ParamZFeatureMap
+   encoding_circuit.KyriienkoEncodingCircuit
    encoding_circuit.QiskitEncodingCircuit
    encoding_circuit.QCNNEncodingCircuit
+   encoding_circuit.RandomLayeredEncodingCircuit
+   encoding_circuit.RandomEncodingCircuit
+
 
 Encoding Circuit Tools
 ------------------------------------
@@ -197,6 +202,7 @@ QNN Core
    qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
+   qnn.loss.ODELoss
    qnn.loss.ParameterRegularizationLoss
 
 Tools for training QNNs
@@ -283,6 +289,7 @@ Base Classes
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
     qnn.loss.LossBase
+    qrc.base_qrc.BaseQRC
 
 
 

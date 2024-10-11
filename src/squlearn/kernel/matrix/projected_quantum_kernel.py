@@ -929,7 +929,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
 
 class GaussianOuterKernel(OuterKernelBase):
-    """
+    r"""
     Implementation of the Gaussian outer kernel:
 
     .. math::
