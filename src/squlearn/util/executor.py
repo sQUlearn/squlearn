@@ -777,7 +777,7 @@ class Executor:
         return self._backend_list
 
     @property
-    def is_backend_chosen(self) -> bool:
+    def backend_chosen(self) -> bool:
         """Returns true if the backend has been chosen."""
         if self.backend is None:
             return False

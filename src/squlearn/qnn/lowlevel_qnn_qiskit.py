@@ -315,7 +315,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         self.caching = caching
 
-        if executor.is_backend_chosen:
+        if executor.backend_chosen:
             # Skip transpilation for parallel qpu execution
             if not executor.qpu_parallelization:
                 parameterized_quantum_circuit = TranspiledEncodingCircuit(
