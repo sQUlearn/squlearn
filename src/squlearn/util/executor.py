@@ -489,14 +489,12 @@ class Executor:
 
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
-            if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-                if (
-                    "fake" in str(self._backend).lower()
-                    or "fake" in str(self._backend_list).lower()
-                ):
-                    self._remote = False
-                else:
-                    self._remote = True
+            if (
+                "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower()
+            ) and not (
+                "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower()
+            ):
+                self._remote = True
             else:
                 self._remote = False
 
@@ -1791,11 +1789,12 @@ class Executor:
         self._logger.info(f"Executor uses the backend: {{}}".format(str(self._backend)))
 
         # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-            if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
-                self._remote = False
-            else:
-                self._remote = True
+        if (
+            "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower()
+        ) and not (
+            "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower()
+        ):
+            self._remote = True
         else:
             self._remote = False
 
