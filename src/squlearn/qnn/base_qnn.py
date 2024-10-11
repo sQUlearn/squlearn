@@ -75,6 +75,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.variance = variance
         self.shot_control = shot_control
         self.parameter_seed = parameter_seed
+        self._qnn_params = kwargs
 
         if param_ini is None:
             self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
@@ -143,9 +144,11 @@ class BaseQNN(BaseEstimator, ABC):
                 raise ValueError(f"Unknown callback string value {self.callback}")
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
+        if self.num_features is not None:
+            self._initialize_lowlevel_qnn()
+            self.__update_params()
 
         self._is_fitted = self.pretrained
-        self._qnn_params = kwargs
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -203,11 +206,10 @@ class BaseQNN(BaseEstimator, ABC):
         y = np.array(y)
 
         # set num_features and initialize the low level qnn
-        # if self.num_features is None:
-        self.__set_num_features(X)
-
-        self._initialize_lowlevel_qnn()
-        self.__update_params()
+        if self.num_features is None:
+            self.__set_num_features(X)
+            self._initialize_lowlevel_qnn()
+            self.__update_params()
 
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
@@ -364,4 +366,3 @@ class BaseQNN(BaseEstimator, ABC):
     def __set_num_features(self, X) -> None:
         """Set the number of features of the PQC."""
         self.num_features = X.shape[1]
-        print(f"Number of features set to {X.shape[1]}")
