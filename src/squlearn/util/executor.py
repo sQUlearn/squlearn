@@ -1721,7 +1721,7 @@ class Executor:
         )
 
         mode = options.get("mode", self._auto_backend_mode)
-        use_HQAA = options.get("useHQAA", False)
+        use_hqaa = options.get("use_hqaa", False)
 
         if isinstance(self._qpu_parallelization, int):
             if isinstance(circuit, QuantumCircuit):
@@ -1742,7 +1742,7 @@ class Executor:
                 mapped_circuit.tensor(real_circuit, inplace=True)
 
             info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                mapped_circuit, mode=mode, useHQAA=use_HQAA
+                mapped_circuit, mode=mode, use_hqaa=use_hqaa
             )
 
             return_circ = circuit
@@ -1750,7 +1750,7 @@ class Executor:
         else:
             if isinstance(circuit, QuantumCircuit):
                 info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                    circuit, mode=mode, useHQAA=use_HQAA
+                    circuit, mode=mode, use_hqaa=use_hqaa
                 )
                 return_circ = transpiled_circuit
 
@@ -1762,7 +1762,7 @@ class Executor:
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
                     info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                        qiskit_circuit, mode=mode, useHQAA=use_HQAA
+                        qiskit_circuit, mode=mode, use_hqaa=use_hqaa
                     )
                     return transpiled_circuit
 
