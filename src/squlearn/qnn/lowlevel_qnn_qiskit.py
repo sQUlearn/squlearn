@@ -308,11 +308,6 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         primitive: Union[str, None] = None,
     ) -> None:
 
-        parameterized_quantum_circuit = TranspiledEncodingCircuit(
-            parameterized_quantum_circuit, executor.backend
-        )
-        super().__init__(parameterized_quantum_circuit, operator, executor)
-
         self.caching = caching
 
         if executor.is_backend_chosen:

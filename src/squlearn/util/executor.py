@@ -294,6 +294,7 @@ class Executor:
         self._wait_restart = wait_restart
         self._qpu_parallelization = qpu_parallelization
         self._auto_backend_mode = auto_backend_mode
+        self._IBMQuantum = False
 
         self._backend_list = None
 
@@ -489,25 +490,31 @@ class Executor:
                     or "fake" in str(self._backend_list).lower()
                 ):
                     self._remote = False
+                    self._IBMQuantum = False
                 else:
                     self._remote = True
+                    self._IBMQuantum = True
             else:
-                self._remote = False
+                self._IBMQuantum = False
+                # Check if backend is a simulator
+                self._remote = not any(
+                    str(substring) in str(self._backend)
+                    for substring in Aer.backends()
+                )
 
             if self._backend_list is None:
                 self._backend_list = [self._backend]
             else:
-                if self._remote is False:
+                if self._IBMQuantum is False:
                     # If fake backends are given
                     # automatic backend selection is supported
-                    # TODO: only fake backends are supported!
                     if (
                         "fake" not in str(self._backend).lower()
                         and "fake" not in str(self._backend_list).lower()
                     ):
                         raise ValueError(
                             "Automatic backend selection is only supported"
-                            + " for IBM Quantum backends!"
+                            + " for IBM Quantum backends or IBM Fake backends!"
                         )
 
         elif self.quantum_framework == "pennylane":
@@ -766,6 +773,11 @@ class Executor:
         return self._remote
 
     @property
+    def IBMQuantum(self) -> bool:
+        """Returns a boolean if the execution is on a IBM Quantum backend."""
+        return self._IBMQuantum
+
+    @property
     def backend_list(self) -> List[Backend]:
         """Returns the backend list that is used in the executor."""
         return self._backend_list
@@ -810,19 +822,20 @@ class Executor:
             raise RuntimeError("Estimator is only available for Qiskit backends")
 
         if self._estimator is not None:
-            if self._session is not None and self._session_active is False:
-                # Session is expired, create a new session and a new estimator
-                self.create_session()
-                self._estimator = qiskit_ibm_runtime_Estimator(
-                    session=self._session, options=self._options_estimator
-                )
+            if self.IBMQuantum:
+                if self._session is not None and self._session_active is False:
+                    # Session is expired, create a new session and a new estimator
+                    self.create_session()
+                    self._estimator = qiskit_ibm_runtime_Estimator(
+                        session=self._session, options=self._options_estimator
+                    )
             estimator = self._estimator
             initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
         else:
             # Create a new Estimator
             shots = self.get_shots()
             initialize_parallel_estimator = True
-            if self.remote:
+            if self.IBMQuantum:
                 if self._session is not None:
                     if self._session_active is False:
                         self.create_session()
@@ -910,12 +923,13 @@ class Executor:
             raise RuntimeError("Sampler is only available for Qiskit backends")
 
         if self._sampler is not None:
-            if self._session is not None and self._session_active is False:
-                # Session is expired, create a new one and a new estimator
-                self.create_session()
-                self._sampler = qiskit_ibm_runtime_Sampler(
-                    session=self._session, options=self._options_sampler
-                )
+            if self.IBMQuantum:
+                if self._session is not None and self._session_active is False:
+                    # Session is expired, create a new one and a new estimator
+                    self.create_session()
+                    self._sampler = qiskit_ibm_runtime_Sampler(
+                        session=self._session, options=self._options_sampler
+                    )
             sampler = self._sampler
             initialize_parallel_sampler = not isinstance(sampler, ParallelSampler)
         else:
@@ -923,7 +937,7 @@ class Executor:
             shots = self.get_shots()
             initialize_parallel_sampler = True
 
-            if self.remote:
+            if self.IBMQuantum:
                 if self._session is not None:
                     if self._session_active is False:
                         self.create_session()
@@ -1571,6 +1585,9 @@ class Executor:
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be created for Qiskit framework!")
 
+        if not self.IBMQuantum:
+            raise RuntimeError("Sessions can only be created for IBM Quantum devices!")
+
         if self._service is not None:
             if self._backend is not None:
                 self._session = Session(
@@ -1781,10 +1798,13 @@ class Executor:
         if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
             if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
                 self._remote = False
+                self._IBMQuantum = False
             else:
                 self._remote = True
+                self._IBMQuantum = True
         else:
             self._remote = False
+            self._IBMQuantum = False
 
     def unset_backend(self):
         """Unsets the backend that is used for the execution."""
