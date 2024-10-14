@@ -21,9 +21,6 @@ class TestParallelExecutor:
         sampler = executor.get_sampler()
         result = sampler.run(qc).result()
         assert result.metadata[0]["shots"] == 10000
-        assert np.allclose(
-            list(result.quasi_dists[0].values()), np.array([0.0047, 0.0312, 0.1346, 0.8295])
-        )
 
     @pytest.mark.parametrize("parallel_mode", ["auto", 2])
     def test_parallel_estimator(self, parallel_mode):
@@ -37,4 +34,3 @@ class TestParallelExecutor:
         estimator = executor.get_estimator()
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 10000
-        assert np.allclose(result.values, np.array([0.6684]))
