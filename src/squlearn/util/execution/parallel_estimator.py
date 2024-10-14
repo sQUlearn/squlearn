@@ -16,6 +16,8 @@ from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit_aer import Aer
 
+import squlearn.util.executor
+
 
 def _custom_result_method(self):
     return self._result
@@ -57,12 +59,11 @@ class ParallelEstimator(BaseEstimator):
             self._transpiler = transpile
         else:
             self._transpiler = transpiler
-        self.check_estimator()
+        self._check_estimator()
         self._cache = {}
 
-    def check_estimator(self) -> None:
+    def _check_estimator(self) -> None:
         """Configures the backend and shot settings based on the provided estimator object."""
-        from ..executor import ExecutorEstimator
 
         self.shots = None
         if hasattr(self._estimator.options, "execution"):
@@ -89,21 +90,19 @@ class ParallelEstimator(BaseEstimator):
                 self._estimator.session.backend()
             )
             self._session_active = True
-        elif isinstance(self._estimator, ExecutorEstimator):
+        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
             self._session_active = self._estimator._executor._session_active
         else:
             raise RuntimeError("No backend found in the given Estimator Primitive!")
 
-    def set_shots(self, num_shots: Union[int, None]) -> None:
+    def _set_shots(self, num_shots: Union[int, None]) -> None:
         """Sets the number shots for the next evaluations.
 
         Args:
             num_shots (int or None): Number of shots that are set
         """
-        from ..executor import ExecutorEstimator
-
         if num_shots is None:
             num_shots = 0
 
@@ -125,7 +124,7 @@ class ParallelEstimator(BaseEstimator):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
-            elif isinstance(self._estimator, ExecutorEstimator):
+            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
@@ -137,8 +136,16 @@ class ParallelEstimator(BaseEstimator):
         parameter_values=None,
         **run_options,
     ) -> EstimatorResult:
-        """Has to be passed through, otherwise python will complain about the abstract method.
-        Input arguments are the same as in Qiskit's estimator.call()
+        """Calls the estimator primitive call method and returns an EstimatorResult.
+
+        Args:
+            circuits: Quantum circuits to execute.
+            observables: Observable to measure.
+            parameter_values: Values for the parameters in circuits.
+            run_options: Additional arguments that are passed to the estimator.
+
+        Returns:
+            An EstimatorResult object containing the expectation values.
         """
         return self._estimator._call(circuits, observables, parameter_values, **run_options)
 
@@ -189,7 +196,7 @@ class ParallelEstimator(BaseEstimator):
             run_options.pop("shots")
 
         for circ, obs in zip(circuits, observables):
-            duplicated_circ, duplicated_obs = self.create_mapped_circuit(
+            duplicated_circ, duplicated_obs = self._create_mapped_circuit(
                 circ, observable=obs, num_parallel=self._num_parallel
             )
             dupl_circuits.append(duplicated_circ)
@@ -254,7 +261,7 @@ class ParallelEstimator(BaseEstimator):
         # TODO: Maybe shots??
         self._estimator.set_options(**fields)
 
-    def create_mapped_circuit(
+    def _create_mapped_circuit(
         self,
         circuit: QuantumCircuit,
         observable: Optional[Union[BaseOperator]] = None,
@@ -322,11 +329,11 @@ class ParallelEstimator(BaseEstimator):
 
         # Set the shots=shots/num_parallel
         if self.shots is not None:
-            self.set_shots(int(self.shots / num_parallel))
+            self._set_shots(int(self.shots / num_parallel))
 
         # if observable is provided, duplicate it and return it as well
         if observable is not None:
-            mapped_obs = self.duplicate_observable(observable, num_parallel)
+            mapped_obs = self._duplicate_observable(observable, num_parallel)
             if return_duplications:
                 return mapped_circuit, mapped_obs, num_parallel
             else:
@@ -337,7 +344,7 @@ class ParallelEstimator(BaseEstimator):
         else:
             return mapped_circuit
 
-    def remove_unused_qubits(self, circuit: QuantumCircuit, observable) -> QuantumCircuit:
+    def _remove_unused_qubits(self, circuit: QuantumCircuit, observable) -> QuantumCircuit:
         """
         Removes unused qubits from a given quantum circuit.
 
@@ -362,7 +369,7 @@ class ParallelEstimator(BaseEstimator):
 
         return circuit, observable
 
-    def duplicate_observable(
+    def _duplicate_observable(
         self, observable: Union[BaseOperator], n_duplications: int
     ) -> SparsePauliOp:
         """
@@ -412,7 +419,7 @@ class ParallelEstimator(BaseEstimator):
 
         return combined_observable
 
-    def transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
+    def _transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
         """
         Transpiles a given quantum circuit, using cached results if available.
 

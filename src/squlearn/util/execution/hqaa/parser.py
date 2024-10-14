@@ -2,7 +2,7 @@ import networkx as nx
 import re
 
 
-def parser_openqasm(lines: str, number_qubits: int) -> nx.Graph:
+def parse_openqasm(lines: str, number_qubits: int) -> nx.Graph:
     """
     Parses OPENQASM code to generate a traffic graph representing single and double qubit gate frequencies.
 

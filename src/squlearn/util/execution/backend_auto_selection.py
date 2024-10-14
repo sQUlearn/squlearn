@@ -1,25 +1,57 @@
-import numpy as np
 from typing import Optional, Callable, Union, List, Tuple
 import copy
 import json
 import os
-
-# HQAA additions
-from .hqaa import parser_openqasm, heuristic
-from qiskit import qasm3
-import networkx as nx
-
 from logging import Logger
 
-from qiskit import transpile, QuantumCircuit
+import networkx as nx
+import numpy as np
+
+from qiskit import qasm3, transpile, QuantumCircuit
 from qiskit.providers import Backend, BackendV1, BackendV2
+from qiskit.providers.fake_provider.utils.json_decoder import (
+    decode_backend_properties,
+)
 from qiskit.providers.models import BackendProperties
 from qiskit_ibm_runtime import QiskitRuntimeService
 import mapomatic as mm
 
+# HQAA additions
+from .hqaa import parse_openqasm, heuristic
+
+
+def get_num_qubits(backend):
+    """Gets the number of qubits of a backend.
+
+    Args:
+        backend (Backend or BackendV1 or BackendV2): The backend.
+
+    Returns:
+        int: The number of qubits of the backend.
+    """
+    try:
+        return backend.configuration().n_qubits
+    except AttributeError:
+        return backend.num_qubits
+
+
+def get_backend_name(backend):
+    """Gets the name of a backend.
+
+    Args:
+        backend (Backend or BackendV1 or BackendV2): The backend.
+
+    Returns:
+        str: The name of the backend.
+    """
+    if callable(getattr(backend, "name", None)):
+        return backend.name()
+    else:
+        return backend.name
+
 
 class NoSuitableBackendError(Exception):
-    pass
+    """Raised when no suitable backend is found."""
 
 
 class AutoSelectionBackend:
@@ -66,7 +98,7 @@ class AutoSelectionBackend:
         self.n_trials_transpile = n_trials_transpile
         self.call_limit = call_limit
         self.verbose = verbose
-        self.useHQAA = False
+        self.use_hqaa = False
         self.logger = logger
 
         if self.service is None:
@@ -91,33 +123,29 @@ class AutoSelectionBackend:
 
         self.backends = self._get_backend_list()
 
-        for b in self.backends:
-            if isinstance(b, BackendV1):
+        for backend in self.backends:
+            if isinstance(backend, BackendV1):
                 continue
-            if isinstance(b, BackendV2):
+            if isinstance(backend, BackendV2):
                 # V2 Backend needs some additional processing to be compatilbe with Mapomatic
-                from qiskit.providers.fake_provider.utils.json_decoder import (
-                    decode_backend_properties,
-                )
-
-                if not b.props_filename:
+                if not backend.props_filename:
                     raise ValueError("No properties file has been defined")
                 with open(  # pylint: disable=unspecified-encoding
-                    os.path.join(b.dirname, b.props_filename)
+                    os.path.join(backend.dirname, backend.props_filename)
                 ) as f_json:
                     prop_config = json.load(f_json)
                 decode_backend_properties(prop_config)
-                b._properties = BackendProperties.from_dict(prop_config)
+                backend._properties = BackendProperties.from_dict(prop_config)
                 # Add necessary functions for Mapomatic
-                b.properties = lambda: b._properties
+                backend.properties = lambda: backend._properties
 
                 def configuration():
-                    config_dict = copy.copy(b._conf_dict)
+                    config_dict = copy.copy(backend._conf_dict)
                     config_dict["num_qubits"] = config_dict["n_qubits"]
                     config = type("config", (object,), config_dict)
                     return config()
 
-                b.configuration = configuration
+                backend.configuration = configuration
 
             self._print("Automatic backend selection started")
             if self.backends:
@@ -317,8 +345,8 @@ class AutoSelectionBackend:
             if get_num_qubits(backend) >= small_qc.num_qubits:
                 possible_backends.append(backend)
 
-        if self.useHQAA:
-            best_qc, best_backend, score, layout = self.evaluate_via_HQAA(
+        if self.use_hqaa:
+            best_qc, best_backend, score, layout = self._evaluate_via_hqaa(
                 possible_backends, small_qc
             )
             self._print(f"Best sub-layout: {layout}. Error_rate: {score}")
@@ -374,8 +402,8 @@ class AutoSelectionBackend:
         self._print(
             f"Transpiled circuit needs {small_qc.num_qubits} qubits on {get_backend_name(least_busy_backend)}"
         )
-        if self.useHQAA:
-            final_circuit, least_busy_backend, score, layout = self.evaluate_via_HQAA(
+        if self.use_hqaa:
+            final_circuit, least_busy_backend, score, layout = self._evaluate_via_hqaa(
                 least_busy_backend, small_qc
             )
             self._print(f"Best sub-layout: {layout}. Error_rate: {score}")
@@ -404,7 +432,7 @@ class AutoSelectionBackend:
         else:
             return (final_circuit.layout.initial_layout, score), final_circuit, least_busy_backend
 
-    def _evaluate_via_HQAA(
+    def _evaluate_via_hqaa(
         self, backends: list[Backend], small_qc: QuantumCircuit
     ) -> Tuple[QuantumCircuit, Backend, float, List]:
         """
@@ -421,7 +449,7 @@ class AutoSelectionBackend:
             backends = [backends]
         # HQAA requires the qasm3 format of the circuit.
         qasm_string = qasm3.dumps(small_qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)
-        circuit_parsed = parser_openqasm(qasm_string, small_qc.num_qubits)
+        circuit_parsed = parse_openqasm(qasm_string, small_qc.num_qubits)
         Gnx = nx.DiGraph()
         best_score = 1
         for backend in backends:
@@ -474,7 +502,7 @@ class AutoSelectionBackend:
         self,
         circuit: QuantumCircuit,
         mode: Optional[str] = "quality",
-        useHQAA: Optional[bool] = False,
+        use_hqaa: Optional[bool] = False,
     ) -> Tuple[Tuple, QuantumCircuit, Backend]:
         """Evaluate the best backend for a given circuit and mode.
         Modes can be 'quality' or'speed'. Speed mode is available only if the service is set.
@@ -482,17 +510,17 @@ class AutoSelectionBackend:
         Args:
             circuit (QuantumCircuit): Circuit object.
             mode (str, optional): Evaluation mode. Defaults to 'quality'.
-            useHQAA (bool, optional): Use HQAA or Mapomatic. Defaults to Mapomatic/False.
+            use_hqaa (bool, optional): Use HQAA or Mapomatic. Defaults to Mapomatic/False.
         Returns:
             tuple: Evaluation results.
         """
-        self.useHQAA = useHQAA
-        self._print(f"Mode: {mode}" + (" using HQAA" if self.useHQAA else " using Mapomatic"))
+        self.use_hqaa = use_hqaa
+        self._print(f"Mode: {mode}" + (" using HQAA" if self.use_hqaa else " using Mapomatic"))
 
         # If the input is a list of circuits, tensor them together
         if isinstance(circuit, list):
             self._print(f"Combining {len(circuit)} circuits into one")
-            circuit = self.tensor_circuits(circuit)
+            circuit = self._tensor_circuits(circuit)
 
         self._print(f"Input circuit needs {circuit.num_qubits} qubits")
         if mode == "quality":
@@ -505,18 +533,3 @@ class AutoSelectionBackend:
             return self._evaluate_speed_mode(circuit, least_busy_backend)
         else:
             raise ValueError(f"Invalid mode: {mode}. Expected 'quality' or 'speed'.")
-
-
-def get_num_qubits(backend):
-
-    try:
-        return backend.configuration().n_qubits
-    except AttributeError:
-        return backend.num_qubits
-
-
-def get_backend_name(backend):
-    if callable(getattr(backend, "name", None)):
-        return backend.name()
-    else:
-        return backend.name

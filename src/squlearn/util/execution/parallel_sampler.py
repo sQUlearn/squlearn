@@ -17,6 +17,8 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit_aer import Aer
 
+import squlearn.util.executor
+
 
 def _custom_result_method(self):
     return self._result
@@ -56,13 +58,11 @@ class ParallelSampler(BaseSampler):
             self._transpiler = transpile
         else:
             self._transpiler = transpiler
-        self.check_sampler()
+        self._check_sampler()
         self._cache = {}
 
-    def check_sampler(self) -> None:
-        """Configures the backend and shot settings based on the properties of the provided sampler object."""
-        from ..executor import ExecutorSampler
-
+    def _check_sampler(self) -> None:
+        """Configures the backend and shot settings based on provided sampler object."""
         self.shots = None
         if hasattr(self._sampler.options, "execution"):
             self.shots = self._sampler.options.get("execution").get("shots", None)
@@ -88,21 +88,19 @@ class ParallelSampler(BaseSampler):
                 self._sampler.session.backend()
             )
             self._session_active = True
-        elif isinstance(self._sampler, ExecutorSampler):
+        elif isinstance(self._sampler, squlearn.util.executor.ExecutorSampler):
             self._backend = self._sampler._executor.backend
             self.shots = self._sampler._executor.get_shots()
             self._session_active = self._sampler._executor._session_active
         else:
             raise RuntimeError("No backend found in the given Sampler Primitive!")
 
-    def set_shots(self, num_shots: Union[int, None]) -> None:
+    def _set_shots(self, num_shots: Union[int, None]) -> None:
         """Sets the number shots for the next evaluations.
 
         Args:
             num_shots (int or None): Number of shots that are set
         """
-        from ..executor import ExecutorSampler
-
         if num_shots is None:
             num_shots = 0
 
@@ -124,12 +122,12 @@ class ParallelSampler(BaseSampler):
                 execution = self._sampler.options.get("execution")
                 execution["shots"] = num_shots
                 self._sampler.set_options(execution=execution)
-            elif isinstance(self._sampler, ExecutorSampler):
+            elif isinstance(self._sampler, squlearn.util.executor.ExecutorSampler):
                 self._sampler._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown sampler type!")
 
-    def recover_original_distribution(
+    def _recover_original_distribution(
         self,
         duplicated_result: Dict,
         total_qubits: int,
@@ -231,7 +229,7 @@ class ParallelSampler(BaseSampler):
             run_options.pop("shots")
 
         for circ in circuits:
-            duplicated_circ, self._num_parallel = self.create_mapped_circuit(
+            duplicated_circ, self._num_parallel = self._create_mapped_circuit(
                 circ, num_parallel=self._num_parallel, return_duplications=True
             )
             dupl_circuits.append(duplicated_circ)
@@ -248,13 +246,13 @@ class ParallelSampler(BaseSampler):
             meta["shots"] = self.shots
 
         if process_result:
-            result = self.process_result(result, circuits, duplicated_circ.num_qubits)
+            result = self._process_result(result, circuits, duplicated_circ.num_qubits)
 
         result_job._result = result
         result_job.result = _custom_result_method.__get__(result_job, type(result_job))
         return result_job
 
-    def process_result(
+    def _process_result(
         self,
         result_job: Union[RuntimeJob, PrimitiveJob, Job],
         original_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -288,7 +286,7 @@ class ParallelSampler(BaseSampler):
 
         for ii, circ in enumerate(original_circuits):
             num_qubits = circ.num_qubits
-            original_dist = self.recover_original_distribution(
+            original_dist = self._recover_original_distribution(
                 result.quasi_dists[ii], total_qubits, num_qubits, qubit_mapping
             )
             result.quasi_dists[ii] = original_dist
@@ -323,7 +321,17 @@ class ParallelSampler(BaseSampler):
         parameter_values: Union[List[float], List[List[float]]] = None,
         **run_options,
     ) -> SamplerResult:
-        """Has to be passed through, otherwise python will complain about the abstract method"""
+        """Calls the sampler primitive call method and returns an SamplerResult.
+
+        Args:
+            circuits: Quantum circuits to execute.
+            observables: Observable to measure.
+            parameter_values: Values for the parameters in circuits.
+            run_options: Additional arguments that are passed to the sampler.
+
+        Returns:
+            An SamplerResult object containing the expectation values.
+        """
         return self._sampler._call(circuits, parameter_values, **run_options)
 
     @property
@@ -362,7 +370,7 @@ class ParallelSampler(BaseSampler):
         self._sampler.set_options(**fields)
         self._sampler._options_sampler = self._sampler.options
 
-    def create_mapped_circuit(
+    def _create_mapped_circuit(
         self,
         circuit: QuantumCircuit,
         num_parallel: Optional[int] = None,
@@ -421,13 +429,13 @@ class ParallelSampler(BaseSampler):
             shots = 0
 
         if self.shots is not None:
-            self.set_shots(int(self.shots / num_parallel))
+            self._set_shots(int(self.shots / num_parallel))
         if return_duplications:
             return mapped_circuit, num_parallel
         else:
             return mapped_circuit
 
-    def remove_unused_qubits(self, circuit: QuantumCircuit) -> QuantumCircuit:
+    def _remove_unused_qubits(self, circuit: QuantumCircuit) -> QuantumCircuit:
         """
         Removes unused qubits from a given quantum circuit.
 
@@ -450,7 +458,7 @@ class ParallelSampler(BaseSampler):
                 circuit.qubits.remove(qubit)
         return circuit
 
-    def transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
+    def _transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
         """
         Transpiles a given quantum circuit, using cached results if available.
 

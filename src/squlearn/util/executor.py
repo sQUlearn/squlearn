@@ -61,28 +61,30 @@ class Executor:
     :doc:`User Guide: The Executor Class </user_guide/executor>`
 
     Args:
-        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]): The execution environment, possible inputs are:
+        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimator, BaseSampler]):
+            The execution environment, possible inputs are:
 
-                                                                                                                     * A string, that specifics the simulator
-                                                                                                                       backend. For Qiskit this can be ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
-                                                                                                                       For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
-                                                                                                                     * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin for PennyLane)
-                                                                                                                     * A Qiskit backend, to run the jobs on IBM Quantum
-                                                                                                                       systems or simulators
-                                                                                                                     * A list of Qiskit backends for automatic backend selection later on
-                                                                                                                     * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service
-                                                                                                                       In this case the backend has to be provided separately via ``backend=``
-                                                                                                                     * A Session, to run the jobs on the Qiskit Runtime service
-                                                                                                                     * A Estimator primitive (either simulator or Qiskit Runtime primitive)
-                                                                                                                     * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+                * A string, that specifics the simulator backend. For Qiskit this can be
+                    ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
+                    For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
+                * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin
+                    for PennyLane)
+                * A Qiskit backend, to run the jobs on IBM Quantum systems or simulators
+                * A list of Qiskit backends for automatic backend selection later on
+                * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
+                    In this case the backend has to be provided separately via ``backend=``
+                * A Session, to run the jobs on the Qiskit Runtime service
+                * A Estimator primitive (either simulator or Qiskit Runtime primitive)
+                * A Sampler primitive (either simulator or Qiskit Runtime primitive)
 
-                                                                                                       Default is the initialization with PennyLane.
+            Default is the initialization with PennyLane's
+            :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
-                                             Only mandatory if a service is provided.
+            Only mandatory if a service is provided.
         options_estimator (Union[Options, Options, None]): The options for the created estimator
-                                                           primitives.
+            primitives.
         options_sampler (Union[Options, Options, None]): The options for the created sampler
-                                                         primitives.
+            primitives.
         log_file (str): The name of the log file, if empty, no log file is created.
         caching (Union[bool, None]): Whether to cache the results of the jobs.
         cache_dir (str): The directory where to cache the results of the jobs.
@@ -93,14 +95,13 @@ class Executor:
         shots (Union[int, None]): The number of initial shots that is used for the execution.
         seed (Union[int, None]): The seed that is used for finite samples in the execution.
         qpu_parallelization (Union[int, str, None]): The number of parallel executions on the QPU.
-                                                     If set to ``"auto"``, the number of parallel
-                                                     executions is automatically determined. If set
-                                                     to ``None``, no parallelization is used.
-                                                     Default is ``None``.
+            If set to ``"auto"``, the number of parallel executions is automatically determined.
+            If set to ``None``, no parallelization is used. Default is ``None``.
         auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
 
-                                    * ``"quality"``: Automatically selects the best backend for the provided circuit. This is the default value.
-                                    * ``"speed"``: Automatically selects the backend with the smallest queue.
+            * ``"quality"``: Automatically selects the best backend for the provided circuit.
+                This is the default value.
+            * ``"speed"``: Automatically selects the backend with the smallest queue.
 
     Attributes:
     -----------
@@ -131,21 +132,26 @@ class Executor:
 
     .. code-block:: python
 
-       from squlearn import Executor
-       import pennylane as qml
+        from squlearn import Executor
+        import pennylane as qml
 
-       # Executor with a PennyLane device (statevector)
-       executor = Executor(qml.device("default.qubit"))
+        # Executor with a PennyLane device (statevector)
+        executor = Executor(qml.device("default.qubit"))
 
-       # Executor with a PennyLane device (shot-based)
-       executor = Executor(qml.device("default.qubit", shots=1000))
+        # Executor with a PennyLane device (shot-based)
+        executor = Executor(qml.device("default.qubit", shots=1000))
 
-       # Executor with a PennyLane lightining device
-       executor = Executor(qml.device("lightning.qubit"))
+        # Executor with a PennyLane lightining device
+        executor = Executor(qml.device("lightning.qubit"))
 
-       # Executor with a AWS Braket device with 4 qubits (requires a valid AWS credential to be set)
-       dev = qml.device("braket.aws.qubit", device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1", wires=4)
-       executor = Executor(dev)
+        # Executor with a AWS Braket device with 4 qubits
+        # (requires a valid AWS credential to be set)
+        dev = qml.device(
+            "braket.aws.qubit",
+            device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1",
+            wires=4
+        )
+        executor = Executor(dev)
 
     **Example: Different Qiskit based initializations of the Executor**
 
@@ -485,15 +491,11 @@ class Executor:
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-                if (
-                    "fake" in str(self._backend).lower()
-                    or "fake" in str(self._backend_list).lower()
-                ):
-                    self._remote = False
-                    self._IBMQuantum = False
-                else:
-                    self._remote = True
-                    self._IBMQuantum = True
+                # Sort out fake backends
+                isfake = ("fake" in str(self._backend).lower()
+                            or "fake" in str(self._backend_list).lower())
+                self._remote = not isfake
+                self._IBMQuantum = not isfake
             else:
                 self._IBMQuantum = False
                 # Check if backend is a simulator
@@ -783,7 +785,7 @@ class Executor:
         return self._backend_list
 
     @property
-    def is_backend_chosen(self) -> bool:
+    def backend_chosen(self) -> bool:
         """Returns true if the backend has been chosen."""
         if self.backend is None:
             return False
@@ -885,7 +887,7 @@ class Executor:
                         self._estimator, num_parallel=self._qpu_parallelization
                     )
                 else:
-                    raise ValueError(
+                    raise TypeError(
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
@@ -989,7 +991,7 @@ class Executor:
                         self._sampler, num_parallel=self._qpu_parallelization
                     )
                 else:
-                    raise ValueError(
+                    raise TypeError(
                         "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
                     )
 
@@ -1698,12 +1700,19 @@ class Executor:
         self._set_seed_for_primitive = seed
 
     def select_backend(self, circuit, **options):
+        """Selects the best backend for a given circuit and options.
+
+        Args:
+            circuit: Either a QuantumCircuit or an EncodingCircuitBase
+            **options: Additional options for backend selection
+
+        Returns:
+            A tuple containing the best backend and the transpiled circuit
+        """
         from ..encoding_circuit.encoding_circuit_base import (
             EncodingCircuitBase,
-        )  # check why not outside
+        )
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
-
-        # todo implement options:
 
         min_num_qubits = options.get("min_num_qubits", None)
         max_num_qubits = options.get("max_num_qubits", None)
@@ -1727,7 +1736,7 @@ class Executor:
         )
 
         mode = options.get("mode", self._auto_backend_mode)
-        use_HQAA = options.get("useHQAA", False)
+        use_hqaa = options.get("use_hqaa", False)
 
         if isinstance(self._qpu_parallelization, int):
             if isinstance(circuit, QuantumCircuit):
@@ -1748,7 +1757,7 @@ class Executor:
                 mapped_circuit.tensor(real_circuit, inplace=True)
 
             info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                mapped_circuit, mode=mode, useHQAA=use_HQAA
+                mapped_circuit, mode=mode, use_hqaa=use_hqaa
             )
 
             return_circ = circuit
@@ -1756,7 +1765,7 @@ class Executor:
         else:
             if isinstance(circuit, QuantumCircuit):
                 info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                    circuit, mode=mode, useHQAA=use_HQAA
+                    circuit, mode=mode, use_hqaa=use_hqaa
                 )
                 return_circ = transpiled_circuit
 
@@ -1768,7 +1777,7 @@ class Executor:
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
                     info, transpiled_circuit, backend = auto_selection_backend.evaluate(
-                        qiskit_circuit, mode=mode, useHQAA=use_HQAA
+                        qiskit_circuit, mode=mode, use_hqaa=use_hqaa
                     )
                     return transpiled_circuit
 
@@ -1794,17 +1803,21 @@ class Executor:
 
         self._logger.info(f"Executor uses the backend: {{}}".format(str(self._backend)))
 
-        # Check if execution is on a remote IBM backend
-        if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-            if "fake" in str(self._backend).lower() or "fake" in str(self._backend_list).lower():
-                self._remote = False
-                self._IBMQuantum = False
+        # Check if execution is on a remote backend
+        if self.quantum_framework == "qiskit":
+            if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
+                # Sort out fake backends
+                isfake = ("fake" in str(self._backend).lower()
+                            or "fake" in str(self._backend_list).lower())
+                self._remote = not isfake
+                self._IBMQuantum = not isfake
             else:
-                self._remote = True
-                self._IBMQuantum = True
-        else:
-            self._remote = False
-            self._IBMQuantum = False
+                self._IBMQuantum = False
+                # Check if backend is a simulator
+                self._remote = not any(
+                    str(substring) in str(self._backend)
+                    for substring in Aer.backends()
+                )
 
     def unset_backend(self):
         """Unsets the backend that is used for the execution."""
