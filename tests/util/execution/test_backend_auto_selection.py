@@ -11,10 +11,12 @@ from squlearn.optimizers import Adam
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, QKRR
 
+import pytest
 
 class TestBackendAutoSelection:
 
-    def test_auto_select_circuit(self):
+    @pytest.mark.parametrize("use_hqaa", [True, False])
+    def test_auto_select_circuit(self, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
         """
@@ -23,7 +25,7 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=1000)
-        qc2, info = executor.select_backend(qc)
+        qc2, info = executor.select_backend(qc, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == "fake_manila"
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()
@@ -32,7 +34,8 @@ class TestBackendAutoSelection:
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 1000
 
-    def test_auto_select_circuit_parallel(self):
+    @pytest.mark.parametrize("use_hqaa", [True, False])
+    def test_auto_select_circuit_parallel(self, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
         """
@@ -41,7 +44,7 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, qpu_parallelization=2)
-        qc2, info = executor.select_backend(qc)
+        qc2, info = executor.select_backend(qc, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == "fake_manila"
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()

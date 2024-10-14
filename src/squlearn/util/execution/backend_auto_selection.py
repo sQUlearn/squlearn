@@ -341,7 +341,7 @@ class AutoSelectionBackend:
 
         # Filter out self.backend based on the circuit number of qubits
         possible_backends = []
-        for backend in self.backends:
+        for backend in compatible_backends.values():
             if get_num_qubits(backend) >= small_qc.num_qubits:
                 possible_backends.append(backend)
 
@@ -450,7 +450,7 @@ class AutoSelectionBackend:
         # HQAA requires the qasm3 format of the circuit.
         qasm_string = qasm3.dumps(small_qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)
         circuit_parsed = parse_openqasm(qasm_string, small_qc.num_qubits)
-        Gnx = nx.DiGraph()
+        nx_graph = nx.DiGraph()
         best_score = 1
         for backend in backends:
             edges = backend.coupling_map.get_edges()
@@ -465,7 +465,7 @@ class AutoSelectionBackend:
                 raise Exception("Supported two-qubit gate not found in basis gates.")
 
             for qubit in qubits:
-                Gnx.add_node(
+                nx_graph.add_node(
                     qubit,
                     weight=props.gate_error("sx", qubit),
                     read_out=props.readout_error(qubit),
@@ -473,10 +473,10 @@ class AutoSelectionBackend:
 
             for src, dst in edges:
                 avg_gate_error = props.gate_error(two_qubit_gate, [src, dst])
-                Gnx.add_edge(src, dst, weight=avg_gate_error)
+                nx_graph.add_edge(src, dst, weight=avg_gate_error)
 
-            hue = heuristic(Gnx, circuit_parsed)
-            this_layout = list(hue.final_mapping.values())
+            final_mapping = heuristic(nx_graph, circuit_parsed, print_function=self._print)
+            this_layout = list(final_mapping.values())
             final_circuit = transpile(
                 small_qc,
                 backend,
