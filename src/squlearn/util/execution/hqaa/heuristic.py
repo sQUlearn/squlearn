@@ -107,6 +107,7 @@ def find_loops(num_qubits: int, noise_graph: Graph) -> List[Dict[int, int]]:
 
     return result
 
+
 def calculate_normalized_traf_coefs(traffic: Graph):
     """Calculate and return normalized traffic coefficients based on frequencies."""
     frequencies = [traffic.nodes[i]["single"] for i in range(len(traffic))]
@@ -119,6 +120,7 @@ def calculate_normalized_traf_coefs(traffic: Graph):
     traf_qubits_and_coefs = {i: coef for i, coef in enumerate(traf_coefs)}
 
     return traf_qubits_and_coefs
+
 
 # calculate the traffic coefficient and allocate the first 2 qubits
 def allocate(
