@@ -300,7 +300,7 @@ class Executor:
         self._wait_restart = wait_restart
         self._qpu_parallelization = qpu_parallelization
         self._auto_backend_mode = auto_backend_mode
-        self._IBMQuantum = False
+        self._ibm_quantum_backend = False
 
         self._backend_list = None
 
@@ -496,19 +496,19 @@ class Executor:
                     "fake" in str(self._backend).lower()
                     or "fake" in str(self._backend_list).lower()
                 )
-                self._remote = not isfake
-                self._IBMQuantum = not isfake
+                self._remote_backend = not isfake
+                self._ibm_quantum_backend = not isfake
             else:
-                self._IBMQuantum = False
+                self._ibm_quantum_backend = False
                 # Check if backend is a simulator
-                self._remote = not any(
+                self._remote_backend = not any(
                     str(substring) in str(self._backend) for substring in Aer.backends()
                 )
 
             if self._backend_list is None:
                 self._backend_list = [self._backend]
             else:
-                if self._IBMQuantum is False:
+                if self._ibm_quantum_backend is False:
                     # If fake backends are given
                     # automatic backend selection is supported
                     if (
@@ -528,7 +528,7 @@ class Executor:
             if self.qpu_parallelization:
                 raise ValueError("QPU parallelization is not supported for PennyLane devices!")
 
-            self._remote = not any(
+            self._remote_backend = not any(
                 substring in str(self._pennylane_device)
                 for substring in [
                     "default.qubit",
@@ -773,12 +773,12 @@ class Executor:
     @property
     def remote(self) -> bool:
         """Returns a boolean if the execution is on a remote backend."""
-        return self._remote
+        return self._remote_backend
 
     @property
     def IBMQuantum(self) -> bool:
         """Returns a boolean if the execution is on a IBM Quantum backend."""
-        return self._IBMQuantum
+        return self._ibm_quantum_backend
 
     @property
     def backend_list(self) -> List[Backend]:
@@ -1812,12 +1812,12 @@ class Executor:
                     "fake" in str(self._backend).lower()
                     or "fake" in str(self._backend_list).lower()
                 )
-                self._remote = not isfake
-                self._IBMQuantum = not isfake
+                self._remote_backend = not isfake
+                self._ibm_quantum_backend = not isfake
             else:
-                self._IBMQuantum = False
+                self._ibm_quantum_backend = False
                 # Check if backend is a simulator
-                self._remote = not any(
+                self._remote_backend = not any(
                     str(substring) in str(self._backend) for substring in Aer.backends()
                 )
 
