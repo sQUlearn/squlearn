@@ -492,16 +492,17 @@ class Executor:
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
                 # Sort out fake backends
-                isfake = ("fake" in str(self._backend).lower()
-                            or "fake" in str(self._backend_list).lower())
+                isfake = (
+                    "fake" in str(self._backend).lower()
+                    or "fake" in str(self._backend_list).lower()
+                )
                 self._remote = not isfake
                 self._IBMQuantum = not isfake
             else:
                 self._IBMQuantum = False
                 # Check if backend is a simulator
                 self._remote = not any(
-                    str(substring) in str(self._backend)
-                    for substring in Aer.backends()
+                    str(substring) in str(self._backend) for substring in Aer.backends()
                 )
 
             if self._backend_list is None:
@@ -1807,16 +1808,17 @@ class Executor:
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
                 # Sort out fake backends
-                isfake = ("fake" in str(self._backend).lower()
-                            or "fake" in str(self._backend_list).lower())
+                isfake = (
+                    "fake" in str(self._backend).lower()
+                    or "fake" in str(self._backend_list).lower()
+                )
                 self._remote = not isfake
                 self._IBMQuantum = not isfake
             else:
                 self._IBMQuantum = False
                 # Check if backend is a simulator
                 self._remote = not any(
-                    str(substring) in str(self._backend)
-                    for substring in Aer.backends()
+                    str(substring) in str(self._backend) for substring in Aer.backends()
                 )
 
     def unset_backend(self):
