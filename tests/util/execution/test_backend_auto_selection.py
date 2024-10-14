@@ -13,6 +13,7 @@ from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, QKRR
 
 import pytest
 
+
 class TestBackendAutoSelection:
 
     @pytest.mark.parametrize("use_hqaa", [True, False])
