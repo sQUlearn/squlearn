@@ -123,37 +123,11 @@ class AutoSelectionBackend:
 
         self.backends = self._get_backend_list()
 
-        for backend in self.backends:
-            if isinstance(backend, BackendV1):
-                continue
-            if isinstance(backend, BackendV2):
-                # V2 Backend needs some additional processing to be compatilbe with Mapomatic
-                if not backend.props_filename:
-                    raise ValueError("No properties file has been defined")
-                with open(  # pylint: disable=unspecified-encoding
-                    os.path.join(backend.dirname, backend.props_filename)
-                ) as f_json:
-                    prop_config = json.load(f_json)
-                decode_backend_properties(prop_config)
-                backend._properties = BackendProperties.from_dict(prop_config)
-                # Add necessary functions for Mapomatic
-                backend.properties = lambda: backend._properties
-
-                def configuration():
-                    config_dict = copy.copy(backend._conf_dict)
-                    config_dict["num_qubits"] = config_dict["n_qubits"]
-                    config = type("config", (object,), config_dict)
-                    return config()
-
-                backend.configuration = configuration
-
-            self._print("Automatic backend selection started")
-            if self.backends:
-                self._print(
-                    f"Number of backends available with given parameters:{len(self.backends)}"
-                )
-            else:
-                raise NoSuitableBackendError("No suitable backend found with given parameters")
+        self._print("Automatic backend selection started")
+        if self.backends:
+            self._print(f"Number of backends available with given parameters:{len(self.backends)}")
+        else:
+            raise NoSuitableBackendError("No suitable backend found with given parameters")
 
     def _print(self, message: str):
         """Print message if verbose is True, if logger is set, log message."""
@@ -341,7 +315,8 @@ class AutoSelectionBackend:
 
         # Filter out self.backend based on the circuit number of qubits
         possible_backends = []
-        for backend in compatible_backends.values():
+
+        for backend in self.backends:
             if get_num_qubits(backend) >= small_qc.num_qubits:
                 possible_backends.append(backend)
 

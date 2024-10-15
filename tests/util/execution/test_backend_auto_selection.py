@@ -15,9 +15,13 @@ import pytest
 
 
 class TestBackendAutoSelection:
+    """Test for auto selection of the backend for a given circuit."""
 
+    @pytest.mark.parametrize(
+        "mode, true_backend", [("quality", "fake_manila"), ("speed", "fake_belem")]
+    )
     @pytest.mark.parametrize("use_hqaa", [True, False])
-    def test_auto_select_circuit(self, use_hqaa):
+    def test_auto_select_circuit(self, mode, true_backend, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
         """
@@ -26,8 +30,8 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=1000)
-        qc2, info = executor.select_backend(qc, use_hqaa=use_hqaa)
-        assert str(executor.backend_name) == "fake_manila"
+        _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
+        assert str(executor.backend_name) == true_backend
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()
         assert result.metadata[0]["shots"] == 1000
@@ -35,8 +39,11 @@ class TestBackendAutoSelection:
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 1000
 
+    @pytest.mark.parametrize(
+        "mode, true_backend", [("quality", "fake_manila"), ("speed", "fake_belem")]
+    )
     @pytest.mark.parametrize("use_hqaa", [True, False])
-    def test_auto_select_circuit_parallel(self, use_hqaa):
+    def test_auto_select_circuit_parallel(self, mode, true_backend, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
         """
@@ -45,8 +52,8 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, qpu_parallelization=2)
-        qc2, info = executor.select_backend(qc, use_hqaa=use_hqaa)
-        assert str(executor.backend_name) == "fake_manila"
+        _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
+        assert str(executor.backend_name) == true_backend
         sampler = executor.get_sampler()
         result = sampler.run(qc.measure_all(inplace=False)).result()
         assert result.metadata[0]["shots"] == 10000
@@ -54,12 +61,21 @@ class TestBackendAutoSelection:
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 10000
 
-    def test_auto_select_qnn(self):
+    @pytest.mark.parametrize(
+        "mode, true_backend",
+        [
+            ("quality", "fake_manila"),
+            ("speed", "fake_belem"),
+            ("quality_hqaa", "fake_manila"),
+            ("speed_hqaa", "fake_belem"),
+        ],
+    )
+    def test_auto_select_qnn(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
-        executor = Executor(backends, seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
         pqc = ChebyshevTower(2, 1, 2)
         obs = SummedPaulis(2)
         param = []
@@ -75,31 +91,49 @@ class TestBackendAutoSelection:
             param_op_ini=param_op,
         )
         qnn.predict(np.array([[0.25], [0.75]]))
-        assert str(executor.backend_name) == "fake_manila"
+        assert str(executor.backend_name) == true_backend
 
-    def test_auto_select_fidelity_kernel(self):
+    @pytest.mark.parametrize(
+        "mode, true_backend",
+        [
+            ("quality", "fake_manila"),
+            ("speed", "fake_belem"),
+            ("quality_hqaa", "fake_manila"),
+            ("speed_hqaa", "fake_belem"),
+        ],
+    )
+    def test_auto_select_fidelity_kernel(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
-        executor = Executor(backends, seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
         pqc = ChebyshevTower(2, 1, 2)
         fqk = FidelityKernel(pqc, executor)
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         qkrr.predict(np.array([[0.25], [0.75]]))
 
-        assert str(executor.backend_name) == "fake_manila"
+        assert str(executor.backend_name) == true_backend
 
-    def test_auto_select_projected_kernel(self):
+    @pytest.mark.parametrize(
+        "mode, true_backend",
+        [
+            ("quality", "fake_manila"),
+            ("speed", "fake_belem"),
+            ("quality_hqaa", "fake_manila"),
+            ("speed_hqaa", "fake_belem"),
+        ],
+    )
+    def test_auto_select_projected_kernel(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
-        executor = Executor(backends, seed=0, shots=10000)
+        executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
         pqc = ChebyshevTower(2, 1, 2)
         fqk = ProjectedQuantumKernel(pqc, executor)
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
         qkrr.predict(np.array([[0.25], [0.75]]))
-        assert str(executor.backend_name) == "fake_manila"
+        assert str(executor.backend_name) == true_backend

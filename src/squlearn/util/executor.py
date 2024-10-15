@@ -65,14 +65,14 @@ class Executor:
             The execution environment, possible inputs are:
 
                 * A string, that specifics the simulator backend. For Qiskit this can be
-                    ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
-                    For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
+                  ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
+                  For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
                 * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin
-                    for PennyLane)
+                  for PennyLane)
                 * A Qiskit backend, to run the jobs on IBM Quantum systems or simulators
                 * A list of Qiskit backends for automatic backend selection later on
                 * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
-                    In this case the backend has to be provided separately via ``backend=``
+                  In this case the backend has to be provided separately via ``backend=``
                 * A Session, to run the jobs on the Qiskit Runtime service
                 * A Estimator primitive (either simulator or Qiskit Runtime primitive)
                 * A Sampler primitive (either simulator or Qiskit Runtime primitive)
@@ -99,9 +99,12 @@ class Executor:
             If set to ``None``, no parallelization is used. Default is ``None``.
         auto_backend_mode (str): The mode for automatic backend selection. Possible values are:
 
-            * ``"quality"``: Automatically selects the best backend for the provided circuit.
-                This is the default value.
-            * ``"speed"``: Automatically selects the backend with the smallest queue.
+            * ``"quality"``: Automatically selects the best backend for the provided circuit using
+              the mapomatic tool. This is the default value.
+            * ``"quality_hqaa"``: Same as ``"quality"``, but uses the HQAA algorithm.
+            * ``"speed"``: Automatically selects the backend with the smallest queue using the
+              mapomatic tool.
+            * ``"speed_hqaa"``: Same as ``"speed"``, but uses the HQAA algorithm.
 
     Attributes:
     -----------
@@ -299,7 +302,21 @@ class Executor:
         self._max_jobs_retries = max_jobs_retries
         self._wait_restart = wait_restart
         self._qpu_parallelization = qpu_parallelization
-        self._auto_backend_mode = auto_backend_mode
+        if auto_backend_mode in ["quality_hqaa", "speed_hqaa"]:
+            self._auto_backend_options = {
+                "mode": auto_backend_mode.split("_")[0],
+                "use_hqaa": True,
+            }
+        elif auto_backend_mode in ["quality", "speed"]:
+            self._auto_backend_options = {
+                "mode": auto_backend_mode,
+                "use_hqaa": False,
+            }
+        else:
+            raise ValueError(
+                "auto_backend_mode must be one of 'quality_hqaa', 'speed_hqaa', 'quality' or"
+                " 'speed'"
+            )
         self._ibm_quantum_backend = False
 
         self._backend_list = None
@@ -1705,7 +1722,19 @@ class Executor:
 
         Args:
             circuit: Either a QuantumCircuit or an EncodingCircuitBase
-            **options: Additional options for backend selection
+            **options: Additional options for backend selection. Possible options:
+
+                * min_num_qubits: Minimum number of qubits in the circuit (default: None)
+                * max_num_qubits: Maximum number of qubits in the circuit (default: None)
+                * cost_function: Cost function to use (default: None)
+                * optimization_level: Optimization level (default: 3)
+                * n_trials_transpile: Number of trials to transpile (default: 1)
+                * call_limit: Call limit (default: int(3e7))
+                * verbose: Whether to print information (default: False)
+                * mode: Mode for the backend selection. Overwrites the option provided to the
+                  constructor.
+                * use_hqaa: Whether to use HQAA. Overwrites the option provided to the
+                  constructor.
 
         Returns:
             A tuple containing the best backend and the transpiled circuit
@@ -1736,8 +1765,8 @@ class Executor:
             logger=logger,
         )
 
-        mode = options.get("mode", self._auto_backend_mode)
-        use_hqaa = options.get("use_hqaa", False)
+        mode = options.get("mode", self._auto_backend_options["mode"])
+        use_hqaa = options.get("use_hqaa", self._auto_backend_options["use_hqaa"])
 
         if isinstance(self._qpu_parallelization, int):
             if isinstance(circuit, QuantumCircuit):
@@ -1761,7 +1790,7 @@ class Executor:
                 mapped_circuit, mode=mode, use_hqaa=use_hqaa
             )
 
-            return_circ = circuit
+            return_circ = transpiled_circuit
 
         else:
             if isinstance(circuit, QuantumCircuit):
