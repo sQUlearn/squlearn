@@ -25,17 +25,19 @@ classifiers = [
 ]
 keywords = ["quantum", "machine learning", "qml"]
 dependencies = [
+    "bayesian-optimization>=1.4.3",
     "dill>=0.3",
-    "numpy>=1.17,<2.0",
-    "qiskit>=0.43.0,<1.1.0",
+    "mapomatic>=0.10.0",
+    "networkx>=3.0",
+    "numpy>=1.17",
+    "pennylane>=0.34.0",
+    "qiskit>=0.43.0,<1.2.0",
     "qiskit-aer>=0.12.0",
     "qiskit-algorithms>=0.3.0",
-    "qiskit-ibm-runtime>=0.15.1",
+    "qiskit-ibm-runtime>=0.15.1,<0.28.0",
     "qiskit-machine-learning>=0.6.1",
-    "pennylane>=0.34.0",
     "scipy>=1.5",
     "scikit-learn>=1.0,<1.4.2",
-    "bayesian-optimization>=1.4.3",
     "tqdm>=4.0",
 ]
 requires-python = ">=3.9"
@@ -60,6 +62,7 @@ examples = [
 ]
 docs = [
     "ipykernel",
+    "jupyter-sphinx",
     "matplotlib>=3.5",
     "myst-parser",
     "nbsphinx",
@@ -69,7 +72,6 @@ docs = [
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme<3.0.0",
     "sphinx-sitemap",
-    "jupyter-sphinx",
 ]
 
 [project.urls]

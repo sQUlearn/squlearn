@@ -44,6 +44,11 @@ class BaseQNN(BaseEstimator, ABC):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
+        primitive : The Qiskit primitive that is utilized in the qnn, if a Qiskit backend
+                    is used in the executor (not supported for PennyLane backends)
+                    Default primitive is the one specified in the executor initialization,
+                    if nothing is specified, the estimator will used.
+                    Possible values are ``"estimator"`` or ``"sampler"``.
     """
 
     def __init__(
@@ -65,6 +70,7 @@ class BaseQNN(BaseEstimator, ABC):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = None,
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -117,6 +123,7 @@ class BaseQNN(BaseEstimator, ABC):
         self.caching = caching
         self.pretrained = pretrained
 
+        self.primitive = primitive
         self.executor = executor
 
         self.shot_control = shot_control
@@ -324,7 +331,11 @@ class BaseQNN(BaseEstimator, ABC):
 
     def _initialize_lowlevel_qnn(self):
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self.operator, self.executor, caching=self.caching
+            self.encoding_circuit,
+            self.operator,
+            self.executor,
+            caching=self.caching,
+            primitive=self.primitive,
         )
 
     def _validate_input(self, X, y, incremental, reset):
