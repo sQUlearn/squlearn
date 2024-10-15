@@ -117,7 +117,7 @@ class AutoSelectionBackend:
 
                     self.service = dummy_service(self.backends_to_use[0])
             else:
-                raise NoSuitableBackendError("Error: Either provide service or backends_to_use.")
+                raise ValueError("Error: Either provide service or backends_to_use.")
         else:
             self._obtain_backends_from_service = True
 
@@ -434,16 +434,17 @@ class AutoSelectionBackend:
 
     def _evaluate_via_hqaa(
         self, backends: list[Backend], small_qc: QuantumCircuit
-    ) -> Tuple[QuantumCircuit, Backend, float, List]:
+    ) -> Tuple[QuantumCircuit, Backend, float, List[int]]:
         """
-        Evaluate the best sub-layout for a given circuit on a list of backends using the HQAA algorithm.
+        Evaluate the best sub-layout for a given circuit using the HQAA algorithm.
 
         Args:
             backends (list): List of backends.
             small_qc (QuantumCircuit): Circuit to evaluate.
 
         Returns:
-            Tuple[Tuple, QuantumCircuit, Backend]: A tuple containing the best layout, the transpiled circuit, and the best backend.
+            Tuple[Tuple, QuantumCircuit, Backend]: A tuple containing the best layout,
+                the transpiled circuit, and the best backend.
         """
         if not isinstance(backends, list):
             backends = [backends]
@@ -451,7 +452,10 @@ class AutoSelectionBackend:
         qasm_string = qasm3.dumps(small_qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)
         circuit_parsed = parse_openqasm(qasm_string, small_qc.num_qubits)
         nx_graph = nx.DiGraph()
-        best_score = 1
+        best_score = float("inf")
+        best_qc: QuantumCircuit = None
+        best_backend: Backend = None
+        best_layout: List[int] = None
         for backend in backends:
             edges = backend.coupling_map.get_edges()
             qubits = backend.coupling_map.physical_qubits
@@ -462,7 +466,11 @@ class AutoSelectionBackend:
                 "cx" if "cx" in basis_gates else "ecr" if "ecr" in basis_gates else None
             )
             if two_qubit_gate is None:
-                raise Exception("Supported two-qubit gate not found in basis gates.")
+                self.logger.warning(
+                    f"Backend {get_backend_name(backend)} does not support two-qubit gates."
+                    "Skipping this backend."
+                )
+                continue
 
             for qubit in qubits:
                 nx_graph.add_node(
@@ -495,7 +503,8 @@ class AutoSelectionBackend:
                 best_backend = backend
                 best_score = this_score[0][1]
                 best_layout = this_layout
-
+        if any(best is None for best in [best_qc, best_backend, best_score, best_layout]):
+            raise NoSuitableBackendError("No suitable backend found for this circuit using HQAA.")
         return best_qc, best_backend, best_score, best_layout
 
     def evaluate(
@@ -526,10 +535,10 @@ class AutoSelectionBackend:
         if mode == "quality":
             compatible_backends = self._find_compatible_backends(circuit)
             return self._evaluate_quality_mode(circuit, compatible_backends)
-        elif mode == "speed":
+        if mode == "speed":
             if self.service is None:
                 raise ValueError("Service not set. Only 'quality' mode available")
             least_busy_backend = self._find_least_busy_backend(circuit)
             return self._evaluate_speed_mode(circuit, least_busy_backend)
-        else:
-            raise ValueError(f"Invalid mode: {mode}. Expected 'quality' or 'speed'.")
+
+        raise ValueError(f"Invalid mode: {mode}. Expected 'quality' or 'speed'.")
