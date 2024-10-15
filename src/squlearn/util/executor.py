@@ -44,6 +44,12 @@ import pennylane as qml
 from .execution import AutoSelectionBackend, ParallelEstimator, ParallelSampler
 
 
+# Replace by smmarter inputs
+from qiskit.primitives import BaseEstimatorV2, BaseSamplerV2
+from qiskit.primitives import StatevectorEstimator, StatevectorSampler
+from qiskit.primitives import BackendEstimatorV2, BackendSamplerV2
+
+
 class Executor:
     """
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -253,6 +259,8 @@ class Executor:
             Session,
             BaseEstimator,
             BaseSampler,
+            BaseEstimatorV2,
+            BaseSamplerV2,
             PennylaneDevice,
         ] = "pennylane",
         backend: Union[Backend, str, None] = None,
@@ -502,6 +510,28 @@ class Executor:
             else:
                 self._sampler.options.update_options(**self._options_sampler)
             self._execution_origin = "Sampler"
+        elif isinstance(execution, BaseEstimatorV2):
+            # TODO V2: Start with V2 primtives
+            self._estimator = execution
+            if isinstance(self._estimator, StatevectorEstimator):
+                self._backend = Aer.get_backend("aer_simulator_statevector")
+            elif isinstance(self._estimator, BackendEstimatorV2):
+                self._backend = self._estimator.backend
+                if self._estimator.options.default_precision <= 0.0:
+                    raise ValueError("Precision of the estimator must be greater than 0!")
+                if shots is None:
+                    shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+            # TODO V2: IBM Runtime EstimatorV2
+        elif isinstance(execution, BaseSamplerV2):
+            # TODO V2: Start with V2 primtives
+            self._sampler = execution
+            if isinstance(self._sampler, StatevectorSampler):
+                self._backend = Aer.get_backend("aer_simulator_statevector")
+            elif isinstance(self._sampler, BackendSamplerV2):
+                self._backend = self._sampler.backend
+                if shots is None:
+                    shots = self._sampler.options.default_shots
+            # TODO V2: IBM Runtime SamplerV2
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
@@ -1307,6 +1337,73 @@ class Executor:
                 + "statevector simulator with shots"
             )
 
+    def estimator_v2_run(self, pubs, *, precision: Union[float, None] = None):
+        """
+        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        automatic session handling, and restarts of failed jobs.
+
+        Args:
+            circuits: Quantum circuits to execute.
+            observables: Observable to measure.
+            parameter_values: Values for the parameters in circuits.
+            kwargs (Any): Additional arguments that are passed to the estimator.
+
+        Returns:
+            A qiskit job containing the results of the run.
+        """
+
+        # TODO V2 adapt
+        # # Checks and handles in-circuit measurements in the circuit
+        # containes_incircuit_measurement = False
+        # if isinstance(circuits, QuantumCircuit):
+        #     containes_incircuit_measurement = check_for_incircuit_measurements(
+        #         circuits, mode="clbits"
+        #     )
+        # else:
+        #     for circuit in circuits:
+        #         containes_incircuit_measurement = (
+        #             containes_incircuit_measurement
+        #             or check_for_incircuit_measurements(circuit, mode="clbits")
+        #         )
+
+        # if containes_incircuit_measurement:
+        #     if self.shots is None:
+        #         raise ValueError(
+        #             "In-circuit measurements with the Estimator are only possible with shots."
+        #         )
+        #     else:
+        #         if self.is_statevector:
+        #             self._swapp_to_BackendPrimitive("estimator")
+
+        if isinstance(self.estimator, ParallelEstimator):
+            # TODO V2: Adapt
+            # instance_estimator = self.estimator._estimator
+            pass
+        elif not isinstance(self.estimator, BaseEstimatorV2):
+            raise ValueError("Estimator is not a BaseEstimatorV2")
+
+        if precision is None:
+            precision = 1 / np.sqrt(self._shots)
+
+        if self._caching:
+            # Generate hash value for caching
+            hash_value = self._cache.hash_variable(
+                [
+                    "estimator_v2",
+                    pubs,
+                    self._options_estimator,
+                    self._backend,
+                    self.get_shots(),
+                ]
+            )
+        else:
+            hash_value = None
+
+        def run():
+            return self.estimator.run(pubs=pubs, precision=precision)
+
+        return self._primitive_run(run, "estimator_v2", hash_value)
+
     def sampler_run(self, circuits, parameter_values=None, **kwargs: Any) -> Job:
         """
         Function similar to the Qiskit Sampler run function, but this one includes caching,
@@ -1374,6 +1471,69 @@ class Executor:
 
         return self._primitive_run(run, "sampler", hash_value)
 
+    def sampler_v2_run(self, pubs, *, shots: Union[int, None] = None):
+        """
+        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        automatic session handling, and restarts of failed jobs.
+
+        Args:
+            circuits: Quantum circuits to execute.
+            parameter_values: Values for the parameters in circuits.
+            kwargs (Any): Additional arguments that are passed to the estimator.
+
+        Returns:
+            A qiskit job containing the results of the run.
+        """
+
+        # TODO V2: Adapt to new SamplerV2
+        # # Check and handle conditions in the circuit
+        # circuits_contains_conditions = False
+        # if isinstance(circuits, QuantumCircuit):
+        #     circuits_contains_conditions = check_for_incircuit_measurements(
+        #         circuits, mode="condition"
+        #     )
+        # else:
+        #     for circuit in circuits:
+        #         circuits_contains_conditions = (
+        #             circuits_contains_conditions
+        #             or check_for_incircuit_measurements(circuit, mode="condition")
+        #         )
+        # if circuits_contains_conditions:
+        #     if self.shots is None:
+        #         raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
+        #     else:
+        #         if self.is_statevector:
+        #             self._swapp_to_BackendPrimitive("sampler")
+
+        if isinstance(self.sampler, ParallelSampler):
+            # TODO V2: Adapt
+            # instance_estimator = self.estimator._estimator
+            pass
+        elif not isinstance(self.estimator, BaseSamplerV2):
+            raise ValueError("Sampler is not a BaseSamplerV2")
+
+        if shots is None:
+            shots = self._shots
+
+        if self._caching:
+            # Generate hash value for caching
+            hash_value = self._cache.hash_variable(
+                [
+                    "sampler_v2",
+                    pubs,
+                    self._options_sampler,
+                    self._backend,
+                    self.get_shots(),
+                ]
+            )
+        else:
+            hash_value = None
+
+        def run():
+            return self.sampler.run(pubs=pubs, shots=shots)
+
+        return self._primitive_run(run, "sampler_v2", hash_value)
+
     def get_estimator(self):
         """
         Returns a Estimator primitive that overwrites the Qiskit Estimator primitive.
@@ -1382,6 +1542,15 @@ class Executor:
         """
         return ExecutorEstimator(executor=self, options=self._options_estimator)
 
+    # TODO V2: merge with v1  function
+    def get_estimator_v2(self):
+        """
+        Returns a Estimator primitive that overwrites the Qiskit Estimator primitive.
+        This Estimator runs all executions through the Executor and
+        includes result caching, automatic session handling, and restarts of failed jobs.
+        """
+        return ExecutorEstimatorV2(executor=self, options=self._options_estimator)
+
     def get_sampler(self):
         """
         Returns a Sampler primitive that overwrites the Qiskit Sampler primitive.
@@ -1389,6 +1558,15 @@ class Executor:
         includes result caching, automatic session handling, and restarts of failed jobs.
         """
         return ExecutorSampler(executor=self, options=self._options_sampler)
+
+    # TODO V2: merge with v1  function
+    def get_sampler_v2(self):
+        """
+        Returns a Sampler primitive that overwrites the Qiskit Sampler primitive.
+        This Sampler runs all executions through the Executor and
+        includes result caching, automatic session handling, and restarts of failed jobs.
+        """
+        return ExecutorSamplerV2(executor=self, options=self._options_sampler)
 
     @property
     def optree_executor(self) -> str:
@@ -1477,6 +1655,8 @@ class Executor:
                         pass  # no options_estimator or no execution in options_estimator
                 elif isinstance(self._estimator, ParallelEstimator):
                     self._estimator.shots = num_shots
+                elif isinstance(self._estimator, BaseEstimatorV2):
+                    self._shots = num_shots
                 else:
                     raise RuntimeError("Unknown estimator type!")
 
@@ -1507,6 +1687,8 @@ class Executor:
                         pass  # no options_sampler or no execution in options_sampler
                 elif isinstance(self._sampler, ParallelSampler):
                     self._sampler.shots = num_shots
+                elif isinstance(self._sampler, BaseSamplerV2):
+                    self._shots = num_shots
                 else:
                     raise RuntimeError("Unknown sampler type!")
         else:
@@ -1548,6 +1730,8 @@ class Executor:
                         shots_estimator = execution["shots"]
                     elif isinstance(self._estimator, ParallelEstimator):
                         shots_estimator = self._estimator.shots
+                    elif isinstance(self._estimator, BaseEstimatorV2):
+                        shots_estimator = self._shots
                     else:
                         raise RuntimeError("Unknown estimator type!")
 
@@ -1561,6 +1745,8 @@ class Executor:
                         shots_sampler = execution["shots"]
                     elif isinstance(self._sampler, ParallelSampler):
                         shots_sampler = self._sampler.shots
+                    elif isinstance(self._sampler, BaseSamplerV2):
+                        shots_sampler = self._shots
                     else:
                         raise RuntimeError("Unknown sampler type!")
 
@@ -1878,6 +2064,34 @@ class Executor:
             )
         else:
             raise RuntimeError("Unknown quantum framework!")
+
+
+class ExecutorEstimatorV2(BaseEstimatorV2):
+
+    def __init__(self, executor: Executor, options=None):
+
+        self._executor = executor
+        # TODO: check what to do with the options
+
+    def run(self, pubs, *, precision: Union[float, None] = None):
+        return self._executor.estimator_v2_run(
+            pubs=pubs,
+            precision=precision,
+        )
+
+
+class ExecutorSamplerV2(BaseSamplerV2):
+
+    def __init__(self, executor: Executor, options=None):
+
+        self._executor = executor
+        # TODO: check what to do with the options
+
+    def run(self, pubs, *, shots: Union[int, None] = None):
+        return self._executor.sampler_v2_run(
+            pubs=pubs,
+            shots=shots,
+        )
 
 
 class ExecutorEstimator(BaseEstimator):
