@@ -1,20 +1,31 @@
-from qiskit.primitives import BaseEstimator
-from qiskit.providers import Options
-from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 import copy
-from typing import Union, Callable, Optional, List, Tuple
 from dataclasses import asdict
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.primitives.base import EstimatorResult
-from qiskit.circuit import QuantumCircuit
-from qiskit.providers import JobV1 as Job
+from typing import Callable, Optional, Tuple, Union
+
+from packaging import version
+from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.primitives import Estimator as qiskit_primitives_Estimator
 from qiskit.primitives import BackendEstimator as qiskit_primitives_BackendEstimator
-from qiskit.quantum_info import SparsePauliOp
-from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
+from qiskit.primitives import BaseEstimator
+from qiskit.primitives import Estimator as qiskit_primitives_Estimator
+from qiskit.primitives.base import EstimatorResult
 from qiskit.primitives.utils import _circuit_key
+from qiskit.providers import JobV1 as Job
+from qiskit.providers import Options
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit_aer import Aer
+from qiskit_ibm_runtime import Estimator as qiskit_ibm_runtime_Estimator
+from qiskit_ibm_runtime import __version__ as ibm_runtime_version
+
+QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) <= version.parse("0.28.0")
+if QISKIT_RUNTIME_SMALLER_0_28:
+    from qiskit_ibm_runtime.options import Options as RuntimeOptions
+else:
+
+    class RuntimeOptions(object):
+        """Dummy RuntimeOptions."""
+
 
 import squlearn.util.executor
 
@@ -33,7 +44,7 @@ class ParallelEstimator(BaseEstimator):
                                       Defaults to None, which means automatic determination.
         transpiler (callable, optional): A function for transpiling quantum circuits.
                                          Defaults to a standard transpile function if not provided.
-        options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for
+        options (Options or RuntimeOptions, optional): Configuration settings for
                                                                    the instance.
     """
 
@@ -42,9 +53,9 @@ class ParallelEstimator(BaseEstimator):
         estimator: BaseEstimator,
         num_parallel: Optional[int] = None,
         transpiler: Optional[Callable] = None,
-        options=None,
+        options: Union[Options, RuntimeOptions, None] = None,
     ) -> None:
-        if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
+        if isinstance(options, Options) or isinstance(options, RuntimeOptions):
             try:
                 options_ini = copy.deepcopy(options).__dict__
             except Exception:
