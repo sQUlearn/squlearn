@@ -9,6 +9,7 @@ from hashlib import blake2b
 from logging import handlers
 from pathlib import Path
 from typing import Any, List, Union
+from types import MethodType
 
 import dill as pickle
 import numpy as np
@@ -1311,12 +1312,44 @@ class Executor:
             except (QiskitError, AttributeError):
                 job_pickle._backend = str(self.backend)
 
-            # overwrite result function with the obtained result
-            def result_():
-                return result
+            # TODO V2: Better selection criterion
+            if "v2" in label:
+                # Modify the result function for V2 primitives
+                # to be able to pickle the result
+                job_pickle.pubs_data = [r.data.__dict__ for r in result]
+                job_pickle.pubs_metadata = [r.metadata for r in result]
+                job_pickle.primitive_result_metadata = result.metadata
+                from qiskit.primitives.containers import (
+                    DataBin,
+                    PrimitiveResult,
+                    SamplerPubResult,
+                    PubResult,
+                )
 
-            job_pickle.result = result_
-            self._cache.store_file(hash_value, job)
+                result_type = None
+                if "sampler" in label:
+                    result_type = SamplerPubResult
+                elif "estimator" in label:
+                    result_type = PubResult
+                else:
+                    raise RuntimeError("Unknown result type: " + label)
+
+                def result_(self):
+                    return PrimitiveResult(
+                        [
+                            result_type(DataBin(**data), metadata)
+                            for data, metadata in zip(self.pubs_data, self.pubs_metadata)
+                        ],
+                        self.primitive_result_metadata,
+                    )
+
+            else:
+                # overwrite result function with the obtained result
+                def result_():
+                    return result
+
+            job_pickle.result = MethodType(result_, job_pickle)
+            self._cache.store_file(hash_value, job_pickle)
             self._logger.info(f"Stored job in cache with hash value: {{}}".format(hash_value))
 
         return job
