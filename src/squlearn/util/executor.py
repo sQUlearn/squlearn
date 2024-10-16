@@ -28,6 +28,7 @@ from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime import Session
+from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
 if version.parse(qiskit_version) <= version.parse("0.45.0"):
@@ -88,8 +89,8 @@ else:
         BackendSamplerV2,
     )
 
-QISKIT_RUNTIME_SMALLER_0_21 = version.parse(qiskit_version) < version.parse("0.21.0")
-QISKIT_RUNTIME_SMALLER_0_28 = version.parse(qiskit_version) < version.parse("0.28.0")
+QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
+QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) < version.parse("0.28.0")
 
 if QISKIT_RUNTIME_SMALLER_0_21:
     # pylint: disable=ungrouped-imports
