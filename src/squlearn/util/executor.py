@@ -1228,7 +1228,7 @@ class Executor:
                 return result
 
             job_pickle.result = result_
-            self._cache.store_file(hash_value, job_pickle)
+            self._cache.store_file(hash_value, job)
             self._logger.info(f"Stored job in cache with hash value: {{}}".format(hash_value))
 
         return job
@@ -1509,7 +1509,7 @@ class Executor:
             # TODO V2: Adapt
             # instance_estimator = self.estimator._estimator
             pass
-        elif not isinstance(self.estimator, BaseSamplerV2):
+        elif not isinstance(self.sampler, BaseSamplerV2):
             raise ValueError("Sampler is not a BaseSamplerV2")
 
         if shots is None:
@@ -2363,7 +2363,7 @@ class ExecutorCache:
 
         def make_recursive_str(variable_):
             """creates a string from a list"""
-            if type(variable_) == list:
+            if type(variable_) == list or type(variable_) == tuple:
                 text = ""
                 for i in variable_:
                     text += make_recursive_str(i)
@@ -2380,6 +2380,7 @@ class ExecutorCache:
         Args:
             hash_value (str): Hash value of the file
         """
+
         try:
             file = Path(self._folder + "/" + str(hash_value) + ".p")
             if file.exists():
@@ -2389,7 +2390,8 @@ class ExecutorCache:
                 return data
             else:
                 return None
-        except:
+        except Exception as e:
+            raise e
             self._logger.info("Could not load job from cache!")
             self._logger.info("File: " + self._folder + "/" + str(hash_value) + ".p")
             return None
