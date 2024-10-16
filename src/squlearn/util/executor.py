@@ -622,7 +622,7 @@ class Executor:
                     shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             elif isinstance(self._estimator, RuntimeEstimatorV2):
                 # TODO V2: sessions/service
-                self._backend = self._estimator.mode
+                self._backend = self._estimator._backend
                 if shots is None:
                     if self._estimator.options.default_shots:
                         shots = self._estimator.options.default_shots
@@ -646,7 +646,7 @@ class Executor:
                     shots = self._sampler.options.default_shots
             elif isinstance(self._sampler, RuntimeSamplerV2):
                 # TODO V2: sessions/service
-                self._backend = self._sampler.mode
+                self._backend = self._sampler._backend
                 if shots is None:
                     if self._sampler.options.default_shots:
                         shots = self._sampler.options.default_shots
@@ -1199,6 +1199,12 @@ class Executor:
         critical_error = False
         critical_error_message = None
 
+        # TODO V2 better selection
+        if "v2" in label and self.IBMQuantum:
+            final_states = ("DONE", "CANCELLED", "ERROR")
+        else:
+            final_states = JOB_FINAL_STATES
+
         for repeat in range(self._max_jobs_retries):
             try:
                 job = None
@@ -1255,7 +1261,9 @@ class Executor:
                     last_status = None
                 else:
                     status = JobStatus.DONE
-                while status not in JOB_FINAL_STATES:
+                    if "v2" in label and self.IBMQuantum:
+                        last_status = "DONE"
+                while status not in final_states:
                     try:
                         status = job.status()
                         if status != last_status:
