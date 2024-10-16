@@ -15,6 +15,8 @@ from sklearn.gaussian_process.kernels import (
 
 from sklearn.gaussian_process.kernels import Kernel as SklearnKernel
 
+from squlearn.qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
@@ -432,12 +434,11 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         # set all necessary parameters
         self._set_up_measurement_operator()
         self._set_up_qnn()
-        self._set_outer_kernel(self._outer_kernel_input, **self._kwargs)
+        self._set_outer_kernel(outer_kernel, **kwargs)
 
         # finish initialization if num_features are present
         if self.encoding_circuit.num_features is not None:
             self._initialize_kernel()
-            self._is_initialized = True
 
     @property
     def num_features(self) -> int:
@@ -852,7 +853,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._encoding_circuit,
             self._measurement,
             self._executor,
-            result_caching=self._caching,
+            caching=self._caching,
         )
 
     def _set_up_measurement_operator(self) -> None:
@@ -878,7 +879,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         if not self._is_initialized:
             super()._initialize_kernel()
-            self._qnn._initialize_pennylane_circuit()
+            if isinstance(self._qnn, LowLevelQNNPennyLane):
+                self._qnn._initialize_pennylane_circuit()
 
             # Generate default parameters of the measurement operators
             if self._initial_parameters is None:

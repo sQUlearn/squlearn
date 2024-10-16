@@ -38,11 +38,7 @@ class KernelOptimizer(KernelMatrixBase):
         self._quantum_kernel = quantum_kernel
         self._loss = loss
         self._optimizer = optimizer
-        self._initial_parameters = (
-            initial_parameters
-            if initial_parameters is not None
-            else self._quantum_kernel.parameters
-        )
+        self._initial_parameters = initial_parameters
         self._optimal_parameters = None
         self._is_trainable = True
         self._is_fitted = False
@@ -74,8 +70,9 @@ class KernelOptimizer(KernelMatrixBase):
         if self._encoding_circuit.num_features is None:
             self._set_num_features(X)
 
-        if self._quantum_kernel._parameters is None:
-            self._generate_initial_parameters()
+        if self._initial_parameters is None:
+            if self._quantum_kernel._parameters is None:
+                self._generate_initial_parameters()
             self._initial_parameters = self._quantum_kernel.parameters
 
         if not self._quantum_kernel._is_initialized:

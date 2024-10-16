@@ -151,13 +151,15 @@ class KernelMatrixBase(ABC):
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
 
+    @abstractmethod
     def _set_num_features(self, X) -> None:
         """Sets feature dimension of the encoding circuit"""
         raise NotImplementedError
 
     def _initialize_kernel(self) -> None:
         """Fully initializes the kernel"""
-        self._generate_initial_parameters()
+        if self._parameters is None:
+            self._generate_initial_parameters()
 
     def _generate_initial_parameters(self) -> None:
         """Generates the initial parameters for the encoding circuit"""
