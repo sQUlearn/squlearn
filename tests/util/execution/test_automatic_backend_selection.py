@@ -17,6 +17,7 @@ import pytest
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 
+
 class TestBackendAutoSelection:
     """Test for auto selection of the backend for a given circuit."""
 
@@ -28,7 +29,7 @@ class TestBackendAutoSelection:
                 ("speed", True, "fake_belem"),
                 ("quality", False, "fake_manila"),
                 ("speed", False, "fake_belem"),
-            ]
+            ],
         )
     else:
         mark = pytest.mark.parametrize(
@@ -38,7 +39,7 @@ class TestBackendAutoSelection:
                 ("speed", True, "fake_belem"),
                 ("quality", False, "fake_manila"),
                 ("speed", False, "fake_belem"),
-            ]
+            ],
         )
 
     @mark
@@ -68,7 +69,7 @@ class TestBackendAutoSelection:
                 ("speed", True, "fake_belem"),
                 ("quality", False, "fake_belem"),
                 ("speed", False, "fake_belem"),
-            ]
+            ],
         )
     else:
         mark = pytest.mark.parametrize(
@@ -78,7 +79,7 @@ class TestBackendAutoSelection:
                 ("speed", True, "fake_belem"),
                 ("quality", False, "fake_manila"),
                 ("speed", False, "fake_belem"),
-            ]
+            ],
         )
 
     @mark
@@ -120,7 +121,7 @@ class TestBackendAutoSelection:
                 ("speed_hqaa", "fake_belem"),
             ],
         )
-    
+
     @mark
     def test_auto_select_qnn(self, mode, true_backend):
         """
