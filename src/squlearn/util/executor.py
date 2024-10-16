@@ -46,8 +46,6 @@ if QISKIT_SMALLER_1_0:
         BackendSampler as BackendSamplerV1,
         BaseEstimator as BaseEstimatorV1,
         BaseSampler as BaseSamplerV1,
-        Estimator as PrimitiveEstimatorV1,
-        Sampler as PrimitiveSamplerV1,
     )
 
     class BaseEstimatorV2(object):
@@ -70,12 +68,14 @@ else:
         BaseEstimatorV2,
         BaseSamplerV1,
         BaseSamplerV2,
-        Estimator as PrimitiveEstimatorV1,
-        Sampler as PrimitiveSamplerV1,
     )
     from qiskit.primitives import StatevectorEstimator, StatevectorSampler
 
 if QISKIT_SMALLER_1_2:
+    from qiskit.primitives import (
+        Estimator as PrimitiveEstimatorV1,
+        Sampler as PrimitiveSamplerV1,
+    )
 
     class BackendEstimatorV2(object):
         """Dummy BackendEstimatorV2"""
@@ -89,6 +89,13 @@ else:
         BackendEstimatorV2,
         BackendSamplerV2,
     )
+
+    class PrimitiveEstimatorV1(object):
+        """Dummy PrimitiveEstimatorV1"""
+
+    class PrimitiveSamplerV1(object):
+        """Dummy PrimitiveSamplerV1"""
+
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
 QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) < version.parse("0.28.0")
@@ -603,6 +610,10 @@ class Executor:
             self._estimator = execution
             if isinstance(self._estimator, StatevectorEstimator):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
+                if self._estimator.default_precision <= 0.0:
+                    raise ValueError("Precision of the estimator must be greater than 0!")
+                if shots is None:
+                    shots = int((1.0 / self._estimator.default_precision) ** 2)
             elif isinstance(self._estimator, BackendEstimatorV2):
                 self._backend = self._estimator.backend
                 if self._estimator.options.default_precision <= 0.0:
@@ -627,6 +638,8 @@ class Executor:
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
+                if shots is None:
+                    shots = self._sampler.default_shots
             elif isinstance(self._sampler, BackendSamplerV2):
                 self._backend = self._sampler.backend
                 if shots is None:
