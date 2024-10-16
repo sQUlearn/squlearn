@@ -7,8 +7,10 @@ from logging import Logger
 import networkx as nx
 import numpy as np
 
+from packaging import version
 from qiskit import qasm3, transpile, QuantumCircuit
-from qiskit.providers import Backend, BackendV1, BackendV2
+from qiskit import __version__ as qiskit_version
+from qiskit.providers import Backend, BackendV2
 from qiskit.providers.fake_provider.utils.json_decoder import (
     decode_backend_properties,
 )
@@ -19,6 +21,7 @@ import mapomatic as mm
 # HQAA additions
 from .hqaa import parse_openqasm, heuristic
 
+QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 
 def get_num_qubits(backend):
     """Gets the number of qubits of a backend.
@@ -54,7 +57,7 @@ class NoSuitableBackendError(Exception):
     """Raised when no suitable backend is found."""
 
 
-class AutoSelectionBackend:
+class AutomaticBackendSelection:
     """Class for automatically selecting an IBM backend and layout from the available backends, given a circuit."""
 
     def __init__(
@@ -122,6 +125,27 @@ class AutoSelectionBackend:
             self._obtain_backends_from_service = True
 
         self.backends = self._get_backend_list()
+
+        if QISKIT_SMALLER_1_0:
+            class BackendPropertiesWrapper:
+                def __init__(self, backend: BackendV2) -> None:
+                    self._backend = backend
+
+                def properties(self) -> BackendProperties:
+                    self._backend._set_props_dict_from_json()
+                    return BackendProperties.from_dict(self._backend._props_dict)
+
+                @property
+                def configuration(self):
+                    config_dict = copy.copy(self._backend._conf_dict)
+                    config_dict["num_qubits"] = config_dict["n_qubits"]
+                    config = type("config", (object,), config_dict)
+                    return config
+
+            for backend in self.backends:
+                if isinstance(backend, BackendV2):
+                    backend.properties = BackendPropertiesWrapper(backend).properties
+                    backend.configuration = BackendPropertiesWrapper(backend).configuration
 
         self._print("Automatic backend selection started")
         if self.backends:
