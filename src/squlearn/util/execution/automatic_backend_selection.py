@@ -23,6 +23,7 @@ from .hqaa import parse_openqasm, heuristic
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 
+
 def get_num_qubits(backend):
     """Gets the number of qubits of a backend.
 
@@ -127,6 +128,7 @@ class AutomaticBackendSelection:
         self.backends = self._get_backend_list()
 
         if QISKIT_SMALLER_1_0:
+
             class BackendPropertiesWrapper:
                 def __init__(self, backend: BackendV2) -> None:
                     self._backend = backend
