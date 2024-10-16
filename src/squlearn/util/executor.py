@@ -610,6 +610,7 @@ class Executor:
                 if shots is None:
                     shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             elif isinstance(self._estimator, RuntimeEstimatorV2):
+                # TODO V2: sessions/service
                 self._backend = self._estimator.mode
                 if shots is None:
                     if self._estimator.options.default_shots:
@@ -631,6 +632,7 @@ class Executor:
                 if shots is None:
                     shots = self._sampler.options.default_shots
             elif isinstance(self._sampler, RuntimeSamplerV2):
+                # TODO V2: sessions/service
                 self._backend = self._sampler.mode
                 if shots is None:
                     if self._sampler.options.default_shots:
@@ -1262,15 +1264,13 @@ class Executor:
                 # Job is completed, check if it was successful
                 if status == JobStatus.ERROR:
                     self._logger.info(f"Failed executation of the job!")
-                    try:
+                    if hasattr(job, "error_message"):
                         self._logger.info(f"Error message: {{}}".format(job.error_message()))
-                    except Exception as e:
-                        try:
-                            job.result()
-                        except Exception as e2:
-                            pass
-                            critical_error = True
-                            critical_error_message = e2
+                    try:
+                        job.result()
+                    except Exception as e2:
+                        critical_error = True
+                        critical_error_message = e2
                 elif status == JobStatus.CANCELLED:
                     self._logger.info(f"Job has been manually cancelled, and is resubmitted!")
                     self._logger.info(
@@ -1308,6 +1308,7 @@ class Executor:
 
             if critical_error:
                 self._logger.info(f"Critical error detected; abort execution")
+                self._logger.info(f"Error message: {{}}".format(critical_error_message))
                 raise critical_error_message
 
         if success is not True:
@@ -1522,7 +1523,10 @@ class Executor:
             raise ValueError("Estimator is not a BaseEstimatorV2")
 
         if precision is None:
-            precision = 1 / np.sqrt(self._shots)
+            if self._shots is None:
+                precision = 0.0
+            else:
+                precision = 1 / np.sqrt(self._shots)
 
         if self._caching:
             # Generate hash value for caching
