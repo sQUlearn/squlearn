@@ -599,7 +599,6 @@ class Executor:
                 self._sampler.options.update_options(**self._options_sampler)
             self._execution_origin = "Sampler"
         elif isinstance(execution, BaseEstimatorV2):
-            # TODO V2: Start with V2 primtives
             self._estimator = execution
             if isinstance(self._estimator, StatevectorEstimator):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
@@ -609,9 +608,20 @@ class Executor:
                     raise ValueError("Precision of the estimator must be greater than 0!")
                 if shots is None:
                     shots = int((1.0 / self._estimator.options.default_precision) ** 2)
-            # TODO V2: IBM Runtime EstimatorV2
+            elif isinstance(self._estimator, RuntimeEstimatorV2):
+                self._backend = self._estimator.mode
+                if shots is None:
+                    if self._estimator.options.default_shots:
+                        shots = self._estimator.options.default_shots
+                    elif self._estimator.options.default_precision:
+                        shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+                    else:
+                        raise ValueError(
+                            "Either default_shots or default_precision of the estimator must be set!"
+                        )
+            else:
+                raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
-            # TODO V2: Start with V2 primtives
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
@@ -619,7 +629,15 @@ class Executor:
                 self._backend = self._sampler.backend
                 if shots is None:
                     shots = self._sampler.options.default_shots
-            # TODO V2: IBM Runtime SamplerV2
+            elif isinstance(self._sampler, RuntimeSamplerV2):
+                self._backend = self._sampler.mode
+                if shots is None:
+                    if self._sampler.options.default_shots:
+                        shots = self._sampler.options.default_shots
+                    else:
+                        raise ValueError("default_shots of the sampler must be set!")
+            else:
+                raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
