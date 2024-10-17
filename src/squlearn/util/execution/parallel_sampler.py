@@ -1,21 +1,32 @@
-from qiskit.primitives import BaseSampler
-from qiskit.providers import Options
-from qiskit_ibm_runtime.options import Options as qiskit_ibm_runtime_Options
 import copy
-from typing import Union, Callable, Dict, Optional, Any, List, Tuple
-
 from dataclasses import asdict
-from qiskit.circuit import QuantumCircuit
-from qiskit.primitives.base import SamplerResult
-from qiskit.providers import JobV1 as Job
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from packaging import version
+from qiskit import __version__ as qiskit_version
+from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.primitives import Sampler as qiskit_primitives_Sampler
 from qiskit.primitives import BackendSampler as qiskit_primitives_BackendSampler
-from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
-from qiskit_ibm_runtime import RuntimeJob
-from qiskit.primitives.utils import _circuit_key
+from qiskit.primitives import BaseSampler
+from qiskit.primitives import Sampler as qiskit_primitives_Sampler
+from qiskit.primitives.base import SamplerResult
 from qiskit.primitives.primitive_job import PrimitiveJob
+from qiskit.primitives.utils import _circuit_key
+from qiskit.providers import JobV1 as Job
+from qiskit.providers import Options
 from qiskit_aer import Aer
+from qiskit_ibm_runtime import RuntimeJob
+from qiskit_ibm_runtime import Sampler as qiskit_ibm_runtime_Sampler
+from qiskit_ibm_runtime import __version__ as ibm_runtime_version
+
+QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) <= version.parse("0.28.0")
+if QISKIT_RUNTIME_SMALLER_0_28:
+    from qiskit_ibm_runtime.options import Options as RuntimeOptions
+else:
+
+    class RuntimeOptions(object):
+        """Dummy RuntimeOptions."""
+
 
 import squlearn.util.executor
 
@@ -32,7 +43,7 @@ class ParallelSampler(BaseSampler):
         sampler (BaseSampler): The sampler instance to use
         num_parallel (int, optional): The number of times the circuit is duplicated. Defaults to None, which means automatic determination.
         transpiler (callable, optional): A function for transpiling quantum circuits. Defaults to a standard transpile function if not provided.
-        options (Options or qiskit_ibm_runtime_Options, optional): Configuration settings for the instance.
+        options (Options or RuntimeOptions, optional): Configuration settings for the instance.
     """
 
     def __init__(
@@ -40,9 +51,9 @@ class ParallelSampler(BaseSampler):
         sampler: BaseSampler,
         num_parallel: Optional[int] = None,
         transpiler: Optional[Callable] = None,
-        options: Optional[Union[Options, qiskit_ibm_runtime_Options, Any]] = None,
+        options: Union[Options, RuntimeOptions, None] = None,
     ) -> None:
-        if isinstance(options, Options) or isinstance(options, qiskit_ibm_runtime_Options):
+        if isinstance(options, Options) or isinstance(options, RuntimeOptions):
             try:
                 options_ini = copy.deepcopy(options).__dict__
             except Exception:
