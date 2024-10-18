@@ -25,7 +25,7 @@ from .optree import (
     OpTreeExpectationValue,
     OpTreeMeasuredOperator,
 )
-
+# TODO V2: better import
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 from qiskit.primitives import BitArray
