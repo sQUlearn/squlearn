@@ -67,7 +67,7 @@ def _circuit_parameter_shift(
     iref_to_data_index = None
     param_table = []
     if hasattr(circuit, "_parameter_table"):
-        param_table = circuit._parameter_table[parameter] # pylint: disable=protected-access
+        param_table = circuit._parameter_table[parameter]  # pylint: disable=protected-access
         iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
     else:
         qiskit_12 = True

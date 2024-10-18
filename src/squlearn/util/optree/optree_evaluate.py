@@ -1327,10 +1327,8 @@ class OpTreeEvaluate:
                 .values
             )
         elif isinstance(estimator, BaseEstimatorV2):
-            # todo adjust for new estimator
-            estimator_result = estimator.run(
-                total_circuit_list, total_operator_list, total_parameter_list
-            )
+            pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
+            estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
         else:
             raise ValueError("Unknown estimator type!")
 
@@ -1428,9 +1426,8 @@ class OpTreeEvaluate:
                 .values
             )
         elif isinstance(estimator, BaseEstimatorV2):
-            estimator_result = estimator.run(
-                total_circuit_list, total_operator_list, total_parameter_list
-            )
+            pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
+            estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
         else:
             raise ValueError("Unknown estimator type!")
         # print("Run time of estimator: ", time.time() - start)

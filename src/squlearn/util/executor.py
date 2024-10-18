@@ -1874,15 +1874,16 @@ class Executor:
         This Estimator runs all executions through the Executor and
         includes result caching, automatic session handling, and restarts of failed jobs.
         """
-        return ExecutorEstimator(executor=self, options=self._options_estimator)
 
-    # TODO V2: merge with v1  function
-    def get_estimator_v2(self):
-        """
-        Returns a Estimator primitive that overwrites the Qiskit Estimator primitive.
-        This Estimator runs all executions through the Executor and
-        includes result caching, automatic session handling, and restarts of failed jobs.
-        """
+        # TODO V2 better selection
+        if self._estimator is not None:
+            if isinstance(self._estimator, BaseEstimatorV1):
+                return ExecutorEstimator(executor=self, options=self._options_estimator)
+            return ExecutorEstimatorV2(executor=self, options=self._options_estimator)
+
+        if QISKIT_SMALLER_1_2:
+            return ExecutorEstimator(executor=self, options=self._options_estimator)
+
         return ExecutorEstimatorV2(executor=self, options=self._options_estimator)
 
     def get_sampler(self):
@@ -1891,15 +1892,16 @@ class Executor:
         This Sampler runs all executions through the Executor and
         includes result caching, automatic session handling, and restarts of failed jobs.
         """
-        return ExecutorSampler(executor=self, options=self._options_sampler)
 
-    # TODO V2: merge with v1  function
-    def get_sampler_v2(self):
-        """
-        Returns a Sampler primitive that overwrites the Qiskit Sampler primitive.
-        This Sampler runs all executions through the Executor and
-        includes result caching, automatic session handling, and restarts of failed jobs.
-        """
+        # TODO V2 better selection
+        if self._sampler is not None:
+            if isinstance(self._sampler, BaseSamplerV1):
+                return ExecutorSampler(executor=self, options=self._options_estimator)
+            return ExecutorSamplerV2(executor=self, options=self._options_estimator)
+
+        if QISKIT_SMALLER_1_2:
+            return ExecutorSampler(executor=self, options=self._options_sampler)
+
         return ExecutorSamplerV2(executor=self, options=self._options_sampler)
 
     @property
