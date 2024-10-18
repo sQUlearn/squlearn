@@ -1320,17 +1320,16 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
-
-        if isinstance(estimator,BaseEstimatorV1):
+        if isinstance(estimator, BaseEstimatorV1):
             estimator_result = (
                 estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
                 .result()
                 .values
             )
-        elif isinstance(estimator,BaseEstimatorV2):
+        elif isinstance(estimator, BaseEstimatorV2):
             # todo adjust for new estimator
-            estimator_result = (
-                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+            estimator_result = estimator.run(
+                total_circuit_list, total_operator_list, total_parameter_list
             )
         else:
             raise ValueError("Unknown estimator type!")
@@ -1429,8 +1428,8 @@ class OpTreeEvaluate:
                 .values
             )
         elif isinstance(estimator, BaseEstimatorV2):
-            estimator_result = (
-                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+            estimator_result = estimator.run(
+                total_circuit_list, total_operator_list, total_parameter_list
             )
         else:
             raise ValueError("Unknown estimator type!")
