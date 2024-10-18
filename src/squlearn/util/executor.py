@@ -557,7 +557,7 @@ class Executor:
                 self._service = self._estimator._service
                 self._backend = self._estimator._backend
             else:
-                raise ValueError("Unknown estimator type: " + str(execution)) 
+                raise ValueError("Unknown estimator type: " + str(execution))
 
             if self._options_estimator is None:
                 self._options_estimator = self._estimator.options
@@ -585,7 +585,7 @@ class Executor:
                 self._service = self._sampler._service
                 self._backend = self._sampler._backend
             else:
-                raise ValueError("Unknown sampler type: " + str(execution)) 
+                raise ValueError("Unknown sampler type: " + str(execution))
 
             if self._options_sampler is None:
                 self._options_sampler = self._sampler.options
