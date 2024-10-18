@@ -1,6 +1,8 @@
 import numpy as np
 
+from packaging import version
 from qiskit import QuantumCircuit
+from qiskit import __version__ as qiskit_version
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
 from squlearn.util import Executor
@@ -13,14 +15,34 @@ from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, QKRR
 
 import pytest
 
+QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
+
 
 class TestBackendAutoSelection:
     """Test for auto selection of the backend for a given circuit."""
 
-    @pytest.mark.parametrize(
-        "mode, true_backend", [("quality", "fake_manila"), ("speed", "fake_belem")]
-    )
-    @pytest.mark.parametrize("use_hqaa", [True, False])
+    if QISKIT_SMALLER_1_0:
+        mark = pytest.mark.parametrize(
+            "mode, use_hqaa, true_backend",
+            [
+                ("quality", True, "fake_athens"),
+                ("speed", True, "fake_belem"),
+                ("quality", False, "fake_manila"),
+                ("speed", False, "fake_belem"),
+            ],
+        )
+    else:
+        mark = pytest.mark.parametrize(
+            "mode, use_hqaa, true_backend",
+            [
+                ("quality", True, "fake_manila"),
+                ("speed", True, "fake_belem"),
+                ("quality", False, "fake_manila"),
+                ("speed", False, "fake_belem"),
+            ],
+        )
+
+    @mark
     def test_auto_select_circuit(self, mode, true_backend, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
@@ -39,10 +61,28 @@ class TestBackendAutoSelection:
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 1000
 
-    @pytest.mark.parametrize(
-        "mode, true_backend", [("quality", "fake_manila"), ("speed", "fake_belem")]
-    )
-    @pytest.mark.parametrize("use_hqaa", [True, False])
+    if QISKIT_SMALLER_1_0:
+        mark = pytest.mark.parametrize(
+            "mode, use_hqaa, true_backend",
+            [
+                ("quality", True, "fake_manila"),
+                ("speed", True, "fake_belem"),
+                ("quality", False, "fake_belem"),
+                ("speed", False, "fake_belem"),
+            ],
+        )
+    else:
+        mark = pytest.mark.parametrize(
+            "mode, use_hqaa, true_backend",
+            [
+                ("quality", True, "fake_manila"),
+                ("speed", True, "fake_belem"),
+                ("quality", False, "fake_manila"),
+                ("speed", False, "fake_belem"),
+            ],
+        )
+
+    @mark
     def test_auto_select_circuit_parallel(self, mode, true_backend, use_hqaa):
         """
         Test for auto selection of the backend for a given circuit.
@@ -61,15 +101,28 @@ class TestBackendAutoSelection:
         result = estimator.run(qc, obs).result()
         assert result.metadata[0]["shots"] == 10000
 
-    @pytest.mark.parametrize(
-        "mode, true_backend",
-        [
-            ("quality", "fake_manila"),
-            ("speed", "fake_belem"),
-            ("quality_hqaa", "fake_manila"),
-            ("speed_hqaa", "fake_belem"),
-        ],
-    )
+    if QISKIT_SMALLER_1_0:
+        mark = pytest.mark.parametrize(
+            "mode, true_backend",
+            [
+                ("quality", "fake_manila"),
+                ("speed", "fake_belem"),
+                ("quality_hqaa", "fake_athens"),
+                ("speed_hqaa", "fake_belem"),
+            ],
+        )
+    else:
+        mark = pytest.mark.parametrize(
+            "mode, true_backend",
+            [
+                ("quality", "fake_manila"),
+                ("speed", "fake_belem"),
+                ("quality_hqaa", "fake_manila"),
+                ("speed_hqaa", "fake_belem"),
+            ],
+        )
+
+    @mark
     def test_auto_select_qnn(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
@@ -93,15 +146,7 @@ class TestBackendAutoSelection:
         qnn.predict(np.array([[0.25], [0.75]]))
         assert str(executor.backend_name) == true_backend
 
-    @pytest.mark.parametrize(
-        "mode, true_backend",
-        [
-            ("quality", "fake_manila"),
-            ("speed", "fake_belem"),
-            ("quality_hqaa", "fake_manila"),
-            ("speed_hqaa", "fake_belem"),
-        ],
-    )
+    @mark
     def test_auto_select_fidelity_kernel(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
@@ -116,15 +161,7 @@ class TestBackendAutoSelection:
 
         assert str(executor.backend_name) == true_backend
 
-    @pytest.mark.parametrize(
-        "mode, true_backend",
-        [
-            ("quality", "fake_manila"),
-            ("speed", "fake_belem"),
-            ("quality_hqaa", "fake_manila"),
-            ("speed_hqaa", "fake_belem"),
-        ],
-    )
+    @mark
     def test_auto_select_projected_kernel(self, mode, true_backend):
         """
         Test for auto selection of the backend for a given circuit.
