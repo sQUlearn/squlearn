@@ -21,6 +21,10 @@ from qiskit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterVector
 from qiskit.exceptions import QiskitError
+from qiskit.primitives import (
+    Estimator as PrimitiveEstimatorV1,
+    Sampler as PrimitiveSamplerV1,
+)
 from qiskit.primitives.base import EstimatorResult, SamplerResult
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import Options
@@ -72,10 +76,6 @@ else:
     from qiskit.primitives import StatevectorEstimator, StatevectorSampler
 
 if QISKIT_SMALLER_1_2:
-    from qiskit.primitives import (
-        Estimator as PrimitiveEstimatorV1,
-        Sampler as PrimitiveSamplerV1,
-    )
 
     class BackendEstimatorV2(object):
         """Dummy BackendEstimatorV2"""
@@ -89,12 +89,6 @@ else:
         BackendEstimatorV2,
         BackendSamplerV2,
     )
-
-    class PrimitiveEstimatorV1(object):
-        """Dummy PrimitiveEstimatorV1"""
-
-    class PrimitiveSamplerV1(object):
-        """Dummy PrimitiveSamplerV1"""
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
