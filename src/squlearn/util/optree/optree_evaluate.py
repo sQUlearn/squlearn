@@ -2,8 +2,10 @@ import numpy as np
 from typing import Union, List, Tuple
 
 import time
+from packaging import version
 
 from qiskit import QuantumCircuit
+from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
 from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives import BackendEstimator
@@ -23,6 +25,10 @@ from .optree import (
     OpTreeExpectationValue,
     OpTreeMeasuredOperator,
 )
+
+QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+
+from qiskit.primitives import BitArray
 
 from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
 
@@ -720,7 +726,7 @@ def _add_offset_to_tree(
 
 def _evaluate_expectation_from_sampler(
     operator: List[SparsePauliOp],
-    results: SamplerResult,
+    results: Union[SamplerResult, List[BitArray]],
     operator_measurement_list: Union[None, List[List[int]]] = None,
     offset: int = 0,
 ):
@@ -763,10 +769,18 @@ def _evaluate_expectation_from_sampler(
                 + "run transform_to_zbasis first"
             )
 
+    qiskitv2 = False
+    if isinstance(results, SamplerResult):
+        num_results = len(results.quasi_dists)
+    else:
+        num_results = len(results)
+        qiskitv2 = True
+
+
     # If no measurement is present, create one where every circuit is connected to all
     # operators
     if operator_measurement_list is None:
-        operator_measurement_list_ = list(range(0, len(operator))) * len(results.quasi_dists)
+        operator_measurement_list_ = list(range(0, len(operator))) * num_results
     else:
         operator_measurement_list_ = operator_measurement_list
 
@@ -782,21 +796,32 @@ def _evaluate_expectation_from_sampler(
         raise ValueError("Wrong depth of operator_measurement_list")
 
     # Calulate the expectation value with internal Qiskit function
-    exp_val = np.array(
-        [
-            np.real_if_close(
-                np.dot(
-                    _pauli_expval_with_variance(
-                        results.quasi_dists[icirc + offset].binary_probabilities(),
-                        op_pauli_list[iop],
-                    )[0],
-                    operator[iop].coeffs,
+    if qiskitv2:
+        exp_val = np.array(
+            [
+                np.real_if_close(
+                    results[icirc + offset].expectation_values(operator[iop])
                 )
-            )
-            for icirc, oplist in enumerate(flatted_resort_list)
-            for iop in oplist
-        ]
-    )
+                for icirc, oplist in enumerate(flatted_resort_list)
+                for iop in oplist
+            ]
+        )
+    else:
+        exp_val = np.array(
+            [
+                np.real_if_close(
+                    np.dot(
+                        _pauli_expval_with_variance(
+                            results.quasi_dists[icirc + offset].binary_probabilities(),
+                            op_pauli_list[iop],
+                        )[0],
+                        operator[iop].coeffs,
+                    )
+                )
+                for icirc, oplist in enumerate(flatted_resort_list)
+                for iop in oplist
+            ]
+        )
 
     if depth_om_list == 3:
         # Resort results into the operator order (so far in measurement order)
@@ -832,6 +857,11 @@ def _transform_operator_to_zbasis(
         terms. If no transformation is needed, the input operator is returned without any changes.
     """
 
+    if QISKIT_SMALLER_1_2:
+        measurement_circuit = BackendEstimator._measurement_circuit
+    else:
+        from qiskit.primitives.backend_estimator_v2 import _measurement_circuit as measurement_circuit
+
     # Adjust measurements to be possible in Z basis
     if isinstance(operator, OpTreeOperator):
         operator = operator.operator
@@ -849,7 +879,7 @@ def _transform_operator_to_zbasis(
         for op in operator.group_commuting(qubit_wise=True):
             # Build the measurement circuit and the adjusted measurements
             basis = Pauli((np.logical_or.reduce(op.paulis.z), np.logical_or.reduce(op.paulis.x)))
-            meas_circuit, indices = BackendEstimator._measurement_circuit(op.num_qubits, basis)
+            meas_circuit, indices = measurement_circuit(op.num_qubits, basis)
             z_list = [
                 [
                     op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i]
@@ -873,7 +903,7 @@ def _transform_operator_to_zbasis(
     else:
         for basis, op in zip(operator.paulis, operator):  # type: ignore
             # Build the measurement circuit and the adjusted measurements
-            meas_circuit, indices = BackendEstimator._measurement_circuit(op.num_qubits, basis)
+            meas_circuit, indices = measurement_circuit(op.num_qubits, basis)
             z_list = [
                 [
                     op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i]
@@ -1099,7 +1129,8 @@ class OpTreeEvaluate:
             if isinstance(sampler, BaseSamplerV1):
                 sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
             elif isinstance(sampler, BaseSamplerV2):
-                sampler_result = sampler.run(total_circuit_list, total_parameter_list)
+                pubs = zip(total_circuit_list, total_parameter_list)
+                sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
             else:
                 raise ValueError("Unknown sampler type!")
         else:
@@ -1522,7 +1553,8 @@ class OpTreeEvaluate:
         if isinstance(sampler, BaseSamplerV1):
             sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         elif isinstance(sampler, BaseSamplerV2):
-            sampler_result = sampler.run(total_circuit_list, total_parameter_list)
+            pubs = zip(total_circuit_list, total_parameter_list)
+            sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
         else:
             raise ValueError("Unknown sampler type!")
         # print("Sampler run time: ", time.time() - start)
