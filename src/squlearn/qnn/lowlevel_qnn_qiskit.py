@@ -1047,7 +1047,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
             # FIRST SWAP: different observables to the first place of the array
             # swap i=2+num_nested to position 0, keep the rest in order
-            if is_val_empty is False:
+            if not is_val_empty:
                 index_list = list(range(len(val.shape)))
                 swapp_list = [index_list[2 + num_nested]]
                 swapp_list += [index_list[0]] + [index_list[1]]

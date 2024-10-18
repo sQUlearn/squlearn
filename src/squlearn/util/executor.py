@@ -373,7 +373,6 @@ class Executor:
         self._service = None
         self._estimator = None
         self._sampler = None
-        self._session_active = False
         self._execution_origin = ""
 
         # Copy estimator options and make a dict
@@ -532,7 +531,6 @@ class Executor:
             self._session = execution
             self._service = self._session.service
             self._backend = self._session.service.get_backend(self._session.backend())
-            self._session_active = True
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
@@ -554,15 +552,12 @@ class Executor:
                     if shots is None:
                         shots = shots_estimator
             # Real Backend
-            elif hasattr(self._estimator, "session"):
-                self._session = self._estimator.session
-                self._service = self._estimator.session.service
-                self._backend = self._estimator.session.service.get_backend(
-                    self._estimator.session.backend()
-                )
-                self._session_active = True
+            elif isinstance(self._estimator, RuntimeEstimatorV1):
+                self._session = self._estimator._session
+                self._service = self._estimator._service
+                self._backend = self._estimator._backend
             else:
-                raise RuntimeError("No backend found in the given Estimator Primitive!")
+                raise ValueError("Unknown estimator type: " + str(execution)) 
 
             if self._options_estimator is None:
                 self._options_estimator = self._estimator.options
@@ -585,15 +580,12 @@ class Executor:
                 else:
                     if shots is None:
                         shots = shots_sampler
-            elif hasattr(self._sampler, "session"):
-                self._session = self._sampler.session
-                self._service = self._sampler.session.service
-                self._backend = self._sampler.session.service.get_backend(
-                    self._sampler.session.backend()
-                )
-                self._session_active = True
+            elif isinstance(self._sampler, RuntimeSamplerV1):
+                self._session = self._sampler._session
+                self._service = self._sampler._service
+                self._backend = self._sampler._backend
             else:
-                raise RuntimeError("No backend found in the given Sampler Primitive!")
+                raise ValueError("Unknown sampler type: " + str(execution)) 
 
             if self._options_sampler is None:
                 self._options_sampler = self._sampler.options
@@ -669,7 +661,7 @@ class Executor:
             if self._backend_list is None:
                 self._backend_list = [self._backend]
             else:
-                if self._ibm_quantum_backend is False:
+                if not self._ibm_quantum_backend:
                     # If fake backends are given
                     # automatic backend selection is supported
                     if (
@@ -897,7 +889,7 @@ class Executor:
 
             if success:
                 break
-            elif critical_error is False:
+            elif not critical_error:
                 self._logger.info(f"Restarting PennyLane execution")
                 success = False
 
@@ -982,7 +974,7 @@ class Executor:
         """
 
         if self._estimator is not None:
-            if self.IBMQuantum and self._session is not None and self._session_active is False:
+            if self.IBMQuantum and self._session is not None and not self._session._active:
                 # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._estimator = RuntimeEstimatorV1(
@@ -996,7 +988,7 @@ class Executor:
             initialize_parallel_estimator = True
             if self.IBMQuantum:
                 if self._session is not None:
-                    if self._session_active is False:
+                    if not self._session._active:
                         self.create_session()
                     self._estimator = RuntimeEstimatorV1(
                         session=self._session, options=self._options_estimator
@@ -1065,7 +1057,7 @@ class Executor:
         """
 
         if self._estimator is not None:
-            if self.IBMQuantum and self._session is not None and self._session_active is False:
+            if self.IBMQuantum and self._session is not None and not self._session._active:
                 # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._estimator = RuntimeEstimatorV2(
@@ -1079,7 +1071,7 @@ class Executor:
             initialize_parallel_estimator = True
             if self.IBMQuantum:
                 if self._session is not None:
-                    if not self._session_active:
+                    if not self._session._active:
                         self.create_session()
                     self._estimator = RuntimeEstimatorV2(
                         mode=self._session, options=self._options_estimator
@@ -1175,7 +1167,7 @@ class Executor:
         """
 
         if self._sampler is not None:
-            if self.IBMQuantum and self._session is not None and self._session_active is False:
+            if self.IBMQuantum and self._session is not None and not self._session._active:
                 # Session is expired, create a new one and a new estimator
                 self.create_session()
                 self._sampler = RuntimeSamplerV1(
@@ -1190,7 +1182,7 @@ class Executor:
 
             if self.IBMQuantum:
                 if self._session is not None:
-                    if self._session_active is False:
+                    if not self._session._active:
                         self.create_session()
                     self._sampler = RuntimeSamplerV1(
                         session=self._session, options=self._options_sampler
@@ -1262,7 +1254,7 @@ class Executor:
         """
 
         if self._sampler is not None:
-            if self.IBMQuantum and self._session is not None and self._session_active is False:
+            if self.IBMQuantum and self._session is not None and not self._session._active:
                 # Session is expired, create a new one and a new estimator
                 self.create_session()
                 self._sampler = RuntimeSamplerV2(mode=self._session, options=self._options_sampler)
@@ -1275,7 +1267,7 @@ class Executor:
 
             if self.IBMQuantum:
                 if self._session is not None:
-                    if self._session_active is False:
+                    if not self._session._active:
                         self.create_session()
                     self._sampler = RuntimeSamplerV2(
                         mode=self._session, options=self._options_sampler
@@ -1409,7 +1401,6 @@ class Executor:
                         + label
                         + f" because the session has been closed!"
                     )
-                    self._session_active = False
                     continue
 
             except NotImplementedError as e:
@@ -1501,7 +1492,7 @@ class Executor:
 
             if success and result_success:
                 break
-            elif critical_error is False:
+            elif not critical_error:
                 self._logger.info(f"Restarting " + label + f" run")
                 success = False
                 result_success = False
@@ -2144,7 +2135,6 @@ class Executor:
                 )
             else:
                 raise RuntimeError("Session can not started because of missing backend!")
-            self._session_active = True
             self._logger.info(f"Executor created a new session.")
         else:
             raise RuntimeError("Session can not started because of missing service!")
