@@ -90,11 +90,16 @@ else:
         BackendSamplerV2,
     )
 
-    class PrimitiveEstimatorV1(object):
-        """Dummy PrimitiveEstimatorV1"""
+    from qiskit.primitives import (
+        Estimator as PrimitiveEstimatorV1,
+        Sampler as PrimitiveSamplerV1,
+    )
 
-    class PrimitiveSamplerV1(object):
-        """Dummy PrimitiveSamplerV1"""
+    # class PrimitiveEstimatorV1(object):
+    #     """Dummy PrimitiveEstimatorV1"""
+
+    # class PrimitiveSamplerV1(object):
+    #     """Dummy PrimitiveSamplerV1"""
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")

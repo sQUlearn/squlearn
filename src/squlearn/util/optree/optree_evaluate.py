@@ -24,6 +24,8 @@ from .optree import (
     OpTreeMeasuredOperator,
 )
 
+from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
+
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
     """
@@ -1094,7 +1096,12 @@ class OpTreeEvaluate:
         # print("Number of circuits for sampler: ", len(total_circuit_list))
 
         if len(total_circuit_list) > 0:
-            sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+            if isinstance(sampler, BaseSamplerV1):
+                sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+            elif isinstance(sampler, BaseSamplerV2):
+                sampler_result = sampler.run(total_circuit_list, total_parameter_list)
+            else:
+                raise ValueError("Unknown sampler type!")
         else:
             sampler_result = []
         # print("Sampler run time: ", time.time() - start)
@@ -1313,11 +1320,21 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
-        estimator_result = (
-            estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
-            .result()
-            .values
-        )
+
+        if isinstance(estimator,BaseEstimatorV1):
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+                .result()
+                .values
+            )
+        elif isinstance(estimator,BaseEstimatorV2):
+            # todo adjust for new estimator
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+            )
+        else:
+            raise ValueError("Unknown estimator type!")
+
         # print("Estimator run time: ", time.time() - start)
 
         # Assembly the final values from the evaluation tree
@@ -1405,11 +1422,18 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
-        estimator_result = (
-            estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
-            .result()
-            .values
-        )
+        if isinstance(estimator, BaseEstimatorV1):
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+                .result()
+                .values
+            )
+        elif isinstance(estimator, BaseEstimatorV2):
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+            )
+        else:
+            raise ValueError("Unknown estimator type!")
         # print("Run time of estimator: ", time.time() - start)
 
         # Final assembly of the results
@@ -1499,7 +1523,12 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             _evaluate_index_tree(evaluation_tree, [])
 
-        sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        if isinstance(sampler, BaseSamplerV1):
+            sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        elif isinstance(sampler, BaseSamplerV2):
+            sampler_result = sampler.run(total_circuit_list, total_parameter_list)
+        else:
+            raise ValueError("Unknown sampler type!")
         # print("Sampler run time: ", time.time() - start)
 
         # Computation of the expectation values from the sampler results
