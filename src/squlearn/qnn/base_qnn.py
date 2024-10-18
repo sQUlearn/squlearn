@@ -1,4 +1,4 @@
-"""QNN Base Implemenation"""
+"""QNN Base Implemenation."""
 
 from __future__ import annotations
 
@@ -78,12 +78,10 @@ class BaseQNN(BaseEstimator, ABC):
         self._qnn_params = kwargs
 
         if param_ini is None:
-            self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
             if pretrained:
                 raise ValueError("If pretrained is True, param_ini must be provided!")
-        else:
-            self.param_ini = param_ini
-        self._param = self.param_ini.copy()
+
+        self.param_ini = param_ini
 
         if param_op_ini is None:
             if pretrained:
@@ -144,9 +142,9 @@ class BaseQNN(BaseEstimator, ABC):
                 raise ValueError(f"Unknown callback string value {self.callback}")
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
-        if self.num_features is not None:
-            self._initialize_lowlevel_qnn()
-            self.__update_params()
+
+        # in case the num_features property is provided initialize everything as usual
+        self.__initialize_based_on_num_features()
 
         self._is_fitted = self.pretrained
 
@@ -205,11 +203,7 @@ class BaseQNN(BaseEstimator, ABC):
         X = np.array(X)
         y = np.array(y)
 
-        # set num_features and initialize the low level qnn
-        if self.num_features is None:
-            self.__set_num_features(X)
-            self._initialize_lowlevel_qnn()
-            self.__update_params()
+        self.__initialize_based_on_num_features(X)
 
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
@@ -217,8 +211,7 @@ class BaseQNN(BaseEstimator, ABC):
         self._fit(X, y, weights)
 
     def get_params(self, deep: bool = True) -> dict:
-        """
-        Returns a dictionary of parameters for the current object.
+        """Returns a dictionary of parameters for the current object.
 
         Parameters:
             deep: If True, includes the parameters from the base class.
@@ -234,8 +227,7 @@ class BaseQNN(BaseEstimator, ABC):
         return params
 
     def set_params(self: BaseQNN, **params) -> BaseQNN:
-        """
-        Sets the hyper-parameters of the BaseQNN.
+        """Sets the hyper-parameters of the BaseQNN.
 
         Args:
             params: Hyper-parameters of the BaseQNN.
@@ -358,6 +350,22 @@ class BaseQNN(BaseEstimator, ABC):
             y = column_or_1d(y, warn=True)
         return X, y
 
+    def __initialize_based_on_num_features(self, input_X=None) -> None:
+        """Initializes certain components of the class depending on the availability of the
+        `num_features` property.
+        If `num_features` is set, the full initialization is performed immediately.
+        Otherwise, the initialization is deferred until `num_features` becomes available.
+        This method allows flexibility in scenarios where the number of features is unknown
+        at the time of object creation but becomes available later during runtime (e.g., during the fitting process).
+        """
+        if self.num_features is None and input_X is not None:
+            self.__set_num_features(input_X)
+
+        if self.num_features is not None:
+            self.__initialize_param_ini()
+            self._initialize_lowlevel_qnn()
+            self.__update_params()
+
     def __update_params(self) -> None:
         update_params = self.get_params().keys() & self._qnn_params.keys()
         if update_params:
@@ -365,4 +373,14 @@ class BaseQNN(BaseEstimator, ABC):
 
     def __set_num_features(self, X) -> None:
         """Set the number of features of the PQC."""
-        self.num_features = X.shape[1]
+        if len(X.shape) == 1:
+            self.num_features = 1
+        else:
+            self.num_features = X.shape[1]
+
+    def __initialize_param_ini(self) -> None:
+        if self.param_ini is None:
+            self.param_ini = self.encoding_circuit.generate_initial_parameters(
+                seed=self.parameter_seed
+            )
+            self._param = self.param_ini.copy()
