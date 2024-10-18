@@ -25,6 +25,7 @@ from .optree import (
     OpTreeExpectationValue,
     OpTreeMeasuredOperator,
 )
+
 # TODO V2: better import
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
@@ -776,7 +777,6 @@ def _evaluate_expectation_from_sampler(
         num_results = len(results)
         qiskitv2 = True
 
-
     # If no measurement is present, create one where every circuit is connected to all
     # operators
     if operator_measurement_list is None:
@@ -799,9 +799,7 @@ def _evaluate_expectation_from_sampler(
     if qiskitv2:
         exp_val = np.array(
             [
-                np.real_if_close(
-                    results[icirc + offset].expectation_values(operator[iop])
-                )
+                np.real_if_close(results[icirc + offset].expectation_values(operator[iop]))
                 for icirc, oplist in enumerate(flatted_resort_list)
                 for iop in oplist
             ]
@@ -860,7 +858,9 @@ def _transform_operator_to_zbasis(
     if QISKIT_SMALLER_1_2:
         measurement_circuit = BackendEstimator._measurement_circuit
     else:
-        from qiskit.primitives.backend_estimator_v2 import _measurement_circuit as measurement_circuit
+        from qiskit.primitives.backend_estimator_v2 import (
+            _measurement_circuit as measurement_circuit,
+        )
 
     # Adjust measurements to be possible in Z basis
     if isinstance(operator, OpTreeOperator):
