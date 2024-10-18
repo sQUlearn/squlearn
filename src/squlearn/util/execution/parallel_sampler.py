@@ -102,7 +102,10 @@ class ParallelSampler(BaseSampler):
         elif isinstance(self._sampler, squlearn.util.executor.ExecutorSampler):
             self._backend = self._sampler._executor.backend
             self.shots = self._sampler._executor.get_shots()
-            self._session_active = self._sampler._executor._session_active
+            self._session_active = (
+                self._sampler._executor._session is not None
+                and self._sampler._executor._session._active
+            )
         else:
             raise RuntimeError("No backend found in the given Sampler Primitive!")
 
