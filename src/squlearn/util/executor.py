@@ -1150,9 +1150,8 @@ class Executor:
 
         return self._estimator_v2()
 
-    # TODO: Check for V2
     def clear_estimator_cache(self) -> None:
-        """Function for clearing the cache of the estimator primitive to avoid memory overflow."""
+        """Function for clearing the cache of the EstimatorV1 primitive to avoid memory overflow."""
         if self._estimator is not None:
             if isinstance(self._estimator, PrimitiveEstimatorV1) or isinstance(
                 self._estimator, BackendEstimatorV1
@@ -1349,9 +1348,8 @@ class Executor:
 
         return self._sampler_v2()
 
-    # TODO: Check for V2
     def clear_sampler_cache(self) -> None:
-        """Function for clearing the cache of the sampler primitive to avoid memory overflow."""
+        """Function for clearing the cache of the SamplerV1 primitive to avoid memory overflow."""
         if self._sampler is not None:
             if isinstance(self._sampler, PrimitiveSamplerV1) or isinstance(
                 self._sampler, BackendSamplerV1
