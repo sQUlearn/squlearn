@@ -543,19 +543,22 @@ class Executor:
                 self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, BackendEstimatorV1):
                 self._backend = self._estimator._backend
-                shots_estimator = self._estimator.options.get("shots", 0)
-                if shots_estimator == 0:
-                    if shots is None:
+                #TODO: check if this is duplicate
+                if not shots:
+                    shots_estimator = self._estimator.options.get("shots", 0)
+                    if not shots_estimator:
                         shots = 1024
-                    self._estimator.set_options(shots=shots)
-                else:
-                    if shots is None:
+                        self._estimator.set_options(shots=shots)
+                    else:
                         shots = shots_estimator
             # Real Backend
             elif isinstance(self._estimator, RuntimeEstimatorV1):
                 self._session = self._estimator._session
                 self._service = self._estimator._service
                 self._backend = self._estimator._backend
+                #TODO: check if this is duplicate
+                if not shots:
+                    shots = self._estimator.options["execution"]["shots"]
             else:
                 raise ValueError("Unknown estimator type: " + str(execution))
 
@@ -573,17 +576,20 @@ class Executor:
             elif isinstance(self._sampler, BackendSamplerV1):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
-                if shots_sampler == 0:
-                    if shots is None:
+                #TODO: check if this is duplicate
+                if not shots:
+                    if not shots_sampler:
                         shots = 1024
-                    self._sampler.set_options(shots=shots)
-                else:
-                    if shots is None:
+                        self._sampler.set_options(shots=shots)
+                    else:
                         shots = shots_sampler
             elif isinstance(self._sampler, RuntimeSamplerV1):
                 self._session = self._sampler._session
                 self._service = self._sampler._service
                 self._backend = self._sampler._backend
+                #TODO: check if this is duplicate
+                if not shots:
+                    shots = self._sampler.options["execution"]["shots"]
             else:
                 raise ValueError("Unknown sampler type: " + str(execution))
 
@@ -596,16 +602,19 @@ class Executor:
             self._estimator = execution
             if isinstance(self._estimator, StatevectorEstimator):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
-                if shots is None and self._estimator.default_precision > 0.0:
+                if shots is None and self._estimator.default_precision:
                     shots = int((1.0 / self._estimator.default_precision) ** 2)
             elif isinstance(self._estimator, BackendEstimatorV2):
                 self._backend = self._estimator.backend
-                if self._estimator.options.default_precision <= 0.0:
-                    raise ValueError("Precision of the estimator must be greater than 0!")
                 if shots is None:
-                    shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+                    if self._estimator.options.default_precision <= 0.0:
+                        shots = 1024
+                        self._estimator.options.default_precision = 1.0 / np.sqrt(shots)
+                    else:
+                        shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             elif isinstance(self._estimator, RuntimeEstimatorV2):
-                # TODO V2: sessions/service
+                self._session = self._estimator._mode
+                self._service = self._estimator._service
                 self._backend = self._estimator._backend
                 if shots is None:
                     if self._estimator.options.default_shots:
@@ -613,9 +622,8 @@ class Executor:
                     elif self._estimator.options.default_precision:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
                     else:
-                        raise ValueError(
-                            "Either default_shots or default_precision of the estimator must be set!"
-                        )
+                        shots = 1024
+                        self._estimator.options.default_shots = 1024
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
@@ -629,13 +637,15 @@ class Executor:
                 if shots is None:
                     shots = self._sampler.options.default_shots
             elif isinstance(self._sampler, RuntimeSamplerV2):
-                # TODO V2: sessions/service
+                self._session = self._sampler._mode
+                self._service = self._sampler._service
                 self._backend = self._sampler._backend
                 if shots is None:
                     if self._sampler.options.default_shots:
                         shots = self._sampler.options.default_shots
                     else:
-                        raise ValueError("default_shots of the sampler must be set!")
+                        shots = 1024
+                        self._sampler.options.default_shots = 1024
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
