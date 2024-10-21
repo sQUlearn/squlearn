@@ -1597,7 +1597,7 @@ class Executor:
                 )
             else:
                 if self.is_statevector:
-                    self._swapp_to_BackendPrimitive("estimator")
+                    self._swapp_to_BackendPrimitive("estimator_v1")
 
         # Set seed for the primitive
         instance_estimator = self.estimator
@@ -1642,23 +1642,41 @@ class Executor:
         """
         if self.is_statevector and self._shots is not None:
 
-            if primitive == "estimator":
+            if primitive == "estimator_v1":
                 self._estimator = BackendEstimatorV1(
                     backend=self._backend, options=self._options_estimator
                 )
                 self._logger.info(
-                    "Changed from the Estimator() to the BackendEstimator() primitive"
+                    "Changed from the EstimatorV1() to the BackendEstimatorV1() primitive"
                 )
-                self.set_shots(self._shots)
 
-            elif primitive == "sampler":
+            elif primitive == "sampler_v1":
                 self._sampler = BackendSamplerV1(
                     backend=self._backend, options=self._options_sampler
                 )
-                self._logger.info("Changed from the Sampler() to the BackendSampler() primitive")
-                self.set_shots(self._shots)
+                self._logger.info(
+                    "Changed from the SamplerV1() to the BackendSamplerV1() " "primitive"
+                )
+
+            elif primitive == "estimator_v2":
+                self._estimator = BackendEstimatorV2(
+                    backend=self._backend, options=self._options_estimator
+                )
+                self._logger.info(
+                    "Changed from the StatevectorEstimator() to the BackendEstimatorV2() primitive"
+                )
+
+            elif primitive == "sampler_v2":
+                self._sampler = BackendSamplerV2(
+                    backend=self._backend, options=self._options_sampler
+                )
+                self._logger.info(
+                    "Changed from the StatevectorSampler() to the BackendSamplerV2()" " primitive"
+                )
             else:
                 raise ValueError("Unknown primitive type: " + primitive)
+
+            self.set_shots(self._shots)
 
         else:
             raise ValueError(
@@ -1681,28 +1699,27 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
-        # TODO V2 adapt
-        # # Checks and handles in-circuit measurements in the circuit
-        # containes_incircuit_measurement = False
-        # if isinstance(circuits, QuantumCircuit):
-        #     containes_incircuit_measurement = check_for_incircuit_measurements(
-        #         circuits, mode="clbits"
-        #     )
-        # else:
-        #     for circuit in circuits:
-        #         containes_incircuit_measurement = (
-        #             containes_incircuit_measurement
-        #             or check_for_incircuit_measurements(circuit, mode="clbits")
-        #         )
+        # Checks and handles in-circuit measurements in the circuit
+        containes_incircuit_measurement = False
+        if isinstance(pubs[0], QuantumCircuit):
+            containes_incircuit_measurement = check_for_incircuit_measurements(
+                pubs[0], mode="clbits"
+            )
+        else:
+            for circuit in pubs[0]:
+                containes_incircuit_measurement = (
+                    containes_incircuit_measurement
+                    or check_for_incircuit_measurements(circuit, mode="clbits")
+                )
 
-        # if containes_incircuit_measurement:
-        #     if self.shots is None:
-        #         raise ValueError(
-        #             "In-circuit measurements with the Estimator are only possible with shots."
-        #         )
-        #     else:
-        #         if self.is_statevector:
-        #             self._swapp_to_BackendPrimitive("estimator")
+        if containes_incircuit_measurement:
+            if self.shots is None:
+                raise ValueError(
+                    "In-circuit measurements with the Estimator are only possible with shots."
+                )
+            else:
+                if self.is_statevector:
+                    self._swapp_to_BackendPrimitive("estimator_v2")
 
         if isinstance(self.estimator, ParallelEstimator):
             # TODO V2: Adapt
@@ -1767,7 +1784,7 @@ class Executor:
                 raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
             else:
                 if self.is_statevector:
-                    self._swapp_to_BackendPrimitive("sampler")
+                    self._swapp_to_BackendPrimitive("sampler_v1")
 
         # Set seed for the primitive
         instance_sampler = self.sampler
@@ -1817,25 +1834,24 @@ class Executor:
             A qiskit job containing the results of the run.
         """
 
-        # TODO V2: Adapt to new SamplerV2
-        # # Check and handle conditions in the circuit
-        # circuits_contains_conditions = False
-        # if isinstance(circuits, QuantumCircuit):
-        #     circuits_contains_conditions = check_for_incircuit_measurements(
-        #         circuits, mode="condition"
-        #     )
-        # else:
-        #     for circuit in circuits:
-        #         circuits_contains_conditions = (
-        #             circuits_contains_conditions
-        #             or check_for_incircuit_measurements(circuit, mode="condition")
-        #         )
-        # if circuits_contains_conditions:
-        #     if self.shots is None:
-        #         raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
-        #     else:
-        #         if self.is_statevector:
-        #             self._swapp_to_BackendPrimitive("sampler")
+        # Check and handle conditions in the circuit
+        circuits_contains_conditions = False
+        if isinstance(pubs[0], QuantumCircuit):
+            circuits_contains_conditions = check_for_incircuit_measurements(
+                pubs[0], mode="condition"
+            )
+        else:
+            for circuit in pubs[0]:
+                circuits_contains_conditions = (
+                    circuits_contains_conditions
+                    or check_for_incircuit_measurements(circuit, mode="condition")
+                )
+        if circuits_contains_conditions:
+            if self.shots is None:
+                raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
+            else:
+                if self.is_statevector:
+                    self._swapp_to_BackendPrimitive("sampler_v2")
 
         if isinstance(self.sampler, ParallelSampler):
             # TODO V2: Adapt
