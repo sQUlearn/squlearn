@@ -144,6 +144,7 @@ else:
 
 
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
+from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 
 
 class Executor:
@@ -551,19 +552,22 @@ class Executor:
                 self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, BackendEstimatorV1):
                 self._backend = self._estimator._backend
-                shots_estimator = self._estimator.options.get("shots", 0)
-                if shots_estimator == 0:
-                    if shots is None:
+                # TODO: check if this is duplicate
+                if not shots:
+                    shots_estimator = self._estimator.options.get("shots", 0)
+                    if not shots_estimator:
                         shots = 1024
-                    self._estimator.set_options(shots=shots)
-                else:
-                    if shots is None:
+                        self._estimator.set_options(shots=shots)
+                    else:
                         shots = shots_estimator
             # Real Backend
             elif isinstance(self._estimator, RuntimeEstimatorV1):
                 self._session = self._estimator._session
                 self._service = self._estimator._service
                 self._backend = self._estimator._backend
+                # TODO: check if this is duplicate
+                if not shots:
+                    shots = self._estimator.options["execution"]["shots"]
             else:
                 raise ValueError("Unknown estimator type: " + str(execution))
 
@@ -580,17 +584,20 @@ class Executor:
             elif isinstance(self._sampler, BackendSamplerV1):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
-                if shots_sampler == 0:
-                    if shots is None:
+                # TODO: check if this is duplicate
+                if not shots:
+                    if not shots_sampler:
                         shots = 1024
-                    self._sampler.set_options(shots=shots)
-                else:
-                    if shots is None:
+                        self._sampler.set_options(shots=shots)
+                    else:
                         shots = shots_sampler
             elif isinstance(self._sampler, RuntimeSamplerV1):
                 self._session = self._sampler._session
                 self._service = self._sampler._service
                 self._backend = self._sampler._backend
+                # TODO: check if this is duplicate
+                if not shots:
+                    shots = self._sampler.options["execution"]["shots"]
             else:
                 raise ValueError("Unknown sampler type: " + str(execution))
 
@@ -603,22 +610,28 @@ class Executor:
             self._estimator = execution
             if isinstance(self._estimator, StatevectorEstimator):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
-                if shots is None and self._estimator.default_precision > 0.0:
+                if shots is None and self._estimator.default_precision:
                     shots = int((1.0 / self._estimator.default_precision) ** 2)
             elif isinstance(self._estimator, BackendEstimatorV2):
                 self._backend = self._estimator.backend
-                if self._estimator.options.default_precision <= 0.0:
-                    raise ValueError("Precision of the estimator must be greater than 0!")
                 if shots is None:
-                    shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+                    if self._estimator.options.default_precision <= 0.0:
+                        shots = 1024
+                        self._estimator._options.default_precision = 1.0 / shots**0.5
+                    else:
+                        shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             elif isinstance(self._estimator, RuntimeEstimatorV2):
-                # TODO V2: sessions/service
+                self._session = self._estimator._mode
+                self._service = self._estimator._service
                 self._backend = self._estimator._backend
                 if shots is None:
                     if self._estimator.options.default_shots:
                         shots = self._estimator.options.default_shots
                     elif self._estimator.options.default_precision:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+                    else:
+                        shots = 1024
+                        self._estimator.options.default_shots = 1024
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
@@ -632,11 +645,15 @@ class Executor:
                 if shots is None:
                     shots = self._sampler.options.default_shots
             elif isinstance(self._sampler, RuntimeSamplerV2):
-                # TODO V2: sessions/service
+                self._session = self._sampler._mode
+                self._service = self._sampler._service
                 self._backend = self._sampler._backend
                 if shots is None:
                     if self._sampler.options.default_shots:
                         shots = self._sampler.options.default_shots
+                    else:
+                        shots = 1024
+                        self._sampler.options.default_shots = 1024
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
@@ -987,7 +1004,7 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
+            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV1)
         else:
             # Create a new Estimator
             shots = self.get_shots()
@@ -1070,7 +1087,7 @@ class Executor:
                     mode=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
+            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV2)
         else:
             # Create a new Estimator
             shots = self.get_shots()
@@ -1096,7 +1113,7 @@ class Executor:
                 if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = StatevectorEstimator(
-                        default_precision=1 / np.sqrt(shots) if shots else 0.0
+                        default_precision=1 / shots**0.5 if shots else 0.0
                     )
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Estimator initialization!")
@@ -1112,23 +1129,22 @@ class Executor:
                 self.set_shots(shots)
 
         # Generate a in-QPU parallelized estimator
-        if self._qpu_parallelization is not None:
-            if initialize_parallel_estimator:
-                if isinstance(self._qpu_parallelization, str):
-                    if self._qpu_parallelization == "auto":
-                        self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
-                    else:
-                        raise ValueError(
-                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                        )
-                elif isinstance(self._qpu_parallelization, int):
-                    self._estimator = ParallelEstimator(
-                        self._estimator, num_parallel=self._qpu_parallelization
-                    )
+        if self._qpu_parallelization and initialize_parallel_estimator:
+            if isinstance(self._qpu_parallelization, str):
+                if self._qpu_parallelization == "auto":
+                    self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
                 else:
-                    raise TypeError(
-                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                    raise ValueError(
+                        "Unknown qpu_parallelization value: " + self._qpu_parallelization
                     )
+            elif isinstance(self._qpu_parallelization, int):
+                self._estimator = ParallelEstimator(
+                    self._estimator, num_parallel=self._qpu_parallelization
+                )
+            else:
+                raise TypeError(
+                    "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                )
 
         estimator = self._estimator
 
@@ -1607,15 +1623,15 @@ class Executor:
 
         # Set seed for the primitive
         instance_estimator = self.estimator
-        if isinstance(self.estimator, ParallelEstimator):
-            instance_estimator = self.estimator._estimator
+        if isinstance(instance_estimator, ParallelEstimatorV1):
+            instance_estimator = instance_estimator._estimator
         if isinstance(instance_estimator, BackendEstimatorV1):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
         elif isinstance(instance_estimator, PrimitiveEstimatorV1):
             if self._set_seed_for_primitive is not None:
-                self.estimator.set_options(seed=self._set_seed_for_primitive)
+                self._estimator.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
@@ -1727,18 +1743,17 @@ class Executor:
                 if self.is_statevector:
                     self._swapp_to_BackendPrimitive("estimator_v2")
 
-        if isinstance(self.estimator, ParallelEstimator):
-            # TODO V2: Adapt
-            # instance_estimator = self.estimator._estimator
-            pass
-        elif not isinstance(self.estimator, BaseEstimatorV2):
+        instance_estimator = self.estimator
+        if isinstance(instance_estimator, ParallelEstimatorV2):
+            instance_estimator = instance_estimator._estimator
+        elif not isinstance(instance_estimator, BaseEstimatorV2):
             raise ValueError("Estimator is not a BaseEstimatorV2")
 
         if precision is None:
             if self._shots is None:
                 precision = 0.0
             else:
-                precision = 1 / np.sqrt(self._shots)
+                precision = 1 / self._shots**0.5
 
         if self._caching:
             # Generate hash value for caching

@@ -1,6 +1,7 @@
 import copy
 from dataclasses import asdict
 from typing import Callable, Optional, Tuple, Union
+from collections.abc import Iterable
 
 from packaging import version
 from qiskit import QuantumCircuit
@@ -32,13 +33,29 @@ if QISKIT_SMALLER_1_0:
     class StatevectorEstimator(object):
         """Dummy StatevectorEstimator"""
 
+    class EstimatorPubLike(object):
+        """Dummy EstimatorPubLike"""
+
+    class EstimatorPub(object):
+        """Dummy EstimatorPub"""
+
+    class BasePrimitiveJob(object):
+        """Dummy BasePrimitiveJob"""
+
+    class ObservablesArray(object):
+        """Dummy ObservablesArray"""
+
 else:
     from qiskit.primitives import (
         BackendEstimator as BackendEstimatorV1,
         BaseEstimatorV1,
         BaseEstimatorV2,
+        BasePrimitiveJob,
+        StatevectorEstimator,
     )
-    from qiskit.primitives import StatevectorEstimator
+    from qiskit.primitives.containers import EstimatorPubLike
+    from qiskit.primitives.containers.estimator_pub import EstimatorPub
+    from qiskit.primitives.containers.observables_array import ObservablesArray
 
 if QISKIT_SMALLER_1_2:
 
@@ -559,19 +576,24 @@ class ParallelEstimatorV2(BaseEstimatorV2):
         if isinstance(self._estimator, StatevectorEstimator):
             # this is only a hack, there is no real backend in the StatevectorEstimator class
             self._backend = Aer.get_backend("statevector_simulator")
-            if self._estimator.default_precision > 0.0:
+            if self._estimator.default_precision:
                 self.shots = int(1.0 / self._estimator.default_precision**2)
         elif isinstance(self._estimator, BackendEstimatorV2):
             self._backend = self._estimator.backend
-            if self._estimator.options.default_precision <= 0.0:
+            if not self._estimator.options.default_precision:
                 raise ValueError("Precision of the estimator must be greater than 0!")
             self.shots = int((1.0 / self._estimator.options.default_precision) ** 2)
         # Real Backend
-        elif hasattr(self._estimator, "session"):
-            self._backend = self._estimator.session.service.get_backend(
-                self._estimator.session.backend()
-            )
-            self._session_active = True
+        elif isinstance(self._estimator, RuntimeEstimatorV2):
+            self._session = self._estimator._mode
+            self._service = self._estimator._service
+            self._backend = self._estimator._backend
+            if self._estimator.options.default_shots:
+                self.shots = self._estimator.options.default_shots
+            elif self._estimator.options.default_precision:
+                self.shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+            else:
+                raise ValueError("Either default_shots or default_precision must be set!")
         elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
@@ -598,105 +620,58 @@ class ParallelEstimatorV2(BaseEstimatorV2):
 
         # Update shots in estimator primitive
         if self._estimator is not None:
-            if isinstance(self._estimator, PrimitiveEstimatorV1):
-                if num_shots == 0:
-                    self._estimator.set_options(shots=None)
-                else:
-                    self._estimator.set_options(shots=num_shots)
-            elif isinstance(self._estimator, BackendEstimatorV1):
-                self._estimator.set_options(shots=num_shots)
-            elif isinstance(self._estimator, RuntimeEstimatorV1):
-                execution = self._estimator.options.get("execution")
-                execution["shots"] = num_shots
-                self._estimator.set_options(execution=execution)
+            if isinstance(self._estimator, StatevectorEstimator):
+                self._estimator._default_precision = 1.0 / num_shots**0.5
+            elif isinstance(self._estimator, BackendEstimatorV2):
+                self._estimator._options.default_precision = 1.0 / num_shots**0.5
+            elif isinstance(self._estimator, RuntimeEstimatorV2):
+                self._estimator._options.update(**{"execution": {"shots": num_shots}})
             elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
 
-    def _call(
-        self,
-        circuits,
-        observables,
-        parameter_values=None,
-        **run_options,
-    ) -> EstimatorResult:
-        """Calls the estimator primitive call method and returns an EstimatorResult.
-
-        Args:
-            circuits: Quantum circuits to execute.
-            observables: Observable to measure.
-            parameter_values: Values for the parameters in circuits.
-            run_options: Additional arguments that are passed to the estimator.
-
-        Returns:
-            An EstimatorResult object containing the expectation values.
-        """
-        return self._estimator._call(circuits, observables, parameter_values, **run_options)
-
-    def _run(
-        self,
-        circuits,
-        observables,
-        parameter_values=None,
-        **run_options,
-    ) -> Job:
-        """Has to be passed through, otherwise python will complain about the abstract method.
-        Input arguments are the same as in Qiskit's estimator.run().
-        """
-        return self._estimator._run(
-            circuits=circuits,
-            observables=observables,
-            parameter_values=parameter_values,
-            **run_options,
-        )
-
     def run(
-        self,
-        circuits,
-        observables,
-        parameter_values=None,
-        **run_options,
-    ) -> Job:
+        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
+    ) -> BasePrimitiveJob:
         """
         Overwrites the executor primitive run method, to evaluate expectation values.
 
         Input arguments are the same as in Qiskit's estimator.run()
 
         Args:
-            circuits: The quantum circuits to be executed.
-            observables: The observables to be measured.
-            parameter_values: The parameter values to be used for each circuit.
-            **run_options: Additional keyword arguments for the Estimator run call.
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
+                or ``(circuit, observables, parameter_values)``.
+            precision: The target precision for expectation value estimates of each
+                run Estimator Pub that does not specify its own precision. If None
+                the estimator's default precision value will be used.
         """
-        dupl_circuits = []
-        dupl_observables = []
-        if not isinstance(circuits, list):
-            circuits = [circuits]
-        if not isinstance(observables, list):
-            observables = [observables]
+        if precision is None:
+            if self.shots:
+                precision = 1 / self.shots**0.5
+            else:
+                precision = 0.0
+        duplicated_pubs = []
 
-        if "shots" in run_options:
-            self.shots = run_options["shots"]
-            run_options.pop("shots")
-
-        for circ, obs in zip(circuits, observables):
-            duplicated_circ, duplicated_obs = self._create_mapped_circuit(
-                circ, observable=obs, num_parallel=self._num_parallel
+        for pub in pubs:
+            coerced_pub = EstimatorPub.coerce(pub, precision=precision)
+            coerced_pub._circuit, coerced_pub._observables, num_parallel = (
+                self._create_mapped_circuit(
+                    coerced_pub.circuit,
+                    coerced_pub.observables,
+                    num_parallel=self._num_parallel,
+                    return_duplications=True,
+                )
             )
-            dupl_circuits.append(duplicated_circ)
-            dupl_observables.append(duplicated_obs)
+            coerced_pub._precision *= num_parallel**0.5
+            duplicated_pubs.append(coerced_pub)
 
-        result_job = self._estimator.run(
-            circuits=dupl_circuits,
-            observables=dupl_observables,
-            parameter_values=parameter_values,
-            **run_options,
-        )
-        result = result_job.result()
-        for meta in result.metadata:
-            meta["shots"] = self.shots
-        result_job._result = result
+        result_job = self._estimator.run(pubs=duplicated_pubs, precision=precision)
+
+        results = result_job.result()
+        for result in results:
+            result.metadata["precision"] /= num_parallel**0.5
+        result_job._result = results
         result_job.result = _custom_result_method.__get__(result_job, type(result_job))
         return result_job
 
@@ -872,37 +847,24 @@ class ParallelEstimatorV2(BaseEstimatorV2):
 
         The method adjusts the observable's coefficients to ensure the combined observable accurately represents the sum of its parts.
         """
-
         # Get number of qubits in the observable
-        n_qubits = observable.num_qubits
+        n_qubits = len(next(iter(observable.reshape(-1)[0])))
         # Total number of qubits in the final combined observable
         total_qubits = n_qubits * n_duplications
 
         # Initialize a list to hold the duplicated observables
         duplicated_observables = []
 
-        # Duplicate the observable with appropriate padding
-        for i in range(n_duplications):
-            # Padding on the left and right for each duplication
-            padding_left = "I" * (n_qubits * i)
-            padding_right = "I" * (total_qubits - n_qubits * (i + 1))
-            padded_observable = SparsePauliOp.from_list(
-                [
-                    (padding_left + pauli_str + padding_right, coeff)
-                    for pauli_str, coeff in zip(observable.paulis.to_labels(), observable.coeffs)
-                ]
-            )
-            duplicated_observables.append(padded_observable)
+        for obs in observable.reshape(-1):
+            for key, value in obs.items():
+                dop = {}
+                for i in range(n_duplications):
+                    dop["I" * (n_qubits * i) + key + "I" * (total_qubits - n_qubits * (i + 1))] = (
+                        value / n_duplications
+                    )
+                duplicated_observables.append(dop)
 
-        # Combine all the observables into one SparsePauliOp
-        combined_observable = sum(duplicated_observables)
-
-        # Adjust the coefficients by dividing by the number of duplications
-        combined_observable = SparsePauliOp(
-            combined_observable.paulis, combined_observable.coeffs / n_duplications
-        ).simplify()
-
-        return combined_observable
+        return ObservablesArray.coerce(duplicated_observables)
 
     def _transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
         """
