@@ -377,25 +377,13 @@ class Executor:
 
         # Copy estimator options and make a dict
         if options_estimator is not None:
-            if isinstance(options_estimator, dict):
-                self._options_estimator = options_estimator
-            else:
-                if isinstance(options_estimator, RuntimeOptions):
-                    self._options_estimator = asdict(copy.deepcopy(options_estimator))
-                else:
-                    self._options_estimator = copy.deepcopy(options_estimator).__dict__
+            self._options_estimator = _convert_options_to_dict(options_estimator)
         else:
             self._options_estimator = None
 
         # Copy sampler options and make a dict
         if options_sampler is not None:
-            if isinstance(options_sampler, dict):
-                self._options_sampler = options_sampler
-            else:
-                if isinstance(options_sampler, RuntimeOptions):
-                    self._options_sampler = asdict(copy.deepcopy(options_sampler))
-                else:
-                    self._options_sampler = copy.deepcopy(options_sampler).__dict__
+            self._options_sampler = _convert_options_to_dict(options_sampler)
         else:
             self._options_sampler = None
 
@@ -575,10 +563,7 @@ class Executor:
 
             # Set options for the estimator
             if self._options_estimator is not None:
-                if isinstance(self._estimator,RuntimeEstimatorV1):
-                    self._estimator.set_options(**self._options_estimator)
-            else:
-                print("current self._estimator.options",self._estimator.options)
+                self._estimator.set_options(**self._options_estimator)
             self._execution_origin = "Estimator"
         elif isinstance(execution, BaseSamplerV1):
             self._sampler = execution
@@ -605,8 +590,7 @@ class Executor:
 
             # Set options for the sampler
             if self._options_sampler is not None:
-                if isinstance(self._sampler,RuntimeSamplerV1):
-                    self._sampler.set_options(**self._options_sampler)
+                self._sampler.set_options(**self._options_sampler)
 
             self._execution_origin = "Sampler"
         elif isinstance(execution, BaseEstimatorV2):
@@ -998,7 +982,7 @@ class Executor:
                 # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._estimator = RuntimeEstimatorV1(
-                    session=self._session, options=Options(**self._options_estimator)
+                    session=self._session, options=RuntimeOptions(**self._options_estimator)
                 )
             estimator = self._estimator
             initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
@@ -1011,13 +995,13 @@ class Executor:
                     if not self._session._active:
                         self.create_session()
                     self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=Options(**self._options_estimator)
+                        session=self._session, options=RuntimeOptions(**self._options_estimator)
                     )
                 elif self._service is not None:
                     # No session but service -> create a new session
                     self.create_session()
                     self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=Options(**self._options_estimator)
+                        session=self._session, options=RuntimeOptions(**self._options_estimator)
                     )
                 else:
                     raise RuntimeError(
@@ -2200,10 +2184,10 @@ class Executor:
         Args:
             **fields: The fields to update the options
         """
-        
+
         if isinstance(self.estimator, BaseEstimatorV1):
             self.estimator.set_options(**fields)
-            self._options_estimator = self.estimator.options
+            self._options_estimator = _convert_options_to_dict(self.estimator.options)
         elif isinstance(self.estimator, BaseEstimatorV2):
             # todo check
             self.estimator.options.update(**fields)
@@ -2219,7 +2203,7 @@ class Executor:
         """
         if isinstance(self.sampler, BaseSamplerV1):
             self.sampler.set_options(**fields)
-            self._options_sampler = self.sampler.options
+            self._options_sampler = _convert_options_to_dict(self.sampler.options)
         elif isinstance(self.sampler, BaseSamplerV2):
             # todo check
             self.sampler.options.update(**fields)
@@ -2236,39 +2220,40 @@ class Executor:
         self.set_options_estimator(**fields)
         self.set_options_sampler(**fields)
 
-    def reset_options_estimator(self, options):
+    def reset_options_estimator(self, options: Union[Options, RuntimeOptions, dict]):
         """
         Overwrites the options for the estimator primitive.
 
         Args:
             options: Options for the estimator
         """
-        self._options_estimator = options
 
         # TODO V2
-        if isinstance(options, RuntimeOptions):
-            self.estimator._options = asdict(options)
+        if isinstance(self.estimator, BaseEstimatorV1):
+            self._options_estimator = _convert_options_to_dict(options)
+            self.estimator.set_options(**self._options_estimator)
+        elif isinstance(self.estimator, BaseEstimatorV2):
+            pass
         else:
-            self.estimator._run_options = Options()
-            self.estimator._run_options.update_options(**options)
+            raise RuntimeError("Unknown estimator type!")
 
-    def reset_options_sampler(self, options):
+    def reset_options_sampler(self, options: Union[Options, RuntimeOptions, dict]):
         """
         Overwrites the options for the sampler primitive.
 
         Args:
             options: Options for the sampler
         """
-        self._options_sampler = options
-
         # TODO V2
-        if isinstance(options, RuntimeOptions):
-            self.sampler._options = asdict(options)
+        if isinstance(self.sampler, BaseSamplerV1):
+            self._options_sampler = _convert_options_to_dict(options)
+            self.sampler.set_options(**self._options_sampler)
+        elif isinstance(self.sampler, BaseSamplerV2):
+            pass
         else:
-            self.sampler._run_options = Options()
-            self.sampler._run_options.update_options(**options)
+            raise RuntimeError("Unknown sampler type!")
 
-    def reset_options(self, options):
+    def reset_options(self, options: Union[Options, RuntimeOptions, dict]):
         """
         Overwrites the options for the sampler and estimator primitive.
 
@@ -2490,15 +2475,7 @@ class ExecutorEstimator(BaseEstimatorV1):
     """
 
     def __init__(self, executor: Executor, options=None):
-        if isinstance(options, Options) or isinstance(options, RuntimeOptions):
-            try:
-                options_ini = copy.deepcopy(options).__dict__
-            except:
-                options_ini = asdict(copy.deepcopy(options))
-        else:
-            options_ini = options
-
-        super().__init__(options=options_ini)
+        super().__init__(options=_convert_options_to_dict(options))
         self._executor = executor
 
     def _call(
@@ -2617,15 +2594,7 @@ class ExecutorSampler(BaseSamplerV1):
     """
 
     def __init__(self, executor: Executor, options=None):
-        if isinstance(options, Options) or isinstance(options, RuntimeOptions):
-            try:
-                options_ini = copy.deepcopy(options).__dict__
-            except:
-                options_ini = asdict(copy.deepcopy(options))
-        else:
-            options_ini = options
-
-        super().__init__(options=options_ini)
+        super().__init__(options=_convert_options_to_dict(options))
         self._executor = executor
 
     def run(
@@ -2812,3 +2781,15 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
             if len(op.clbits) > 0:
                 return True
     return False
+
+
+def _convert_options_to_dict(options: Union[Options, RuntimeOptions, dict, None]) -> dict:
+
+    if options is None:
+        return None
+    elif isinstance(options, dict):
+        return options
+    elif isinstance(options, RuntimeOptions):
+        return asdict(copy.deepcopy(options))
+    else:
+        return copy.deepcopy(options).__dict__
