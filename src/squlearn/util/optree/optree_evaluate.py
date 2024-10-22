@@ -29,7 +29,13 @@ from .optree import (
 # TODO V2: better import
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
-from qiskit.primitives import BitArray
+if QISKIT_SMALLER_1_2:
+
+    class BitArray(object):
+        """Dummy BitArray."""
+
+else:
+    from qiskit.primitives import BitArray
 
 from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
 
