@@ -992,7 +992,7 @@ class Executor:
                     session=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
+            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV1)
         else:
             # Create a new Estimator
             shots = self.get_shots()
@@ -1075,7 +1075,7 @@ class Executor:
                     mode=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
+            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV2)
         else:
             # Create a new Estimator
             shots = self.get_shots()
@@ -1623,7 +1623,7 @@ class Executor:
                 self._set_seed_for_primitive += 1
 
         def run():
-            return self._estimator.run(circuits, observables, parameter_values, **kwargs)
+            return self.estimator.run(circuits, observables, parameter_values, **kwargs)
 
         if self._caching:
             # Generate hash value for caching
@@ -1741,7 +1741,7 @@ class Executor:
             hash_value = None
 
         def run():
-            return self._estimator.run(pubs=pubs, precision=precision)
+            return self.estimator.run(pubs=pubs, precision=precision)
 
         return self._primitive_run(run, "estimator_v2", hash_value)
 
