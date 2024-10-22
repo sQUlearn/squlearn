@@ -102,13 +102,16 @@ if QISKIT_RUNTIME_SMALLER_0_21:
     )
 
     # pylint: disable=ungrouped-imports
-    from qiskit_ibm_runtime.options import Options as RuntimeOptions
+    from qiskit_ibm_runtime.options import Options as RuntimeOptionsV1
 
     class RuntimeEstimatorV2(object):
         """Dummy RuntimeEstimatorV2"""
 
     class RuntimeSamplerV2(object):
         """Dummy RuntimeSamplerV2"""
+
+    class RuntimeOptionsV2(object):
+        """Dummy RuntimeOptionsV2"""
 
 elif QISKIT_RUNTIME_SMALLER_0_28:
     from qiskit_ibm_runtime import (
@@ -119,7 +122,8 @@ elif QISKIT_RUNTIME_SMALLER_0_28:
     )
 
     # pylint: disable=ungrouped-imports
-    from qiskit_ibm_runtime.options import Options as RuntimeOptions
+    from qiskit_ibm_runtime.options import Options as RuntimeOptionsV1
+    from qiskit_ibm_runtime.options import OptionsV2 as RuntimeOptionsV2
 
 else:
     from qiskit_ibm_runtime import (
@@ -127,14 +131,16 @@ else:
         Sampler as RuntimeSamplerV2,
     )
 
+    from qiskit_ibm_runtime.options import OptionsV2 as RuntimeOptionsV2
+
     class RuntimeEstimatorV1(object):
         """Dummy RuntimeEstimatorV1"""
 
     class RuntimeSamplerV1(object):
         """Dummy RuntimeSamplerV1"""
 
-    class RuntimeOptions(object):
-        """Dummy RuntimeOptions"""
+    class RuntimeOptionsV1(object):
+        """Dummy RuntimeOptionsV1"""
 
 
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
@@ -613,10 +619,6 @@ class Executor:
                         shots = self._estimator.options.default_shots
                     elif self._estimator.options.default_precision:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
-                    else:
-                        raise ValueError(
-                            "Either default_shots or default_precision of the estimator must be set!"
-                        )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
@@ -635,8 +637,6 @@ class Executor:
                 if shots is None:
                     if self._sampler.options.default_shots:
                         shots = self._sampler.options.default_shots
-                    else:
-                        raise ValueError("default_shots of the sampler must be set!")
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
@@ -699,8 +699,10 @@ class Executor:
         self.set_shots(shots)
         self._inital_num_shots = self.get_shots()
 
-        if self._options_estimator is None:
-            self._options_estimator = {}
+        if self._estimator is not None and self._options_estimator is not None:
+            self.reset_options_estimator(self._options_estimator)
+        if self._sampler is not None and self._options_sampler is not None:
+            self.reset_options_sampler(self._options_sampler)
 
         if self._caching is None:
             self._caching = self.remote
@@ -982,7 +984,7 @@ class Executor:
                 # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._estimator = RuntimeEstimatorV1(
-                    session=self._session, options=RuntimeOptions(**self._options_estimator)
+                    session=self._session, options=self._options_estimator
                 )
             estimator = self._estimator
             initialize_parallel_estimator = not isinstance(estimator, ParallelEstimator)
@@ -995,13 +997,13 @@ class Executor:
                     if not self._session._active:
                         self.create_session()
                     self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=RuntimeOptions(**self._options_estimator)
+                        session=self._session, options=self._options_estimator
                     )
                 elif self._service is not None:
                     # No session but service -> create a new session
                     self.create_session()
                     self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=RuntimeOptions(**self._options_estimator)
+                        session=self._session, options=self._options_estimator
                     )
                 else:
                     raise RuntimeError(
@@ -2189,9 +2191,9 @@ class Executor:
             self.estimator.set_options(**fields)
             self._options_estimator = _convert_options_to_dict(self.estimator.options)
         elif isinstance(self.estimator, BaseEstimatorV2):
-            # todo check
-            self.estimator.options.update(**fields)
-            self._options_estimator = self.estimator.options
+            if hasattr(self.estimator, "options"):
+                self.estimator.options.update(**fields)
+                self._options_estimator = _convert_options_to_dict(self.estimator.options)
         else:
             raise RuntimeError("Unknown estimator type!")
 
@@ -2205,9 +2207,9 @@ class Executor:
             self.sampler.set_options(**fields)
             self._options_sampler = _convert_options_to_dict(self.sampler.options)
         elif isinstance(self.sampler, BaseSamplerV2):
-            # todo check
-            self.sampler.options.update(**fields)
-            self._options_sampler = self.sampler.options
+            if hasattr(self.sampler, "options"):
+                self.sampler.options.update(**fields)
+                self._options_sampler = _convert_options_to_dict(self.sampler.options)
         else:
             raise RuntimeError("Unknown sampler type!")
 
@@ -2220,7 +2222,9 @@ class Executor:
         self.set_options_estimator(**fields)
         self.set_options_sampler(**fields)
 
-    def reset_options_estimator(self, options: Union[Options, RuntimeOptions, dict]):
+    def reset_options_estimator(
+        self, options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict]
+    ):
         """
         Overwrites the options for the estimator primitive.
 
@@ -2233,11 +2237,14 @@ class Executor:
             self._options_estimator = _convert_options_to_dict(options)
             self.estimator.set_options(**self._options_estimator)
         elif isinstance(self.estimator, BaseEstimatorV2):
-            pass
+            self._options_estimator = _convert_options_to_dict(options)
+            self.estimator.options.update(**self._options_estimator)
         else:
             raise RuntimeError("Unknown estimator type!")
 
-    def reset_options_sampler(self, options: Union[Options, RuntimeOptions, dict]):
+    def reset_options_sampler(
+        self, options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict]
+    ):
         """
         Overwrites the options for the sampler primitive.
 
@@ -2249,11 +2256,12 @@ class Executor:
             self._options_sampler = _convert_options_to_dict(options)
             self.sampler.set_options(**self._options_sampler)
         elif isinstance(self.sampler, BaseSamplerV2):
-            pass
+            self._options_sampler = _convert_options_to_dict(options)
+            self.sampler.options.update(**self._options_sampler)
         else:
             raise RuntimeError("Unknown sampler type!")
 
-    def reset_options(self, options: Union[Options, RuntimeOptions, dict]):
+    def reset_options(self, options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict]):
         """
         Overwrites the options for the sampler and estimator primitive.
 
@@ -2446,6 +2454,17 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
             precision=precision,
         )
 
+    @property
+    def options(self):
+        """Return options values for the sampler.
+
+        Returns:
+            options
+        """
+        if hasattr(self._executor.estimator, "options"):
+            return self._executor.estimator.options
+        return None
+
 
 class ExecutorSamplerV2(BaseSamplerV2):
 
@@ -2459,6 +2478,17 @@ class ExecutorSamplerV2(BaseSamplerV2):
             pubs=pubs,
             shots=shots,
         )
+
+    @property
+    def options(self):
+        """Return options values for the sampler.
+
+        Returns:
+            options
+        """
+        if hasattr(self._executor.sampler, "options"):
+            return self._executor.sampler.options
+        return None
 
 
 class ExecutorEstimator(BaseEstimatorV1):
@@ -2783,13 +2813,15 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
     return False
 
 
-def _convert_options_to_dict(options: Union[Options, RuntimeOptions, dict, None]) -> dict:
+def _convert_options_to_dict(
+    options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None]
+) -> dict:
 
     if options is None:
         return None
     elif isinstance(options, dict):
         return options
-    elif isinstance(options, RuntimeOptions):
+    elif isinstance(options, RuntimeOptionsV1) or isinstance(options, RuntimeOptionsV2):
         return asdict(copy.deepcopy(options))
     else:
         return copy.deepcopy(options).__dict__
