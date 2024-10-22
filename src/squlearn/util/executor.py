@@ -145,6 +145,11 @@ else:
 
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
+from .execution.parallel_sampler import ParallelSampler as ParallelSamplerV1
+
+
+class ParallelSamplerV2(object):
+    """dummy ParallelSamplerV2"""
 
 
 class Executor:
@@ -612,6 +617,7 @@ class Executor:
                 self._backend = Aer.get_backend("aer_simulator_statevector")
                 if shots is None and self._estimator.default_precision:
                     shots = int((1.0 / self._estimator.default_precision) ** 2)
+                self._estimator._seed = self._set_seed_for_primitive
             elif isinstance(self._estimator, BackendEstimatorV2):
                 self._backend = self._estimator.backend
                 if shots is None:
@@ -620,8 +626,12 @@ class Executor:
                         self._estimator._options.default_precision = 1.0 / shots**0.5
                     else:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
+                self._estimator.options.seed_simulator = self._set_seed_for_primitive
             elif isinstance(self._estimator, RuntimeEstimatorV2):
-                self._session = self._estimator._mode
+                if hasattr(self._estimator, "_session"):
+                    self._session = self._estimator._session
+                elif hasattr(self._estimator, "_mode"):
+                    self._session = self._estimator._mode
                 self._service = self._estimator._service
                 self._backend = self._estimator._backend
                 if shots is None:
@@ -632,20 +642,29 @@ class Executor:
                     else:
                         shots = 1024
                         self._estimator.options.default_shots = 1024
+                self._estimator.options.update(
+                    simulator={"seed_simulator": self._set_seed_for_primitive}
+                )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
+            print("self._sampler", self._sampler)
             if isinstance(self._sampler, StatevectorSampler):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
                 if shots is None:
                     shots = self._sampler.default_shots
+                self._sampler._seed = self._set_seed_for_primitive
             elif isinstance(self._sampler, BackendSamplerV2):
                 self._backend = self._sampler.backend
                 if shots is None:
                     shots = self._sampler.options.default_shots
+                self._sampler.options.seed_simulator = self._set_seed_for_primitive
             elif isinstance(self._sampler, RuntimeSamplerV2):
-                self._session = self._sampler._mode
+                if hasattr(self._sampler, "_session"):
+                    self._session = self._sampler._session
+                elif hasattr(self._sampler, "_mode"):
+                    self._session = self._sampler._mode
                 self._service = self._sampler._service
                 self._backend = self._sampler._backend
                 if shots is None:
@@ -654,6 +673,9 @@ class Executor:
                     else:
                         shots = 1024
                         self._sampler.options.default_shots = 1024
+                self._sampler.options.update(
+                    simulator={"seed_simulator": self._set_seed_for_primitive}
+                )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
@@ -1743,11 +1765,22 @@ class Executor:
                 if self.is_statevector:
                     self._swapp_to_BackendPrimitive("estimator_v2")
 
+        # Set seed for the primitive
         instance_estimator = self.estimator
         if isinstance(instance_estimator, ParallelEstimatorV2):
             instance_estimator = instance_estimator._estimator
-        elif not isinstance(instance_estimator, BaseEstimatorV2):
-            raise ValueError("Estimator is not a BaseEstimatorV2")
+        if self._set_seed_for_primitive is not None:
+            if isinstance(instance_estimator, StatevectorEstimator):
+                instance_estimator._seed = self._set_seed_for_primitive
+                self._set_seed_for_primitive += 1
+            elif isinstance(instance_estimator, BackendEstimatorV2):
+                instance_estimator.options.simulator_seed = self._set_seed_for_primitive
+                self._set_seed_for_primitive += 1
+            elif isinstance(instance_estimator, RuntimeSamplerV2):
+                instance_estimator.options.update(
+                    simulator={"seed_simulator": self._set_seed_for_primitive}
+                )
+                self._set_seed_for_primitive += 1
 
         if precision is None:
             if self._shots is None:
@@ -1758,13 +1791,7 @@ class Executor:
         if self._caching:
             # Generate hash value for caching
             hash_value = self._cache.hash_variable(
-                [
-                    "estimator_v2",
-                    pubs,
-                    self._options_estimator,
-                    self._backend,
-                    self.get_shots(),
-                ]
+                ["estimator_v2", pubs, self._options_estimator, self._backend, self.get_shots()]
             )
         else:
             hash_value = None
@@ -1809,7 +1836,7 @@ class Executor:
 
         # Set seed for the primitive
         instance_sampler = self.sampler
-        if isinstance(self.sampler, ParallelSampler):
+        if isinstance(self.sampler, ParallelSamplerV1):
             instance_sampler = self.sampler._sampler
         if isinstance(instance_sampler, BackendSamplerV1):
             if self._set_seed_for_primitive is not None:
@@ -1874,12 +1901,22 @@ class Executor:
                 if self.is_statevector:
                     self._swapp_to_BackendPrimitive("sampler_v2")
 
-        if isinstance(self.sampler, ParallelSampler):
-            # TODO V2: Adapt
-            # instance_estimator = self.estimator._estimator
-            pass
-        elif not isinstance(self.sampler, BaseSamplerV2):
-            raise ValueError("Sampler is not a BaseSamplerV2")
+        # Set seed for the primitive
+        instance_sampler = self.sampler
+        if isinstance(instance_sampler, ParallelSamplerV2):
+            instance_sampler = instance_sampler._estimator
+        if self._set_seed_for_primitive is not None:
+            if isinstance(instance_sampler, StatevectorSampler):
+                instance_sampler._seed = self._set_seed_for_primitive
+                self._set_seed_for_primitive += 1
+            elif isinstance(instance_sampler, BackendSamplerV2):
+                instance_sampler.options.seed_simulator = self._set_seed_for_primitive
+                self._set_seed_for_primitive += 1
+            elif isinstance(instance_sampler, RuntimeSamplerV2):
+                instance_sampler.options.update(
+                    simulator={"seed_simulator": self._set_seed_for_primitive}
+                )
+                self._set_seed_for_primitive += 1
 
         if shots is None:
             shots = self._shots
@@ -1887,13 +1924,7 @@ class Executor:
         if self._caching:
             # Generate hash value for caching
             hash_value = self._cache.hash_variable(
-                [
-                    "sampler_v2",
-                    pubs,
-                    self._options_sampler,
-                    self._backend,
-                    self.get_shots(),
-                ]
+                ["sampler_v2", pubs, self._options_sampler, self._backend, self.get_shots()]
             )
         else:
             hash_value = None
@@ -2206,9 +2237,16 @@ class Executor:
             self.estimator.set_options(**fields)
             self._options_estimator = _convert_options_to_dict(self.estimator.options)
         elif isinstance(self.estimator, BaseEstimatorV2):
-            if hasattr(self.estimator, "options"):
-                self.estimator.options.update(**fields)
-                self._options_estimator = _convert_options_to_dict(self.estimator.options)
+            if isinstance(self.sampler, StatevectorEstimator) or isinstance(
+                self.sampler, BackendEstimatorV2
+            ):
+                raise RuntimeError(
+                    "Setting Options is only possible for Qiskit Runtime Primtives!"
+                )
+            elif isinstance(self.estimator, RuntimeEstimatorV2):
+                if hasattr(self.estimator, "options"):
+                    self.estimator.options.update(**fields)
+                    self._options_estimator = _convert_options_to_dict(self.estimator.options)
         else:
             raise RuntimeError("Unknown estimator type!")
 
@@ -2222,9 +2260,16 @@ class Executor:
             self.sampler.set_options(**fields)
             self._options_sampler = _convert_options_to_dict(self.sampler.options)
         elif isinstance(self.sampler, BaseSamplerV2):
-            if hasattr(self.sampler, "options"):
-                self.sampler.options.update(**fields)
-                self._options_sampler = _convert_options_to_dict(self.sampler.options)
+            if isinstance(self.sampler, StatevectorSampler) or isinstance(
+                self.sampler, BackendSamplerV2
+            ):
+                raise RuntimeError(
+                    "Setting Options is only possible for Qiskit Runtime Primtives!"
+                )
+            elif isinstance(self.sampler, RuntimeSamplerV2):
+                if hasattr(self.sampler, "options"):
+                    self.sampler.options.update(**fields)
+                    self._options_sampler = _convert_options_to_dict(self.sampler.options)
         else:
             raise RuntimeError("Unknown sampler type!")
 
@@ -2247,11 +2292,16 @@ class Executor:
             options: Options for the estimator
         """
 
-        # TODO V2
         if isinstance(self.estimator, BaseEstimatorV1):
             self._options_estimator = _convert_options_to_dict(options)
             self.estimator.set_options(**self._options_estimator)
         elif isinstance(self.estimator, BaseEstimatorV2):
+            if isinstance(self.sampler, StatevectorEstimator) or isinstance(
+                self.sampler, BackendEstimatorV2
+            ):
+                raise RuntimeError(
+                    "Setting Options is only possible for Qiskit Runtime Primtives!"
+                )
             self._options_estimator = _convert_options_to_dict(options)
             self.estimator.options.update(**self._options_estimator)
         else:
@@ -2266,11 +2316,16 @@ class Executor:
         Args:
             options: Options for the sampler
         """
-        # TODO V2
         if isinstance(self.sampler, BaseSamplerV1):
             self._options_sampler = _convert_options_to_dict(options)
             self.sampler.set_options(**self._options_sampler)
         elif isinstance(self.sampler, BaseSamplerV2):
+            if isinstance(self.sampler, StatevectorSampler) or isinstance(
+                self.sampler, BackendSamplerV2
+            ):
+                raise RuntimeError(
+                    "Setting Options is only possible for Qiskit Runtime Primtives!"
+                )
             self._options_sampler = _convert_options_to_dict(options)
             self.sampler.options.update(**self._options_sampler)
         else:

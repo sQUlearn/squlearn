@@ -632,7 +632,7 @@ class ParallelEstimatorV2(BaseEstimatorV2):
                 raise RuntimeError("Unknown estimator type!")
 
     def run(
-        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
+        self, pubs: Iterable[EstimatorPubLike], *, precision: Union[float, None] = None
     ) -> BasePrimitiveJob:
         """
         Overwrites the executor primitive run method, to evaluate expectation values.
