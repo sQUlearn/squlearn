@@ -118,8 +118,8 @@ elif QISKIT_RUNTIME_SMALLER_0_28:
         SamplerV2 as RuntimeSamplerV2,
     )
 
-    class RuntimeOptions(object):
-        """Dummy RuntimeOptions"""
+    # pylint: disable=ungrouped-imports
+    from qiskit_ibm_runtime.options import Options as RuntimeOptions
 
 else:
     from qiskit_ibm_runtime import (
@@ -138,6 +138,7 @@ else:
 
 
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
+from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 
 
 class Executor:
@@ -543,7 +544,7 @@ class Executor:
                 self._backend = Aer.get_backend("aer_simulator_statevector")
             elif isinstance(self._estimator, BackendEstimatorV1):
                 self._backend = self._estimator._backend
-                #TODO: check if this is duplicate
+                # TODO: check if this is duplicate
                 if not shots:
                     shots_estimator = self._estimator.options.get("shots", 0)
                     if not shots_estimator:
@@ -556,7 +557,7 @@ class Executor:
                 self._session = self._estimator._session
                 self._service = self._estimator._service
                 self._backend = self._estimator._backend
-                #TODO: check if this is duplicate
+                # TODO: check if this is duplicate
                 if not shots:
                     shots = self._estimator.options["execution"]["shots"]
             else:
@@ -576,7 +577,7 @@ class Executor:
             elif isinstance(self._sampler, BackendSamplerV1):
                 self._backend = self._sampler._backend
                 shots_sampler = self._sampler.options.get("shots", 0)
-                #TODO: check if this is duplicate
+                # TODO: check if this is duplicate
                 if not shots:
                     if not shots_sampler:
                         shots = 1024
@@ -587,7 +588,7 @@ class Executor:
                 self._session = self._sampler._session
                 self._service = self._sampler._service
                 self._backend = self._sampler._backend
-                #TODO: check if this is duplicate
+                # TODO: check if this is duplicate
                 if not shots:
                     shots = self._sampler.options["execution"]["shots"]
             else:
@@ -609,7 +610,7 @@ class Executor:
                 if shots is None:
                     if self._estimator.options.default_precision <= 0.0:
                         shots = 1024
-                        self._estimator.options.default_precision = 1.0 / np.sqrt(shots)
+                        self._estimator._options.default_precision = 1.0 / shots**0.5
                     else:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             elif isinstance(self._estimator, RuntimeEstimatorV2):
@@ -1100,7 +1101,7 @@ class Executor:
                 if self.is_statevector:
                     # No session, no service, but state_vector simulator -> Estimator
                     self._estimator = StatevectorEstimator(
-                        default_precision=1 / np.sqrt(shots) if shots else 0.0
+                        default_precision=1 / shots**0.5 if shots else 0.0
                     )
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Estimator initialization!")
@@ -1116,23 +1117,22 @@ class Executor:
                 self.set_shots(shots)
 
         # Generate a in-QPU parallelized estimator
-        if self._qpu_parallelization is not None:
-            if initialize_parallel_estimator:
-                if isinstance(self._qpu_parallelization, str):
-                    if self._qpu_parallelization == "auto":
-                        self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
-                    else:
-                        raise ValueError(
-                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                        )
-                elif isinstance(self._qpu_parallelization, int):
-                    self._estimator = ParallelEstimator(
-                        self._estimator, num_parallel=self._qpu_parallelization
-                    )
+        if self._qpu_parallelization and initialize_parallel_estimator:
+            if isinstance(self._qpu_parallelization, str):
+                if self._qpu_parallelization == "auto":
+                    self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
                 else:
-                    raise TypeError(
-                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                    raise ValueError(
+                        "Unknown qpu_parallelization value: " + self._qpu_parallelization
                     )
+            elif isinstance(self._qpu_parallelization, int):
+                self._estimator = ParallelEstimator(
+                    self._estimator, num_parallel=self._qpu_parallelization
+                )
+            else:
+                raise TypeError(
+                    "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
+                )
 
         estimator = self._estimator
 
@@ -1611,19 +1611,19 @@ class Executor:
 
         # Set seed for the primitive
         instance_estimator = self.estimator
-        if isinstance(self.estimator, ParallelEstimator):
-            instance_estimator = self.estimator._estimator
+        if isinstance(instance_estimator, ParallelEstimatorV1):
+            instance_estimator = instance_estimator._estimator
         if isinstance(instance_estimator, BackendEstimatorV1):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
         elif isinstance(instance_estimator, PrimitiveEstimatorV1):
             if self._set_seed_for_primitive is not None:
-                self.estimator.set_options(seed=self._set_seed_for_primitive)
+                self._estimator.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
-            return self.estimator.run(circuits, observables, parameter_values, **kwargs)
+            return self._estimator.run(circuits, observables, parameter_values, **kwargs)
 
         if self._caching:
             # Generate hash value for caching
@@ -1714,18 +1714,17 @@ class Executor:
         #         if self.is_statevector:
         #             self._swapp_to_BackendPrimitive("estimator")
 
-        if isinstance(self.estimator, ParallelEstimator):
-            # TODO V2: Adapt
-            # instance_estimator = self.estimator._estimator
-            pass
-        elif not isinstance(self.estimator, BaseEstimatorV2):
+        instance_estimator = self.estimator
+        if isinstance(instance_estimator, ParallelEstimatorV2):
+            instance_estimator = instance_estimator._estimator
+        elif not isinstance(instance_estimator, BaseEstimatorV2):
             raise ValueError("Estimator is not a BaseEstimatorV2")
 
         if precision is None:
             if self._shots is None:
                 precision = 0.0
             else:
-                precision = 1 / np.sqrt(self._shots)
+                precision = 1 / self._shots**0.5
 
         if self._caching:
             # Generate hash value for caching
@@ -1742,7 +1741,7 @@ class Executor:
             hash_value = None
 
         def run():
-            return self.estimator.run(pubs=pubs, precision=precision)
+            return self._estimator.run(pubs=pubs, precision=precision)
 
         return self._primitive_run(run, "estimator_v2", hash_value)
 
@@ -2176,8 +2175,10 @@ class Executor:
         Args:
             **fields: The fields to update the options
         """
-        self.estimator.set_options(**fields)
-        self._options_estimator = self.estimator.options
+        if not self._estimator:
+            self._estimator = self.estimator
+        self._estimator.set_options(**fields)
+        self._options_estimator = self._estimator.options
 
     def set_options_sampler(self, **fields):
         """Set options values for the sampler.
@@ -2207,10 +2208,10 @@ class Executor:
         self._options_estimator = options
 
         if isinstance(options, RuntimeOptions):
-            self.estimator._options = asdict(options)
+            self._estimator._options = asdict(options)
         else:
-            self.estimator._run_options = Options()
-            self.estimator._run_options.update_options(**options)
+            self._estimator._run_options = Options()
+            self._estimator._run_options.update_options(**options)
 
     def reset_options_sampler(self, options):
         """
