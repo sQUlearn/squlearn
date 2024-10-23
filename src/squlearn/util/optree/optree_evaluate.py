@@ -31,7 +31,7 @@ QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 if QISKIT_SMALLER_1_2:
 
-    class BitArray(object):
+    class BitArray:
         """Dummy BitArray."""
 
 else:

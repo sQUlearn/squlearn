@@ -10,7 +10,7 @@ from qiskit.compiler import transpile
 from qiskit.primitives import Estimator as PrimitiveEstimatorV1
 from qiskit.primitives.base import EstimatorResult
 from qiskit.primitives.utils import _circuit_key
-from qiskit.providers import JobV1 as Job
+from qiskit.providers import JobV1
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -27,22 +27,22 @@ if QISKIT_SMALLER_1_0:
         BaseEstimator as BaseEstimatorV1,
     )
 
-    class BaseEstimatorV2(object):
+    class BaseEstimatorV2:
         """Dummy BaseEstimatorV2"""
 
-    class StatevectorEstimator(object):
+    class StatevectorEstimator:
         """Dummy StatevectorEstimator"""
 
-    class EstimatorPubLike(object):
+    class EstimatorPubLike:
         """Dummy EstimatorPubLike"""
 
-    class EstimatorPub(object):
+    class EstimatorPub:
         """Dummy EstimatorPub"""
 
-    class BasePrimitiveJob(object):
+    class BasePrimitiveJob:
         """Dummy BasePrimitiveJob"""
 
-    class ObservablesArray(object):
+    class ObservablesArray:
         """Dummy ObservablesArray"""
 
 else:
@@ -59,7 +59,7 @@ else:
 
 if QISKIT_SMALLER_1_2:
 
-    class BackendEstimatorV2(object):
+    class BackendEstimatorV2:
         """Dummy BackendEstimatorV2"""
 
 else:
@@ -81,7 +81,7 @@ if QISKIT_RUNTIME_SMALLER_0_21:
     # pylint: disable=ungrouped-imports
     from qiskit_ibm_runtime.options import Options as RuntimeOptions
 
-    class RuntimeEstimatorV2(object):
+    class RuntimeEstimatorV2:
         """Dummy RuntimeEstimatorV2"""
 
 elif QISKIT_RUNTIME_SMALLER_0_28:
@@ -90,7 +90,7 @@ elif QISKIT_RUNTIME_SMALLER_0_28:
         EstimatorV2 as RuntimeEstimatorV2,
     )
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 else:
@@ -98,10 +98,10 @@ else:
         Estimator as RuntimeEstimatorV2,
     )
 
-    class RuntimeEstimatorV1(object):
+    class RuntimeEstimatorV1:
         """Dummy RuntimeEstimatorV1"""
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 
@@ -151,13 +151,11 @@ class ParallelEstimatorV1(BaseEstimatorV1):
 
         self.shots = None
         self._backend = None
-        self._session_active = False
         self._check_estimator()
         self._cache = {}
 
     def _check_estimator(self) -> None:
         """Configures the backend and shot settings based on the provided estimator object."""
-
         if hasattr(self._estimator.options, "execution"):
             self.shots = self._estimator.options.get("execution").get("shots", None)
 
@@ -177,18 +175,13 @@ class ParallelEstimatorV1(BaseEstimatorV1):
             else:
                 self.shots = shots_estimator
         # Real Backend
-        elif hasattr(self._estimator, "session"):
-            self._backend = self._estimator.session.service.get_backend(
-                self._estimator.session.backend()
-            )
-            self._session_active = True
-        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+        elif isinstance(self._estimator, RuntimeEstimatorV1):
+            self._session = self._estimator._session
+            self._service = self._estimator._service
+            self._backend = self._estimator._backend
+        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV1):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
-            self._session_active = (
-                self._estimator._executor._session is not None
-                and self._estimator._executor._session._active
-            )
         else:
             raise RuntimeError("No backend found in the given Estimator Primitive!")
 
@@ -219,7 +212,7 @@ class ParallelEstimatorV1(BaseEstimatorV1):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
-            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV1):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
@@ -250,7 +243,7 @@ class ParallelEstimatorV1(BaseEstimatorV1):
         observables,
         parameter_values=None,
         **run_options,
-    ) -> Job:
+    ) -> JobV1:
         """Has to be passed through, otherwise python will complain about the abstract method.
         Input arguments are the same as in Qiskit's estimator.run().
         """
@@ -267,7 +260,7 @@ class ParallelEstimatorV1(BaseEstimatorV1):
         observables,
         parameter_values=None,
         **run_options,
-    ) -> Job:
+    ) -> JobV1:
         """
         Overwrites the executor primitive run method, to evaluate expectation values.
 
@@ -556,7 +549,6 @@ class ParallelEstimatorV2(BaseEstimatorV2):
         num_parallel: Optional[int] = None,
         transpiler: Optional[Callable] = None,
     ) -> None:
-
         self._estimator = estimator
         self._num_parallel = num_parallel
         if transpiler is None:
@@ -566,7 +558,6 @@ class ParallelEstimatorV2(BaseEstimatorV2):
 
         self.shots = None
         self._backend = None
-        self._session_active = False
         self._check_estimator()
         self._cache = {}
 
@@ -594,13 +585,9 @@ class ParallelEstimatorV2(BaseEstimatorV2):
                 self.shots = int((1.0 / self._estimator.options.default_precision) ** 2)
             else:
                 raise ValueError("Either default_shots or default_precision must be set!")
-        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV2):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
-            self._session_active = (
-                self._estimator._executor._session is not None
-                and self._estimator._executor._session._active
-            )
         else:
             raise RuntimeError("No backend found in the given Estimator Primitive!")
 
@@ -626,7 +613,7 @@ class ParallelEstimatorV2(BaseEstimatorV2):
                 self._estimator._options.default_precision = 1.0 / num_shots**0.5
             elif isinstance(self._estimator, RuntimeEstimatorV2):
                 self._estimator._options.update(**{"execution": {"shots": num_shots}})
-            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV2):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")
@@ -671,8 +658,7 @@ class ParallelEstimatorV2(BaseEstimatorV2):
         results = result_job.result()
         for result in results:
             result.metadata["precision"] /= num_parallel**0.5
-        result_job._result = results
-        result_job.result = _custom_result_method.__get__(result_job, type(result_job))
+        result_job._pub_results = results
         return result_job
 
     @property
@@ -906,7 +892,7 @@ class ParallelEstimator:
 
     def __new__(
         cls,
-        estimator: BaseEstimatorV1,
+        estimator: Union[BaseEstimatorV1, BaseEstimatorV2],
         num_parallel: Optional[int] = None,
         transpiler: Optional[Callable] = None,
         options: Union[Options, RuntimeOptions, None] = None,

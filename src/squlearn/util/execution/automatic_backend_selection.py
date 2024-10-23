@@ -247,7 +247,7 @@ class AutomaticBackendSelection:
         We want one per IBM processor family, to find which processor family offers the best transpilation (i.e. lowest two-qubit gates count).
 
         Args:
-            circuit (object): Circuit object.
+            circuit : Circuit object.
 
         Returns:
             object: A compatible backend.
