@@ -2010,7 +2010,7 @@ class Executor:
         """
         self._shots = num_shots
 
-        self._logger.info("Set shots to %d", num_shots)
+        self._logger.info("Set shots to %s", num_shots)
 
         # Update shots in backend
         if num_shots is None:
