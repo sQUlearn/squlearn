@@ -27,22 +27,22 @@ if QISKIT_SMALLER_1_0:
         BaseEstimator as BaseEstimatorV1,
     )
 
-    class BaseEstimatorV2(object):
+    class BaseEstimatorV2:
         """Dummy BaseEstimatorV2"""
 
-    class StatevectorEstimator(object):
+    class StatevectorEstimator:
         """Dummy StatevectorEstimator"""
 
-    class EstimatorPubLike(object):
+    class EstimatorPubLike:
         """Dummy EstimatorPubLike"""
 
-    class EstimatorPub(object):
+    class EstimatorPub:
         """Dummy EstimatorPub"""
 
-    class BasePrimitiveJob(object):
+    class BasePrimitiveJob:
         """Dummy BasePrimitiveJob"""
 
-    class ObservablesArray(object):
+    class ObservablesArray:
         """Dummy ObservablesArray"""
 
 else:
@@ -59,7 +59,7 @@ else:
 
 if QISKIT_SMALLER_1_2:
 
-    class BackendEstimatorV2(object):
+    class BackendEstimatorV2:
         """Dummy BackendEstimatorV2"""
 
 else:
@@ -81,7 +81,7 @@ if QISKIT_RUNTIME_SMALLER_0_21:
     # pylint: disable=ungrouped-imports
     from qiskit_ibm_runtime.options import Options as RuntimeOptions
 
-    class RuntimeEstimatorV2(object):
+    class RuntimeEstimatorV2:
         """Dummy RuntimeEstimatorV2"""
 
 elif QISKIT_RUNTIME_SMALLER_0_28:
@@ -90,7 +90,7 @@ elif QISKIT_RUNTIME_SMALLER_0_28:
         EstimatorV2 as RuntimeEstimatorV2,
     )
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 else:
@@ -98,10 +98,10 @@ else:
         Estimator as RuntimeEstimatorV2,
     )
 
-    class RuntimeEstimatorV1(object):
+    class RuntimeEstimatorV1:
         """Dummy RuntimeEstimatorV1"""
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 
@@ -179,7 +179,7 @@ class ParallelEstimatorV1(BaseEstimatorV1):
             self._session = self._estimator._session
             self._service = self._estimator._service
             self._backend = self._estimator._backend
-        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+        elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV1):
             self._backend = self._estimator._executor.backend
             self.shots = self._estimator._executor.get_shots()
         else:
@@ -212,7 +212,7 @@ class ParallelEstimatorV1(BaseEstimatorV1):
                 execution = self._estimator.options.get("execution")
                 execution["shots"] = num_shots
                 self._estimator.set_options(execution=execution)
-            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimator):
+            elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV1):
                 self._estimator._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown estimator type!")

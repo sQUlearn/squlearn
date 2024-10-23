@@ -26,25 +26,25 @@ if QISKIT_SMALLER_1_0:
         BaseSampler as BaseSamplerV1,
     )
 
-    class BaseSamplerV2(object):
+    class BaseSamplerV2:
         """Dummy BaseSamplerV2"""
 
-    class StatevectorSampler(object):
+    class StatevectorSampler:
         """Dummy StatevectorSampler"""
 
-    class SamplerPubLike(object):
+    class SamplerPubLike:
         """Dummy SamplerPubLike"""
 
-    class SamplerPub(object):
+    class SamplerPub:
         """Dummy SamplerPub"""
 
-    class BasePrimitiveJob(object):
+    class BasePrimitiveJob:
         """Dummy BasePrimitiveJob"""
 
-    class BitArray(object):
+    class BitArray:
         """Dummy BitArray"""
 
-    class DataBin(object):
+    class DataBin:
         """Dummy DataBin"""
 
 else:
@@ -60,7 +60,7 @@ else:
 
 if QISKIT_SMALLER_1_2:
 
-    class BackendSamplerV2(object):
+    class BackendSamplerV2:
         """Dummy BackendSamplerV2"""
 
 else:
@@ -82,7 +82,7 @@ if QISKIT_RUNTIME_SMALLER_0_21:
     # pylint: disable=ungrouped-imports
     from qiskit_ibm_runtime.options import Options as RuntimeOptions
 
-    class RuntimeSamplerV2(object):
+    class RuntimeSamplerV2:
         """Dummy RuntimeSamplerV2"""
 
 elif QISKIT_RUNTIME_SMALLER_0_28:
@@ -91,7 +91,7 @@ elif QISKIT_RUNTIME_SMALLER_0_28:
         SamplerV2 as RuntimeSamplerV2,
     )
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 else:
@@ -99,10 +99,10 @@ else:
         Sampler as RuntimeSamplerV2,
     )
 
-    class RuntimeSamplerV1(object):
+    class RuntimeSamplerV1:
         """Dummy RuntimeSamplerV1"""
 
-    class RuntimeOptions(object):
+    class RuntimeOptions:
         """Dummy RuntimeOptions"""
 
 
@@ -177,7 +177,7 @@ class ParallelSamplerV1(BaseSamplerV1):
             self._session = self._sampler._session
             self._service = self._sampler._service
             self._backend = self._sampler._backend
-        elif isinstance(self._sampler, squlearn.util.executor.ExecutorSampler):
+        elif isinstance(self._sampler, squlearn.util.executor.ExecutorSamplerV1):
             self._backend = self._sampler._executor.backend
             self.shots = self._sampler._executor.get_shots()
         else:
@@ -210,7 +210,7 @@ class ParallelSamplerV1(BaseSamplerV1):
                 execution = self._sampler.options.get("execution")
                 execution["shots"] = num_shots
                 self._sampler.set_options(execution=execution)
-            elif isinstance(self._sampler, squlearn.util.executor.ExecutorSampler):
+            elif isinstance(self._sampler, squlearn.util.executor.ExecutorSamplerV1):
                 self._sampler._executor.set_shots(num_shots)
             else:
                 raise RuntimeError("Unknown sampler type!")
