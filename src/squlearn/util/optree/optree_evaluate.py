@@ -1135,7 +1135,7 @@ class OpTreeEvaluate:
             if isinstance(sampler, BaseSamplerV1):
                 sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
             elif isinstance(sampler, BaseSamplerV2):
-                pubs = zip(total_circuit_list, total_parameter_list)
+                pubs = list(zip(total_circuit_list, total_parameter_list))
                 sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
             else:
                 raise ValueError("Unknown sampler type!")
@@ -1559,7 +1559,7 @@ class OpTreeEvaluate:
         if isinstance(sampler, BaseSamplerV1):
             sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         elif isinstance(sampler, BaseSamplerV2):
-            pubs = zip(total_circuit_list, total_parameter_list)
+            pubs = list(zip(total_circuit_list, total_parameter_list))
             sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
         else:
             raise ValueError("Unknown sampler type!")
