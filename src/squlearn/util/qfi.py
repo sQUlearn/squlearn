@@ -6,7 +6,7 @@ import pennylane as qml
 import pennylane.numpy as pnp
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from .executor import Executor
+from .executor import Executor, BaseEstimatorV2
 from .data_preprocessing import adjust_features, adjust_parameters
 from .pennylane import PennyLaneCircuit
 
@@ -82,8 +82,15 @@ def _get_quantum_fisher_qiskit(
     Return:
         Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
+    estimator = executor.get_estimator()
+    if isinstance(estimator, BaseEstimatorV2):
+        raise ValueError(
+            "Incompatible Qiskit version for QFI calculation with Qiskit Algorithms. "
+            "Please downgrade to Qiskit 1.0 or consider using PennyLane."
+        )
+
     # Get Qiskit QFI primitive
-    qfi = QFI(LinCombQGT(executor.get_estimator()))
+    qfi = QFI(LinCombQGT(estimator))
 
     p_ = ParameterVector("p", encoding_circuit.num_parameters)
     x_ = ParameterVector("x", encoding_circuit.num_features)

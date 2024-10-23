@@ -9,7 +9,7 @@ from qiskit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.data_preprocessing import adjust_features
+from ..util.data_preprocessing import adjust_features, adjust_parameters
 from ..util.qfi import get_quantum_fisher
 from ..util.executor import Executor
 
@@ -79,7 +79,7 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
         # Parameter indexing is not the same, since ordering can change -> renumber variables
         # Get all used parameters in the pruned circuit
-        used_param = self._pruned_circuit._parameter_table.get_keys()
+        used_param = self._pruned_circuit.parameters
 
         # Renumber parameters
         used_old_param = [p for p in self._p_base if p in used_param]
@@ -237,7 +237,7 @@ def automated_pruning(
 
     # Process p-values
     if p_val is not None:
-        p_val, multi = adjust_parameter_vec(p_val, encoding_circuit.num_parameters)
+        p_val, multi = adjust_parameters(p_val, encoding_circuit.num_parameters)
         if not isinstance(p_val, np.ndarray):
             p = np.array(p_val)
         else:
