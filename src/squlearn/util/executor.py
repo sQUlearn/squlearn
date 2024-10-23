@@ -145,11 +145,7 @@ else:
 
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
-from .execution.parallel_sampler import ParallelSampler as ParallelSamplerV1
-
-
-class ParallelSamplerV2(object):
-    """dummy ParallelSamplerV2"""
+from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
 
 
 class Executor:
@@ -1217,7 +1213,7 @@ class Executor:
                     session=self._session, options=self._options_sampler
                 )
             sampler = self._sampler
-            initialize_parallel_sampler = not isinstance(sampler, ParallelSampler)
+            initialize_parallel_sampler = not isinstance(sampler, ParallelSamplerV1)
         else:
             # Create a new Sampler
             shots = self.get_shots()
@@ -1302,7 +1298,7 @@ class Executor:
                 self.create_session()
                 self._sampler = RuntimeSamplerV2(mode=self._session, options=self._options_sampler)
             sampler = self._sampler
-            initialize_parallel_sampler = not isinstance(sampler, ParallelSampler)
+            initialize_parallel_sampler = not isinstance(sampler, ParallelSamplerV2)
         else:
             # Create a new Sampler
             shots = self.get_shots()
@@ -1836,8 +1832,8 @@ class Executor:
 
         # Set seed for the primitive
         instance_sampler = self.sampler
-        if isinstance(self.sampler, ParallelSamplerV1):
-            instance_sampler = self.sampler._sampler
+        if isinstance(instance_sampler, ParallelSamplerV1):
+            instance_sampler = instance_sampler._sampler
         if isinstance(instance_sampler, BackendSamplerV1):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
@@ -2053,7 +2049,7 @@ class Executor:
                         self._options_estimator["execution"]["shots"] = num_shots
                     except:
                         pass  # no options_estimator or no execution in options_estimator
-                elif isinstance(self._estimator, ParallelEstimator):
+                elif isinstance(self._estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
                     self._estimator.shots = num_shots
                 elif isinstance(self._estimator, BaseEstimatorV2):
                     self._shots = num_shots
@@ -2085,7 +2081,7 @@ class Executor:
                         self._options_sampler["execution"]["shots"] = num_shots
                     except:
                         pass  # no options_sampler or no execution in options_sampler
-                elif isinstance(self._sampler, ParallelSampler):
+                elif isinstance(self._sampler, (ParallelSamplerV1, ParallelSamplerV2)):
                     self._sampler.shots = num_shots
                 elif isinstance(self._sampler, BaseSamplerV2):
                     self._shots = num_shots
@@ -2128,7 +2124,7 @@ class Executor:
                     elif isinstance(self._estimator, RuntimeEstimatorV1):
                         execution = self._estimator.options.get("execution")
                         shots_estimator = execution["shots"]
-                    elif isinstance(self._estimator, ParallelEstimator):
+                    elif isinstance(self._estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
                         shots_estimator = self._estimator.shots
                     elif isinstance(self._estimator, BaseEstimatorV2):
                         shots_estimator = self._shots
@@ -2143,7 +2139,7 @@ class Executor:
                     elif isinstance(self._sampler, RuntimeSamplerV1):
                         execution = self._sampler.options.get("execution")
                         shots_sampler = execution["shots"]
-                    elif isinstance(self._sampler, ParallelSampler):
+                    elif isinstance(self._sampler, (ParallelSamplerV1, ParallelSamplerV2)):
                         shots_sampler = self._sampler.shots
                     elif isinstance(self._sampler, BaseSamplerV2):
                         shots_sampler = self._shots
