@@ -709,7 +709,7 @@ class ParallelSamplerV2(BaseSamplerV2):
 
         return original_distribution
 
-    def run(self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None) -> BasePrimitiveJob:
+    def run(self, pubs: Iterable[SamplerPubLike], *, shots: Union[int, None] = None) -> BasePrimitiveJob:
         """
         Executes quantum circuits with duplications, and result processing.
 

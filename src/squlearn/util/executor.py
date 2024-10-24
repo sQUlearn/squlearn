@@ -416,12 +416,17 @@ class Executor:
         else:
             self._options_sampler = None
 
-        self._set_seed_for_primitive = seed
-        self._pennylane_seed = seed
+
         if seed is not None:
+            # Hack that seed is not equal to 0 since this gets fake backends confuced
+            if seed >=0:
+                seed += 1
             if version.parse(qiskit_version) <= version.parse("0.45.0"):
                 algorithm_globals.random_seed = seed
             qiskit_algorithm_globals.random_seed = seed
+        self._set_seed_for_primitive = seed
+        self._pennylane_seed = seed
+
 
         # Copy Executor options
         self._log_file = log_file
@@ -643,7 +648,7 @@ class Executor:
                         self._estimator._options.default_precision = 1.0 / shots**0.5
                     else:
                         shots = int((1.0 / self._estimator.options.default_precision) ** 2)
-                self._estimator.options.seed_simulator = self._set_seed_for_primitive
+                self._estimator._options.seed_simulator = self._set_seed_for_primitive
             elif isinstance(self._estimator, RuntimeEstimatorV2):
                 if hasattr(self._estimator, "_session"):
                     self._session = self._estimator._session
@@ -676,7 +681,7 @@ class Executor:
                 self._backend = self._sampler.backend
                 if shots is None:
                     shots = self._sampler.options.default_shots
-                self._sampler.options.seed_simulator = self._set_seed_for_primitive
+                self._sampler._options.seed_simulator = self._set_seed_for_primitive
             elif isinstance(self._sampler, RuntimeSamplerV2):
                 if hasattr(self._sampler, "_session"):
                     self._session = self._sampler._session
@@ -1125,9 +1130,14 @@ class Executor:
             if self.IBMQuantum and self._session is not None and not self._session._active:
                 # Session is expired, create a new session and a new estimator
                 self.create_session()
-                self._estimator = RuntimeEstimatorV2(
-                    mode=self._session, options=self._options_estimator
-                )
+                if QISKIT_RUNTIME_SMALLER_0_28:
+                    self._estimator = RuntimeEstimatorV2(
+                        session=self._session, options=self._options_estimator
+                    )
+                else:
+                    self._estimator = RuntimeEstimatorV2(
+                        mode=self._session, options=self._options_estimator
+                    )
             estimator = self._estimator
             initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV2)
         else:
@@ -1155,7 +1165,7 @@ class Executor:
                         )
                     else:
                         self._estimator = RuntimeEstimatorV2(
-                            session=self._session, options=self._options_estimator
+                            mode=self._session, options=self._options_estimator
                         )
                 else:
                     raise RuntimeError(
@@ -1558,7 +1568,7 @@ class Executor:
                         time.sleep(0.01)
 
                 # Job is completed, check if it was successful
-                if status == JobStatus.ERROR:
+                if status == JobStatus.ERROR or status == "ERROR":
                     self._logger.info(f"Failed executation of the job!")
                     if hasattr(job, "error_message"):
                         self._logger.info(f"Error message: {{}}".format(job.error_message()))
@@ -1845,12 +1855,11 @@ class Executor:
                 instance_estimator._seed = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
             elif isinstance(instance_estimator, BackendEstimatorV2):
-                instance_estimator.options.simulator_seed = self._set_seed_for_primitive
+                instance_estimator._options.seed_simulator = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
-            elif isinstance(instance_estimator, RuntimeSamplerV2):
+            elif isinstance(instance_estimator, RuntimeEstimatorV2):
                 instance_estimator.options.update(
-                    simulator={"seed_simulator": self._set_seed_for_primitive}
-                )
+                simulator={"seed_simulator": self._set_seed_for_primitive})
                 self._set_seed_for_primitive += 1
 
         if precision is None:
@@ -1986,7 +1995,7 @@ class Executor:
                 instance_sampler._seed = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
             elif isinstance(instance_sampler, BackendSamplerV2):
-                instance_sampler.options.seed_simulator = self._set_seed_for_primitive
+                instance_sampler._options.seed_simulator = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
             elif isinstance(instance_sampler, RuntimeSamplerV2):
                 instance_sampler.options.update(
