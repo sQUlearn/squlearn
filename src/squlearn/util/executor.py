@@ -112,6 +112,7 @@ else:
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
+QISKIT_RUNTIME_SMALLER_0_23 = version.parse(ibm_runtime_version) < version.parse("0.23.0")
 QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) < version.parse("0.28.0")
 
 if QISKIT_RUNTIME_SMALLER_0_21:
@@ -756,7 +757,6 @@ class Executor:
             raise RuntimeError("Unknown quantum framework!")
 
         # set initial shots
-        self._shots = shots
         self.set_shots(shots)
         self._inital_num_shots = self.get_shots()
 
@@ -1143,6 +1143,11 @@ class Executor:
         else:
             # Create a new Estimator
             shots = self.get_shots()
+            if shots:
+                if not self._options_estimator:
+                    self._options_estimator = {"default_shots": shots}
+                else:
+                    self._options_estimator["default_shots"] = shots
             initialize_parallel_estimator = True
             if self.IBMQuantum:
                 if self._session is not None:
@@ -1358,13 +1363,18 @@ class Executor:
         else:
             # Create a new Sampler
             shots = self.get_shots()
+            if shots:
+                if not self._options_sampler:
+                    self._options_sampler = {"default_shots": shots}
+                else:
+                    self._options_sampler["default_shots"] = shots
             initialize_parallel_sampler = True
 
             if self.IBMQuantum:
                 if self._session is not None:
                     if not self._session._active:
                         self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._sampler = RuntimeSamplerV2(
                             session=self._session, options=self._options_sampler
                         )
@@ -1376,7 +1386,7 @@ class Executor:
                 elif self._service is not None:
                     # No session but service -> create a new session
                     self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._sampler = RuntimeSamplerV2(
                             session=self._session,
                             options=self._options_sampler,
@@ -1393,7 +1403,7 @@ class Executor:
                     )
             else:
                 if "fake" in str(self._backend).lower():
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._sampler = RuntimeSamplerV2(
                             backend=self._backend, options=self._options_sampler
                         )
@@ -1989,7 +1999,7 @@ class Executor:
             raise RuntimeError("Sampler is a BaseSamplerV1, please use sampler_run_v1.")
 
         if isinstance(instance_sampler, ParallelSamplerV2):
-            instance_sampler = instance_sampler._estimator
+            instance_sampler = instance_sampler._sampler
         if self._set_seed_for_primitive is not None:
             if isinstance(instance_sampler, StatevectorSampler):
                 instance_sampler._seed = self._set_seed_for_primitive
@@ -1998,7 +2008,7 @@ class Executor:
                 instance_sampler._options.seed_simulator = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
             elif isinstance(instance_sampler, RuntimeSamplerV2):
-                instance_sampler.options.update(
+                instance_sampler._options.update(
                     simulator={"seed_simulator": self._set_seed_for_primitive}
                 )
                 self._set_seed_for_primitive += 1
@@ -2108,9 +2118,8 @@ class Executor:
         elif self.quantum_framework == "qiskit":
 
             # Update shots in backend
-            if self._backend is not None:
-                if self.is_statevector:
-                    self._backend.options.shots = num_shots
+            if self._backend is not None and self.is_statevector:
+                self._backend.options.shots = num_shots
 
             # Update shots in estimator primitive
             if self._estimator is not None:
@@ -2119,23 +2128,19 @@ class Executor:
                         self._estimator.set_options(shots=None)
                     else:
                         self._estimator.set_options(shots=num_shots)
-                    try:
+                    if self._options_estimator:
                         self._options_estimator["shots"] = num_shots
-                    except:
-                        pass  # no option available
                 elif isinstance(self._estimator, BackendEstimatorV1):
                     self._estimator.set_options(shots=num_shots)
-                    try:
+                    if self._options_estimator:
                         self._options_estimator["shots"] = num_shots
-                    except:
-                        pass  # no option available
                 elif isinstance(self._estimator, RuntimeEstimatorV1):
                     execution = self._estimator.options.get("execution")
                     execution["shots"] = num_shots
                     self._estimator.set_options(execution=execution)
                     try:
                         self._options_estimator["execution"]["shots"] = num_shots
-                    except:
+                    except (TypeError, KeyError):
                         pass  # no options_estimator or no execution in options_estimator
                 elif isinstance(self._estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
                     self._estimator.shots = num_shots
