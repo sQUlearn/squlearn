@@ -659,9 +659,7 @@ class ParallelEstimatorV2(BaseEstimatorV2):
         for result in results:
             if "shots" in result.metadata:
                 result.metadata["shots"] *= num_parallel
-                result.metadata["target_precision"] /= num_parallel**0.5
-            if "precision" in result.metadata:
-                result.metadata["precision"] /= num_parallel**0.5
+            result.metadata["target_precision"] /= num_parallel**0.5
         result_job._pub_results = results
         return result_job
 
