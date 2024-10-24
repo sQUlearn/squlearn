@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 

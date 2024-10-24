@@ -1,7 +1,7 @@
 import numpy as np
 
 from packaging import version
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2

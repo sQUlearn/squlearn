@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import ParameterVector
 from qiskit.primitives import Estimator, Sampler

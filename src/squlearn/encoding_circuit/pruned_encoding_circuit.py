@@ -5,7 +5,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 
 import warnings
 from typing import Union, Tuple
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 

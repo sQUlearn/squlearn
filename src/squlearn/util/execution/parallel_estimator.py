@@ -4,7 +4,7 @@ from typing import Callable, Optional, Tuple, Union
 from collections.abc import Iterable
 
 from packaging import version
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.compiler import transpile
 from qiskit.primitives import Estimator as PrimitiveEstimatorV1

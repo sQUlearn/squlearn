@@ -4,7 +4,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from packaging import version
 from qiskit import __version__ as qiskit_version
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.primitives import Sampler as PrimitiveSamplerV1
 from qiskit.primitives.base import SamplerResult

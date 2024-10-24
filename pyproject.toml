@@ -25,7 +25,7 @@ classifiers = [
 ]
 keywords = ["quantum", "machine learning", "qml"]
 dependencies = [
-    "bayesian-optimization>=1.4.3",
+    "bayesian-optimization>=1.4.3,<2",
     "dill>=0.3",
     "mapomatic>=0.10.0",
     "networkx>=3.0",
@@ -35,7 +35,7 @@ dependencies = [
     "qiskit-aer>=0.12.0",
     "qiskit-algorithms>=0.3.0",
     "qiskit-ibm-runtime>=0.15.1",
-    "qiskit-machine-learning>=0.6.1",
+    "qiskit-machine-learning>=0.7.0",
     "scipy>=1.5",
     "scikit-learn>=1.0,<1.4.2",
     "tqdm>=4.0",

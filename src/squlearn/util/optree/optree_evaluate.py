@@ -4,7 +4,7 @@ from typing import Union, List, Tuple
 import time
 from packaging import version
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
 from qiskit.primitives import BaseEstimator, BaseSampler

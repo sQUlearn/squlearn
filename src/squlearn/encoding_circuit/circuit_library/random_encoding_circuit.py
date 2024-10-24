@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union
 import random
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 from qiskit.circuit.library import (

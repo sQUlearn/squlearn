@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Union, Set
 import copy
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.compiler import transpile

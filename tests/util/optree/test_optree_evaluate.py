@@ -5,7 +5,7 @@ from typing import Tuple, List
 import numpy as np
 from packaging import version
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.random import random_circuit
