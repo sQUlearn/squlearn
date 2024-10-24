@@ -1,7 +1,6 @@
 """Tests for training methods."""
 
 import numpy as np
-
 import pytest
 
 from squlearn import Executor
@@ -67,7 +66,8 @@ class TestShotsFromRSTD:
         y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
-        reference = np.array([-0.23382872,-0.42261867,-0.17905442, 0.18627426, 0.09754079])
+        
+        reference = np.array([-0.23382872, -0.42261867, -0.17905442, 0.18627426, 0.09754079])
         assert np.allclose(test, reference, atol=1e-3)
 
     def test_qnn_training_two_outputs(self):

@@ -612,7 +612,7 @@ class ParallelEstimatorV2(BaseEstimatorV2):
             elif isinstance(self._estimator, BackendEstimatorV2):
                 self._estimator._options.default_precision = 1.0 / num_shots**0.5
             elif isinstance(self._estimator, RuntimeEstimatorV2):
-                self._estimator._options.update(**{"execution": {"shots": num_shots}})
+                self._estimator._options.update(**{"default_shots": num_shots})
             elif isinstance(self._estimator, squlearn.util.executor.ExecutorEstimatorV2):
                 self._estimator._executor.set_shots(num_shots)
             else:
@@ -657,7 +657,11 @@ class ParallelEstimatorV2(BaseEstimatorV2):
 
         results = result_job.result()
         for result in results:
-            result.metadata["precision"] /= num_parallel**0.5
+            if "shots" in result.metadata:
+                result.metadata["shots"] *= num_parallel
+                result.metadata["target_precision"] /= num_parallel**0.5
+            if "precision" in result.metadata:
+                result.metadata["precision"] /= num_parallel**0.5
         result_job._pub_results = results
         return result_job
 

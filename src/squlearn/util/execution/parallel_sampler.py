@@ -612,7 +612,10 @@ class ParallelSamplerV2(BaseSamplerV2):
             self.shots = self._sampler.options.default_shots
         # Real Backend
         elif isinstance(self._sampler, RuntimeSamplerV2):
-            self._session = self._sampler._session
+            if hasattr(self._sampler, "_session"):
+                self._session = self._sampler._session
+            elif hasattr(self._sampler, "_mode"):
+                self._session = self._sampler._mode
             self._service = self._sampler._service
             self._backend = self._sampler._backend
             if not self._sampler.options.default_shots:
@@ -645,7 +648,7 @@ class ParallelSamplerV2(BaseSamplerV2):
             elif isinstance(self._sampler, BackendSamplerV2):
                 self._sampler._options.default_shots = num_shots
             elif isinstance(self._sampler, RuntimeSamplerV2):
-                self._sampler._options.update(**{"execution": {"shots": num_shots}})
+                self._sampler._options.update(**{"default_shots": num_shots})
             elif isinstance(self._sampler, squlearn.util.executor.ExecutorSamplerV2):
                 self._sampler._executor.set_shots(num_shots)
             else:
