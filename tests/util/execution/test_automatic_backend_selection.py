@@ -12,6 +12,7 @@ from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.optimizers import Adam
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, QKRR
+from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
 
 import pytest
 
@@ -55,12 +56,26 @@ class TestBackendAutoSelection:
         executor = Executor(backends, seed=0, shots=1000)
         _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == true_backend
+
         sampler = executor.get_sampler()
-        result = sampler.run(qc.measure_all(inplace=False)).result()
-        assert result.metadata[0]["shots"] == 1000
+        if isinstance(sampler, BaseSamplerV1):
+            result = sampler.run(qc.measure_all(inplace=False)).result()
+            assert result.metadata[0]["shots"] == 1000
+        elif isinstance(sampler, BaseSamplerV2):
+            result = sampler.run([(qc.measure_all(inplace=False),)]).result()
+            assert result[0].metadata["shots"] == 1000
+        else:
+            raise ValueError("Unknown sampler type")
+
         estimator = executor.get_estimator()
-        result = estimator.run(qc, obs).result()
-        assert result.metadata[0]["shots"] == 1000
+        if isinstance(estimator, BaseEstimatorV1):
+            result = estimator.run(qc, obs).result()
+            assert result.metadata[0]["shots"] == 1000
+        elif isinstance(estimator, BaseEstimatorV2):
+            result = estimator.run([(qc, obs)]).result()
+            assert result[0].metadata["shots"] == 1001
+        else:
+            raise ValueError("Unknown estimator type")
 
     if QISKIT_SMALLER_1_0:
         mark = pytest.mark.parametrize(
@@ -96,11 +111,25 @@ class TestBackendAutoSelection:
         _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == true_backend
         sampler = executor.get_sampler()
-        result = sampler.run(qc.measure_all(inplace=False)).result()
-        assert result.metadata[0]["shots"] == 10000
+
+        if isinstance(sampler, BaseSamplerV1):
+            result = sampler.run(qc.measure_all(inplace=False)).result()
+            assert result.metadata[0]["shots"] == 10000
+        elif isinstance(sampler, BaseSamplerV2):
+            result = sampler.run([(qc.measure_all(inplace=False),)]).result()
+            assert result[0].metadata["shots"] == 10000
+        else:
+            raise ValueError("Unknown sampler type")
+
         estimator = executor.get_estimator()
-        result = estimator.run(qc, obs).result()
-        assert result.metadata[0]["shots"] == 10000
+        if isinstance(estimator, BaseEstimatorV1):
+            result = estimator.run(qc, obs).result()
+            assert result.metadata[0]["shots"] == 10000
+        elif isinstance(estimator, BaseEstimatorV2):
+            result = estimator.run([(qc, obs)]).result()
+            assert result[0].metadata["shots"] == 10000
+        else:
+            raise ValueError("Unknown estimator type")
 
     if QISKIT_SMALLER_1_0:
         mark = pytest.mark.parametrize(
