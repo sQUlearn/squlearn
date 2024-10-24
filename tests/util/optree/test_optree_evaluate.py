@@ -8,7 +8,7 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit import ParameterVector
-from qiskit.primitives import Estimator, Sampler
+from qiskit.primitives import StatevectorEstimator, StatevectorSampler
 
 from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
@@ -74,7 +74,7 @@ class TestOpTreeEvaluation:
             _create_operator_z[0],
             {},
             _create_operator_z[1][0],
-            Estimator(),
+            StatevectorEstimator(seed=0),
         )
         assert np.allclose(val, reference_values)
 
@@ -83,7 +83,7 @@ class TestOpTreeEvaluation:
             _create_random_circuits, _create_operator_z[0]
         )
         val = OpTree.evaluate.evaluate_tree_with_estimator(
-            expectation_tree, _create_operator_z[1][0], Estimator()
+            expectation_tree, _create_operator_z[1][0], StatevectorEstimator(seed=0)
         )
         assert np.allclose(val, reference_values)
 
