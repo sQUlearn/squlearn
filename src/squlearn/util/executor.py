@@ -324,7 +324,7 @@ class Executor:
        # Run a circuit with the Executor based Sampler
        from qiskit.circuit.random import random_circuit
        circuit = random_circuit(2, 2, seed=1, measure=True).decompose(reps=1)
-       job = sampler.run(circuit)
+       job = sampler.run([(circuit,)])
        result = job.result()
 
     **Example: Automatic backend selection**
@@ -670,7 +670,6 @@ class Executor:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
-            print("self._sampler", self._sampler)
             if isinstance(self._sampler, StatevectorSampler):
                 self._backend = Aer.get_backend("aer_simulator_statevector")
                 if shots is None:
@@ -1430,6 +1429,7 @@ class Executor:
                         self._sampler = StatevectorSampler(default_shots=shots)
                     else:
                         self._sampler = StatevectorSampler()
+                        shots = self._sampler.default_shots
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Sampler initialization!")
                 else:
