@@ -193,9 +193,15 @@ class TestExecutor:
 
         executor = request.getfixturevalue(executor_str)
         executor.set_shots(100)
-        res = executor.get_estimator().run(simple_circuit, observable).result()
-        assert res.metadata[0]["shots"] == 100
-        assert np.allclose(assert_dict[executor_str], res.values[0])
+        estimator = executor.get_estimator()
+        if isinstance(estimator, BaseEstimatorV1):
+            res = estimator.run(simple_circuit, observable).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.values[0] == assert_dict[executor_str]
+        else:
+            res = estimator.run([(simple_circuit, observable)]).result()
+            assert np.isclose(res[0].metadata["target_precision"], 0.1, 0.01)
+            assert np.isclose(res[0].data.evs, assert_dict[executor_str], 0.1)
 
     @pytest.mark.parametrize(
         "executor_str",
