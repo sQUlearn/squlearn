@@ -417,17 +417,15 @@ class Executor:
         else:
             self._options_sampler = None
 
-
         if seed is not None:
             # Hack that seed is not equal to 0 since this gets fake backends confuced
-            if seed >=0:
+            if seed >= 0:
                 seed += 1
             if version.parse(qiskit_version) <= version.parse("0.45.0"):
                 algorithm_globals.random_seed = seed
             qiskit_algorithm_globals.random_seed = seed
         self._set_seed_for_primitive = seed
         self._pennylane_seed = seed
-
 
         # Copy Executor options
         self._log_file = log_file
@@ -1201,9 +1199,9 @@ class Executor:
                 else:
                     if shots:
                         if not self._options_estimator:
-                            self._options_estimator = {"default_precision": 1 / shots ** 0.5}
+                            self._options_estimator = {"default_precision": 1 / shots**0.5}
                         else:
-                            self._options_estimator["default_precision"] = 1 / shots ** 0.5
+                            self._options_estimator["default_precision"] = 1 / shots**0.5
                     # No session, no service and no state_vector simulator -> BackendEstimator
                     self._estimator = BackendEstimatorV2(
                         backend=self._backend, options=self._options_estimator
@@ -1242,6 +1240,11 @@ class Executor:
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Estimator is only available for Qiskit backends")
+
+        if self._estimator is not None:
+            if isinstance(self._estimator, BaseEstimatorV1):
+                return self._estimator_v1()
+            return self._estimator_v2()
 
         if QISKIT_SMALLER_1_2:
             return self._estimator_v1()
@@ -1469,6 +1472,11 @@ class Executor:
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Estimator is only available for Qiskit backends")
+
+        if self._sampler is not None:
+            if isinstance(self._sampler, BaseSamplerV1):
+                return self._sampler_v1()
+            return self._sampler_v2()
 
         if QISKIT_SMALLER_1_2:
             return self._sampler_v1()
@@ -1879,7 +1887,8 @@ class Executor:
                 self._set_seed_for_primitive += 1
             elif isinstance(instance_estimator, RuntimeEstimatorV2):
                 instance_estimator.options.update(
-                simulator={"seed_simulator": self._set_seed_for_primitive})
+                    simulator={"seed_simulator": self._set_seed_for_primitive}
+                )
                 self._set_seed_for_primitive += 1
 
         if precision is None:

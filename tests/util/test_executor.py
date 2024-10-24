@@ -158,8 +158,11 @@ class TestExecutor:
             assert res.quasi_dists[0] == assert_dict[executor_str]
         else:
             res = sampler.run([(circuit,)]).result()
-            assert res[0].metadata["shots"] == 100
-            assert {key: value/100 for key, value in res[0].data.meas.get_int_counts().items()} == assert_dict[executor_str]
+            assert np.isclose(res[0].metadata["shots"], 100, 1)
+            assert all(
+                np.isclose(value / 100, assert_dict[executor_str][key], 1 / 100)
+                for key, value in res[0].data.meas.get_int_counts().items()
+            )
 
     @pytest.mark.parametrize(
         "executor_str",

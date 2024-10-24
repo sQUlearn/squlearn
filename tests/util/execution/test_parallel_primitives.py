@@ -8,7 +8,6 @@ from squlearn.util import Executor
 from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
 
 
-
 class TestParallelExecutor:
 
     @pytest.mark.parametrize("parallel_mode", ["auto", 2])
