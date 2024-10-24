@@ -16,6 +16,7 @@ from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, QKRR
 import pytest
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
+QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 
 class TestBackendAutoSelection:
@@ -154,12 +155,16 @@ class TestBackendAutoSelection:
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
         pqc = ChebyshevTower(2, 1, 2)
-        fqk = FidelityKernel(pqc, executor)
-        qkrr = QKRR(fqk)
-        qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
-        qkrr.predict(np.array([[0.25], [0.75]]))
 
-        assert str(executor.backend_name) == true_backend
+        if QISKIT_SMALLER_1_2:
+            fqk = FidelityKernel(pqc, executor)
+            qkrr = QKRR(fqk)
+            qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))
+            qkrr.predict(np.array([[0.25], [0.75]]))
+            assert str(executor.backend_name) == true_backend
+        else:
+            with pytest.raises(ValueError):
+                fqk = FidelityKernel(pqc, executor)
 
     @mark
     def test_auto_select_projected_kernel(self, mode, true_backend):
