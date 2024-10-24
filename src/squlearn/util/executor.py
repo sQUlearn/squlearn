@@ -1143,17 +1143,17 @@ class Executor:
         else:
             # Create a new Estimator
             shots = self.get_shots()
-            if shots:
-                if not self._options_estimator:
-                    self._options_estimator = {"default_shots": shots}
-                else:
-                    self._options_estimator["default_shots"] = shots
             initialize_parallel_estimator = True
             if self.IBMQuantum:
+                if shots:
+                    if not self._options_estimator:
+                        self._options_estimator = {"default_shots": shots}
+                    else:
+                        self._options_estimator["default_shots"] = shots
                 if self._session is not None:
                     if not self._session._active:
                         self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._estimator = RuntimeEstimatorV2(
                             session=self._session, options=self._options_estimator
                         )
@@ -1164,7 +1164,7 @@ class Executor:
                 elif self._service is not None:
                     # No session but service -> create a new session
                     self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._estimator = RuntimeEstimatorV2(
                             session=self._session, options=self._options_estimator
                         )
@@ -1178,7 +1178,12 @@ class Executor:
                     )
             else:
                 if "fake" in str(self._backend):
-                    if QISKIT_RUNTIME_SMALLER_0_28:
+                    if shots:
+                        if not self._options_estimator:
+                            self._options_estimator = {"default_shots": shots}
+                        else:
+                            self._options_estimator["default_shots"] = shots
+                    if QISKIT_RUNTIME_SMALLER_0_23:
                         self._estimator = RuntimeEstimatorV2(
                             backend=self._backend, options=self._options_estimator
                         )
@@ -1194,6 +1199,11 @@ class Executor:
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Estimator initialization!")
                 else:
+                    if shots:
+                        if not self._options_estimator:
+                            self._options_estimator = {"default_precision": 1 / shots ** 0.5}
+                        else:
+                            self._options_estimator["default_precision"] = 1 / shots ** 0.5
                     # No session, no service and no state_vector simulator -> BackendEstimator
                     self._estimator = BackendEstimatorV2(
                         backend=self._backend, options=self._options_estimator
