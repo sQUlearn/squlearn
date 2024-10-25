@@ -122,7 +122,7 @@ class TestOpTreeDerivative:
         else:
             from qiskit.primitives import StatevectorEstimator
 
-            estimator = StatevectorEstimator()
+            estimator = StatevectorEstimator(default_precision=0.0)
 
         # Check if the gradient reproduces the correct values
         op_grad = OpTree.derivative.differentiate(operator, p)
@@ -137,29 +137,46 @@ class TestOpTreeDerivative:
             reference_values,
         )
 
+        if QISKIT_SMALLER_1_0:
+            from qiskit.primitives import Sampler
+
+            sampler = Sampler()
+        else:
+            from qiskit.primitives import StatevectorSampler
+
+            sampler = StatevectorSampler(seed=0, default_shots=10000)
+            reference_values = np.array(
+                [
+                    3.028,
+                    5.0154,
+                    1.49,
+                    1.494,
+                ]
+            )
+
         # Check if gradient works with a derivative of the z-basis transformed operator
         operator_z = OpTree.evaluate.transform_to_zbasis(operator)
         op_grad_z = OpTree.derivative.differentiate(operator_z, p)
         op_grad_z_v2 = OpTree.derivative.differentiate_v2(operator_z, p)
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_sampler(qc, op_grad_z, {}, dictionary_p, Sampler()),
+            OpTree.evaluate.evaluate_with_sampler(qc, op_grad_z, {}, dictionary_p, sampler),
             reference_values,
         )
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_sampler(qc, op_grad_z_v2, {}, dictionary_p, Sampler()),
+            OpTree.evaluate.evaluate_with_sampler(qc, op_grad_z_v2, {}, dictionary_p, sampler),
             reference_values,
         )
 
         # Check if gradient works with a z-basis transformed operator
         assert np.allclose(
             OpTree.evaluate.evaluate_with_sampler(
-                qc, OpTree.evaluate.transform_to_zbasis(op_grad), {}, dictionary_p, Sampler()
+                qc, OpTree.evaluate.transform_to_zbasis(op_grad), {}, dictionary_p, sampler
             ),
             reference_values,
         )
         assert np.allclose(
             OpTree.evaluate.evaluate_with_sampler(
-                qc, OpTree.evaluate.transform_to_zbasis(op_grad_v2), {}, dictionary_p, Sampler()
+                qc, OpTree.evaluate.transform_to_zbasis(op_grad_v2), {}, dictionary_p, sampler
             ),
             reference_values,
         )
