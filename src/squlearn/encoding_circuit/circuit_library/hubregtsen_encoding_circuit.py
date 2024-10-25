@@ -3,7 +3,7 @@ from typing import Union
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class HubregtsenEncodingCircuit(EncodingCircuitBase):
@@ -91,6 +91,11 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         """The bounds of the features of the Hubregtsen encoding circuit."""
         return np.array([[-np.pi, np.pi]] * self.num_features)
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the Hubregtsen encoding circuit."""
+        return self.num_qubits * self.num_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Hubregtsen encoding circuit
@@ -108,7 +113,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         params["final_encoding"] = self.final_encoding
         return params
 
-    def _get_circuit(
+    def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
@@ -125,6 +130,9 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the Hubregtsen circuit in qiskit QuantumCircuit format
         """
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         nfeatures = len(features)
         nparam = len(parameters)

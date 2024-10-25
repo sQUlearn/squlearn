@@ -6,7 +6,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class ChebyshevPQC(EncodingCircuitBase):
@@ -162,6 +162,11 @@ class ChebyshevPQC(EncodingCircuitBase):
             bounds[:, 1] = np.inf
         return bounds
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ChebyshevPQC encoding circuit."""
+        return self.num_qubits * self.num_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevPQC encoding circuit
@@ -232,7 +237,7 @@ class ChebyshevPQC(EncodingCircuitBase):
                 cheb_index.append(cheb_index_layer)
         return cheb_index
 
-    def _get_circuit(
+    def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
@@ -249,6 +254,9 @@ class ChebyshevPQC(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         if self.nonlinearity == "arccos":
 

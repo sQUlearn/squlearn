@@ -4,7 +4,10 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.converters import circuit_to_gate, circuit_to_instruction
 
-from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from squlearn.encoding_circuit.encoding_circuit_base import (
+    EncodingCircuitBase,
+    EncodingSlotsMismatchError,
+)
 from squlearn.encoding_circuit.circuit_library.param_z_feature_map import ParamZFeatureMap
 from squlearn.observables import CustomObservable, SummedPaulis
 from squlearn.observables.observable_base import ObservableBase
@@ -59,6 +62,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     def operations_list(self) -> list:
         """Returns the list of operators currently acting on the encoding circuit."""
         return self._operations_list
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """Returns the number of encoding slots of the current QCNNEncodingCircuit."""
+        return self.num_qubits
 
     def set_params(self, **params):
         """
@@ -416,6 +424,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Firstly, a number of qubits must be provided. "
                 "Either with 'set_params', or with 'build_circuit'."
             )
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         total_qc = QuantumCircuit(
             self.num_qubits, self._num_measurements

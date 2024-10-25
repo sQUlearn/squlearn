@@ -4,7 +4,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class MultiControlEncodingCircuit(EncodingCircuitBase):
@@ -64,6 +64,11 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         """The bounds of the trainable parameters of the MultiControlEncodingCircuit encoding circuit."""
         return np.array([[-2.0 * np.pi, 2.0 * np.pi]] * self.num_parameters)
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the MultiControlEncodingCircuit."""
+        return self.num_qubits * self.num_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the MultiControlEncodingCircuit encoding circuit
@@ -81,7 +86,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         params["final_encoding"] = self.final_encoding
         return params
 
-    def _get_circuit(
+    def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
@@ -101,6 +106,9 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
 
         if self.num_qubits < 2:
             raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         nfeature = len(features)
         nparam = len(parameters)

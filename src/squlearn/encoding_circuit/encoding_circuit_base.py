@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 
 import numpy as np
 from typing import Union
@@ -7,7 +8,7 @@ from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
 
-class EncodingCircuitBase:
+class EncodingCircuitBase(ABC):
     """
     Encoding circuit base class
 
@@ -55,6 +56,11 @@ class EncodingCircuitBase:
         """
         return np.array([[-np.pi, np.pi]] * self.num_features)
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        return 0
+
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
         Generates random parameters for the encoding circuit
@@ -71,6 +77,7 @@ class EncodingCircuitBase:
         bounds = self.parameter_bounds
         return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
+    @abstractmethod
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -89,18 +96,7 @@ class EncodingCircuitBase:
             Returns the circuit in qiskit QuantumCircuit format
         """
 
-        expected_slots = self.get_encoding_slots()
-
-        if self.num_features > expected_slots:
-            raise EncodingSlotsMismatchError(
-                num_slots=expected_slots, num_features=self.num_features
-            )
-
-        return self._get_circuit(features, parameters)
-
-    def get_encoding_slots(self):
-        num_layers = getattr(self, "num_layers", 1)
-        return num_layers * self.num_qubits
+        raise NotImplementedError()
 
     def draw(
         self,
@@ -145,6 +141,7 @@ class EncodingCircuitBase:
         """
         param = {}
         param["num_qubits"] = self._num_qubits
+        param["num_features"] = self._num_features
         return param
 
     def set_params(self, **params) -> EncodingCircuitBase:
@@ -168,24 +165,16 @@ class EncodingCircuitBase:
 
         return self
 
-    def _get_circuit(
-        self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
-    ) -> QuantumCircuit:
+    def _check_feature_encoding_slots(self, features: Union[ParameterVector, np.ndarray]) -> None:
         """
-        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Checks if the number of features fits the available encoding slots.
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
-                from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
-                from which the gate inputs are obtained
+            features (Union[ParameterVector, np.ndarray]): The input features.
 
-        Return:
-            Returns the circuit in qiskit QuantumCircuit format
+        Raises:
+            EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
         """
-
         raise NotImplementedError()
 
     def __mul__(self, x):

@@ -6,7 +6,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class ChebyshevRx(EncodingCircuitBase):
@@ -109,6 +109,11 @@ class ChebyshevRx(EncodingCircuitBase):
             bounds[:, 1] = np.inf
         return bounds
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ChebyshevRx encoding circuit."""
+        return self.num_layers * self.num_qubits
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevRx encoding circuit
@@ -170,7 +175,7 @@ class ChebyshevRx(EncodingCircuitBase):
                 cheb_index.append(cheb_index_layer)
         return cheb_index
 
-    def _get_circuit(
+    def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
@@ -187,6 +192,9 @@ class ChebyshevRx(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""

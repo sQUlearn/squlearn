@@ -338,6 +338,11 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         """The number of trainable parameters of the random encoding circuit."""
         return self._num_parameters
 
+    @property
+    def num_encoding_slots(self) -> float:
+        """The number of encoding slots of the random encoding circuit (equal to inf)."""
+        return np.inf
+
     def get_params(self, deep: bool = True) -> dict:
         r"""
         Returns hyper-parameters and their values of the random encoding circuit.
