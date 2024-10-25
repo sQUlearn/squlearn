@@ -78,7 +78,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_qiskit_1
           source venv_qiskit_1/bin/activate
-          pip install .[examples] qiskit<1.2 qiskit-ibm-runtime<0.28
+          pip install .[examples] qiskit==1.1.2 qiskit-ibm-runtime==0.27.1
       - name: Test with pytest
         run: |
           source venv_qiskit_1/bin/activate
