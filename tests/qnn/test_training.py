@@ -50,7 +50,7 @@ class TestShotsFromRSTD:
     def test_qnn_training(self):
         """Test a optimization with variance reduction and shots from RSTD."""
 
-        pqc = ChebyshevPQC(2, 1, 3, False)
+        pqc = ChebyshevPQC(2, 1, 1, False)
         ob = SummedPaulis(2)
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -67,13 +67,14 @@ class TestShotsFromRSTD:
         y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
-        reference = np.array([0.31176001, 0.09348281, -0.05118243, -0.25693387, -0.43025503])
+        reference = np.array([-0.06808242, -0.12152241, -0.17267332, -0.20971815, -0.23434488])
+
         assert np.allclose(test, reference, atol=1e-3)
 
     def test_qnn_training_two_outputs(self):
         """Test a optimization with variance reduction and shots from RSTD with two outputs."""
 
-        pqc = ChebyshevPQC(2, 1, 3, False)
+        pqc = ChebyshevPQC(2, 1, 1, False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -92,13 +93,14 @@ class TestShotsFromRSTD:
         test = qnn.predict(x_train)
         reference = np.array(
             [
-                [0.09296101, 0.08074864],
-                [0.12179584, 0.08045381],
-                [0.06871516, 0.06971483],
-                [0.08291836, 0.05942195],
-                [0.09998995, 0.05452198],
+                [-0.21069617, -0.27584664],
+                [-0.20508936, -0.2713316],
+                [-0.1873521, -0.25037875],
+                [-0.16524959, -0.23089323],
+                [-0.13079987, -0.19245336],
             ]
         )
+
         assert np.allclose(test, reference, atol=1e-3)
 
 

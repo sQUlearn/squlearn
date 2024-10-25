@@ -121,7 +121,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         self._preprocess_observable()
 
-        if self._pqc.num_features is not None:
+        if self.num_features is not None:
             self._initialize_pennylane_circuit()
 
     def set_params(self, **params) -> None:

@@ -383,4 +383,4 @@ class BaseQNN(BaseEstimator, ABC):
             self.param_ini = self.encoding_circuit.generate_initial_parameters(
                 seed=self.parameter_seed
             )
-            self._param = self.param_ini.copy()
+        self._param = self.param_ini.copy()
