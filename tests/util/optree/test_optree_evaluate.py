@@ -15,7 +15,6 @@ from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
-QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 
 class TestOpTreeEvaluation:

@@ -1,12 +1,16 @@
 import pytest
 import numpy as np
+from packaging import version
 
+from qiskit import __version__ as qiskit_version
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import ParameterVector
-from qiskit.primitives import Estimator, Sampler
+from qiskit.primitives import Sampler
 
 from squlearn.util import OpTree
+
+QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 
 
 class TestOpTreeDerivative:
@@ -26,11 +30,21 @@ class TestOpTreeDerivative:
 
         p_val = np.arange(-0.5, 0.5, 0.01)
         p_array = [{p[0]: p_} for p_ in p_val]
-        val = OpTree.evaluate.evaluate_with_estimator(qc, operator, p_array, {}, Estimator())
+
+        if QISKIT_SMALLER_1_0:
+            from qiskit.primitives import Estimator
+
+            estimator = Estimator()
+        else:
+            from qiskit.primitives import StatevectorEstimator
+
+            estimator = StatevectorEstimator()
+
+        val = OpTree.evaluate.evaluate_with_estimator(qc, operator, p_array, {}, estimator)
         qc_d = OpTree.derivative.differentiate(qc, p[0])
-        val_d = OpTree.evaluate.evaluate_with_estimator(qc_d, operator, p_array, {}, Estimator())
+        val_d = OpTree.evaluate.evaluate_with_estimator(qc_d, operator, p_array, {}, estimator)
         qc_dd = OpTree.derivative.differentiate(qc_d, p[0])
-        val_dd = OpTree.evaluate.evaluate_with_estimator(qc_dd, operator, p_array, {}, Estimator())
+        val_dd = OpTree.evaluate.evaluate_with_estimator(qc_dd, operator, p_array, {}, estimator)
 
         # Compare numerical and analytical derivatives
         assert np.linalg.norm(np.abs(np.gradient(val, p_val)[1:-1] - val_d[1:-1])) < 0.15
@@ -51,19 +65,26 @@ class TestOpTreeDerivative:
         operator = SparsePauliOp(["IZ", "ZI"])
         dictionary = {x[0]: 0.5, p[0]: 1.5, p[1]: 2.5, p[2]: 0.5, p[3]: 0.25}
 
+        if QISKIT_SMALLER_1_0:
+            from qiskit.primitives import Estimator
+
+            estimator = Estimator()
+        else:
+            from qiskit.primitives import StatevectorEstimator
+
+            estimator = StatevectorEstimator()
+
         # Compare the gradient w.r.t the parameters p to precomputed values
         qc_grad = OpTree.derivative.differentiate(qc, p)
         qc_grad_v2 = OpTree.derivative.differentiate_v2(qc, p)
         reference_grad = np.array([1.12973299e00, 1.29540410e-01, 5.55111512e-17, 8.39102771e-01])
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_estimator(
-                qc_grad, operator, dictionary, {}, Estimator()
-            ),
+            OpTree.evaluate.evaluate_with_estimator(qc_grad, operator, dictionary, {}, estimator),
             reference_grad,
         )
         assert np.allclose(
             OpTree.evaluate.evaluate_with_estimator(
-                qc_grad_v2, operator, dictionary, {}, Estimator()
+                qc_grad_v2, operator, dictionary, {}, estimator
             ),
             reference_grad,
         )
@@ -72,18 +93,13 @@ class TestOpTreeDerivative:
         qc_dx = OpTree.derivative.differentiate(qc, x)
         qc_dx_v2 = OpTree.derivative.differentiate_v2(qc, x)
         reference_dx = np.array([-2.22566018])
-        print(
-            "ref2",
-            OpTree.evaluate.evaluate_with_estimator(qc_dx, operator, dictionary, {}, Estimator()),
-        )
+
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_estimator(qc_dx, operator, dictionary, {}, Estimator()),
+            OpTree.evaluate.evaluate_with_estimator(qc_dx, operator, dictionary, {}, estimator),
             reference_dx,
         )
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_estimator(
-                qc_dx_v2, operator, dictionary, {}, Estimator()
-            ),
+            OpTree.evaluate.evaluate_with_estimator(qc_dx_v2, operator, dictionary, {}, estimator),
             reference_dx,
         )
 
@@ -99,16 +115,25 @@ class TestOpTreeDerivative:
         qc = QuantumCircuit(2)
         qc.h([0, 1])
 
+        if QISKIT_SMALLER_1_0:
+            from qiskit.primitives import Estimator
+
+            estimator = Estimator()
+        else:
+            from qiskit.primitives import StatevectorEstimator
+
+            estimator = StatevectorEstimator()
+
         # Check if the gradient reproduces the correct values
         op_grad = OpTree.derivative.differentiate(operator, p)
         op_grad_v2 = OpTree.derivative.differentiate_v2(operator, p)
         reference_values = np.array([3.0, 5.0, 1.5, 1.5])
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_estimator(qc, op_grad, {}, dictionary_p, Estimator()),
+            OpTree.evaluate.evaluate_with_estimator(qc, op_grad, {}, dictionary_p, estimator),
             reference_values,
         )
         assert np.allclose(
-            OpTree.evaluate.evaluate_with_estimator(qc, op_grad_v2, {}, dictionary_p, Estimator()),
+            OpTree.evaluate.evaluate_with_estimator(qc, op_grad_v2, {}, dictionary_p, estimator),
             reference_values,
         )
 
