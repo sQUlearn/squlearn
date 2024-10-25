@@ -835,7 +835,7 @@ def _evaluate_expectation_from_sampler(
             flatted_resort_list_circ = [item2 for item in outer_circ for item2 in item]
             index_list.append(list(np.argsort(flatted_resort_list_circ) + ioff))
             ioff += len(flatted_resort_list_circ)
-        return exp_val[tuple(index_list)].reshape(np.shape(index_list))
+        return np.take(exp_val, index_list)
     else:
         # two nested lists -> No need to resort
         return exp_val
