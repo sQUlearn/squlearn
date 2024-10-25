@@ -81,9 +81,11 @@ class TestOpTreeEvaluation:
 
         if QISKIT_SMALLER_1_0:
             from qiskit.primitives import Estimator
+
             estimator = Estimator()
         else:
             from qiskit.primitives import StatevectorEstimator
+
             estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.43879128, 1.0])
@@ -153,9 +155,11 @@ class TestOpTreeEvaluation:
 
         if QISKIT_SMALLER_1_0:
             from qiskit.primitives import Estimator
+
             estimator = Estimator()
         else:
             from qiskit.primitives import StatevectorEstimator
+
             estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.09923954, -1.0])
@@ -239,9 +243,11 @@ class TestOpTreeEvaluation:
 
         if QISKIT_SMALLER_1_0:
             from qiskit.primitives import Estimator
+
             estimator = Estimator()
         else:
             from qiskit.primitives import StatevectorEstimator
+
             estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array(
