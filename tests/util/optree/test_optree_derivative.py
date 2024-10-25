@@ -38,7 +38,7 @@ class TestOpTreeDerivative:
         else:
             from qiskit.primitives import StatevectorEstimator
 
-            estimator = StatevectorEstimator()
+            estimator = StatevectorEstimator(default_precision=0.0)
 
         val = OpTree.evaluate.evaluate_with_estimator(qc, operator, p_array, {}, estimator)
         qc_d = OpTree.derivative.differentiate(qc, p[0])
@@ -72,7 +72,7 @@ class TestOpTreeDerivative:
         else:
             from qiskit.primitives import StatevectorEstimator
 
-            estimator = StatevectorEstimator()
+            estimator = StatevectorEstimator(default_precision=0.0)
 
         # Compare the gradient w.r.t the parameters p to precomputed values
         qc_grad = OpTree.derivative.differentiate(qc, p)
