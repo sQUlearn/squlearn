@@ -1245,7 +1245,7 @@ class Executor:
                 return self._estimator_v1()
             return self._estimator_v2()
 
-        if QISKIT_SMALLER_1_2:
+        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
             return self._estimator_v1()
 
         return self._estimator_v2()
@@ -1478,7 +1478,7 @@ class Executor:
                 return self._sampler_v1()
             return self._sampler_v2()
 
-        if QISKIT_SMALLER_1_2:
+        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
             return self._sampler_v1()
 
         return self._sampler_v2()
@@ -2060,7 +2060,7 @@ class Executor:
                 return ExecutorEstimatorV1(executor=self, options=self._options_estimator)
             return ExecutorEstimatorV2(executor=self)
 
-        if QISKIT_SMALLER_1_2:
+        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
             return ExecutorEstimatorV1(executor=self, options=self._options_estimator)
 
         return ExecutorEstimatorV2(executor=self)
@@ -2077,7 +2077,7 @@ class Executor:
                 return ExecutorSamplerV1(executor=self, options=self._options_estimator)
             return ExecutorSamplerV2(executor=self)
 
-        if QISKIT_SMALLER_1_2:
+        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
             return ExecutorSamplerV1(executor=self, options=self._options_sampler)
 
         return ExecutorSamplerV2(executor=self)
