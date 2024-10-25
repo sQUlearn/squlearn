@@ -19,6 +19,8 @@ from ..util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 
+import copy
+
 
 class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
@@ -275,6 +277,9 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         executor (Executor) : Executor that is used for the evaluation of the QNN
         caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+        primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
+            ``"estimator"`` or ``"sampler"``. If None, the primitive is set according to the
+            executor. (default = None)
 
     Attributes:
     -----------
@@ -300,24 +305,64 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         operator: Union[ObservableBase, list],
         executor: Executor,
         caching=True,
+        primitive: Union[str, None] = None,
     ) -> None:
-
-        parameterized_quantum_circuit = TranspiledEncodingCircuit(
-            parameterized_quantum_circuit, executor.backend
-        )
-        super().__init__(parameterized_quantum_circuit, operator, executor)
 
         self.caching = caching
 
-        # Set-Up Executor
-        if self._executor.optree_executor == "estimator":
-            self._estimator = self._executor.get_estimator()
-            self._sampler = None
+        if executor.backend_chosen:
+            # Skip transpilation for parallel qpu execution
+            if not executor.qpu_parallelization:
+                parameterized_quantum_circuit = TranspiledEncodingCircuit(
+                    parameterized_quantum_circuit, executor.backend
+                )
         else:
-            self._sampler = self._executor.get_sampler()
-            self._estimator = None
+            # Automatically select backend (also returns a TranspiledEncodingCircuit except
+            # for parallel qpu execution)
+            parameterized_quantum_circuit, _ = executor.select_backend(
+                parameterized_quantum_circuit
+            )
 
+        super().__init__(parameterized_quantum_circuit, operator, executor)
+
+        self.operator = copy.deepcopy(operator)
+
+        # Set-Up Executor
+        self._set_primitive(primitive)
+
+        # Initialize derivative classes
         self._initilize_derivative()
+
+    def _set_primitive(self, primitive: Union[str, None] = None) -> None:
+        """
+        Sets the primitive for evaluating the of the QNN.
+
+        Args:
+            primitive (str): Primitive that is used for the evaluation of the QNN.
+                Can be ``"estimator"`` or ``"sampler"``. If None, the primitive is set
+                according to the executor. (default = None)
+
+        """
+        if primitive is None:
+            if self._executor.optree_executor == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            else:
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+        else:
+            if primitive.lower() == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            elif primitive.lower() == "sampler":
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+            else:
+                raise ValueError("Unknown primitive:", primitive)
 
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
@@ -327,6 +372,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         """
         params = dict(num_qubits=self.num_qubits)
+        params["primitive"] = self._primitive
 
         if deep:
             params.update(self._pqc.get_params())
@@ -359,6 +405,10 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
+
+        if "primitive" in params:
+            self._set_primitive(params["primitive"])
+            params.pop("primitive")
 
         # Set parameters of the PQC
         dict_pqc = {}
