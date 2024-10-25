@@ -36,7 +36,7 @@ subprocess.run([sys.executable, "-m", "pip", "install", ".", "--no-deps"], check
 PENNYLANE_VERSION = None
 for dependency in dependencies:
     if dependency.startswith("pennylane"):
-        PENNYLANE_VERSION = get_lowest_version(dependency)
+        PENNYLANE_VERSION = get_lowest_version(dependency).split("==")[1]
         break
 
 dependencies = [get_lowest_version(dependency) for dependency in dependencies]
