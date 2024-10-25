@@ -156,7 +156,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         seed: int = 0,
         min_gates: int = 10,
         max_gates: int = 50,

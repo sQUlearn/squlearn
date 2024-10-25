@@ -65,7 +65,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int = 1,
+        num_features: int = None,
         encoding_style: str = "chebyshev_tower",
         variational_arrangement: str = "HEA",
         num_encoding_layers: int = 1,
