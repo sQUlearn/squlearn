@@ -934,7 +934,7 @@ def _transform_operator_to_zbasis(
     return OpTreeSum(children_list)
 
 
-def _measure_all_unmeasured(circ_in):
+def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
     """Helper function for circuits with in-circuit measurements."""
 
     def change_order(n, reorder_list):
@@ -968,12 +968,16 @@ def _measure_all_unmeasured(circ_in):
                             " if one defines an observable with X,Y Pauli measurements on a qubit,"
                             " which is already measured in an in-circuit measurement."
                         )
+
         circ = circ_in.copy()
-        new_creg = circ._create_creg(len(qubits), "meas")
-        circ.add_register(new_creg)
-        circ.measure(qubits, new_creg)
-        if len(qubits) == circ_in.num_qubits:
-            return circ
+        if not final_measurements:
+            # Add measurements to all non measured qubits if not measured
+            new_creg = circ._create_creg(len(qubits), "meas")
+            circ.add_register(new_creg)
+            if not final_measurements:
+                circ.measure(qubits, new_creg)
+                if len(qubits) == circ_in.num_qubits:
+                    return circ
 
         new_ordering = []
         for instruction, qargs, cargs in circ.data:
@@ -982,10 +986,15 @@ def _measure_all_unmeasured(circ_in):
                     new_ordering.append([circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]])
 
         circ_new = QuantumCircuit(circ.num_qubits)
-        new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+        if not final_measurements:
+            new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+        else:
+            new_creg = circ_new._create_creg(circ_in.num_clbits, "meas")
         circ_new.add_register(new_creg)
         for instruction, qargs, cargs in circ.data:
-            if instruction.name == "measure":  # to adjust the clbits of measurements
+            if (
+                instruction.name == "measure" and not final_measurements
+            ):  # to adjust the clbits of measurements
                 clbits = [circ.find_bit(i)[0] for i in qargs]
             else:
                 clbits = [circ.find_bit(i)[0] for i in cargs]
@@ -1107,7 +1116,8 @@ class OpTreeEvaluate:
                     else:
                         total_circuit_list.append(
                             _measure_all_unmeasured(
-                                circ_unmeasured.compose(measure, inplace=False)
+                                circ_unmeasured.compose(measure, inplace=False),
+                                final_measurements=True,
                             )
                         )
                 total_parameter_list += [parameter_list[i]] * len(operator_measurement_list)
