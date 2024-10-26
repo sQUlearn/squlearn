@@ -270,8 +270,7 @@ The following code runs only for a Qiskit version below 1.2, since the QFI Routi
       qfi = QFI(LinCombQGT(executor.get_estimator()))
       # Quantum Fischer Information can be evaluated as usual with qfi.run()
 
-If only the run function of the :class:`Executor <squlearn.Executor>` Primitive is wanted, this can be achieved by utilizing the
-:class:`Executor <squlearn.Executor>` class function :meth:`estimator_run_v1` and :meth:`sampler_run_v1` for V1 Primtives.
+If only the run function of the :class:`Executor <squlearn.Executor>` Primitive is wanted, this can be achieved by utilizing the :class:`Executor <squlearn.Executor>` class function :meth:`estimator_run_v1` and :meth:`sampler_run_v1` for V1 Primitives.
 If the Qiskit version is larger than 0.x, also the functions :meth:`estimator_run_v2` and :meth:`sampler_run_v2`are availble with the V2 Primtive interface.
 
 Note that the attributes :meth:`estimator` and :meth:`sampler` of the :class:`Executor <squlearn.Executor>` class are
@@ -358,6 +357,8 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
 
 .. jupyter-execute::
 
+   import warnings
+
    import numpy as np
    from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
    from squlearn.util import Executor
@@ -377,7 +378,9 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
        Adam({'maxiter':2}), # Two iteration for demonstration purposes only
        callback=None # Remove print of the progress bar for cleaner output
    )
-   qnn.fit(np.array([[0.25],[0.75]]),np.array([0.25,0.75]))
+   with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      qnn.fit(np.array([[0.25],[0.75]]),np.array([0.25,0.75]))
    print("Chosen backend:", executor.backend)
 
 In the following example, the service is used for initializing the :class:`Executor <squlearn.Executor>`, and

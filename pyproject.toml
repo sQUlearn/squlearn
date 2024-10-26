@@ -53,7 +53,7 @@ dev = [
 ]
 examples = [
     "jupyter",
-    "matplotlib>=3.5",
+    "matplotlib>=3.5.1",
     "mlflow",
     "pandas",
     "pylatexenc>=2.10",

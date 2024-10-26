@@ -368,6 +368,8 @@ in the model, as depicted in `figure 3`_.
               The QNN output has a low variance.
     :align: center
 
+    import warnings
+    
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
@@ -387,7 +389,9 @@ in the model, as depicted in `figure 3`_.
     param_op = np.array([-1.57350653,  0.87778247, -0.26884315])
     qnn = QNNRegressor(pqc, ising_op, exe, SquaredLoss, SLSQP(), param, param_op, pretrained=True)
     x = np.arange(np.min(0.1), np.max(0.8), 0.005).reshape(-1, 1)
-    y = qnn.predict(x)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        y = qnn.predict(x)
     plt.plot(x, np.log(x))
     plt.plot(x, y)
     plt.title("QNN inference with variance regularization")
