@@ -63,7 +63,7 @@ examples = [
 docs = [
     "ipykernel",
     "jupyter-sphinx",
-    "matplotlib>=3.5",
+    "matplotlib>=3.5.1",
     "myst-parser",
     "nbsphinx",
     "nbsphinx_link",
