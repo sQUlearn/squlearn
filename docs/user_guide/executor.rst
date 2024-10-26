@@ -271,10 +271,10 @@ The following code runs only for a Qiskit version below 1.2, since the QFI Routi
       # Quantum Fischer Information can be evaluated as usual with qfi.run()
 
 If only the run function of the :class:`Executor <squlearn.Executor>` Primitive is wanted, this can be achieved by utilizing the :class:`Executor <squlearn.Executor>` class function :meth:`estimator_run_v1` and :meth:`sampler_run_v1` for V1 Primitives.
-If the Qiskit version is larger than 0.x, also the functions :meth:`estimator_run_v2` and :meth:`sampler_run_v2`are availble with the V2 Primtive interface.
+If the Qiskit version is larger than 1, also the functions :meth:`estimator_run_v2` and :meth:`sampler_run_v2` are available with the V2 Primitive interface.
 
 Note that the attributes :meth:`estimator` and :meth:`sampler` of the :class:`Executor <squlearn.Executor>` class are
-not creating or referring to the :class:`Executor <squlearn.Executor>` primitives! Instead they refer to the
+not creating or referring to the :class:`Executor <squlearn.Executor>` primitives! Instead, they refer to the
 Qiskit Primitives used internally that do not utilize any caching, restarts, etc.
 
 
@@ -358,7 +358,6 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
 .. jupyter-execute::
 
    import warnings
-
    import numpy as np
    from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
    from squlearn.util import Executor

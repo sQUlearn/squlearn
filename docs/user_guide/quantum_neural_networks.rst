@@ -369,7 +369,6 @@ in the model, as depicted in `figure 3`_.
     :align: center
 
     import warnings
-    
     import numpy as np
     import matplotlib.pyplot as plt
     from squlearn import Executor
