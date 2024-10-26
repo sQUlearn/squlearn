@@ -1696,12 +1696,15 @@ class Executor:
                         self.primitive_result_metadata,
                     )
 
+                job_pickle.result = MethodType(result_, job_pickle)
+
             else:
                 # overwrite result function with the obtained result
                 def result_():
                     return result
 
-            job_pickle.result = MethodType(result_, job_pickle)
+                job_pickle.result = result_
+
             self._cache.store_file(hash_value, job_pickle)
             self._logger.info(f"Stored job in cache with hash value: {{}}".format(hash_value))
 
