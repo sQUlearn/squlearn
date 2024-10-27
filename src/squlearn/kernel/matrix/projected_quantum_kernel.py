@@ -147,7 +147,7 @@ class OuterKernelBase:
         return self._name_hyper_parameters
 
     @classmethod
-    def from_sklearn_kernel(cls, kernel: SklearnKernel, **kwarg):
+    def from_sklearn_kernel(cls, kernel: str, **kwarg):
         """Converts a scikit-learn kernel into a squlearn kernel
 
         Args:
@@ -164,9 +164,22 @@ class OuterKernelBase:
                 **kwarg: Arguments for the scikit-learn kernel parameters
             """
 
-            def __init__(self, kernel: SklearnKernel, **kwarg):
+            def __init__(self, kernel: str, **kwarg):
                 super().__init__()
-                self._kernel = kernel(**kwarg)
+
+                if kernel.lower() == "matern":
+                    self._kernel = Matern(**kwarg)
+                elif kernel.lower() == "expsinesquared":
+                    self._kernel = ExpSineSquared(**kwarg)
+                elif kernel.lower() == "rationalquadratic":
+                    self._kernel = RationalQuadratic(**kwarg)
+                elif kernel.lower() == "dotproduct":
+                    self._kernel = DotProduct(**kwarg)
+                elif kernel.lower() == "pairwisekernel":
+                    self._kernel = PairwiseKernel(**kwarg)
+                else:
+                    raise ValueError("Unknown scikit-learn kernel: {}".format(kernel))
+
                 self._name_hyper_parameters = [p.name for p in self._kernel.hyperparameters]
                 self._num_hyper_parameters = len(self._name_hyper_parameters)
 
@@ -439,6 +452,21 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         # finish initialization if num_features are present
         if self.encoding_circuit.num_features is not None:
             self._initialize_kernel()
+
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (
+                self._encoding_circuit,
+                self._executor,
+                self._measurement_input,
+                self._outer_kernel_input,
+                self._parameters,
+                self._parameter_seed,
+                self._regularization,
+                self._caching,
+            ),
+        )
 
     @property
     def num_features(self) -> int:
@@ -821,20 +849,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             kwargs.pop("num_qubits", None)
             if outer_kernel.lower() == "gaussian":
                 self._outer_kernel = GaussianOuterKernel(**kwargs)
-            elif outer_kernel.lower() == "matern":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(Matern, **kwargs)
-            elif outer_kernel.lower() == "expsinesquared":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(ExpSineSquared, **kwargs)
-            elif outer_kernel.lower() == "rationalquadratic":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(
-                    RationalQuadratic, **kwargs
-                )
-            elif outer_kernel.lower() == "dotproduct":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(DotProduct, **kwargs)
-            elif outer_kernel.lower() == "pairwisekernel":
-                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(PairwiseKernel, **kwargs)
             else:
-                raise ValueError("Unknown outer kernel: {}".format(outer_kernel))
+                self._outer_kernel = OuterKernelBase.from_sklearn_kernel(outer_kernel, **kwargs)
         elif isinstance(outer_kernel, OuterKernelBase):
             self._outer_kernel = outer_kernel
         else:

@@ -2,10 +2,11 @@ import numpy as np
 from typing import Union, List, Tuple
 
 import time
+from packaging import version
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
+from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
-from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
@@ -23,6 +24,18 @@ from .optree import (
     OpTreeExpectationValue,
     OpTreeMeasuredOperator,
 )
+
+QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+
+if QISKIT_SMALLER_1_2:
+
+    class BitArray:
+        """Dummy BitArray."""
+
+else:
+    from qiskit.primitives import BitArray
+
+from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
@@ -718,7 +731,7 @@ def _add_offset_to_tree(
 
 def _evaluate_expectation_from_sampler(
     operator: List[SparsePauliOp],
-    results: SamplerResult,
+    results: Union[SamplerResult, List[BitArray]],
     operator_measurement_list: Union[None, List[List[int]]] = None,
     offset: int = 0,
 ):
@@ -761,10 +774,17 @@ def _evaluate_expectation_from_sampler(
                 + "run transform_to_zbasis first"
             )
 
+    primitives_v2 = False
+    if isinstance(results, SamplerResult):
+        num_results = len(results.quasi_dists)
+    else:
+        num_results = len(results)
+        primitives_v2 = True
+
     # If no measurement is present, create one where every circuit is connected to all
     # operators
     if operator_measurement_list is None:
-        operator_measurement_list_ = list(range(0, len(operator))) * len(results.quasi_dists)
+        operator_measurement_list_ = list(range(0, len(operator))) * num_results
     else:
         operator_measurement_list_ = operator_measurement_list
 
@@ -780,21 +800,30 @@ def _evaluate_expectation_from_sampler(
         raise ValueError("Wrong depth of operator_measurement_list")
 
     # Calulate the expectation value with internal Qiskit function
-    exp_val = np.array(
-        [
-            np.real_if_close(
-                np.dot(
-                    _pauli_expval_with_variance(
-                        results.quasi_dists[icirc + offset].binary_probabilities(),
-                        op_pauli_list[iop],
-                    )[0],
-                    operator[iop].coeffs,
+    if primitives_v2:
+        exp_val = np.array(
+            [
+                np.real_if_close(results[icirc + offset].expectation_values(operator[iop]))
+                for icirc, oplist in enumerate(flatted_resort_list)
+                for iop in oplist
+            ]
+        )
+    else:
+        exp_val = np.array(
+            [
+                np.real_if_close(
+                    np.dot(
+                        _pauli_expval_with_variance(
+                            results.quasi_dists[icirc + offset].binary_probabilities(),
+                            op_pauli_list[iop],
+                        )[0],
+                        operator[iop].coeffs,
+                    )
                 )
-            )
-            for icirc, oplist in enumerate(flatted_resort_list)
-            for iop in oplist
-        ]
-    )
+                for icirc, oplist in enumerate(flatted_resort_list)
+                for iop in oplist
+            ]
+        )
 
     if depth_om_list == 3:
         # Resort results into the operator order (so far in measurement order)
@@ -804,7 +833,7 @@ def _evaluate_expectation_from_sampler(
             flatted_resort_list_circ = [item2 for item in outer_circ for item2 in item]
             index_list.append(list(np.argsort(flatted_resort_list_circ) + ioff))
             ioff += len(flatted_resort_list_circ)
-        return exp_val[index_list]
+        return np.take(exp_val, index_list)
     else:
         # two nested lists -> No need to resort
         return exp_val
@@ -830,6 +859,13 @@ def _transform_operator_to_zbasis(
         terms. If no transformation is needed, the input operator is returned without any changes.
     """
 
+    if QISKIT_SMALLER_1_2:
+        measurement_circuit = BackendEstimator._measurement_circuit
+    else:
+        from qiskit.primitives.backend_estimator_v2 import (
+            _measurement_circuit as measurement_circuit,
+        )
+
     # Adjust measurements to be possible in Z basis
     if isinstance(operator, OpTreeOperator):
         operator = operator.operator
@@ -847,7 +883,7 @@ def _transform_operator_to_zbasis(
         for op in operator.group_commuting(qubit_wise=True):
             # Build the measurement circuit and the adjusted measurements
             basis = Pauli((np.logical_or.reduce(op.paulis.z), np.logical_or.reduce(op.paulis.x)))
-            meas_circuit, indices = BackendEstimator._measurement_circuit(op.num_qubits, basis)
+            meas_circuit, indices = measurement_circuit(op.num_qubits, basis)
             z_list = [
                 [
                     op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i]
@@ -871,7 +907,7 @@ def _transform_operator_to_zbasis(
     else:
         for basis, op in zip(operator.paulis, operator):  # type: ignore
             # Build the measurement circuit and the adjusted measurements
-            meas_circuit, indices = BackendEstimator._measurement_circuit(op.num_qubits, basis)
+            meas_circuit, indices = measurement_circuit(op.num_qubits, basis)
             z_list = [
                 [
                     op.paulis.z[j, indices][i] or op.paulis.x[j, indices][i]
@@ -896,7 +932,7 @@ def _transform_operator_to_zbasis(
     return OpTreeSum(children_list)
 
 
-def _measure_all_unmeasured(circ_in):
+def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
     """Helper function for circuits with in-circuit measurements."""
 
     def change_order(n, reorder_list):
@@ -930,12 +966,16 @@ def _measure_all_unmeasured(circ_in):
                             " if one defines an observable with X,Y Pauli measurements on a qubit,"
                             " which is already measured in an in-circuit measurement."
                         )
+
         circ = circ_in.copy()
-        new_creg = circ._create_creg(len(qubits), "meas")
-        circ.add_register(new_creg)
-        circ.measure(qubits, new_creg)
-        if len(qubits) == circ_in.num_qubits:
-            return circ
+        if not final_measurements:
+            # Add measurements to all non measured qubits if not measured
+            new_creg = circ._create_creg(len(qubits), "meas")
+            circ.add_register(new_creg)
+            if not final_measurements:
+                circ.measure(qubits, new_creg)
+                if len(qubits) == circ_in.num_qubits:
+                    return circ
 
         new_ordering = []
         for instruction, qargs, cargs in circ.data:
@@ -944,10 +984,15 @@ def _measure_all_unmeasured(circ_in):
                     new_ordering.append([circ.find_bit(qargs[n])[0], circ.find_bit(cargs[n])[0]])
 
         circ_new = QuantumCircuit(circ.num_qubits)
-        new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+        if not final_measurements:
+            new_creg = circ_new._create_creg(circ.num_qubits, "meas")
+        else:
+            new_creg = circ_new._create_creg(circ_in.num_clbits, "meas")
         circ_new.add_register(new_creg)
         for instruction, qargs, cargs in circ.data:
-            if instruction.name == "measure":  # to adjust the clbits of measurements
+            if (
+                instruction.name == "measure" and not final_measurements
+            ):  # to adjust the clbits of measurements
                 clbits = [circ.find_bit(i)[0] for i in qargs]
             else:
                 clbits = [circ.find_bit(i)[0] for i in cargs]
@@ -973,7 +1018,7 @@ class OpTreeEvaluate:
         operator: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeMeasuredOperator],
         dictionary_circuit: Union[dict, List[dict]],
         dictionary_operator: Union[dict, List[dict]],
-        sampler: BaseSampler,
+        sampler: Union[BaseSamplerV1, BaseSamplerV2],
         dictionaries_combined: bool = False,
         detect_duplicates: bool = True,
     ) -> Union[float, np.ndarray]:
@@ -990,22 +1035,21 @@ class OpTreeEvaluate:
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or OpTree
-                                                                                with circuits to be
-                                                                                evaluated.
-            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafMeasuredOperator]): The operator or OpTree in the expectation values.
+            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or
+                OpTree with circuits to be evaluated.
+            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafMeasuredOperator]):
+                The operator or OpTree in the expectation values.
             dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        circuit (or the circuit OpTree).
-            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        operator (or the operator OpTree).
-            sampler (BaseSampler): The sampler primitive that is used for the evaluation.
+                contain the values for the parameters in the circuit (or the circuit OpTree).
+            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the operator
+                (or the operator OpTree).
+            sampler (Union[BaseSamplerV1, BaseSamplerV2]): The sampler primitive that is used
+                for the evaluation.
             dictionaries_combined (bool): If True, the function evaluates the expectation value for
-                                            the same index of the dictionaries (both have to be Lists).
-                                            Defaults to False.
+                the same index of the dictionaries (both have to be Lists). Defaults to False.
             detect_duplicates (bool): If True, the removes duplicate circuits and operators from the
-                                    evaluation list. Defaults to True.
+                evaluation list. Defaults to True.
 
         Returns:
             The expectation value of the expectation values as a numpy array.
@@ -1069,7 +1113,8 @@ class OpTreeEvaluate:
                     else:
                         total_circuit_list.append(
                             _measure_all_unmeasured(
-                                circ_unmeasured.compose(measure, inplace=False)
+                                circ_unmeasured.compose(measure, inplace=False),
+                                final_measurements=True,
                             )
                         )
                 total_parameter_list += [parameter_list[i]] * len(operator_measurement_list)
@@ -1094,7 +1139,13 @@ class OpTreeEvaluate:
         # print("Number of circuits for sampler: ", len(total_circuit_list))
 
         if len(total_circuit_list) > 0:
-            sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+            if isinstance(sampler, BaseSamplerV1):
+                sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+            elif isinstance(sampler, BaseSamplerV2):
+                pubs = list(zip(total_circuit_list, total_parameter_list))
+                sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+            else:
+                raise ValueError("Unknown sampler type!")
         else:
             sampler_result = []
         # print("Sampler run time: ", time.time() - start)
@@ -1167,7 +1218,7 @@ class OpTreeEvaluate:
         operator: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp],
         dictionary_circuit: Union[dict, List[dict]],
         dictionary_operator: Union[dict, List[dict]],
-        estimator: BaseEstimator,
+        estimator: Union[BaseEstimatorV1, BaseEstimatorV2],
         dictionaries_combined: bool = False,
         detect_duplicates: bool = True,
     ) -> Union[float, np.ndarray]:
@@ -1176,30 +1227,31 @@ class OpTreeEvaluate:
 
         Inputted are a circuit and operator in OpTree format, and a dictionaries that contain the
         values for the parameters in the circuit and operator.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation
         value for all combinations of the dictionaries, or if ``dictionaries_combined==True``, the
         function evaluates the expectation value for the same index of the dictionaries.
 
-        The function also checks if the same circuit or operator occurs multiple times, and only adds
+        The function also checks if the same circuit or operator occurs multiple times, and only
+        adds
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or OpTree
-                                                                                with circuits to be
-                                                                                evaluated.
-            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]): The operator or OpTree in the expectation values.
-            dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        circuit (or the circuit OpTree).
-            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        operator (or the operator OpTree).
-            estimator (BaseEstimator): The estimator primitive that is used for the evaluation.
+            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or
+                OpTree with circuits to be evaluated.
+            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]): The operator or
+                OpTree in the expectation values.
+            dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the circuit (or the circuit OpTree).
+            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the operator
+                (or the operator OpTree).
+            estimator (Union[BaseEstimatorV1,BaseEstimatorV2]): The estimator primitive that is
+                used for the evaluation.
             dictionaries_combined (bool): If True, the function evaluates the expectation value for
-                                            the same index of the dictionaries (both have to be Lists).
-                                            Defaults to False.
-            detect_duplicates (bool): If True, the removes duplicate circuits and operators from the
-                                    evaluation list. Defaults to True.
+                the same index of the dictionaries (both have to be Lists). Defaults to False.
+            detect_duplicates (bool): If True, the removes duplicate circuits and operators from
+                the evaluation list. Defaults to True.
 
         Returns:
             The expectation value of the expectation values as a numpy array.
@@ -1313,11 +1365,18 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
-        estimator_result = (
-            estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
-            .result()
-            .values
-        )
+        if isinstance(estimator, BaseEstimatorV1):
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+                .result()
+                .values
+            )
+        elif isinstance(estimator, BaseEstimatorV2):
+            pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
+            estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+        else:
+            raise ValueError("Unknown estimator type!")
+
         # print("Estimator run time: ", time.time() - start)
 
         # Assembly the final values from the evaluation tree
@@ -1331,7 +1390,7 @@ class OpTreeEvaluate:
     def evaluate_tree_with_estimator(
         expectation_tree: Union[OpTreeNodeBase, OpTreeExpectationValue],
         dictionary: Union[List[dict], dict],
-        estimator: BaseEstimator,
+        estimator: Union[BaseEstimatorV1, BaseEstimatorV2],
         detect_duplicates: bool = False,
     ) -> Union[float, np.ndarray]:
         """
@@ -1339,21 +1398,20 @@ class OpTreeEvaluate:
 
         The OpTree can only contain expectation values, and the estimator is used to evaluate the
         expectation values.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
-        value for all combinations of the dictionaries.
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation value for all combinations of the dictionaries.
         The function also checks if the same expectation value occurs multiple times, and only adds
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            expectation_tree (Union[OpTreeNodeBase,OpTreeLeafExpectationValue]): The expectation OpTree
-                                                                                to be evaluated.
-            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and their
-                                                values. Can be list for the evaluation of multiple
-                                                dictionaries.
-            estimator (BaseEstimator): The estimator primitive that is used for the evaluation.
-            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values are
-                                                            detected and only evaluated once.
-                                                            Defaults to True.
+            expectation_tree (Union[OpTreeNodeBase,OpTreeExpectationValue]): The expectation OpTree
+                to be evaluated.
+            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and
+                their values. Can be list for the evaluation of multiple dictionaries.
+            estimator (Union[BaseEstimatorV1,BaseEstimatorV2]): The estimator primitive that is
+                used for the evaluation.
+            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values
+                are detected and only evaluated once. Defaults to True.
 
         Returns:
             The expectation value of the expectation OpTree as a numpy array.
@@ -1405,11 +1463,17 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
-        estimator_result = (
-            estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
-            .result()
-            .values
-        )
+        if isinstance(estimator, BaseEstimatorV1):
+            estimator_result = (
+                estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
+                .result()
+                .values
+            )
+        elif isinstance(estimator, BaseEstimatorV2):
+            pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
+            estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+        else:
+            raise ValueError("Unknown estimator type!")
         # print("Run time of estimator: ", time.time() - start)
 
         # Final assembly of the results
@@ -1420,29 +1484,31 @@ class OpTreeEvaluate:
 
     @staticmethod
     def evaluate_tree_with_sampler(
-        expectation_tree, dictionary, sampler, detect_duplicates: bool = True
+        expectation_tree: Union[OpTreeNodeBase, OpTreeExpectationValue],
+        dictionary: Union[List[dict], dict],
+        sampler: Union[BaseSamplerV1, BaseSamplerV2],
+        detect_duplicates: bool = True,
     ):
         """
         Evaluate a expectation tree with a sampler.
 
         The OpTree can only contain expectation values, and the sampler is used to evaluate the
         expectation values.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
-        value for all combinations of the dictionaries.
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation value for all combinations of the dictionaries.
         The function also checks if the same circuit or expectation value occurs multiple times,
         and only adds it once to the evaluation list.
         This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            expectation_tree (Union[OpTreeNodeBase,OpTreeLeafExpectationValue]): The expectation OpTree
-                                                                                to be evaluated.
-            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and their
-                                                values. Can be list for the evaluation of multiple
-                                                dictionaries.
-            sampler (BaseSampler): The sampler primitive that is used for the evaluation.
-            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values and
-                                                            circuits are detected and only evaluated
-                                                            once.
+            expectation_tree (Union[OpTreeNodeBase, OpTreeExpectationValue]): The expectation
+                OpTree to be evaluated.
+            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and
+                their values. Can be list for the evaluation of multiple dictionaries.
+            sampler (Union[BaseSamplerV1, BaseSamplerV2]): The sampler primitive that is used
+                for the evaluation.
+            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values
+                and circuits are detected and only evaluated once.
 
         Returns:
             The expectation value of the expectation OpTree as a numpy array.
@@ -1499,7 +1565,13 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             _evaluate_index_tree(evaluation_tree, [])
 
-        sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        if isinstance(sampler, BaseSamplerV1):
+            sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
+        elif isinstance(sampler, BaseSamplerV2):
+            pubs = list(zip(total_circuit_list, total_parameter_list))
+            sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+        else:
+            raise ValueError("Unknown sampler type!")
         # print("Sampler run time: ", time.time() - start)
 
         # Computation of the expectation values from the sampler results
@@ -1530,9 +1602,11 @@ class OpTreeEvaluate:
         The function transforms the operators to the Z basis by adding measurement circuits.
 
         Args:
-            optree_element (Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue, SparsePauliOp]): The OpTree structure to be transformed.
+            optree_element (Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue, SparsePauliOp]):
+                The OpTree structure to be transformed.
             abelian_grouping (bool, optional): If True, the operator is grouped into commuting terms.
-                                            Defaults to True.
+                Defaults to True.
+
         Returns:
             The transformed OpTree structure.
         """

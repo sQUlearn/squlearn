@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Union, Set
 import copy
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.compiler import transpile
@@ -34,6 +34,14 @@ def _circuit_parameter_shift(
         The parameter shift derivative of the circuit (always a OpTreeNodeSum)
     """
 
+    def _param_in_instruction(instruction, parameter):
+        if len(instruction.params) == 0:
+            return False
+        if not isinstance(instruction.params[0], ParameterExpression):
+            return parameter == instruction.params[0]
+        else:
+            return parameter in instruction.params[0].parameters
+
     if isinstance(element, OpTreeValue):
         return OpTreeValue(0.0)
 
@@ -50,18 +58,36 @@ def _circuit_parameter_shift(
     circuit = OpTreeDerivative.transpile_to_supported_instructions(circuit)
 
     # Return None when the parameter is not in the circuit
-    if parameter not in circuit._parameter_table:
+    if parameter not in circuit.parameters:
         return OpTreeValue(0.0)
 
-    iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
     shift_sum = OpTreeSum()
-    # Loop through all parameter occurences in the circuit
-    for param_reference in circuit._parameter_table[parameter]:  # pylint: disable=protected-access
-        # Get the gate in which the parameter is located
-        original_gate, param_index = param_reference
-        m = iref_to_data_index[id(original_gate)]
 
-        # Get derivative of the factor of the gate
+    primitives_v2 = False
+    iref_to_data_index = None
+    param_table = []
+    if hasattr(circuit, "_parameter_table"):
+        param_table = circuit._parameter_table[parameter]  # pylint: disable=protected-access
+        iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
+    else:
+        primitives_v2 = True
+        param_table = []
+        operator_index = 0
+        for inst in circuit.data:
+            if _param_in_instruction(inst, parameter):
+                param_table.append((inst.operation, operator_index))
+            operator_index += 1
+
+    # Loop through all parameter occurences in the circuit
+    for param_reference in param_table:
+
+        # Get the gate in which the parameter is located
+        if primitives_v2:
+            original_gate, m = param_reference
+        else:
+            original_gate, _ = param_reference
+            m = iref_to_data_index[id(original_gate)]
+
         fac = original_gate.params[0].gradient(parameter)
 
         # Copy the circuit for the shifted ones
@@ -73,15 +99,19 @@ def _circuit_parameter_shift(
         mshift_gate = mshift_circ.data[m].operation
 
         # Get the parameter instances in the shited circuits
-        p_param = pshift_gate.params[param_index]
-        m_param = mshift_gate.params[param_index]
+        p_param = pshift_gate.params[0]
+        m_param = mshift_gate.params[0]
 
         # Shift the parameter in the gates
         # For analytic gradients the circuit parameters are shifted once by +pi/2 and
         # once by -pi/2.
         shift_constant = 0.5
-        pshift_gate.params[param_index] = p_param + (np.pi / (4 * shift_constant))
-        mshift_gate.params[param_index] = m_param - (np.pi / (4 * shift_constant))
+        pshift_gate.params[0] = p_param + (np.pi / (4 * shift_constant))
+        mshift_gate.params[0] = m_param - (np.pi / (4 * shift_constant))
+
+        # Save replaced gates in the circuit
+        pshift_circ.data[m] = pshift_circ.data[m].replace(operation=pshift_gate)
+        mshift_circ.data[m] = mshift_circ.data[m].replace(operation=mshift_gate)
 
         # Append the shifted circuits to the sum
         if input_type == "leaf":

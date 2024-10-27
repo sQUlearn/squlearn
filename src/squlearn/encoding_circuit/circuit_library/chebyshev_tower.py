@@ -4,7 +4,7 @@ import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 

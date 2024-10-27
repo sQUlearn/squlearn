@@ -63,7 +63,7 @@ def test_kernel_optimizer_for_regressor_classes(
     model.fit(regression_data[0], regression_data[1])
     assert kernel_optimizer.get_optimal_parameters() is not None
     assert kernel_optimizer._optimizer is not None
-    assert kernel_optimizer.is_fitted is True
+    assert kernel_optimizer.is_fitted
 
 
 @pytest.mark.parametrize("high_level_class", [QGPC, QSVC])
@@ -83,4 +83,4 @@ def test_kernel_opimizer_for_classification_classes(
     model.fit(classification_data[0], classification_data[1])
     assert kernel_optimizer.get_optimal_parameters() is not None
     assert kernel_optimizer._optimizer is not None
-    assert kernel_optimizer.is_fitted is True
+    assert kernel_optimizer.is_fitted

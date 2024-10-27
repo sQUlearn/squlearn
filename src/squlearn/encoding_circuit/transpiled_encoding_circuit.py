@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union, Callable
 
 from qiskit.circuit import ParameterVector
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
 
