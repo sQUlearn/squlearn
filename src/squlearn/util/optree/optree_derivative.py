@@ -63,14 +63,14 @@ def _circuit_parameter_shift(
 
     shift_sum = OpTreeSum()
 
-    qiskit_12 = False
+    primitives_v2 = False
     iref_to_data_index = None
     param_table = []
     if hasattr(circuit, "_parameter_table"):
         param_table = circuit._parameter_table[parameter]  # pylint: disable=protected-access
         iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circuit.data)}
     else:
-        qiskit_12 = True
+        primitives_v2 = True
         param_table = []
         operator_index = 0
         for inst in circuit.data:
@@ -82,7 +82,7 @@ def _circuit_parameter_shift(
     for param_reference in param_table:
 
         # Get the gate in which the parameter is located
-        if qiskit_12:
+        if primitives_v2:
             original_gate, m = param_reference
         else:
             original_gate, _ = param_reference

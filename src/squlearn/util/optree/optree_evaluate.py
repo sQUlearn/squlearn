@@ -774,12 +774,12 @@ def _evaluate_expectation_from_sampler(
                 + "run transform_to_zbasis first"
             )
 
-    qiskitv2 = False
+    primitives_v2 = False
     if isinstance(results, SamplerResult):
         num_results = len(results.quasi_dists)
     else:
         num_results = len(results)
-        qiskitv2 = True
+        primitives_v2 = True
 
     # If no measurement is present, create one where every circuit is connected to all
     # operators
@@ -800,7 +800,7 @@ def _evaluate_expectation_from_sampler(
         raise ValueError("Wrong depth of operator_measurement_list")
 
     # Calulate the expectation value with internal Qiskit function
-    if qiskitv2:
+    if primitives_v2:
         exp_val = np.array(
             [
                 np.real_if_close(results[icirc + offset].expectation_values(operator[iop]))
