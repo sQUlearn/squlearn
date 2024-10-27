@@ -1,7 +1,7 @@
 from typing import List, Union, Callable, Any
 import copy
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import ParameterExpression
 
