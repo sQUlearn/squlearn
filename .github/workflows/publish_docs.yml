@@ -25,7 +25,7 @@ jobs:
             with:
               docs-folder: "docs/"
               pre-build-command: "pip3 install .[docs]"
-              build-command: "sphinx-build -b html . _build -W"
+              build-command: "sphinx-build -E -b html . _build -W"
           - name: Commit Files
             run: |
               cd docs/_build
