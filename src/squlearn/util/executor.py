@@ -171,23 +171,36 @@ from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
 
 
 class Executor:
-    """
+    r"""
     A class for executing quantum jobs on IBM Quantum systems or simulators.
 
     The Executor class is the central component of sQUlearn, responsible for running quantum jobs.
     Both high- and low-level methods utilize the Executor class to execute jobs seamlessly.
-    It automatically creates the necessary primitives when they are required in the sQUlearn
-    sub-program. The Executor takes care about session handling, result caching, and automatic
+    It for example automatically creates the necessary Qiskit primitives when they are
+    required in the sQUlearn sub-program or takes care of the execution of PennyLane circuits.
+    The Executor takes care about Qiskit Runtime session handling, result caching, and automatic
     restarts of failed jobs.
 
     The Estimator can be initialized with various objects that specify the execution environment,
-    as for example a Qiskit backend either from IBM Quantum or a Aer simulator.
+    as for example a Qiskit backend or a PennyLane device.
 
     A detailed introduction to the Executor can be found in the
     :doc:`User Guide: The Executor Class </user_guide/executor>`
 
+    The version of Qiskit Primitives used by the Executor depends on the installed Qiskit version:
+    - For Qiskit versions 1.2 and above, the Executor uses Qiskit Primitives V2.
+    - For versions below 1.2, it defaults to Primitives V1.
+
+    Note: The Sampler in Primitives V2 uses shots, even with statevector simulators, whereas
+    Primitives V1 provides exact probabilities.
+
+    **Important**: When using the Executor to run jobs on IBM Quantum systems, sessions are
+    created automatically. If you are working in a Jupyter notebook, ensure you close the session
+    once calculations are complete to avoid unnecessary open sessions (:meth:`close_session`),
+    to avoide being charged for the opened but unused session.
+
     Args:
-        execution (Union[str, Backend, QiskitRuntimeService, Session, BaseEstimatorV1, BaseSamplerV1]):
+        execution (Union[str, Backend, List[Backend], QiskitRuntimeService, Session,BaseEstimatorV1, BaseSamplerV1, BaseEstimatorV2, BaseSamplerV2, PennylaneDevice]):
             The execution environment, possible inputs are:
 
                 * A string, that specifics the simulator backend. For Qiskit this can be
@@ -200,17 +213,15 @@ class Executor:
                 * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
                   In this case the backend has to be provided separately via ``backend=``
                 * A Session, to run the jobs on the Qiskit Runtime service
-                * A Estimator primitive (either simulator or Qiskit Runtime primitive)
-                * A Sampler primitive (either simulator or Qiskit Runtime primitive)
+                * A Estimator primitive (either simulator or Qiskit Runtime primitive - V1 or V2)
+                * A Sampler primitive (either simulator or Qiskit Runtime primitive - V1 or V2)
 
             Default is the initialization with PennyLane's
             :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator.
         backend (Union[Backend, str, None]): The backend that is used for the execution.
             Only mandatory if a service is provided.
-        options_estimator (Union[Options, Options, None]): The options for the created estimator
-            primitives.
-        options_sampler (Union[Options, Options, None]): The options for the created sampler
-            primitives.
+        options_estimator (Union[Any]): The options for the created estimator primitives.
+        options_sampler (Union[Any]): The options for the created sampler primitives.
         log_file (str): The name of the log file, if empty, no log file is created.
         caching (Union[bool, None]): Whether to cache the results of the jobs.
         cache_dir (str): The directory where to cache the results of the jobs.
@@ -238,24 +249,37 @@ class Executor:
     Attributes:
         execution (str): String of the execution environment.
         backend (Backend): The backend that is used in the Executor.
+        backend_list (List[Backend]): The list of backends used for the automatic backend
+            selection.
+        backend_chosen (Bool): True, if the backend was chosen automatically.
+        backend_name (str): The name of the backend that is used in the Executor.
+        is_statevector (Bool): Returns true if the backend is a statevector simulator.
+        qpu_parallelization (Bool): Returns true if QPU parallelization is used.
         session (Session): The session that is used in the Executor.
         service (QiskitRuntimeService): The service that is used in the Executor.
-        estimator (BaseEstimatorV1): The Qiskit estimator primitive that is used in the Executor.
+        quantum_framework (str): The framework used in the Executor (``"qiskit"`` or
+            ``"pennylane"``).
+        IBMQuantum (bool): Whether the backend is an IBM Quantum backend.
+        estimator (BaseEstimatorV1, BaseEstimatorV2): The Qiskit estimator primitive that is used
+                                   in the Executor.
                                    Different to :meth:`get_estimator`,
                                    which creates a new estimator object with overwritten methods
                                    that runs everything through the Executor with
                                    :meth:`estimator_run`.
-        sampler (BaseSamplerV1): The Qiskit sampler primitive that is used in the Executor.
-                               Different to :meth:`get_sampler`,
+        sampler (BaseSamplerV1, BaseEstimatorV2): The Qiskit sampler primitive that is used in the
+                               Executor. Different to :meth:`get_sampler`,
                                which creates a new sampler object with overwritten methods
                                that runs everything through the Executor with
                                :meth:`estimator_run`.
         shots (int): The number of shots that is used in the Executor.
+        estimator_options: Options of the Runtime Estiamtor V2
+        sampler_options: Options of the Runtime Sampler V2
 
     See Also:
        * :doc:`User Guide: The Executor Class </user_guide/executor>`
-       * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
-       * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
+       * `Qiskit Runtime <https://docs.quantum.ibm.com/api/qiskit-ibm-runtime>`_
+       * `Qsikit Primitives <https://docs.quantum.ibm.com/api/qiskit/primitives>`_
+       * `PennyLane Devices <https://docs.pennylane.ai/en/stable/code/api/pennylane.device.html>`_
 
     **Example: Different PennyLane based initializations of the Executor**
 
@@ -298,11 +322,11 @@ class Executor:
 
        # Executor with a IBM Quantum backend
        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.get_backend('ibm_nairobi'))
+       executor = Executor(service.get_backend('ibm_brisbane'))
 
        # Executor with a IBM Quantum backend and caching and logging
        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.get_backend('ibm_nairobi'), caching=True,
+       executor = Executor(service.get_backend('ibm_brisbane'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
     **Example: Get the Executor based Qiskit primitives**
@@ -314,12 +338,11 @@ class Executor:
        # Initialize the Executor
        executor = Executor("statevector_simulator")
 
-       # Get the Executor based Estimator - can be used as a normal Qiskit Estimator
+       # Get the Executor based Estimator with all execusions routed through the Executor
        estimator = executor.get_estimator()
 
-       # Get the Executor based Sampler - can be used as a normal Qiskit Sampler
+       # Get the Executor based Sampler with all execusions routed through the Executor
        sampler = executor.get_sampler()
-
 
        # Run a circuit with the Executor based Sampler
        from qiskit.circuit.random import random_circuit
@@ -349,6 +372,9 @@ class Executor:
        # All the following functions will be executed on the selected backend
        X_train, y_train = np.array([[0.1],[0.2]]), np.array([0.1,0.2])
        qkrr.fit(X_train, y_train)
+
+       # Close the session to avoid being charged for the opened but unused session
+       executor.close_session()
 
     **Example: QPU parallelization**
 
@@ -1012,7 +1038,7 @@ class Executor:
 
     @property
     def qpu_parallelization(self) -> bool:
-        """Returns true if the backend has been chosen."""
+        """Returns true if QPU parallelization is used."""
         return self._qpu_parallelization is not None
 
     @property
@@ -1026,7 +1052,7 @@ class Executor:
         return self._service
 
     def _estimator_v1(self) -> BaseEstimatorV1:
-        """Returns the estimator primitive that is used for the execution.
+        """Returns the Estimator V1 primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
@@ -1109,7 +1135,7 @@ class Executor:
         return estimator
 
     def _estimator_v2(self) -> BaseEstimatorV2:
-        """Returns the estimator primitive that is used for the execution.
+        """Returns the Estimator V2 primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
@@ -1235,7 +1261,10 @@ class Executor:
 
     @property
     def estimator(self) -> Union[BaseEstimatorV1, BaseEstimatorV2]:
-        """Returns the estimator primitive that is used for the execution."""
+        """Returns the estimator primitive that is used for the execution.
+
+        For Qiskit >= 1.2 the Estimator V2 is used, for Qiskit < 1.2 the Estimator V1 is returned.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Estimator is only available for Qiskit backends")
@@ -1263,14 +1292,14 @@ class Executor:
             self._estimator._observable_ids = {}
 
     def _sampler_v1(self) -> BaseSamplerV1:
-        """Returns the sampler primitive that is used for the execution.
+        """Returns the Sampler V1 primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
 
         Note that the run function is the same as in the Qiskit primitives, and
         does not support caching, session handing, etc.
-        For this use :meth:`sampler_run` or :meth:`get_sampler`.
+        For this use :meth:`sampler_run_v1` or :meth:`get_sampler`.
 
         The sampler that is created depends on the backend that is used for the execution.
         """
@@ -1350,14 +1379,14 @@ class Executor:
         return sampler
 
     def _sampler_v2(self) -> BaseSamplerV2:
-        """Returns the sampler primitive that is used for the execution.
+        """Returns the Sampler V2 primitive that is used for the execution.
 
         This function created automatically estimators and checks for an expired session and
         creates a new one if necessary.
 
         Note that the run function is the same as in the Qiskit primitives, and
         does not support caching, session handing, etc.
-        For this use :meth:`sampler_run` or :meth:`get_sampler`.
+        For this use :meth:`sampler_run_v2` or :meth:`get_sampler`.
 
         The sampler that is created depends on the backend that is used for the execution.
         """
@@ -1468,7 +1497,10 @@ class Executor:
 
     @property
     def sampler(self) -> Union[BaseSamplerV1, BaseSamplerV2]:
-        """Returns the sampler primitive that is used for the execution."""
+        """Returns the sampler primitive that is used for the execution.
+
+        For Qiskit >= 1.2 the Sampler V2 is used, for Qiskit < 1.2 the Sampler V1 is returned.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Estimator is only available for Qiskit backends")
@@ -1513,7 +1545,6 @@ class Executor:
         critical_error = False
         critical_error_message = None
 
-        # TODO V2 better selection
         if "v2" in label and self.IBMQuantum:
             final_states = ("DONE", "CANCELLED", "ERROR")
         else:
@@ -1665,7 +1696,6 @@ class Executor:
             except (QiskitError, AttributeError):
                 job_pickle._backend = str(self.backend)
 
-            # TODO V2: Better selection criterion
             if "v2" in label:
                 # Modify the result function for V2 primitives
                 # to be able to pickle the result
@@ -1714,7 +1744,7 @@ class Executor:
         self, circuits, observables, parameter_values=None, **kwargs: Any
     ) -> JobV1:
         """
-        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        Function similar to the Qiskit Estimator V1 run function, but this one includes caching,
         automatic session handling, and restarts of failed jobs.
 
         Args:
@@ -1838,18 +1868,18 @@ class Executor:
             )
 
     def estimator_run_v2(
-        self, pubs: Iterable[EstimatorPubLike], *, precision: Union[float, None] = None
+        self, pubs: Iterable[EstimatorPubLike], precision: Union[float, None] = None
     ):
         """
-        Function similar to the Qiskit Estimator run function, but this one includes caching,
+        Function similar to the Qiskit Estimator V2 run function, but this one includes caching,
         automatic session handling, and restarts of failed jobs.
 
         Args:
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
-                or ``(circuit, observables, parameter_values)``.
-            precision: The target precision for expectation value estimates of each
-                run Estimator Pub that does not specify its own precision. If None
-                the estimator's default precision value will be used.
+            pubs (Iterable[EstimatorPubLike]): An iterable of pub-like objects, such as
+                tuples ``(circuit, observables)`` or ``(circuit, observables, parameter_values)``.
+            precision (Union[float, None]): The target precision for expectation value estimates
+                of each run Estimator Pub that does not specify its own precision. If None
+                the the precision is set by the executor number of shots.
 
         Returns:
             A qiskit job containing the results of the run.
@@ -1915,7 +1945,7 @@ class Executor:
 
     def sampler_run_v1(self, circuits, parameter_values=None, **kwargs: Any) -> JobV1:
         """
-        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        Function similar to the Qiskit Sampler V1 run function, but this one includes caching,
         automatic session handling, and restarts of failed jobs.
 
         Args:
@@ -1985,13 +2015,14 @@ class Executor:
 
     def sampler_run_v2(self, pubs: Iterable[SamplerPubLike], *, shots: Union[int, None] = None):
         """
-        Function similar to the Qiskit Sampler run function, but this one includes caching,
+        Function similar to the Qiskit Sampler V2 run function, but this one includes caching,
         automatic session handling, and restarts of failed jobs.
 
         Args:
-            circuits: Quantum circuits to execute.
-            parameter_values: Values for the parameters in circuits.
-            kwargs (Any): Additional arguments that are passed to the estimator.
+            pubs (Iterable[EstimatorPubLike]): An iterable of pub-like objects, such as
+                tuples ``(circuit,)`` or ``(circuit, parameter_values)``.
+            shots (Union[int, None]): The number of shots used for the sampling. If None
+                the Executors numer of shot will be used.
 
         Returns:
             A qiskit job containing the results of the run.
@@ -2010,7 +2041,7 @@ class Executor:
             )
 
         if circuits_contains_conditions:
-            if self.shots is None:
+            if self.shots is None and shots is None:
                 raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
             if self.is_statevector:
                 self._switch_to_backend_primitive("sampler_v2")
@@ -2054,8 +2085,11 @@ class Executor:
     def get_estimator(self):
         """
         Returns a Estimator primitive that overwrites the Qiskit Estimator primitive.
+
         This Estimator runs all executions through the Executor and
         includes result caching, automatic session handling, and restarts of failed jobs.
+
+        For Qiskit >= 1.2 the Estimator V2 is used, for Qiskit < 1.2 the Estimator V1 is returned.
         """
 
         if self._estimator is not None:
@@ -2071,8 +2105,11 @@ class Executor:
     def get_sampler(self):
         """
         Returns a Sampler primitive that overwrites the Qiskit Sampler primitive.
+
         This Sampler runs all executions through the Executor and
         includes result caching, automatic session handling, and restarts of failed jobs.
+
+        For Qiskit >= 1.2 the Sampler V2 is used, for Qiskit < 1.2 the Sampler V1 is returned.
         """
 
         if self._sampler is not None:
@@ -2339,18 +2376,20 @@ class Executor:
 
     @property
     def estimator_options(self):
+        """Returns the options of the Estimator V2 primitive."""
         if not isinstance(self.estimator, RuntimeEstimatorV2):
             raise RuntimeError("Options are only available for Qiskit Runtime V2 primitives!")
         return self.estimator.options
 
     @property
     def sampler_options(self):
+        """Returns the options of the Sampler V2 primitive."""
         if not isinstance(self.sampler, RuntimeSamplerV2):
             raise RuntimeError("Options are only available for Qiskit Runtime V2 primitives!")
         return self.sampler.options
 
     def set_options_estimator(self, **fields):
-        """Set options values for the estimator.
+        """Set options values for the estimator (V1 and V2).
 
         Args:
             **fields: The fields to update the options
@@ -2374,7 +2413,7 @@ class Executor:
             raise RuntimeError("Unknown estimator type!")
 
     def set_options_sampler(self, **fields):
-        """Set options values for the sampler.
+        """Set options values for the sampler (V1 and V2).
 
         Args:
             **fields: The fields to update the options
@@ -2411,7 +2450,6 @@ class Executor:
         Args:
             **fields: The fields to update the options
         """
-        # TODO V2
         self._set_seed_for_primitive = seed
 
     def select_backend(self, circuit, **options):
@@ -2577,7 +2615,7 @@ class Executor:
 
 class ExecutorEstimatorV2(BaseEstimatorV2):
     """
-    Special Estimator Primitive that uses the Executor service.
+    Special Estimator V2 Primitive that uses the Executor service.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_estimator()
@@ -2599,8 +2637,8 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
             pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
                 or ``(circuit, observables, parameter_values)``.
             precision: The target precision for expectation value estimates of each
-                run Estimator Pub that does not specify its own precision. If None
-                the estimator's default precision value will be used.
+                run Estimator Pub that does not specify its own precision. If None, the
+                precision is set by the Executor's number of shots.
 
         Returns:
             A qiskit job containing the results of the run.
@@ -2624,7 +2662,7 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
 
 class ExecutorSamplerV2(BaseSamplerV2):
     """
-    Special Sampler Primitive that uses the Executor service.
+    Special Sampler V2 Primitive that uses the Executor service.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_sampler()
@@ -2642,8 +2680,8 @@ class ExecutorSamplerV2(BaseSamplerV2):
         Uses the Executor class for automatic session handling.
 
         Args:
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
-                or ``(circuit, observables, parameter_values)``.
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit,)``
+                or ``(circuit, parameter_values)``.
             shots: The number of shots to use for each circuit.
 
         Returns:
@@ -2668,7 +2706,7 @@ class ExecutorSamplerV2(BaseSamplerV2):
 
 class ExecutorEstimatorV1(BaseEstimatorV1):
     """
-    Special Estimator Primitive that uses the Executor service.
+    Special Estimator V1 Primitive that uses the Executor service.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_estimator()
@@ -2773,14 +2811,13 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
         return self._executor.estimator.options
 
     def clear_cache(self):
+        """
+        Clears the cache of the estimator to prevent memory overflow.
+
+        This function utilizes the executor's `clear_estimator_cache` method
+        to reset any stored data related to the estimator's computations.
+        """
         self._executor.clear_estimator_cache()
-
-    """
-    Clears the cache of the estimator to prevent memory overflow.
-
-    This function utilizes the executor's `clear_estimator_cache` method 
-    to reset any stored data related to the estimator's computations.
-    """
 
     def set_options(self, **fields):
         """Set options values for the estimator.
@@ -2794,7 +2831,7 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
 
 class ExecutorSamplerV1(BaseSamplerV1):
     """
-    Special Sampler Primitive that uses the Executor service.
+    Special Sampler V1 Primitive that uses the Executor service.
 
     Useful for automatic restarting sessions and caching the results.
     The object is created by the executor method get_sampler()
@@ -3047,6 +3084,7 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
 def _convert_options_to_dict(
     options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None]
 ) -> dict:
+    """Converts options to a dictionary."""
 
     if options is None:
         return None

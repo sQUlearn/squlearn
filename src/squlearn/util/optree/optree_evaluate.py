@@ -7,7 +7,6 @@ from packaging import version
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
-from qiskit.primitives import BaseEstimator, BaseSampler
 from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
@@ -26,7 +25,6 @@ from .optree import (
     OpTreeMeasuredOperator,
 )
 
-# TODO V2: better import
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 if QISKIT_SMALLER_1_2:
@@ -1020,7 +1018,7 @@ class OpTreeEvaluate:
         operator: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeMeasuredOperator],
         dictionary_circuit: Union[dict, List[dict]],
         dictionary_operator: Union[dict, List[dict]],
-        sampler: BaseSampler,
+        sampler: Union[BaseSamplerV1, BaseSamplerV2],
         dictionaries_combined: bool = False,
         detect_duplicates: bool = True,
     ) -> Union[float, np.ndarray]:
@@ -1037,22 +1035,21 @@ class OpTreeEvaluate:
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or OpTree
-                                                                                with circuits to be
-                                                                                evaluated.
-            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafMeasuredOperator]): The operator or OpTree in the expectation values.
+            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or
+                OpTree with circuits to be evaluated.
+            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp, OpTreeLeafMeasuredOperator]):
+                The operator or OpTree in the expectation values.
             dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        circuit (or the circuit OpTree).
-            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        operator (or the operator OpTree).
-            sampler (BaseSampler): The sampler primitive that is used for the evaluation.
+                contain the values for the parameters in the circuit (or the circuit OpTree).
+            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the operator
+                (or the operator OpTree).
+            sampler (Union[BaseSamplerV1, BaseSamplerV2]): The sampler primitive that is used
+                for the evaluation.
             dictionaries_combined (bool): If True, the function evaluates the expectation value for
-                                            the same index of the dictionaries (both have to be Lists).
-                                            Defaults to False.
+                the same index of the dictionaries (both have to be Lists). Defaults to False.
             detect_duplicates (bool): If True, the removes duplicate circuits and operators from the
-                                    evaluation list. Defaults to True.
+                evaluation list. Defaults to True.
 
         Returns:
             The expectation value of the expectation values as a numpy array.
@@ -1221,7 +1218,7 @@ class OpTreeEvaluate:
         operator: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp],
         dictionary_circuit: Union[dict, List[dict]],
         dictionary_operator: Union[dict, List[dict]],
-        estimator: BaseEstimator,
+        estimator: Union[BaseEstimatorV1, BaseEstimatorV2],
         dictionaries_combined: bool = False,
         detect_duplicates: bool = True,
     ) -> Union[float, np.ndarray]:
@@ -1230,30 +1227,31 @@ class OpTreeEvaluate:
 
         Inputted are a circuit and operator in OpTree format, and a dictionaries that contain the
         values for the parameters in the circuit and operator.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation
         value for all combinations of the dictionaries, or if ``dictionaries_combined==True``, the
         function evaluates the expectation value for the same index of the dictionaries.
 
-        The function also checks if the same circuit or operator occurs multiple times, and only adds
+        The function also checks if the same circuit or operator occurs multiple times, and only
+        adds
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or OpTree
-                                                                                with circuits to be
-                                                                                evaluated.
-            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]): The operator or OpTree in the expectation values.
-            dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        circuit (or the circuit OpTree).
-            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries that
-                                                        contain the values for the parameters in the
-                                                        operator (or the operator OpTree).
-            estimator (BaseEstimator): The estimator primitive that is used for the evaluation.
+            circuit (Union[OpTreeNodeBase, OpTreeLeafCircuit, QuantumCircuit]): The circuit or
+                OpTree with circuits to be evaluated.
+            operator (Union[OpTreeNodeBase, OpTreeLeafOperator, SparsePauliOp]): The operator or
+                OpTree in the expectation values.
+            dictionary_circuit (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the circuit (or the circuit OpTree).
+            dictionary_operator (Union[dict, List[dict]]): The dictionary or list of dictionaries
+                that contain the values for the parameters in the operator
+                (or the operator OpTree).
+            estimator (Union[BaseEstimatorV1,BaseEstimatorV2]): The estimator primitive that is
+                used for the evaluation.
             dictionaries_combined (bool): If True, the function evaluates the expectation value for
-                                            the same index of the dictionaries (both have to be Lists).
-                                            Defaults to False.
-            detect_duplicates (bool): If True, the removes duplicate circuits and operators from the
-                                    evaluation list. Defaults to True.
+                the same index of the dictionaries (both have to be Lists). Defaults to False.
+            detect_duplicates (bool): If True, the removes duplicate circuits and operators from
+                the evaluation list. Defaults to True.
 
         Returns:
             The expectation value of the expectation values as a numpy array.
@@ -1392,7 +1390,7 @@ class OpTreeEvaluate:
     def evaluate_tree_with_estimator(
         expectation_tree: Union[OpTreeNodeBase, OpTreeExpectationValue],
         dictionary: Union[List[dict], dict],
-        estimator: BaseEstimator,
+        estimator: Union[BaseEstimatorV1, BaseEstimatorV2],
         detect_duplicates: bool = False,
     ) -> Union[float, np.ndarray]:
         """
@@ -1400,21 +1398,20 @@ class OpTreeEvaluate:
 
         The OpTree can only contain expectation values, and the estimator is used to evaluate the
         expectation values.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
-        value for all combinations of the dictionaries.
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation value for all combinations of the dictionaries.
         The function also checks if the same expectation value occurs multiple times, and only adds
         it once to the evaluation list. This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            expectation_tree (Union[OpTreeNodeBase,OpTreeLeafExpectationValue]): The expectation OpTree
-                                                                                to be evaluated.
-            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and their
-                                                values. Can be list for the evaluation of multiple
-                                                dictionaries.
-            estimator (BaseEstimator): The estimator primitive that is used for the evaluation.
-            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values are
-                                                            detected and only evaluated once.
-                                                            Defaults to True.
+            expectation_tree (Union[OpTreeNodeBase,OpTreeExpectationValue]): The expectation OpTree
+                to be evaluated.
+            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and
+                their values. Can be list for the evaluation of multiple dictionaries.
+            estimator (Union[BaseEstimatorV1,BaseEstimatorV2]): The estimator primitive that is
+                used for the evaluation.
+            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values
+                are detected and only evaluated once. Defaults to True.
 
         Returns:
             The expectation value of the expectation OpTree as a numpy array.
@@ -1487,29 +1484,31 @@ class OpTreeEvaluate:
 
     @staticmethod
     def evaluate_tree_with_sampler(
-        expectation_tree, dictionary, sampler, detect_duplicates: bool = True
+        expectation_tree: Union[OpTreeNodeBase, OpTreeExpectationValue],
+        dictionary: Union[List[dict], dict],
+        sampler: Union[BaseSamplerV1, BaseSamplerV2],
+        detect_duplicates: bool = True,
     ):
         """
         Evaluate a expectation tree with a sampler.
 
         The OpTree can only contain expectation values, and the sampler is used to evaluate the
         expectation values.
-        Dictionary can be a list of dictionaries, in which case the function evaluates the expectation
-        value for all combinations of the dictionaries.
+        Dictionary can be a list of dictionaries, in which case the function evaluates the
+        expectation value for all combinations of the dictionaries.
         The function also checks if the same circuit or expectation value occurs multiple times,
         and only adds it once to the evaluation list.
         This can be turned off with the ``detect_duplicates`` flag.
 
         Args:
-            expectation_tree (Union[OpTreeNodeBase,OpTreeLeafExpectationValue]): The expectation OpTree
-                                                                                to be evaluated.
-            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and their
-                                                values. Can be list for the evaluation of multiple
-                                                dictionaries.
-            sampler (BaseSampler): The sampler primitive that is used for the evaluation.
-            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values and
-                                                            circuits are detected and only evaluated
-                                                            once.
+            expectation_tree (Union[OpTreeNodeBase, OpTreeExpectationValue]): The expectation
+                OpTree to be evaluated.
+            dictionary (Union[List(dict),dict]): The dictionary that contains the parameter and
+                their values. Can be list for the evaluation of multiple dictionaries.
+            sampler (Union[BaseSamplerV1, BaseSamplerV2]): The sampler primitive that is used
+                for the evaluation.
+            detect_expectation_duplicates (bool, optional): If True, duplicate expectation values
+                and circuits are detected and only evaluated once.
 
         Returns:
             The expectation value of the expectation OpTree as a numpy array.
@@ -1603,9 +1602,11 @@ class OpTreeEvaluate:
         The function transforms the operators to the Z basis by adding measurement circuits.
 
         Args:
-            optree_element (Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue, SparsePauliOp]): The OpTree structure to be transformed.
+            optree_element (Union[OpTreeNodeBase, OpTreeLeafOperator, OpTreeLeafExpectationValue, SparsePauliOp]):
+                The OpTree structure to be transformed.
             abelian_grouping (bool, optional): If True, the operator is grouped into commuting terms.
-                                            Defaults to True.
+                Defaults to True.
+
         Returns:
             The transformed OpTree structure.
         """
