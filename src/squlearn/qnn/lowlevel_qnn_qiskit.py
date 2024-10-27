@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
@@ -18,6 +18,8 @@ from ..util import Executor
 from ..util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
 
 from .lowlevel_qnn_base import LowLevelQNNBase
+
+import copy
 
 
 class Expec:
@@ -273,9 +275,11 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
-        optree_caching : Caching of the optree expressions (default = True recommended)
-        result_caching : Caching of the result for each `x`, `param`, `param_op` combination
+        caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
+        primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
+            ``"estimator"`` or ``"sampler"``. If None, the primitive is set according to the
+            executor. (default = None)
 
     Attributes:
     -----------
@@ -300,27 +304,65 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
-        optree_caching=True,
-        result_caching=True,
+        caching=True,
+        primitive: Union[str, None] = None,
     ) -> None:
 
-        parameterized_quantum_circuit = TranspiledEncodingCircuit(
-            parameterized_quantum_circuit, executor.backend
-        )
+        self.caching = caching
+
+        if executor.backend_chosen:
+            # Skip transpilation for parallel qpu execution
+            if not executor.qpu_parallelization:
+                parameterized_quantum_circuit = TranspiledEncodingCircuit(
+                    parameterized_quantum_circuit, executor.backend
+                )
+        else:
+            # Automatically select backend (also returns a TranspiledEncodingCircuit except
+            # for parallel qpu execution)
+            parameterized_quantum_circuit, _ = executor.select_backend(
+                parameterized_quantum_circuit
+            )
+
         super().__init__(parameterized_quantum_circuit, operator, executor)
 
-        self._optree_caching = optree_caching
-        self._result_caching = result_caching
+        self.operator = copy.deepcopy(operator)
 
         # Set-Up Executor
-        if self._executor.optree_executor == "estimator":
-            self._estimator = self._executor.get_estimator()
-            self._sampler = None
-        else:
-            self._sampler = self._executor.get_sampler()
-            self._estimator = None
+        self._set_primitive(primitive)
 
+        # Initialize derivative classes
         self._initilize_derivative()
+
+    def _set_primitive(self, primitive: Union[str, None] = None) -> None:
+        """
+        Sets the primitive for evaluating the of the QNN.
+
+        Args:
+            primitive (str): Primitive that is used for the evaluation of the QNN.
+                Can be ``"estimator"`` or ``"sampler"``. If None, the primitive is set
+                according to the executor. (default = None)
+
+        """
+        if primitive is None:
+            if self._executor.optree_executor == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            else:
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+        else:
+            if primitive.lower() == "estimator":
+                self._estimator = self._executor.get_estimator()
+                self._sampler = None
+                self._primitive = "estimator"
+            elif primitive.lower() == "sampler":
+                self._sampler = self._executor.get_sampler()
+                self._estimator = None
+                self._primitive = "sampler"
+            else:
+                raise ValueError("Unknown primitive:", primitive)
 
     def get_params(self, deep: bool = True) -> dict:
         """Returns the dictionary of the hyper-parameters of the QNN.
@@ -330,6 +372,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         """
         params = dict(num_qubits=self.num_qubits)
+        params["primitive"] = self._primitive
 
         if deep:
             params.update(self._pqc.get_params())
@@ -362,6 +405,10 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
+
+        if "primitive" in params:
+            self._set_primitive(params["primitive"])
+            params.pop("primitive")
 
         # Set parameters of the PQC
         dict_pqc = {}
@@ -405,8 +452,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             self._observable.set_map(self._pqc.qubit_map, self._pqc.num_physical_qubits)
             num_qubits_operator = self._observable.num_qubits
 
-        self.operator_derivatives = ObservableDerivatives(self._observable, self._optree_caching)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._optree_caching)
+        self.operator_derivatives = ObservableDerivatives(self._observable)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc)
 
         if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -937,7 +984,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         # return dictionary for input data, it will be empty
         # if the combination of x,param,param_op is touched the first time
-        if self._result_caching == True:
+        if self.caching == True:
             caching_tuple = (
                 to_tuple(x),
                 to_tuple(param),
@@ -1000,7 +1047,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
             # FIRST SWAP: different observables to the first place of the array
             # swap i=2+num_nested to position 0, keep the rest in order
-            if is_val_empty is False:
+            if not is_val_empty:
                 index_list = list(range(len(val.shape)))
                 swapp_list = [index_list[2 + num_nested]]
                 swapp_list += [index_list[0]] + [index_list[1]]
@@ -1120,7 +1167,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         value_dict["param_op"] = param_op
 
         # Store the updated dictionary for the theta value
-        if self._result_caching:
+        if self.caching:
             self.result_container[caching_tuple] = value_dict
 
         return value_dict

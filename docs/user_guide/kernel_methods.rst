@@ -146,7 +146,7 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
     enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     fqk_instance = FidelityKernel(
         encoding_circuit=enc_circ,
-        executor=Executor('statevector_simulator')
+        executor=Executor()
     )
 
 When evaluating kernels on a real backend, sQUlearn provides an option for mitigating FQKs for
@@ -222,8 +222,9 @@ parameters are obtained from classical optimization loops which attempt to minim
 function.
 
 sQUlearn implements the kernel target alignment procedure as well as the Negative-Log-Likelihood.
-At the same time it provides several optimizers such as :code:`Adam` and :code:`SLSQP`; cf.
-:class:`squlearn.kernel.optimization.kernel_optimizer.KernelOptimizer` for details.
+At the same time it provides several optimizers such as :code:`Adam` and :code:`SLSQP`;
+This can be achieved by employing the :class:`KernelOptimizer` class which automatically
+enables the optimization of quantum kernels when used in the high-level methods.
 
 The following examples assume that you have some data set available which you previously split into
 training and test data and shows how to optimize kernels.
@@ -232,65 +233,34 @@ training and test data and shows how to optimize kernels.
 
     .. code-block:: python
 
-        import numpy as np
-        from qiskit.primitives import Estimator
         from squlearn.util import Executor
         from squlearn.encoding_circuit import ChebyshevPQC
         from squlearn.optimizers import Adam
-        from squlearn.kernel import ProjectedQuantumKernel
-        from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-        enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
-        pqk_instance = ProjectedQuantumKernel(
-            encoding_circuit=enc_circ,
-            executor=Executor(),
-            measurement='XYZ',
-            outer_kernel='gaussian',
-            parameter_seed=0
-        )
+        from squlearn.kernel import ProjectedQuantumKernel, KernelOptimizer, QKRR
+        from squlearn.kernel.loss import TargetAlignment
+
+        # set up the encoding circuit
+        encoding_circuit = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+
+        # set up the quantum kernel
+        pqk_instance = ProjectedQuantumKernel(encoding_circuit, Executor())
+
         # set up the optimizer
         adam_opt = Adam(options={"maxiter":100, "lr": 0.1})
+
         # define KTA loss function
-        kta_loss = TargetAlignment(quantum_kernel=pqk_instance)
-        kta_optimizer = KernelOptimizer(loss=kta_loss, optimizer=adam_opt)
-        opt_kta_result = kta_optimizer.run_optimization(X=x_train, y=y_train)
-        # retrieve optimized parameters
-        opt_kta_params = opt_kta_result.x
-        # assign optimal kta parameters to kernel
-        pqk_instance.assign_parameters(opt_kta_params)
+        kta_loss = TargetAlignment()
 
-*Note:* The same workflow has to be used for FQKs!
+        # set up the kernel optimizer
+        kernel_optimizer = KernelOptimizer(quantum_kernel=pqk_instance, loss=kta_loss, optimizer=adam_opt)
 
-**Example - Negative-Log-Likelihood**
+        # initialize the QKRR model with the kernel optimizer
+        qkrr = QKRR(kernel_optimizer)
 
-.. code-block:: python
-
-    import numpy as np
-    from qiskit.primitives import Estimator
-    from squlearn.util import Executor
-    from squlearn.encoding_circuit import ChebyshevPQC
-    from squlearn.optimizers import Adam
-    from squlearn.kernel import ProjectedQuantumKernel
-    from squlearn.kernel.optimization import KernelOptimizer, TargetAlignment, NLL
-    enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
-    pqk_instance = ProjectedQuantumKernel(
-        encoding_circuit=enc_circ,
-        executor=Executor(),
-        measurement='XYZ',
-        outer_kernel='gaussian',
-        parameter_seed=0
-    )
-    # set up the optimizer
-    adam_opt = Adam(options={"maxiter":100, "lr": 0.1})
-    # define NLL loss function (note that noise_val needs to bet set)
-    nll_loss = NLL(quantum_kernel=pqk_instance, sigma=noise_val)
-    nll_optimizer = KernelOptimizer(loss=nll_loss, optimizer=adam_opt)
-    opt_nll_result = nll_optimizer.run_optimization(X=x_train, y=y_train)
-    # retrieve optimized parameters
-    opt_nll_params = opt_nll_params.x
-    # assign optimal nll parameters to kernel
-    pqk_instance.assign_parameters(opt_nll_params)
-
-*Note:* The same workflow has to be used for FQKs!
+        # Simple example
+        x_train = [[0.1], [0.2], [0.3], [0.4], [0.5]]
+        y_train = [0.1, 0.2, 0.3, 0.4, 0.5]
+        qkrr.fit(X=x_train, y=y_train)
 
 .. rubric:: References
 

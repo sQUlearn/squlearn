@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import Estimator, Sampler, BackendEstimator, BackendSampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
@@ -9,6 +9,7 @@ from qiskit_aer import Aer
 import pennylane as qml
 
 from squlearn.util import Executor
+from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
 from squlearn.util.pennylane import PennyLaneCircuit
 
 
@@ -59,6 +60,16 @@ class TestExecutor:
         return Executor(qml.device("lightning.qubit", wires=2), seed=0)
 
     @pytest.fixture(scope="module")
+    def ExecutorParallelSampler(self) -> Executor:
+        """Executor with Sampler initialization."""
+        return Executor(Sampler(), seed=0, qpu_parallelization=3)
+
+    @pytest.fixture(scope="module")
+    def ExecutorParallelEstimator(self) -> Executor:
+        """Executor with Estimator initialization."""
+        return Executor(Estimator(), seed=0, qpu_parallelization=3)
+
+    @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
         qc = QuantumCircuit(2)
@@ -79,6 +90,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
             "ExecutorPennyLane",
             "ExecutorPennyLaneShots",
             "ExecutorPennyLaneDevice",
@@ -96,6 +109,8 @@ class TestExecutor:
             "ExecutorQasm": 1024,
             "ExecutorBackendSampler": 1024,
             "ExecutorBackendEstimator": 1024,
+            "ExecutorParallelSampler": None,
+            "ExecutorParallelEstimator": None,
             "ExecutorPennyLane": None,
             "ExecutorPennyLaneShots": 1024,
             "ExecutorPennyLaneDevice": None,
@@ -115,6 +130,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
         ],
     )
     def test_sampler(self, executor_str, request, simple_circuit):
@@ -127,14 +144,25 @@ class TestExecutor:
             "ExecutorQasm": {3: 1.0},
             "ExecutorBackendSampler": {3: 1.0},
             "ExecutorBackendEstimator": {3: 1.0},
+            "ExecutorParallelSampler": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
+            "ExecutorParallelEstimator": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
         }
 
         executor = request.getfixturevalue(executor_str)
         executor.set_shots(100)
         circuit = simple_circuit.measure_all(inplace=False)
-        res = executor.get_sampler().run(circuit).result()
-        assert res.metadata[0]["shots"] == 100
-        assert res.quasi_dists[0] == assert_dict[executor_str]
+        sampler = executor.get_sampler()
+        if isinstance(sampler, BaseSamplerV1):
+            res = sampler.run(circuit).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.quasi_dists[0] == assert_dict[executor_str]
+        else:
+            res = sampler.run([(circuit,)]).result()
+            assert np.isclose(res[0].metadata["shots"], 100, 1)
+            assert all(
+                np.isclose(value / 100, assert_dict[executor_str][key], 1 / 100)
+                for key, value in res[0].data.meas.get_int_counts().items()
+            )
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -145,6 +173,8 @@ class TestExecutor:
             "ExecutorQasm",
             "ExecutorBackendSampler",
             "ExecutorBackendEstimator",
+            "ExecutorParallelSampler",
+            "ExecutorParallelEstimator",
         ],
     )
     def test_executor(self, executor_str, request, simple_circuit, observable):
@@ -157,13 +187,21 @@ class TestExecutor:
             "ExecutorQasm": np.array([1.0]),
             "ExecutorBackendSampler": np.array([1.0]),
             "ExecutorBackendEstimator": np.array([1.0]),
+            "ExecutorParallelSampler": np.array([1.0]),
+            "ExecutorParallelEstimator": np.array([1.0]),
         }
 
         executor = request.getfixturevalue(executor_str)
         executor.set_shots(100)
-        res = executor.get_estimator().run(simple_circuit, observable).result()
-        assert res.metadata[0]["shots"] == 100
-        assert np.allclose(assert_dict[executor_str], res.values[0])
+        estimator = executor.get_estimator()
+        if isinstance(estimator, BaseEstimatorV1):
+            res = estimator.run(simple_circuit, observable).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.values[0] == assert_dict[executor_str]
+        else:
+            res = estimator.run([(simple_circuit, observable)]).result()
+            assert np.isclose(res[0].metadata["target_precision"], 0.1, 0.01)
+            assert np.isclose(res[0].data.evs, assert_dict[executor_str], 0.1)
 
     @pytest.mark.parametrize(
         "executor_str",

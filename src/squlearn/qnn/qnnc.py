@@ -57,6 +57,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
+        primitive (Union[str,None], default=None): The primitive that is utilized in the qnn.
+            Default primitive is the one specified in the executor initialization, if nothing is
+            specified, the estimator will used. Possible values are ``"estimator"`` or
+            ``"sampler"``.
 
     See Also
     --------
@@ -115,6 +119,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -179,15 +184,17 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
 
         return pred
 
-    def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def partial_fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a model to data.
 
         This method will update the models parameters to fit the provided data.
         It won't reinitialize the models parameters.
 
         Args:
-            X: Input data
-            y: Labels
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like of shape (n_samples,)
+                Labels
             weights: Weights for each data point
         """
         X, y = self._validate_input(X, y, incremental=False, reset=False)
@@ -272,8 +279,16 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 )
         self._is_fitted = True
 
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)

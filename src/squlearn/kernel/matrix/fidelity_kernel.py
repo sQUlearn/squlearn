@@ -14,7 +14,7 @@ from qiskit.circuit import ParameterVector
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ...util.executor import Executor
+from ...util.executor import Executor, BaseSamplerV2
 from ...util.data_preprocessing import convert_to_float64
 
 from .fidelity_kernel_pennylane import FidelityKernelPennyLane
@@ -116,6 +116,11 @@ class FidelityKernel(KernelMatrixBase):
             self._enc_circ = self._encoding_circuit.get_circuit(
                 self._feature_vector, self._parameter_vector
             )
+
+            # Automatic select backend if not chosen
+            if not self._executor.backend_chosen:
+                self._enc_circ, _ = self._executor.select_backend(self._enc_circ)
+
             if self._executor.is_statevector:
                 if self._parameter_vector is None:
                     self._quantum_kernel = FidelityStatevectorKernel(
@@ -131,7 +136,13 @@ class FidelityKernel(KernelMatrixBase):
                         enforce_psd=False,
                     )
             else:
-                fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                sampler = self._executor.get_sampler()
+                if isinstance(sampler, BaseSamplerV2):
+                    raise ValueError(
+                        "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
+                        "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
+                    )
+                fidelity = ComputeUncompute(sampler=sampler)
                 if self._parameter_vector is None:
                     self._quantum_kernel = FidelityQuantumKernel(
                         feature_map=self._enc_circ,

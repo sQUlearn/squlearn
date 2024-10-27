@@ -1,5 +1,5 @@
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import BlueprintCircuit
 from typing import Union, Callable
