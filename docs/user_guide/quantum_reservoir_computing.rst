@@ -50,15 +50,17 @@ With sQUlearn it is possible to use QRC to do regression and classification task
 .. autosummary::
    :nosignatures:
 
-   QRCRegressor
    QRCClassifier
+   QRCRegressor
 
-We will now go step by step through the implementation of a classifier example QRC with sQUlearn.
+We will now go step by step through the implementation of example QRC for both methods with sQUlearn.
 
 
 Classification
 ===============
 
+Setup
+-----
 
 First an foremost the encoding of the classical data onto the accessable qubits and the quantum reservoir preparation
 is done in sQUlearn by the :class:`EncodingCircuit` class. For details we refer to the documentations and examples in the user guidelines.
@@ -86,6 +88,9 @@ linear regression as the default setting. In the last argument we can set the nu
 order to measure the circuit and create the output vector :math:`\vec{v}` of size :math:`M`. For closer instructions on the 
 :class:`Executor` class we refer to :ref:`executor_user_guide` in the user guideline.
 
+Training
+--------
+
 As last step we train our QRC model using the :class:`fit` method after we specify a certain dataset we like to train on:
 
 .. jupyter-execute::
@@ -104,6 +109,8 @@ As last step we train our QRC model using the :class:`fit` method after we speci
     
     qrc.fit(X_train, y_train)
 
+Result
+------
 
 In the end we can plot our results and see how it worked:
 
@@ -128,5 +135,78 @@ In the end we can plot our results and see how it worked:
     plt.show()
     
 
+Regression
+==========
+
+Setup
+-----
+
+Just like in the classifier example we start by encoding the classical data and reservoir with the :class:`EncodingCircuit` class.
+This time our choice is the :class:`HubregtsenEncodingCircuit` as our encoding circuit.
+
+.. jupyter-execute::
+
+    from squlearn.encoding_circuit import HubregtsenEncodingCircuit
+
+    pqc = HubregtsenEncodingCircuit(num_qubits=10, num_features=1, num_layers=2)
+    pqc.draw("mpl")
 
 
+The :class:`QRCRegressor` similar to the classifier example, takes our prepared :class:`EncodingCircuit` and a machine learning method 
+of our choice with linear regression as the default setting. In the last argument we again can determine the number of observables :math:`M`
+to measure the circuit and create the output vector :math:`\vec{v}` of size :math:`M`.
+
+.. jupyter-execute::
+
+    from squlearn import Executor
+    from squlearn.qrc import QRCRegressor
+
+    exec = Executor()
+    qrc = QRCRegressor(pqc, executor=exec, ml_model="linear", num_operators=200)
+
+
+Training
+--------
+
+.. jupyter-execute::
+
+    import numpy as np
+
+    X_train = np.arange(0.0, 1.0, 0.1)
+    y_train = np.exp(np.sin(10 * X_train))
+    X_train = X_train.reshape(-1, 1)
+
+    
+    X_test = np.arange(0.01, 1.0, 0.01)
+    y_test = np.exp(np.sin(10 * X_test))
+    X_test = X_test.reshape(-1, 1)
+    
+    qrc.fit(X_train, y_train)
+
+Now we evaluate model by calculating the inference of the model and the training data set
+
+
+.. jupyter-execute::
+
+    y_pred = qrc.predict(X_test)
+
+
+Result
+------
+
+.. jupyter-execute::
+
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import mean_squared_error, r2_score
+
+    print("Mean Squared Error:", mean_squared_error(y_test, y_pred))
+    print("R^2 Score:", r2_score(y_test, y_pred))
+
+    plt.plot(X_test, y_test, "-", color="blue", label="True Values")
+    plt.plot(X_test, y_pred, "-", color="red", label="Predictions")
+    plt.plot(X_train, y_train, "x", color="green", label="Training Set")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.title("QRC Regression Inference")
+    plt.legend()
+    plt.show()
