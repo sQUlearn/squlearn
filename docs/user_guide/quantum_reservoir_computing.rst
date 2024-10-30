@@ -42,6 +42,17 @@ can be used to perform classical machine learning algorithms like linear regress
 that one does not optimize over the weights of a complex neural network, but keeps the complex part fix and later 
 optimizes the readout vectors via cheaper algorithms.
 
+.. _figure 2:
+.. figure:: ../_static/qrc/QRC_user_guide.jpg
+    :alt: Quantum Reservoir Computing (QRC)
+    :width: 600
+    :align: center
+
+    **Figure 2** Quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{0}^{\otimes 3}`.
+    The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
+    the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
+    we can repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
+
 High-level methods for QRC
 ===========================
 
@@ -183,7 +194,7 @@ Training
     
     qrc.fit(X_train, y_train)
 
-Now we evaluate model by calculating the inference of the model and the training data set
+Now we evaluate the model by calculating the inference of the model and the training data set
 
 
 .. jupyter-execute::
