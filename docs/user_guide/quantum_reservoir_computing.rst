@@ -48,10 +48,10 @@ optimizes the readout vectors via cheaper algorithms.
     :width: 600
     :align: center
 
-    **Figure 2** Quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{0}^{\otimes 3}`.
+    **Figure 2** A example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{0}^{\otimes 3}`.
     The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
     the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
-    we can repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
+    repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
 
 High-level methods for QRC
 ===========================
