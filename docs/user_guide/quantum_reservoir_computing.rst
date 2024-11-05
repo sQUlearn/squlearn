@@ -13,7 +13,7 @@ into a high-dimensional feature space and then performing linear regression on i
 tries to take advantage of the exponential scaling dimension of the Hilbert space in the quantum computing context 
 to prove an advantage over the classical RC. In QRC there is a register of accessable qubits :math:`\rho_0`, which are subject to
 encoding the classical information and measurements, and hidden qubits :math:`\rho_{\mathrm{hid}}`, which are related to the reservoir and 
-artifically raise the dimension the reservoir dynamic acts on by the size of the hidden register. Therefore much richer
+artifically raise the dimension, the reservoir dynamic acts on, by the size of the hidden register. Therefore much richer
 internal dynamics are possible.
 
 First the classical input data :math:`x=\lbrace x^{(i)}\rbrace_{i=1}^D`, where :math:`D` denotes the samplesize, gets related to a unitary 
@@ -48,7 +48,7 @@ optimizes the readout vectors via cheaper algorithms.
     :width: 600
     :align: center
 
-    **Figure 2** A example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{0}^{\otimes 3}`.
+    **Figure 2** A example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{000}`.
     The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
     the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
     repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
@@ -95,7 +95,7 @@ The parameters are all randomly chosen. Next we also initialize our executor and
     qrc = QRCClassifier(pqc, executor=exec, ml_model="linear", num_operators=200)
 
 The :class:`QRCClassifier` takes our prepared :class:`EncodingCircuit` and a machine learning method of our choice with
-linear regression as the default setting. In the last argument we can set the number of observables :math:`M`, which will randomly chosen in
+linear regression as the default setting. In the last argument we can set the number of observables :math:`M`, which will be randomly chosen in
 order to measure the circuit and create the output vector :math:`\vec{v}` of size :math:`M`. For closer instructions on the 
 :class:`Executor` class we refer to :ref:`executor_user_guide` in the user guideline.
 
