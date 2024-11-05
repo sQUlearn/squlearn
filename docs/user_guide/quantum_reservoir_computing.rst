@@ -48,7 +48,7 @@ optimizes the readout vectors via cheaper algorithms.
     :width: 600
     :align: center
 
-    **Figure 2** An example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits as :math:`\ket{000}`.
+    **Figure 2** An example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits :math:`\rho_{\mathrm{hid}}` as :math:`\ket{000}`.
     The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
     the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
     repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
@@ -83,7 +83,7 @@ is done in sQUlearn by the :class:`EncodingCircuit` class. For details we refer 
     pqc = ChebyshevPQC(num_qubits=8, num_features=2, num_layers=2)
     pqc.draw("mpl")
 
-Here we have chosen the :class:`ChebyshevPQC` as our encoding circuit, but sQUlearn provides a list of several alternative choices in :ref:`quantum_encoding_circuits`.
+Here we have chosen the :class:`squlearn.encoding_circuit.ChebyshevPQC` as our encoding circuit, but sQUlearn provides a list of several alternative choices in :ref:`quantum_encoding_circuits`.
 The parameters are all randomly chosen. Next we also initialize our executor and QRCClassifier:
 
 .. jupyter-execute::
