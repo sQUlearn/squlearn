@@ -125,7 +125,7 @@ Result
 
 In the end we can plot our results and see how it worked:
 
-.. jupyter-execute::
+.. code-block:: python
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -144,6 +144,12 @@ In the end we can plot our results and see how it worked:
     plt.title("QRC Classification Inference")
     plt.legend()
     plt.show()
+
+.. _figure 3:
+.. figure:: ../_static/qrc/classification_plot.png
+    :alt: Quantum Reservoir Computing (QRC)
+    :width: 600
+    :align: center
     
 
 Regression
@@ -205,7 +211,7 @@ Now we evaluate the model by calculating the inference of the model and the trai
 Result
 ------
 
-.. jupyter-execute::
+.. code-block:: python
 
     import matplotlib.pyplot as plt
     from sklearn.metrics import mean_squared_error, r2_score
@@ -221,3 +227,9 @@ Result
     plt.title("QRC Regression Inference")
     plt.legend()
     plt.show()
+
+.. _figure 4:
+.. figure:: ../_static/qrc/regression_plot.png
+    :alt: Quantum Reservoir Computing (QRC)
+    :width: 600
+    :align: center
