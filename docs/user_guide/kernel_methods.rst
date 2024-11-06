@@ -56,10 +56,14 @@ given by measurements.
     :width: 500
     :align: center
 
-    **Figure 1** An example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits :math:`\rho_{\mathrm{hid}}` as :math:`\ket{000}`.
-    The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
-    the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
-    repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
+    **Figure 1** Schematic illustration of the function principle of quantum kernel methods, which can be formally embedded in the rich
+    mathematical framework of conventional kernel theory. Data points  :math:`\symbf{x}` are mapped to the quantum Hilbert space by
+    encoding them into a quantum state  :math:`\ket{\symbf{\psi}(\symbf{x})}`. Access to the quantum Hilbert space is granted by
+    measurements. :math:`\symbf{Left:}` In quantum mechanics measurements are expressed through Hilbert-Schmidt inner products. 
+    Quantum kernels, which are defined using this fidelity-type metric are thus referred to as fidelity quantum kernels (FQKs).
+    More on FQKs in sQUlearn will be discussed below. :math:`\symbf{Right:}` When projecting the quantum states to an approximate
+    classical representation using, e.g., reduced physical observables this gives rise to a family of projected quantum kernels (PQKs).
+    These will be also subject to discussion in the sQUlearn context below.
 
 
 .. currentmodule:: squlearn.kernel.ml
