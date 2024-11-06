@@ -50,6 +50,17 @@ state [1]. In the quantum computational practice, the Hilbert-Schmidt inner prod
 measurements. Consequently, in quantum computing, access to the Hilbert space of quantum states is
 given by measurements.
 
+.. _figure 1:
+.. figure:: ../_static/qkm/QKM_scheme_pic.jpg
+    :alt: Quantum Kernel Methods
+    :width: 500
+    :align: center
+
+    **Figure 1** An example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits :math:`\rho_{\mathrm{hid}}` as :math:`\ket{000}`.
+    The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
+    the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
+    repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
+
 
 .. currentmodule:: squlearn.kernel.ml
 
