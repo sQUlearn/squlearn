@@ -212,6 +212,6 @@ where it is employed internally.
    from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebyshevRx
    from qiskit_ibm_runtime.fake_provider import FakeManilaV2
 
-   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
    fm.draw(output="mpl")
 
