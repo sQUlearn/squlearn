@@ -159,7 +159,7 @@ class TestBackendAutoSelection:
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
-        pqc = ChebyshevTower(2, 1, 2)
+        pqc = ChebyshevTower(2, 1, 1)
         obs = SummedPaulis(2)
         param = []
         param_op = np.ones(obs.num_parameters)
@@ -202,7 +202,7 @@ class TestBackendAutoSelection:
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
-        pqc = ChebyshevTower(2, 1, 2)
+        pqc = ChebyshevTower(2, 1, 1)
         fqk = ProjectedQuantumKernel(pqc, executor)
         qkrr = QKRR(fqk)
         qkrr.fit(np.array([[0.25], [0.75]]), np.array([0.25, 0.75]))

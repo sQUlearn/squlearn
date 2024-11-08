@@ -54,6 +54,7 @@ class TestQSVC:
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
         qsvc_instance = QSVC(MagicMock())
+        qsvc_instance._QSVC__initialize(0)
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             "C",
             "break_ties",
@@ -192,10 +193,10 @@ class TestQSVC:
 
         qsvc_instance.set_params(regularization="tikhonov")
 
-        qsvc_instance.quantum_kernel._regularize_matrix = MagicMock()
-        qsvc_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+        qsvc_instance._quantum_kernel._regularize_matrix = MagicMock()
+        qsvc_instance._quantum_kernel._regularize_matrix.side_effect = lambda x: x
 
         qsvc_instance.fit(X, y)
         qsvc_instance.predict(X)
 
-        assert qsvc_instance.quantum_kernel._regularize_matrix.call_count == 2
+        assert qsvc_instance._quantum_kernel._regularize_matrix.call_count == 2
