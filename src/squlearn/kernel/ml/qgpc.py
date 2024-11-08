@@ -64,6 +64,9 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
+
     @classmethod
     def _get_param_names(cls):
         names = GaussianProcessClassifier._get_param_names()
@@ -86,7 +89,9 @@ class QGPC(GaussianProcessClassifier):
         """
         X = np.array(X)
         y = np.array(y)
-        self.__initialize(X)
+
+        self.quantum_kernel._set_num_features(X)
+        self.__initialize()
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
@@ -155,9 +160,9 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
 
-    def __initialize(self, X: np.ndarray) -> None:
+    def __initialize(self) -> None:
         """Initialize the model with the known feature vector"""
-        self.quantum_kernel._set_num_features(X)
+
         self.quantum_kernel._initialize_kernel()
 
         quantum_kernel_update_params = (

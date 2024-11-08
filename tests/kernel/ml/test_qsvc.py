@@ -79,7 +79,7 @@ class TestQSVC:
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
         qsvc_instance = QSVC(MagicMock())
-        qsvc_instance._QSVC__initialize(0)
+        qsvc_instance._QSVC__initialize()
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             "C",
             "break_ties",

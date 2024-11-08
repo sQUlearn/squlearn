@@ -83,7 +83,7 @@ class TestQSVR:
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
         qsvr_instance = QSVR(MagicMock())
-        qsvr_instance._QSVR__initialize(0)
+        qsvr_instance._QSVR__initialize()
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             "C",
             "cache_size",

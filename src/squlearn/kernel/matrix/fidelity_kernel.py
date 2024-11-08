@@ -311,10 +311,11 @@ class FidelityKernel(KernelMatrixBase):
 
     def _set_num_features(self, X) -> None:
         """Sets feature dimension of the encoding circuit"""
-        if len(X.shape) == 1:
-            self.num_features = 1
-        else:
-            self.num_features = X.shape[1]
+        if self.num_features is None:
+            if len(X.shape) == 1:
+                self.num_features = 1
+            else:
+                self.num_features = X.shape[1]
 
     def _initialize_kernel(self) -> None:
         """Initializes the quantum kernel."""

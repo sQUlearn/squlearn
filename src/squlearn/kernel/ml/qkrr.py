@@ -99,6 +99,9 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.dual_coeff_ = None
         self._kernel_params = kwargs
 
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
+
     def fit(self, X, y):
         """
         Fit the Quantum Kernel Ridge regression model.
@@ -122,7 +125,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         X = np.array(X)
         y = np.array(y)
 
-        self.__initialize(X)
+        self._quantum_kernel._set_num_features(X)
+        self.__initialize()
 
         X, y = self._validate_data(
             X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
@@ -241,11 +245,9 @@ class QKRR(BaseEstimator, RegressorMixin):
                 )
         return self
 
-    def __initialize(self, X: np.ndarray) -> None:
+    def __initialize(self) -> None:
         """Initialize the model with the known feature vector"""
-        if self._quantum_kernel.num_features is None:
-            self._quantum_kernel._set_num_features(X)
-            self._quantum_kernel._initialize_kernel()
+        self._quantum_kernel._initialize_kernel()
 
         # Apply kernel_params (kwargs) to set_params
         update_params = self.get_params().keys() & self._kernel_params.keys()

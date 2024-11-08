@@ -78,6 +78,9 @@ class QSVR(SVR):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
+
     @classmethod
     def _get_param_names(cls):
         names = SVR._get_param_names()
@@ -112,7 +115,8 @@ class QSVR(SVR):
         X = np.array(X)
         y = np.array(y)
 
-        self.__initialize(X)
+        self._quantum_kernel._set_num_features(X)
+        self.__initialize()
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
@@ -172,11 +176,11 @@ class QSVR(SVR):
                 )
         return self
 
-    def __initialize(self, X: np.ndarray) -> None:
+    def __initialize(self) -> None:
         """Initialize the model with the known feature vector"""
 
         if isinstance(self._quantum_kernel, KernelMatrixBase):
-            self._quantum_kernel._set_num_features(X)
+
             self._quantum_kernel._initialize_kernel()
 
             # Apply kernel_params (kwargs) to set_params of quantum kernel
