@@ -96,7 +96,7 @@ class ChebyshevTower(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the Chebyshev Tower encoding."""
-        return self.num_features * self.num_layers
+        return self.num_qubits * self.num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
