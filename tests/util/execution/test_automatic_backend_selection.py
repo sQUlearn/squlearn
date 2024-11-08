@@ -183,7 +183,7 @@ class TestBackendAutoSelection:
         """
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, auto_backend_mode=mode)
-        pqc = ChebyshevTower(2, 1, 2)
+        pqc = ChebyshevTower(2, 1, 1)
 
         if QISKIT_SMALLER_1_2:
             fqk = FidelityKernel(pqc, executor)

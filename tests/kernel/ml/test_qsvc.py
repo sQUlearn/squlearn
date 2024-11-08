@@ -51,6 +51,31 @@ class TestQSVC:
         )
         return QSVC(kernel)
 
+    @pytest.fixture(scope="module")
+    def qsvc_fidelity_without_num_features(self) -> QSVC:
+        """QSVC module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=None, num_layers=2)
+        kernel = FidelityKernel(
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
+        )
+        return QSVC(kernel)
+
+    @pytest.fixture(scope="module")
+    def qsvc_pqk_without_num_features(self) -> QSVC:
+        """QSVC module wit ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=None, num_layers=2)
+        kernel = ProjectedQuantumKernel(
+            encoding_circuit, executor=executor, regularization="thresholding"
+        )
+        return QSVC(kernel)
+
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
         qsvc_instance = QSVC(MagicMock())
@@ -88,6 +113,26 @@ class TestQSVC:
 
         Tests include
             - whether the prediction output is correct
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvc_instance = request.getfixturevalue(qsvc)
+
+        X, y = data
+        qsvc_instance.fit(X, y)
+
+        y_pred = qsvc_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+        assert np.allclose(y_pred, y)
+
+    @pytest.mark.parametrize(
+        "qsvc", ["qsvc_fidelity_without_num_features", "qsvc_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qsvc, request, data):
+        """Tests concerning the predict function of the QSVR.
+
+        Tests include
             - whether the output is of the same shape as the reference
             - whether the type of the output is np.ndarray
         """

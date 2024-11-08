@@ -243,8 +243,9 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     def __initialize(self, X: np.ndarray) -> None:
         """Initialize the model with the known feature vector"""
-        self._quantum_kernel._set_num_features(X)
-        self._quantum_kernel._initialize_kernel()
+        if self._quantum_kernel.num_features is None:
+            self._quantum_kernel._set_num_features(X)
+            self._quantum_kernel._initialize_kernel()
 
         # Apply kernel_params (kwargs) to set_params
         update_params = self.get_params().keys() & self._kernel_params.keys()
