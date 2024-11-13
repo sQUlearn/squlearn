@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import Estimator, Sampler, BackendEstimator, BackendSampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
@@ -9,6 +9,7 @@ from qiskit_aer import Aer
 import pennylane as qml
 
 from squlearn.util import Executor
+from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
 from squlearn.util.pennylane import PennyLaneCircuit
 
 
@@ -150,9 +151,18 @@ class TestExecutor:
         executor = request.getfixturevalue(executor_str)
         executor.set_shots(100)
         circuit = simple_circuit.measure_all(inplace=False)
-        res = executor.get_sampler().run(circuit).result()
-        assert res.metadata[0]["shots"] == 100
-        assert res.quasi_dists[0] == assert_dict[executor_str]
+        sampler = executor.get_sampler()
+        if isinstance(sampler, BaseSamplerV1):
+            res = sampler.run(circuit).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.quasi_dists[0] == assert_dict[executor_str]
+        else:
+            res = sampler.run([(circuit,)]).result()
+            assert np.isclose(res[0].metadata["shots"], 100, 1)
+            assert all(
+                np.isclose(value / 100, assert_dict[executor_str][key], 1 / 100)
+                for key, value in res[0].data.meas.get_int_counts().items()
+            )
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -183,9 +193,15 @@ class TestExecutor:
 
         executor = request.getfixturevalue(executor_str)
         executor.set_shots(100)
-        res = executor.get_estimator().run(simple_circuit, observable).result()
-        assert res.metadata[0]["shots"] == 100
-        assert np.allclose(assert_dict[executor_str], res.values[0])
+        estimator = executor.get_estimator()
+        if isinstance(estimator, BaseEstimatorV1):
+            res = estimator.run(simple_circuit, observable).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.values[0] == assert_dict[executor_str]
+        else:
+            res = estimator.run([(simple_circuit, observable)]).result()
+            assert np.isclose(res[0].metadata["target_precision"], 0.1, 0.01)
+            assert np.isclose(res[0].data.evs, assert_dict[executor_str], 0.1)
 
     @pytest.mark.parametrize(
         "executor_str",

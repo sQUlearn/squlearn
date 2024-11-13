@@ -48,7 +48,7 @@ The :class:`Executor <squlearn.Executor>` class provides the following key comfo
 - **Logging:** The :class:`Executor <squlearn.Executor>` automatically logs all actions to a log file that ca be specified
   via the ``log_file`` argument.
 - **Random Seeds for shot-based simulators:** A random seeds can be specified for the PennyLane
-  and Qiskit shot-based simulators to make the computations utilizing this :class:`Executor <squlearn.Executor>` object
+  and Qiskit shot-based simulators / fake backends to make the computations utilizing this :class:`Executor <squlearn.Executor>` object
   reproducible. The random seeds can be set manually by specifying the ``seed`` argument.
 - **Modified Qiskit Primitives:** The :class:`Executor <squlearn.Executor>` allows the creation of modified Qiskit Primitives
   that function exactly as the :mod:`Qiskit primitives <qiskit.primitives>` but leverage the comfort features mentioned above.
@@ -57,10 +57,10 @@ The :class:`Executor <squlearn.Executor>` class provides the following key comfo
   class, and thus benefit from all comfort features. The primitives are fully compatible with
   the Qiskit framework, and can be used in the same way as regular primitives.
   The :class:`Executor <squlearn.Executor>` primitives are automatically utilized in the sQUlearn
-  sub-programs.
-- **Qiskit Session handling:** Automatically manages the creation and handling of Qiskit sessions.
+  sub-programs. If the version of the Qiskit installation is larger equal than 1.2, the V2 Primitives are created, otherwise the V1 Primitives are returned.
+- **Qiskit Session handling:** Automatically manages the creation and handling of Qiskit IBM Runtime sessions.
   If Sessions are time out, the :class:`Executor <squlearn.Executor>` automatically creates a new session and re-executes the
-  job.
+  job. Note that a manual closing of the session is reuqired when running in jupyter notebook, since otherwise unncessary runtime on the IBM Quantum Machines might be a consequence.
 - **Automatic backend selection (IBM Quantum only):** The :class:`Executor <squlearn.Executor>` class can automatically select the most suitable
   backend for the quantum job. The selection process is facilitated by the `mapomatic <https://github.com/qiskit-community/mapomatic>`_ tool `[1]`_.
   The :class:`Executor <squlearn.Executor>` can be initialized with a list of backends, a :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`, or a Qiskit
@@ -93,7 +93,7 @@ execution environment:
 
 - A string specifying the local simulator backend: Qiskit's :class:`AerSimulator <qiskit_aer.AerSimulator>` is available by providing ``"qiskit"``,
   ``"statevector_simulator"`` and  ``"qasm_simulator"``; PennyLane's :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator can be initialized by
-  ``"pennylane"`` or ``"default.qubit"``.
+  ``"pennylane"`` or ``"default.qubit"``. Note that with Qiskit version 1.2, the sampler routines will always performe shots for the ``"statevector_simulator"`` keyword.
 
   .. jupyter-execute::
 
@@ -143,7 +143,8 @@ execution environment:
     executor = Executor(dev, shots = 1234)
 
 
-- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`get_backend <qiskit_ibm_runtime.QiskitRuntimeService.get_backend>` method, which utilizes the execution of quantum jobs on IBM Quantum. Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class.
+- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`get_backend <qiskit_ibm_runtime.QiskitRuntimeService.get_backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
+  Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class (remember to close the session at the end of your code when running on IBM Quantum).
 
   .. code-block:: python
 
@@ -151,7 +152,10 @@ execution environment:
     from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.get_backend('ibm_kyoto'))
+    executor = Executor(service.get_backend('ibm_brisbane'))
+    ...
+    # Close the session at the end of your code
+    executor.close_session()
 
   It is also possible to pass a list of IBM Quantum backends from which the most suited backend is chosen
   automatically (see :ref:`Automatic backend selection <autoselect>`)
@@ -175,29 +179,32 @@ execution environment:
     from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    session = service.create_session(backend = service.get_backend('ibm_kyoto'))
+    session = service.create_session(backend = service.get_backend('ibm_brisbane'))
     executor = Executor(session)
+    ...
+    executor.close_session()
 
-- Pre-configured Primitive (:class:`Estimator <qiskit_ibm_runtime.EstimatorV1>`, :class:`Sampler <qiskit_ibm_runtime.SamplerV1>`) with options for transpiling and error mitigation. The :class:`Executor <squlearn.Executor>` class
-  utilizes the :class:`Options <qiskit_ibm_runtime.options.Options>` of the inputted primitive, and automatically creates a new primitive with
-  the same :class:`Options <qiskit_ibm_runtime.options.Options>` if necessary. Note that :class:`Options <qiskit_ibm_runtime.options.Options>` from an :class:`Estimator <qiskit_ibm_runtime.EstimatorV1>` are not automatically copied to
-  the :class:`Sampler <qiskit_ibm_runtime.SamplerV1>`, and vice versa.
+- Pre-configured Primitive (:class:`Estimator <qiskit_ibm_runtime.Estimator>`, :class:`Sampler <qiskit_ibm_runtime.Sampler>`) with options for error mitigation.
+  Note that the options from an :class:`Estimator <qiskit_ibm_runtime.Estimator>` are not automatically copied to
+  the :class:`Sampler <qiskit_ibm_runtime.Sampler>`, and vice versa.
 
   .. code-block:: python
 
     from squlearn import Executor
-    from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Options
+    from qiskit_ibm_runtime import QiskitRuntimeService, Estimator
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    options = Options()
-    options.execution.shots = 1000
-    options.optimization_level = 0  # No optimization in transpilation
-    options.resilience_level = 2  # ZNE
+    session = service.create_session(backend = service.get_backend('ibm_brisbane'))
+    estimator = Estimator(session=session)
+    estimator.options.resilience.zne_mitigation = True
+    estimator.options.resilience.zne.noise_factors = (1, 3, 5)
+    estimator.options.resilience.zne.extrapolator = "linear"
 
-    session = service.create_session(backend = service.get_backend('ibm_kyoto'))
-    estimator = Estimator(session=session, options_estimator=options)
     executor = Executor(estimator)
+    ...
+    executor.close_session()
+
 
 - If only the ``backend.run`` execution is wanted, this can be achieved by utilizing the
   Qiskit IBM Provider package. However, most sQUlearn algorithms a build upon primitives,
@@ -218,17 +225,16 @@ backend from the :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeS
 .. code-block:: python
 
     from squlearn import Executor
-    from qiskit_ibm_runtime import QiskitRuntimeService, Options
+    from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    options = Options()
-    options.execution.shots = 1000
-    options.optimization_level = 0  # No optimization in transpilation
-    options.resilience_level = 2  # ZNE
+    options = {"resilience":{"zne_mitigation"  : True,
+                             "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
+              }
 
-    executor = Executor(service.get_backend('ibm_kyoto'), # Specify the backend
-                         cache_dir='cache' # Set cache folder to "cache"
+    executor = Executor(service.get_backend('ibm_brisbane'), # Specify the backend
+                         cache_dir='cache', # Set cache folder to "cache"
                          caching=True, # Enable caching default for remote executions
                          log_file="executor.log", # Set-up logging file
                          wait_restart=600,  # Set 10 min pause between restarts of Jobs
@@ -251,8 +257,9 @@ and thus benefit from all comfort features of the :class:`Executor <squlearn.Exe
 
 The following example shows, how to evaluate the Quantum Fisher Information utilizing the
 :class:`ExecutorEstimator <squlearn.util.executor.ExecutorEstimator>` primitive (see `QFI in Qiskit <https://qiskit-community.github.io/qiskit-algorithms/stubs/qiskit_algorithms.gradients.QFI.html>`_)
+The following code runs only for a Qiskit version below 1.2, since the QFI Routines have not been updated to PrimitivesV2 yet.
 
-  .. jupyter-execute::
+  .. code-block::
 
       from squlearn import Executor
       from qiskit_algorithms.gradients import LinCombQGT, QFI
@@ -263,11 +270,11 @@ The following example shows, how to evaluate the Quantum Fisher Information util
       qfi = QFI(LinCombQGT(executor.get_estimator()))
       # Quantum Fischer Information can be evaluated as usual with qfi.run()
 
-If only the run function of the :class:`Executor <squlearn.Executor>` Primitive is wanted, this can be achieved by utilizing the
-:class:`Executor <squlearn.Executor>` class function :meth:`estimator_run` and :meth:`sampler_run`.
+If only the run function of the :class:`Executor <squlearn.Executor>` Primitive is wanted, this can be achieved by utilizing the :class:`Executor <squlearn.Executor>` class function :meth:`estimator_run_v1` and :meth:`sampler_run_v1` for V1 Primitives.
+If the Qiskit version is larger than 1, also the functions :meth:`estimator_run_v2` and :meth:`sampler_run_v2` are available with the V2 Primitive interface.
 
 Note that the attributes :meth:`estimator` and :meth:`sampler` of the :class:`Executor <squlearn.Executor>` class are
-not creating or referring to the :class:`Executor <squlearn.Executor>` primitives! Instead they refer to the
+not creating or referring to the :class:`Executor <squlearn.Executor>` primitives! Instead, they refer to the
 Qiskit Primitives used internally that do not utilize any caching, restarts, etc.
 
 
@@ -276,20 +283,33 @@ Setting Options for Qiskit Primitives
 
 Options for the Primitives can be provided as a :class:`Options <qiskit_ibm_runtime.options.Options>` object to the ``options_estimator`` and
 ``options_sampler`` arguments, but they are also automatically copied from inputted primitives.
+They folow the same dictionary datastructure than the original V2 Primtives.
 
 .. code-block:: python
 
     from squlearn import Executor
-    from qiskit_ibm_runtime import QiskitRuntimeService, Options
+    from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    options = Options()
-    options.optimization_level = 0 # No optimization in transpilation
-    options.execution.shots = 5000
-    options.resilience_level = 0 # No Mitigation
+    options = {"resilience":{"zne_mitigation"  : True,
+                             "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
+              }
 
-    executor = Executor(service.get_backend("ibm_kyoto"),options_estimator=options)
+    executor = Executor(service.get_backend("ibm_brisbane"),options_estimator=options)
+
+Alternatively, the options can be adjusted by the attributes :meth:`estimator_options` and :meth:`sampler_options` similar
+to the option interface of the V2 Primtives:
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.get_backend("ibm_brisbane"))
+    executor.sampler_options.dynamical_decoupling.enable = True
+    executor.sampler_options.dynamical_decoupling.sequence_type = "XpXm"
 
 Options can be adjusted by the :meth:`set_options` method of the Primitives that are created by the
 :class:`Executor <squlearn.Executor>` class.
@@ -301,7 +321,7 @@ Options can be adjusted by the :meth:`set_options` method of the Primitives that
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    executor = Executor(service.get_backend("ibm_kyoto"))
+    executor = Executor(service.get_backend("ibm_brisbane"))
     estimator = executor.get_estimator()
     estimator.set_options(resilience_level=2)
 
@@ -337,6 +357,7 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
 
 .. jupyter-execute::
 
+   import warnings
    import numpy as np
    from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeBelemV2, FakeAthensV2
    from squlearn.util import Executor
@@ -356,7 +377,9 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
        Adam({'maxiter':2}), # Two iteration for demonstration purposes only
        callback=None # Remove print of the progress bar for cleaner output
    )
-   qnn.fit(np.array([[0.25],[0.75]]),np.array([0.25,0.75]))
+   with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      qnn.fit(np.array([[0.25],[0.75]]),np.array([0.25,0.75]))
    print("Chosen backend:", executor.backend)
 
 In the following example, the service is used for initializing the :class:`Executor <squlearn.Executor>`, and
@@ -428,8 +451,8 @@ circuits that need to be transpiled.
 .. seealso::
 
    * :class:`Executor <squlearn.Executor>`
-   * `Qiskit Runtime <https://quantum-computing.ibm.com/lab/docs/iql/runtime>`_
-   * `Qsikit Primitives <https://qiskit.org/documentation/apidoc/primitives.html>`_
+   * `Qiskit Runtime <https://docs.quantum.ibm.com/api/qiskit-ibm-runtime>`_
+   * `Qsikit Primitives <https://docs.quantum.ibm.com/api/qiskit/primitives>`_
    * `Mapomatic: Automatic mapping of compiled circuits to low-noise sub-graphs <https://github.com/qiskit-community/mapomatic>`_
    * `PennyLane Devices <https://docs.pennylane.ai/en/stable/code/api/pennylane.device.html>`_
 
