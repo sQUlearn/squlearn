@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 from typing import Union
@@ -119,12 +120,25 @@ class EncodingCircuitBase(ABC):
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
+        if self.num_features is None:
+            warnings.warn(
+                f"`num_features` is not set. Falling back to `num_encoding_slots` ({self.num_encoding_slots}).",
+                UserWarning,
+            )
+            # set the number of features temporarily to the number of encoding slots
+            self.num_features = self.num_encoding_slots
+
+        num_features = self.num_features
+
         feature_vec = ParameterVector(feature_label, self.num_features)
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
         if decompose:
             circ = circ.decompose()
+
+        # restore the actual number of features
+        self.num_features = num_features
 
         return circ.draw(output, **kwargs)
 
