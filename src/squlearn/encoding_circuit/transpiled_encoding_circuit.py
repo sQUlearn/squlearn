@@ -94,6 +94,11 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         """Feature dimension of the encoding circuit."""
         return self._encoding_circuit.num_features
 
+    @num_features.setter
+    def num_features(self, value: int) -> None:
+        """Set the feature dimension of the encoding circuit."""
+        self._encoding_circuit.num_features = value
+
     @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the encoding circuit."""
