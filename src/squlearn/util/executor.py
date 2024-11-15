@@ -17,8 +17,7 @@ import numpy as np
 from packaging import version
 
 import pennylane as qml
-from pennylane import QubitDevice
-from pennylane.devices import Device as PennylaneDevice
+from pennylane.devices import QubitDevice, Device as PennylaneDevice
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterVector
