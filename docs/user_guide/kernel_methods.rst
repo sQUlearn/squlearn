@@ -161,7 +161,7 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
     enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
     fqk_instance = FidelityKernel(
         encoding_circuit=enc_circ,
-        executor=Executor('statevector_simulator')
+        executor=Executor()
     )
 
 When evaluating kernels on a real backend, sQUlearn provides an option for mitigating FQKs for
@@ -241,7 +241,6 @@ At the same time it provides several optimizers such as :code:`Adam` and :code:`
 This can be achieved by employing the :class:`KernelOptimizer` class which automatically
 enables the optimization of quantum kernels when used in the high-level methods.
 
-
 The following examples assume that you have some data set available which you previously split into
 training and test data and shows how to optimize kernels.
 
@@ -259,7 +258,7 @@ training and test data and shows how to optimize kernels.
         encoding_circuit = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
 
         # set up the quantum kernel
-        pqk_instance = ProjectedQuantumKernel(encoding_circuit,Executor())
+        pqk_instance = ProjectedQuantumKernel(encoding_circuit, Executor())
 
         # set up the optimizer
         adam_opt = Adam(options={"maxiter":100, "lr": 0.1})

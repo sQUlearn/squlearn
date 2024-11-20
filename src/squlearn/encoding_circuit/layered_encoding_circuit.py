@@ -4,7 +4,7 @@ import copy
 
 import sympy as sp
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, UGate
 from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
