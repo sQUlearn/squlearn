@@ -57,6 +57,7 @@ optimizes the readout vectors via cheaper algorithms.
 
 Note that in sQUlearn there is no hidden qubit register. This yields that the reservoir gate :math:`U_R` only acts on accessable qubit register. This is no particular
 problem in the functionality of the algorithm but only sets some limitations to the possible reservoir dynamics.
+
 With the outputs of our QRC circuit we construct the so called readout vector 
 
 .. math::
