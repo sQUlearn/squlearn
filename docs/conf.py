@@ -120,6 +120,4 @@ suppress_warnings = ["myst.header", "config.cache"]
 html_baseurl = "https://squlearn.github.io/"
 sitemap_url_scheme = "{link}"
 
-# reset enumartion of graphics in different sections
-numfig = True
-numfig_secnum_depth = 1
+
