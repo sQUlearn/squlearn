@@ -1,5 +1,6 @@
 """Tests for BaseQNN"""
 
+from unittest import mock
 import pytest
 
 import numpy as np
@@ -152,3 +153,36 @@ class TestBaseQNN:
         assert qnn_multi_op.operator[3].Z == "N"
         assert qnn_multi_op._qnn._observable[0].X == "S"
         assert qnn_multi_op._qnn._observable[3].Z == "N"
+
+    @pytest.mark.parametrize(
+        "input_features, expected_features, warn_expected",
+        [
+            (np.array([[1, 2], [3, 4]]), 2, False),  # Matching features, no warning
+            (np.array([[1, 2, 3], [4, 5, 6]]), 3, True),  # Mismatched features, warning
+            (np.array([1, 2, 3]), 1, True),  # Single feature array, mismatched, warning
+            (np.array([[1]]), 1, False),  # Single feature array, matching, no warning
+        ],
+    )
+    def test_check_feature_consistency(self, input_features, expected_features, warn_expected):
+        encoding_circuit = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
+        executor = Executor("pennylane")
+        operator = IsingHamiltonian(num_qubits=2, I="S", Z="S", ZZ="S")
+        loss = SquaredLoss()
+        optimizer = SLSQP(options={"maxiter": 2})
+        mock_qnn = MockBaseQNN(
+            encoding_circuit=encoding_circuit,
+            operator=operator,
+            executor=executor,
+            loss=loss,
+            optimizer=optimizer,
+        )
+
+        # Validate features and check for warnings
+        if warn_expected:
+            with pytest.warns(UserWarning, match="Number of features in the input data"):
+                mock_qnn._check_feature_consistency(input_features)
+        else:
+            mock_qnn._check_feature_consistency(input_features)
+
+        # Assert num_features was updated correctly
+        assert mock_qnn.num_features == expected_features

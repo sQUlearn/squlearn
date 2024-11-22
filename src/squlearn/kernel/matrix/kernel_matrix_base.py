@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from typing import Union
 from abc import ABC, abstractmethod
 
@@ -60,6 +61,11 @@ class KernelMatrixBase(ABC):
     def num_features(self) -> int:
         """Returns the feature dimension of the encoding circuit"""
         return self._encoding_circuit.num_features
+
+    @num_features.setter
+    def num_features(self, value: int) -> None:
+        """Sets the feature dimension of the encoding circuit"""
+        self._encoding_circuit.num_features = value
 
     @property
     def parameters(self) -> np.ndarray:
@@ -276,6 +282,29 @@ class KernelMatrixBase(ABC):
             raise AttributeError(
                 "If regularization is not none it must be either thresholding or tikhonov"
             )
+
+    def _check_feature_consistency(self, x: np.ndarray) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, a warning is issued, and the `num_features` attribute
+        of the encoding circuit is updated to reflect the actual number of features in the input data.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Warnings:
+            UserWarning: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = x.shape[1] if len(x.shape) > 1 else 1
+
+        if actual_num_features != self.num_features:
+            warnings.warn(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
+            self.num_features = actual_num_features
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):

@@ -90,8 +90,11 @@ class QGPC(GaussianProcessClassifier):
         X = np.array(X)
         y = np.array(y)
 
-        self.quantum_kernel._set_num_features(X)
-        self.__initialize()
+        if self._quantum_kernel.num_features is None:
+            self.quantum_kernel._set_num_features(X)
+            self.__initialize()
+        else:
+            self._quantum_kernel._check_feature_consistency(X)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)

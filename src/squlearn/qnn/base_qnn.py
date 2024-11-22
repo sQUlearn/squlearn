@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod, ABC
 from typing import Callable, Union
 from warnings import warn
+import warnings
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -210,6 +211,7 @@ class BaseQNN(BaseEstimator, ABC):
         X = np.array(X)
         y = np.array(y)
 
+        self._check_feature_consistency(X)
         self.__initialize_based_on_num_features(X)
 
         self._param = self.param_ini.copy()
@@ -360,6 +362,29 @@ class BaseQNN(BaseEstimator, ABC):
         if y.ndim == 2 and y.shape[1] == 1:
             y = column_or_1d(y, warn=True)
         return X, y
+
+    def _check_feature_consistency(self, x: np.ndarray) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, a warning is issued, and the `num_features` attribute
+        of the encoding circuit is updated to reflect the actual number of features in the input data.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Warnings:
+            UserWarning: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = x.shape[1] if len(x.shape) > 1 else 1
+
+        if actual_num_features != self.num_features:
+            warnings.warn(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
+            self.num_features = actual_num_features
 
     def __initialize_based_on_num_features(self, input_X=None) -> None:
         """Initializes certain components of the class depending on the availability of the
