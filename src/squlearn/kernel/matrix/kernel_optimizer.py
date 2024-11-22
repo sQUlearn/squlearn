@@ -38,11 +38,7 @@ class KernelOptimizer(KernelMatrixBase):
         self._quantum_kernel = quantum_kernel
         self._loss = loss
         self._optimizer = optimizer
-        self._initial_parameters = (
-            initial_parameters
-            if initial_parameters is not None
-            else self._quantum_kernel.parameters
-        )
+        self._initial_parameters = initial_parameters
         self._optimal_parameters = None
         self._is_trainable = True
         self._is_fitted = False
@@ -70,6 +66,17 @@ class KernelOptimizer(KernelMatrixBase):
 
         if self._quantum_kernel.num_parameters == 0:
             return None
+
+        if self._encoding_circuit.num_features is None:
+            self._set_num_features(X)
+
+        if self._initial_parameters is None:
+            if self._quantum_kernel._parameters is None:
+                self._generate_initial_parameters()
+            self._initial_parameters = self._quantum_kernel.parameters
+
+        if not self._quantum_kernel._is_initialized:
+            self._quantum_kernel._initialize_kernel()
 
         # Perform kernel optimization
         loss_function = partial(self._loss.compute, data=X, labels=y)
@@ -172,3 +179,12 @@ class KernelOptimizer(KernelMatrixBase):
             params.update(self._quantum_kernel.get_params(deep=deep))
 
         return params
+
+    def _set_num_features(self, X: np.ndarray) -> None:
+        self._quantum_kernel._set_num_features(X)
+
+    def _generate_initial_parameters(self) -> None:
+        return super()._generate_initial_parameters()
+
+    def _initialize_kernel(self) -> None:
+        return self._quantum_kernel._initialize_kernel()

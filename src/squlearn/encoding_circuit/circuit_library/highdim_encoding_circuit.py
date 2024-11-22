@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+from traitlets import Int
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -53,7 +54,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         cycling: bool = True,
         cycling_type: str = "saw",
         num_layers: Union[None, int] = None,
@@ -83,6 +84,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def num_parameters(self) -> int:
         """The number of trainable parameters of the HighDim encoding circuit (equal to 0)."""
         return 0
+
+    @property
+    def num_encoding_slots(self) -> float:
+        """The number of encoding slots of the HighDim encoding circuit (equal to inf)."""
+        return np.inf
 
     def get_params(self, deep: bool = True) -> dict:
         """

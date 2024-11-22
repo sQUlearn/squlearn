@@ -101,10 +101,10 @@ class QGPR(BaseEstimator, RegressorMixin):
         self._L = None
         self._alpha = None
 
-        # Apply kwargs to set_params
-        update_params = self.get_params().keys() & kwargs.keys()
-        if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
+        self._kernel_params = kwargs
+
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
 
     def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
@@ -122,6 +122,15 @@ class QGPR(BaseEstimator, RegressorMixin):
         Return:
             Returns an instance of self.
         """
+
+        X = np.array(X)
+        y = np.array(y)
+
+        if self._quantum_kernel.num_features is None:
+            self._quantum_kernel._set_num_features(X)
+            self.__initialize()
+        else:
+            self._quantum_kernel._check_feature_consistency(X)
 
         X, y = self._validate_data(
             X,
@@ -316,3 +325,12 @@ class QGPR(BaseEstimator, RegressorMixin):
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self
+
+    def __initialize(self) -> None:
+        """Initialize the model with the known feature vector"""
+        self._quantum_kernel._initialize_kernel()
+
+        # Apply kwargs to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
+        if update_params:
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})

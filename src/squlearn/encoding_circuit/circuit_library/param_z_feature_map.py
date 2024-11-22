@@ -17,7 +17,7 @@ class ParamZFeatureMap(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import ParamZFeatureMap
-        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
+        pqc = ParamZFeatureMap(num_qubits=4, num_features=2, num_layers=2, entangling=True)
         plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
         plt.tight_layout()
 
@@ -30,7 +30,11 @@ class ParamZFeatureMap(EncodingCircuitBase):
     """
 
     def __init__(
-        self, num_qubits: int, num_features: int, num_layers: int = 2, entangling: bool = False
+        self,
+        num_qubits: int,
+        num_layers: int = 2,
+        num_features: int = None,
+        entangling: bool = False,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self._num_layers = num_layers

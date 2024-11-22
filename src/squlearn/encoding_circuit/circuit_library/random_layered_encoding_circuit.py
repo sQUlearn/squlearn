@@ -46,7 +46,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         seed: int = 0,
         min_num_layers: int = 2,
         max_num_layers: int = 10,

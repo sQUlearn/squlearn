@@ -6,7 +6,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class ChebyshevPQC(EncodingCircuitBase):
@@ -60,8 +60,8 @@ class ChebyshevPQC(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = True,
         entangling_gate: str = "crz",
         alpha: float = 4.0,
@@ -162,6 +162,11 @@ class ChebyshevPQC(EncodingCircuitBase):
             bounds[:, 1] = np.inf
         return bounds
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ChebyshevPQC encoding circuit."""
+        return self.num_qubits * self.num_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevPQC encoding circuit
@@ -199,6 +204,39 @@ class ChebyshevPQC(EncodingCircuitBase):
             )
         return super().set_params(**kwargs)
 
+    def get_cheb_indices(self, flatten: bool = True):
+        """
+        Function that returns the indices of the parameters involved in the Chebyshev encoding.
+
+        Args:
+            flatten (bool): If true, the indices are returned as a flat list, otherwise
+                            as a list of lists, where the outer list corresponds to the layers
+                            (default: True)
+        """
+        cheb_index = []
+        index_offset = self.num_qubits
+        for layer in range(self.num_layers):
+            cheb_index_layer = []
+            for i in range(self.num_qubits):
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
+
+            for i in range(0, self.num_qubits, 2):
+                index_offset += 1
+
+            if self.num_qubits > 2:
+                if self.closed:
+                    istop = self.num_qubits
+                else:
+                    istop = self.num_qubits - 1
+                for i in range(1, istop, 2):
+                    index_offset += 1
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
+        return cheb_index
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -216,6 +254,9 @@ class ChebyshevPQC(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        if self.num_features > self.num_encoding_slots:
+            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
 
         if self.nonlinearity == "arccos":
 
@@ -273,36 +314,3 @@ class ChebyshevPQC(EncodingCircuitBase):
             index_offset += 1
 
         return QC
-
-    def get_cheb_indices(self, flatten: bool = True):
-        """
-        Function that returns the indices of the parameters involved in the Chebyshev encoding.
-
-        Args:
-            flatten (bool): If true, the indices are returned as a flat list, otherwise
-                            as a list of lists, where the outer list corresponds to the layers
-                            (default: True)
-        """
-        cheb_index = []
-        index_offset = self.num_qubits
-        for layer in range(self.num_layers):
-            cheb_index_layer = []
-            for i in range(self.num_qubits):
-                cheb_index_layer.append(index_offset)
-                index_offset += 1
-
-            for i in range(0, self.num_qubits, 2):
-                index_offset += 1
-
-            if self.num_qubits > 2:
-                if self.closed:
-                    istop = self.num_qubits
-                else:
-                    istop = self.num_qubits - 1
-                for i in range(1, istop, 2):
-                    index_offset += 1
-            if flatten:
-                cheb_index += cheb_index_layer
-            else:
-                cheb_index.append(cheb_index_layer)
-        return cheb_index

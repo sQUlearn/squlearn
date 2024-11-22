@@ -156,7 +156,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         seed: int = 0,
         min_gates: int = 10,
         max_gates: int = 50,
@@ -337,6 +337,11 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     def num_parameters(self) -> int:
         """The number of trainable parameters of the random encoding circuit."""
         return self._num_parameters
+
+    @property
+    def num_encoding_slots(self) -> float:
+        """The number of encoding slots of the random encoding circuit (equal to inf)."""
+        return np.inf
 
     def get_params(self, deep: bool = True) -> dict:
         r"""

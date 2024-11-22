@@ -17,7 +17,6 @@ import numpy as np
 from packaging import version
 
 import pennylane as qml
-from pennylane import QubitDevice
 from pennylane.devices import Device as PennylaneDevice
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
@@ -37,6 +36,11 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
+
+if version.parse(qml.__version__) < version.parse("0.39.0"):
+    from pennylane import QubitDevice
+else:
+    from pennylane.devices import QubitDevice
 
 if version.parse(qiskit_version) <= version.parse("0.45.0"):
     from qiskit.utils import algorithm_globals
