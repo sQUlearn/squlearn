@@ -220,7 +220,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 quantum_circuit = QuantumCircuit(2)
             quantum_circuit.rz(-np.pi / 2, 0)
             quantum_circuit.cx(0, 1)
-            quantum_circuit.rz(param[0], 1)
+            quantum_circuit.rz(param[0], 1) #REMOVE ONCE THE STRUCTURE IS FIXED
             quantum_circuit.ry(param[1], 0)
             if measurement:
                 quantum_circuit.measure(1, 0)
