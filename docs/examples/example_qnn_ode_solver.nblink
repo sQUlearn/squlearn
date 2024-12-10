@@ -1,6 +1,6 @@
 {
     "path": "../../examples/tutorials/qnn_ode_solver.ipynb",
     "extra-media": [
-        "../../examples/tutorials/QNN_ode_workflow"
+        "../../examples/tutorials/images"
     ]
 }
