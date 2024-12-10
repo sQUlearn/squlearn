@@ -224,7 +224,9 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
             QC = variational_gate_block(QC, self.num_variational_layers, self.num_qubits)[0]
         elif self.variational_arrangement == "ABA":
             if self.num_qubits % self.block_width != 0:
-                raise ValueError(f"block_width =  {self.block_width} must be a divisor of the num_qubits = {self.num_qubits}.")
+                raise ValueError(
+                    f"block_width =  {self.block_width} must be a divisor of the num_qubits = {self.num_qubits}."
+                )
 
             number_of_blocks = int(np.ceil(self.num_qubits / self.block_width))  # vertical blocks
             shifting_factor = np.floor(self.block_width / 2)
