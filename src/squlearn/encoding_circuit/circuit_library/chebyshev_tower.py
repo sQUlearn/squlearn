@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -36,6 +38,8 @@ class ChebyshevTower(EncodingCircuitBase):
         arrangement (str): Arrangement of the layers, either ``block`` or ``alternating``.
                           ``block``: The features are stacked together, ``alternating``:
                           The features are placed alternately (default: ``block``).
+        nonlinearity (str): Mapping function to use for the feature encoding. Either ``arccos``
+                            or ``arctan`` (default: ``arccos``)
     """
 
     def __init__(
@@ -48,6 +52,7 @@ class ChebyshevTower(EncodingCircuitBase):
         rotation_gate: str = "ry",
         hadamard_start: bool = True,
         arrangement: str = "block",
+        nonlinearity: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
 
@@ -57,6 +62,7 @@ class ChebyshevTower(EncodingCircuitBase):
         self.rotation_gate = rotation_gate
         self.hadamard_start = hadamard_start
         self.arrangement = arrangement
+        self.nonlinearity = nonlinearity
 
         if self.rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
@@ -64,10 +70,28 @@ class ChebyshevTower(EncodingCircuitBase):
         if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
+        if self.nonlinearity not in ("arccos", "arctan"):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {self.nonlinearity}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
+
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the Chebyshev Tower encoding (equal 0 here)."""
         return 0
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the ChebyshevPQC encoding circuit."""
+        bounds = np.zeros((self.num_features, 2))
+        if self.nonlinearity == "arccos":
+            bounds[:, 0] = -1.0
+            bounds[:, 1] = 1.0
+        elif self.nonlinearity == "arctan":
+            bounds[:, 0] = -np.inf
+            bounds[:, 1] = np.inf
+        return bounds
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -87,7 +111,25 @@ class ChebyshevTower(EncodingCircuitBase):
         params["rotation_gate"] = self.rotation_gate
         params["hadamard_start"] = self.hadamard_start
         params["arrangement"] = self.arrangement
+        params["nonlinearity"] = self.nonlinearity
         return params
+
+    def set_params(self, **kwargs) -> ChebyshevTower:
+        """
+        Sets value of the encoding circuit hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
+        """
+        if "nonlinearity" in kwargs and kwargs["nonlinearity"] not in (
+            "arccos",
+            "arctan",
+        ):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {kwargs['nonlinearity']}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
+        return super().set_params(**kwargs)
 
     def get_circuit(
         self,
@@ -121,9 +163,17 @@ class ChebyshevTower(EncodingCircuitBase):
                 QC.cx(i, i + 1)
             return QC
 
-        def mapping(x, i):
-            """Non-linear mapping for x: alpha*i*arccos(x)"""
-            return self.alpha * i * np.arccos(x)
+        if self.nonlinearity == "arccos":
+
+            def mapping(x, i):
+                """Non-linear mapping for x: alpha*i*arccos(x)"""
+                return self.alpha * i * np.arccos(x)
+
+        elif self.nonlinearity == "arctan":
+
+            def mapping(x, i):
+                """Non-linear mapping for x: alpha*i*arctan(x)"""
+                return self.alpha * i * np.arctan(x)
 
         nfeature = len(features)
 

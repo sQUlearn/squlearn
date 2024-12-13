@@ -122,10 +122,10 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.venv
-env/
-venv/
+.env*
+.venv*
+env*/
+venv*/
 ENV/
 env.bak/
 venv.bak/
@@ -169,7 +169,7 @@ examples/qnn/*_log.csv
 examples/**/*.log
 
 #Example caches
-examples/**/_cache
+**/_cache
 examples/integration/mlruns
 
 # Genereated doc images

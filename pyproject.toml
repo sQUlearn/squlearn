@@ -7,10 +7,11 @@ name = "squlearn"
 readme = "README.md"
 authors = [
     {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
-    {name = "Frederic Rapp", email = "frederic.rapp@ipa.fraunhofer.de"},
-    {name = "Marco Roth", email = "marco.roth@ipa.fraunhofer.de"},
-    {name = "Jan Schnabel", email = "jan.schnabel@ipa.fraunhofer.de"},
     {name = "Moritz Willmann", email = "moritz.willmann@ipa.fraunhofer.de"},
+    {name = "Jan Schnabel", email = "jan.schnabel@ipa.fraunhofer.de"},
+    {name = "Frederic Rapp", email = "frederic.rapp@ipa.fraunhofer.de"},
+    {name = "Manuel Hagelüken", email = "manuel.hagelueken@ipa.fraunhofer.de"},
+    {name = "Marco Roth", email = "marco.roth@ipa.fraunhofer.de"},
 ]
 maintainers = [
     {name = "David Kreplin", email = "david.kreplin@ipa.fraunhofer.de"},
@@ -24,43 +25,53 @@ classifiers = [
 ]
 keywords = ["quantum", "machine learning", "qml"]
 dependencies = [
-    "dill>=0.3",
-    "numpy>=1.17",
-    "qiskit>=0.43.0",
+    "bayesian-optimization>=1.4.3,<2",
+    "dill>=0.3.4",
+    "mapomatic>=0.10.0",
+    "networkx>=3.0",
+    "numpy>=1.20",
+    "pennylane>=0.34.0",
+    "qiskit>=0.45.0",
     "qiskit-aer>=0.12.0",
     "qiskit-algorithms>=0.3.0",
-    "qiskit-ibm-runtime>=0.15.1",
-    "qiskit-machine-learning>=0.6.1",
-    "scipy>=1.5",
-    "scikit-learn>=1.0",
-    "tqdm>=4.0",
+    "qiskit-ibm-runtime>=0.18.0",
+    "qiskit-machine-learning>=0.7.0",
+    "scipy>=1.8.0",
+    "scikit-learn>=1.2.0,<1.4.2",
+    "tqdm>=4.1.0",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.13"
 dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 dev = [
     "black",
     "flit",
-    "myst-parser",
     "nbmake",
-    "nbsphinx",
-    "nbsphinx_link",
     "pylint",
     "pytest",
-    "sphinx",
-    "sphinxcontrib-spelling",
-    "sphinx-rtd-theme",
-    "jupyter-sphinx",
 ]
 examples = [
     "jupyter",
-    "matplotlib>=3.5",
+    "matplotlib>=3.5.1",
     "mlflow",
     "pandas",
     "pylatexenc>=2.10",
     "seaborn",
     "scikit-optimize",
+]
+docs = [
+    "ipykernel",
+    "jupyter-sphinx",
+    "matplotlib>=3.5.1",
+    "myst-parser",
+    "nbsphinx",
+    "nbsphinx_link",
+    "pylatexenc>=2.10",
+    "sphinx",
+    "sphinxcontrib-spelling",
+    "sphinx-rtd-theme<3.0.0",
+    "sphinx-sitemap",
 ]
 
 [project.urls]

@@ -21,6 +21,8 @@ class ObservableBase(ABC):
         num_parameters (int): Number of trainable parameters in the observable.
         num_qubits (int): Number of qubits in the observable.
 
+    Methods:
+    --------
     """
 
     def __init__(self, num_qubits: int) -> None:
@@ -43,6 +45,7 @@ class ObservableBase(ABC):
                                            qubits are mapped to the output qubits.
             num_all_qubits (int): The total number of qubits in the system.
         """
+
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
         self._is_mapped = True

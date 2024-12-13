@@ -1,14 +1,15 @@
-from qiskit import QuantumCircuit
+import numpy as np
+from typing import Union, Callable
+import copy
+
+import sympy as sp
+
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, UGate
 from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
 from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
 from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
-from typing import Union, Callable
-import copy
-
-# is needed for making encoding circuits with numpy functions using strings:
-import numpy as np
 
 from .encoding_circuit_base import EncodingCircuitBase
 
@@ -87,6 +88,9 @@ class _operation:
             ent_strategy: the entangling strategy: if None, than the program knows, that this is not an entangling layer
             map: A default map, that is used, if the operation has exactly 2 variable groups and no given map (by user)
             default_map: A boolean, that checks, if the user initializes his own map
+
+        Methods:
+        --------
         """
         self.num_qubits = num_qubits
         self.variablegroup_tuple = variablegroup_tuple
@@ -749,6 +753,9 @@ class LayeredPQC:
             variable_groups_string_tuple [tuple]: Tuple of the hash values for each variable group, with that, you can search the position of each variable_group,
                 e.g. variable_groups = (x_var, x_var2,...) with type(x_var) = variable_group and variable_string_list = (hash(x_var),hash(x_var2),...)
             layer_counter [int]: counts the number of different layers of the layer class used
+
+        Methods:
+        --------
         """
         self._num_qubits = num_qubits
         self.operation_list = []
@@ -1262,15 +1269,31 @@ class LayeredPQC:
         """initializes a encoding circuit through a given string of gates"""
 
         def generate_function(map_string, args):
-            """Translates a string into a function"""
-            function_string = """\
-def math_function({var}):
-    return {func}
-            """.format(
-                func=map_string, var=args
-            )
-            exec(function_string, globals())
-            return math_function  # pylint: disable=undefined-variable
+            """Function for creating a callable function from a string
+
+            Args:
+                map_string (str): The string representation of the function
+                args (str): The string representation of the arguments of the function
+
+            Returns:
+                callable_function (function): The function that can be called with the arguments
+            """
+            # Split the argument string into individual variable names
+            arg_names = args.split(",")
+
+            # Remove "np." prefix
+            map_string = map_string.replace("np.", "")
+
+            # Create symbols for each variable
+            symbols = [sp.Symbol(arg) for arg in arg_names]
+
+            # Parse the map_string into a SymPy expression
+            expr = sp.sympify(map_string, evaluate=False)
+
+            # Create the function
+            callable_function = sp.lambdify(symbols, expr, modules=np)
+
+            return callable_function
 
         def get_closing_bracket_index(word, index):
             """gives to an open round bracket '(' the location of the closing bracket. This works especially, if there are more than one open brackets."""

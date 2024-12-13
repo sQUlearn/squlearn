@@ -4,7 +4,7 @@ from sklearn.utils import gen_batches
 from typing import Union
 
 from .loss import LossBase
-from .qnn import QNN
+from .lowlevel_qnn_base import LowLevelQNNBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
 from ..util import Executor
 
@@ -209,7 +209,7 @@ class ShotsFromRSTD(ShotControlBase):
 
 
 def train(
-    qnn: QNN,
+    qnn: LowLevelQNNBase,
     input_values: Union[list, np.ndarray],
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
@@ -224,7 +224,7 @@ def train(
     Function for training a given QNN.
 
     Args:
-        QNN (QNN): QNN instance that is trained
+        QNN (LowLevelQNNBase): QNN instance that is trained
         input_values (Union[list,np.ndarray]): List of input values, i.e. training data
         ground_truth (Union[list,np.ndarray]): List of ground truth values,
                                                e.g. labels of the training data
@@ -245,17 +245,17 @@ def train(
     if isinstance(weights, np.ndarray):
         weights_values = weights
     elif weights is None:
-        weights_values = np.ones(ground_truth.shape)
+        weights_values = np.ones(np.shape(ground_truth))
     else:
         raise TypeError(f"Unknown weight format: {type(weights)}")
 
     # Tell the loss function if the cost operator parameters are optimized
     loss.set_opt_param_op(opt_param_op)
 
-    if weights_values.shape != ground_truth.shape:
+    if weights_values.shape != np.shape(ground_truth):
         raise ValueError(
             f"Shape {weights_values.shape} of weight values doesn't match shape"
-            f" {ground_truth.shape} of reference values"
+            f" {np.shape(ground_truth)} of reference values"
         )
 
     # Preprocessing of the input values in case of lists
@@ -379,7 +379,7 @@ def train(
 
 
 def train_mini_batch(
-    qnn: QNN,
+    qnn: LowLevelQNNBase,
     input_values: Union[list, np.ndarray],
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
@@ -396,7 +396,7 @@ def train_mini_batch(
     """Minimize a loss function using mini-batch gradient descent.
 
     Args:
-        QNN (QNN): QNN instance that is trained
+        QNN (LowLevelQNNBase): QNN instance that is trained
         input_values (Union[list,np.ndarray]): List of input values, i.e. training data
         ground_truth (Union[list,np.ndarray]): List of ground truth values,
                                                e.g. labels of the training data

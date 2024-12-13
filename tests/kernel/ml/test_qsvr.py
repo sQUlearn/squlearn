@@ -30,7 +30,7 @@ class TestQSVR:
     def qsvr_fidelity(self) -> QSVR:
         """QSVR module with FidelityKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
@@ -44,7 +44,7 @@ class TestQSVR:
     def qsvr_pqk(self) -> QSVR:
         """QSVR module wit ProjectedQuantumKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
@@ -89,6 +89,23 @@ class TestQSVR:
 
         X, y = data
         qsvr_instance.fit(X, y)
+
+        y_pred = qsvr_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+
+    @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
+    def test_list_input(self, qsvr, request, data):
+        """Tests concerning the predict function of the QSVR with list input.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvr_instance = request.getfixturevalue(qsvr)
+
+        X, y = data
+        qsvr_instance.fit(X.tolist(), y.tolist())
 
         y_pred = qsvr_instance.predict(X)
         assert isinstance(y_pred, np.ndarray)

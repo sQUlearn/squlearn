@@ -2,9 +2,13 @@ import numpy as np
 from qiskit.circuit import ParameterVector
 from qiskit_algorithms.gradients import LinCombQGT, QFI
 
+import pennylane as qml
+import pennylane.numpy as pnp
+
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from .executor import Executor
+from .executor import Executor, BaseEstimatorV2
 from .data_preprocessing import adjust_features, adjust_parameters
+from .pennylane import PennyLaneCircuit
 
 
 def get_quantum_fisher(
@@ -24,10 +28,9 @@ def get_quantum_fisher(
     * ``"p"`` : QFIM for parameters only
     * ``"x"`` : QFIM for features only
     * ``"px"`` : QFIM for parameters and features (order parameters first)
-    * ``"xp"`` : QFIM for features and parameters (order features first)
 
-    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input separately and
-    returned as a numpy matrix.
+    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input separately
+    and returned as a numpy matrix.
 
     Args:
         encoding_circuit (EncodingCircuitBase): Encoding circuit for which the QFIM is evaluated
@@ -35,13 +38,59 @@ def get_quantum_fisher(
         p (np.ndarray): Parameter values for replacing the parameters in the encoding circuit
         executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
         mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
-                    ``"px"``, ``"xp"`` (default: ``"p"``)
+                    ``"px"`` (default: ``"p"``)
 
     Return:
         Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
+
+    if executor.quantum_framework == "qiskit":
+        return _get_quantum_fisher_qiskit(encoding_circuit, x, p, executor, mode)
+    else:
+        return _get_quantum_fisher_pennylane(encoding_circuit, x, p, executor, mode)
+
+
+def _get_quantum_fisher_qiskit(
+    encoding_circuit: EncodingCircuitBase,
+    x: np.ndarray,
+    p: np.ndarray,
+    executor: Executor,
+    mode: str = "p",
+):
+    """
+    Qiskit implementation of the Quantum Fisher Information Matrix of a encoding circuit.
+
+    The Quantum Fisher Information Matrix (QFIM) is evaluated the supplied numerical
+    features and parameter value.
+
+    Mode enables the user to choose between different modes of evaluation:
+    * ``"p"`` : QFIM for parameters only
+    * ``"x"`` : QFIM for features only
+    * ``"px"`` : QFIM for parameters and features (order parameters first)
+
+    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input separately
+    and returned as a numpy matrix.
+
+    Args:
+        encoding_circuit (EncodingCircuitBase): Encoding circuit for which the QFIM is evaluated
+        x (np.ndarray): Input data values for replacing the features in the encoding circuit
+        p (np.ndarray): Parameter values for replacing the parameters in the encoding circuit
+        executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
+        mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
+                    ``"px"``, (default: ``"p"``)
+
+    Return:
+        Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
+    """
+    estimator = executor.get_estimator()
+    if isinstance(estimator, BaseEstimatorV2):
+        raise ValueError(
+            "Incompatible Qiskit version for QFI calculation with Qiskit Algorithms. "
+            "Please downgrade to Qiskit 1.0 or consider using PennyLane."
+        )
+
     # Get Qiskit QFI primitive
-    qfi = QFI(LinCombQGT(executor.get_estimator()))
+    qfi = QFI(LinCombQGT(estimator))
 
     p_ = ParameterVector("p", encoding_circuit.num_parameters)
     x_ = ParameterVector("x", encoding_circuit.num_features)
@@ -67,18 +116,14 @@ def get_quantum_fisher(
                 circ_list.append(circuit.assign_parameters(dict(zip(p_, pval))))
                 param_values_list.append(xval)
                 param_list.append(x_)
-    elif mode == "xp":
-        for xval in x_list:
-            for pval in p_list:
-                circ_list.append(circuit)
-                param_values_list.append(np.concatenate((xval, pval)))
-                param_list.append(list(x_) + list(p_))
     elif mode == "px":
         for xval in x_list:
             for pval in p_list:
                 circ_list.append(circuit)
                 param_values_list.append(np.concatenate((pval, xval)))
                 param_list.append(list(p_) + list(x_))
+    else:
+        raise ValueError("Invalid mode for QFI evaluation.")
 
     # Evaluate QFIM with Qiskit Primitive
     qfis = np.array(qfi.run(circ_list, param_values_list, param_list).result().qfis)
@@ -99,117 +144,96 @@ def get_quantum_fisher(
     return qfis
 
 
-# WORK IN PROGRESS:
+def _get_quantum_fisher_pennylane(
+    encoding_circuit: EncodingCircuitBase,
+    x: np.ndarray,
+    p: np.ndarray,
+    executor: Executor,
+    mode: str = "p",
+):
+    """
+    PennyLane implementation of the Quantum Fisher Information Matrix of a encoding circuit.
 
+    The Quantum Fisher Information Matrix (QFIM) is evaluated the supplied numerical
+    features and parameter value.
 
-# def regression_fisher(qnn : qfit, x, y, param, param_op):
-#     # empirical log-likelihood Fischer log p(y|f) = log exp(-0.5(y-f)^2)
-#     # see for example doi:10.5555/3454287.3454661
-#     # F(p) = sum_n (f(x_n)-y_n)^2 grad f(x_n) grad f(x_n)'
+    Mode enables the user to choose between different modes of evaluation:
+    * ``"p"`` : QFIM for parameters only
+    * ``"x"`` : QFIM for features only
+    * ``"px"`` : QFIM for parameters and features (order parameters first)
 
-#     x_,multi_x = _adjust_input_(x,qnn.get_num_x())
-#     param_,multi_param = _adjust_input_(param,qnn.num_parameters)
-#     param_op_,multi_param_op = _adjust_input_(param_op,qnn.get_num_param_op())
+    In case of multiple inputs for ``x`` and ``p``, the QFIM is evaluated for each input
+    separately and returned as a numpy matrix.
 
-#     print("x_",x_)
-#     print("param_",param_)
-#     print("param_op_",param_op_)
+    Args:
+        encoding_circuit (EncodingCircuitBase): Encoding circuit for which the QFIM is evaluated
+        x (np.ndarray): Input data values for replacing the features in the encoding circuit
+        p (np.ndarray): Parameter values for replacing the parameters in the encoding circuit
+        executor (Executor): Executor for evaluating the QFIM (utilizes estimator)
+        mode (str): Mode for evaluating the QFIM, possibilities: ``"p"``, ``"x"``,
+                    ``"px"`` (default: ``"p"``)
 
-#     f = qnn.eval_f(x_,param_,param_op_)
-#     dfdp = qnn.eval_dfdp(x_,param_,param_op_)
-#     dfdop = qnn.eval_dfdop(x_,param_,param_op_)
+    Return:
+        Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
+    """
 
-#     print("f",f)
-#     print("dfdp",dfdp)
-#     print("dfdop",dfdop)
+    parameter_vector = ParameterVector("p", encoding_circuit.num_parameters)
+    feature_vector = ParameterVector("x", encoding_circuit.num_features)
+    circuit = encoding_circuit.get_circuit(feature_vector, parameter_vector)
 
-#     if multi_x:
-#         prefac = []
-#         for i in range(len(y)):
-#             prefac.append(np.square((f[i]-y[i])))
-#     else:
-#         prefac = []
-#         prefac.append(np.square(f[0]-y))
-#     prefac = np.array(prefac)
+    # Adjust input
+    x_adjusted, multi_x = adjust_features(x, encoding_circuit.num_features)
+    p_adjusted, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
 
-#     print("prefac",prefac)
-#     ax = 2
-#     if multi_param_op:
-#         ax = 3
-#     dp_dop = np.concatenate((dfdp,dfdop),axis=ax)
+    fisher_list = []
+    if mode == "p":
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
+        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        for x_values in x_adjusted:
+            x_values = pnp.array(x_values, requires_grad=False)
+            for p_values in p_adjusted:
+                p_values = pnp.array(p_values, requires_grad=True)
+                # pylint: disable=not-callable
+                fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
-#     print("dp_dop",dp_dop)
+    elif mode == "x":
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
+        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        for x_values in x_adjusted:
+            x_values = pnp.array(x_values, requires_grad=True)
+            for p_values in p_adjusted:
+                p_values = pnp.array(p_values, requires_grad=False)
+                # pylint: disable=not-callable
+                fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
-#     dp_dop_multi = dp_dop.copy()
+    elif mode == "px":
+        px_ = ParameterVector(
+            "px", encoding_circuit.num_parameters + encoding_circuit.num_features
+        )
+        dictionary = dict(zip(list(parameter_vector) + list(feature_vector), list(px_)))
+        circuit.assign_parameters(dictionary, inplace=True)
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
+        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        for x_values in x_adjusted:
+            for p_values in p_adjusted:
+                x_values = pnp.array(np.concatenate((p_values, x_values)), requires_grad=True)
+                # pylint: disable=not-callable
+                fisher_list.append(4.0 * np.array(fisher_func(x_values)))
+    else:
+        raise ValueError("Invalid mode for QFI evaluation.")
 
-#     for i in range(len(x_)):
-#         for j in range(len(param_)):
-#             for k in range(len(param_op_)):
-#                 dp_dop_multi[i,j,k] = np.multiply(dp_dop_multi[i,j,k],prefac[i,j,k])
+    fisher_list = np.array(fisher_list)
 
-#     print("dp_dop_multi",dp_dop_multi)
+    # Reformating in case of multiple inputs
+    reshape_list = []
+    if multi_x:
+        reshape_list.append(len(x_adjusted))
+    if multi_p:
+        reshape_list.append(len(p_adjusted))
 
-#     fischers = np.einsum('ijm,ijn->ijmn',dp_dop,dp_dop_multi)
+    if len(reshape_list) > 0:
+        fisher_list = fisher_list.reshape(reshape_list + list(fisher_list[0].shape))
+    else:
+        fisher_list = fisher_list[0]
 
-#     print("fischers",fischers)
-
-#     return np.sum(fischers,axis=0)
-
-
-# def calculate_fhat(qnn : qfit, x,
-#                             param_min,param_max,num_param,
-#                             param_op_min,param_op_max,num_param_op,
-#                             param_op=True, seed = 0):
-
-#     # averaging over x!!!
-
-#     # is all wrong
-
-#     # Create Random variables
-#     state = np.random.get_state()
-#     np.random.seed(seed)
-#     param_rand = np.random.uniform(param_min, param_max, size=(num_param, qnn.num_parameters))
-#     param_op_rand = np.random.uniform(param_op_min, param_op_max, size=(num_param_op, qnn.get_num_param_op()))
-#     np.random.set_state(state)
-
-#     volume_param = (param_max - param_min) * qnn.num_parameters + (param_op_max - param_op_min)*qnn.get_num_param_op()
-
-#     fischers = qnn.eval_fischer(x,param_rand,param_op_rand)
-#     fischer_trace = np.trace(np.average(fischers,axis=(0,1,2)))
-#     fischers_avrg = np.average(np.reshape(fischers, (len(x), num_param*num_param_op,
-#     qnn.num_parameters+qnn.get_num_param_op(),
-#     qnn.num_parameters+qnn.get_num_param_op())),axis=0)
-
-#     f_hat = fischers_avrg / fischer_trace * volume_param
-#     return f_hat,fischer_trace,volume_param
-
-# def calculate_effective_dimension(f_hat,n,gamma,volume_param):
-#     #n?
-
-#     if gamma <= 0.0 or gamma > 1.0:
-#         raise ValueError("Gamma out of range (0,1]: gamma = ",gamma)
-
-#     for f in f_hat:
-#         w,v = np.linalg.eig(f)
-#         print("eigenvalues",w)
-
-
-#     factor = gamma*float(n)/(2.0*np.pi*np.log(float(n)))
-#     print("factor",factor)
-#     print("det(f_hat)",np.linalg.det(f_hat))
-#     print("det(f_hat*factor)",np.linalg.det(f_hat*factor))
-#     # rewriting of the original formular, since this is more robust
-#     # following the code of Abbas et al:
-#     # log(1/V sum sqrt(det(A)) ) = log(sum exp(log(det(A))/2)-log(V)
-#     # special more robust function for log(det(A)) -> slogdet
-#     IplusF = np.eye(f_hat.shape[1]) + f_hat*factor
-#     print("det(IplusF)",np.linalg.det(IplusF))
-#     print("np.linalg.slogdet(IplusF)[0]",np.linalg.slogdet(IplusF)[0])
-#     print("np.linalg.slogdet(IplusF)[1]",np.linalg.slogdet(IplusF)[1])
-#     logdet = logsumexp(np.linalg.slogdet(IplusF)[1]/2)
-#     print("logdet",logdet)
-#     print("np.log(volume_param)",np.log(volume_param))
-#     print("np.log(factor)",np.log(factor))
-#     value = 2 * (logdet - np.log(volume_param))/np.log(factor)
-#     print("eff dim",value)
-#     return value
+    return fisher_list

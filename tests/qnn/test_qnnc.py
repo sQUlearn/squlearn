@@ -29,7 +29,7 @@ class TestQNNClassifier:
     def qnn_classifier(self) -> QNNClassifier:
         """QNNClassifier module."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
@@ -41,7 +41,7 @@ class TestQNNClassifier:
     @pytest.fixture(scope="module")
     def qnn_classifier_2out(self) -> QNNClassifier:
         """QNNClassifier module."""
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()
@@ -70,6 +70,20 @@ class TestQNNClassifier:
         """
         X, y = data
         qnn_classifier.fit(X, y)
+        assert qnn_classifier._is_fitted
+        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
+
+    def test_list_input(self, qnn_classifier, data):
+        """Test concerning the fit function with list y.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        qnn_classifier.fit(X.tolist(), y.tolist())
         assert qnn_classifier._is_fitted
         assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
         assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)

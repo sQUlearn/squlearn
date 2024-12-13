@@ -57,6 +57,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
+        primitive (Union[str,None], default=None): The primitive that is utilized in the qnn.
+            Default primitive is the one specified in the executor initialization, if nothing is
+            specified, the estimator will used. Possible values are ``"estimator"`` or
+            ``"sampler"``.
 
     See Also
     --------
@@ -83,7 +87,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         clf = QNNClassifier(
             ChebyshevRx(4, 2, 2),
             SummedPaulis(4),
-            Executor("statevector_simulator"),
+            Executor(),
             SquaredLoss(),
             SLSQP(),
             np.random.rand(16),
@@ -115,6 +119,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
+        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -138,6 +143,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             **kwargs,
         )
         self._label_binarizer = None
+        self.classes_ = None
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict using the QNN.
@@ -148,13 +154,15 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
+        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+
         if not self._is_fitted and not self.pretrained:
             raise RuntimeError("The model is not fitted.")
 
         if self.shot_control is not None:
             self.shot_control.reset_shots()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -170,31 +178,39 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         if self.shot_control is not None:
             self.shot_control.reset()
 
-        pred = self._qnn.evaluate_f(X, self._param, self._param_op)
+        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
         return pred
 
-    def partial_fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
+    def partial_fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a model to data.
 
         This method will update the models parameters to fit the provided data.
         It won't reinitialize the models parameters.
 
         Args:
-            X: Input data
-            y: Labels
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like of shape (n_samples,)
+                Labels
             weights: Weights for each data point
         """
+        X, y = self._validate_input(X, y, incremental=False, reset=False)
+
         if not self._is_fitted:
             self._label_binarizer = LabelBinarizer()
-            self._label_binarizer.fit(y)
-
-        if len(y.shape) == 1:
-            y = self._label_binarizer.transform(y).ravel()
+            y = self._label_binarizer.fit_transform(y)
+            self.classes_ = self._label_binarizer.classes_
         else:
             y = self._label_binarizer.transform(y)
+
+        if isinstance(self.operator, list) and len(self.operator) == 2 and y.shape[1] == 1:
+            y = np.hstack([1 - y, y])
+
+        if y.shape[1] == 1:
+            y = self._label_binarizer.transform(y).ravel()
 
         loss = self.loss
         if self.variance is not None:
@@ -263,8 +279,18 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 )
         self._is_fitted = True
 
-    def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
-        """Internal fit function."""
+    def _fit(self, X, y, weights: np.ndarray = None) -> None:
+        """Internal fit function.
+
+        Args:
+            X: array-like or sparse matrix of shape (n_samples, n_features)
+                Input data
+            y: array-like or sparse matrix of shape (n_samples,)
+                Labels
+            weights: Weights for each data point
+        """
         if self.callback == "pbar":
             self._pbar = tqdm(total=self._total_iterations, desc="fit", file=sys.stdout)
         self.partial_fit(X, y, weights)
+        if self.callback == "pbar":
+            self._pbar.close()

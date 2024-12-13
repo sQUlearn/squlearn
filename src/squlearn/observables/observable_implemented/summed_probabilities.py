@@ -43,6 +43,8 @@ class SummedProbabilities(ObservableBase):
         full_sum (bool): If False, the parameter is the same for all states.
         include_identity (bool): If True, the identity operator is included in the sum.
 
+    Methods:
+    --------
     """
 
     def __init__(

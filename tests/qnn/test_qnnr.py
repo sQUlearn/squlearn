@@ -29,7 +29,7 @@ class TestQNNRegressor:
     def qnn_regressor(self) -> QNNRegressor:
         """QNNRegressor module."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
@@ -41,7 +41,7 @@ class TestQNNRegressor:
     @pytest.fixture(scope="module")
     def qnn_regressor_2out(self) -> QNNRegressor:
         """QNNRegressor module."""
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()
@@ -73,6 +73,20 @@ class TestQNNRegressor:
         """
         X, y = data
         qnn_regressor.fit(X, y)
+        assert qnn_regressor._is_fitted
+        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+
+    def test_list_input(self, qnn_regressor, data):
+        """Test concerning the fit function with list y.
+
+        Tests include
+            - whether `_is_fitted` is set True
+            - whether `_param` is updated
+            - whether `_param_op` is updated
+        """
+        X, y = data
+        qnn_regressor.fit(X.tolist(), y.tolist())
         assert qnn_regressor._is_fitted
         assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
         assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)

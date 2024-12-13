@@ -29,7 +29,7 @@ class TestQGPR:
     def qgpr_fidelity(self) -> QGPR:
         """QGPR module with FidelityKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(quantum_kernel=kernel, sigma=1.0e-6)
@@ -38,7 +38,7 @@ class TestQGPR:
     def qgpr_pqk(self) -> QGPR:
         """QGPR module with ProjectedQuantumKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(
@@ -67,6 +67,23 @@ class TestQGPR:
 
         X, y = data
         qgpr_instance.fit(X, y)
+
+        y_pred = qgpr_instance.predict(X)
+        assert y_pred.shape == y.shape
+        assert isinstance(y_pred, np.ndarray)
+
+    @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
+    def test_list_input(self, qgpr, request, data):
+        """Tests concerning the predict function of the QGPR with list input.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qgpr_instance = request.getfixturevalue(qgpr)
+
+        X, y = data
+        qgpr_instance.fit(X.tolist(), y.tolist())
 
         y_pred = qgpr_instance.predict(X)
         assert y_pred.shape == y.shape

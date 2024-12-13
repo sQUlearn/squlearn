@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Union
 
 from qiskit.circuit import ParameterVector
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -27,6 +29,8 @@ class ChebyshevRx(EncodingCircuitBase):
         closed (bool): If true, the last and the first qubit are entangled (default: false)
         alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
                        that appear in the arccos encoding. (default: 4.0)
+        nonlinearity (str): Mapping function to use for the feature encoding. Either ``arccos``
+                            or ``arctan`` (default: ``arccos``)
     """
 
     def __init__(
@@ -36,11 +40,18 @@ class ChebyshevRx(EncodingCircuitBase):
         num_layers: int = 1,
         closed: bool = False,
         alpha: float = 4.0,
+        nonlinearity: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
         self.num_layers = num_layers
         self.closed = closed
         self.alpha = alpha
+        self.nonlinearity = nonlinearity
+        if self.nonlinearity not in ("arccos", "arctan"):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {self.nonlinearity}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
 
     @property
     def num_parameters(self) -> int:
@@ -86,6 +97,18 @@ class ChebyshevRx(EncodingCircuitBase):
 
         return param
 
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """The bounds of the features of the ChebyshevPQC encoding circuit."""
+        bounds = np.zeros((self.num_features, 2))
+        if self.nonlinearity == "arccos":
+            bounds[:, 0] = -1.0
+            bounds[:, 1] = 1.0
+        elif self.nonlinearity == "arctan":
+            bounds[:, 0] = -np.inf
+            bounds[:, 1] = np.inf
+        return bounds
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevRx encoding circuit
@@ -100,7 +123,26 @@ class ChebyshevRx(EncodingCircuitBase):
         params = super().get_params()
         params["num_layers"] = self.num_layers
         params["closed"] = self.closed
+        params["alpha"] = self.alpha
+        params["nonlinearity"] = self.nonlinearity
         return params
+
+    def set_params(self, **kwargs) -> ChebyshevRx:
+        """
+        Sets value of the encoding circuit hyper-parameters.
+
+        Args:
+            params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
+        """
+        if "nonlinearity" in kwargs and kwargs["nonlinearity"] not in (
+            "arccos",
+            "arctan",
+        ):
+            raise ValueError(
+                f"Unknown value for nonlinearity: {kwargs['nonlinearity']}."
+                " Possible values are 'arccos' and 'arctan'"
+            )
+        return super().set_params(**kwargs)
 
     def get_circuit(
         self,
@@ -131,9 +173,17 @@ class ChebyshevRx(EncodingCircuitBase):
 
             return QC
 
-        def mapping(a, x):
-            """Helper function for returning a*arccos(x)"""
-            return a * np.arccos(x)
+        if self.nonlinearity == "arccos":
+
+            def mapping(a, x):
+                """Helper function for returning a*arccos(x)"""
+                return a * np.arccos(x)
+
+        elif self.nonlinearity == "arctan":
+
+            def mapping(a, x):
+                """Helper function for returning a*arctan(x)"""
+                return a * np.arctan(x)
 
         nfeature = len(features)
         nparam = len(parameters)

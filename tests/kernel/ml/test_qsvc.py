@@ -30,7 +30,7 @@ class TestQSVC:
     def qsvc_fidelity(self) -> QSVC:
         """QSVC module with FidelityKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
@@ -44,7 +44,7 @@ class TestQSVC:
     def qsvc_pqk(self) -> QSVC:
         """QSVC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
-        executor = Executor("statevector_simulator")
+        executor = Executor()
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
@@ -83,7 +83,7 @@ class TestQSVC:
 
     @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
     def test_predict(self, qsvc, request, data):
-        """Tests concerning the predict function of the QNNClassifier.
+        """Tests concerning the predict function of the QSVC.
 
         Tests include
             - whether the prediction output is correct
@@ -94,6 +94,25 @@ class TestQSVC:
 
         X, y = data
         qsvc_instance.fit(X, y)
+
+        y_pred = qsvc_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+        assert np.allclose(y_pred, y)
+
+    @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
+    def test_list_input(self, qsvc, request, data):
+        """Tests concerning the predict function of the QSVC with list input.
+
+        Tests include
+            - whether the prediction output is correct
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvc_instance = request.getfixturevalue(qsvc)
+
+        X, y = data
+        qsvc_instance.fit(X.tolist(), y.tolist())
 
         y_pred = qsvc_instance.predict(X)
         assert isinstance(y_pred, np.ndarray)

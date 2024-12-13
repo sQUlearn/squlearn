@@ -1,7 +1,6 @@
 """Tests for training methods."""
 
 import numpy as np
-
 import pytest
 
 from squlearn import Executor
@@ -9,11 +8,11 @@ from squlearn.observables import SummedPaulis, SinglePauli
 from squlearn.encoding_circuit import ChebyshevPQC, HighDimEncodingCircuit
 from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn.loss import SquaredLoss
-from squlearn.qnn.qnn import QNN
+from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
 
-executor = Executor("statevector_simulator")
+executor = Executor()
 
 examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
@@ -23,7 +22,7 @@ class TestSolvemini_batch:
 
     pqc = ChebyshevPQC(4, 1, 3, False)
     cost_op = SummedPaulis(4)
-    qnn = QNN(pqc, cost_op, executor)
+    qnn = LowLevelQNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
     def test_wrong_optimizer(self):
@@ -52,7 +51,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = SummedPaulis(2)
-        executor = Executor("qasm_simulator", primitive_seed=0)
+        executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,
@@ -63,11 +62,12 @@ class TestShotsFromRSTD:
             shot_control=ShotsFromRSTD(),
             parameter_seed=0,
         )
-        x_train = np.arange(-0.2, 0.3, 0.1)
-        y_train = np.abs(x_train)
+        x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+        y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
-        reference = np.array([0.31176001, 0.09348281, -0.05118243, -0.25693387, -0.43025503])
+
+        reference = np.array([-0.23382872, -0.42261867, -0.17905442, 0.18627426, 0.09754079])
         assert np.allclose(test, reference, atol=1e-3)
 
     def test_qnn_training_two_outputs(self):
@@ -75,7 +75,7 @@ class TestShotsFromRSTD:
 
         pqc = ChebyshevPQC(2, 1, 3, False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
-        executor = Executor("qasm_simulator", primitive_seed=0)
+        executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
             pqc,
             ob,
@@ -86,17 +86,17 @@ class TestShotsFromRSTD:
             shot_control=ShotsFromRSTD(),
             parameter_seed=0,
         )
-        x_train = np.arange(-0.2, 0.3, 0.1)
-        y_train = np.array([np.abs(x_train), np.square(x_train)]).T
+        x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+        y_train = np.hstack([np.abs(x_train), np.square(x_train)])
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
         reference = np.array(
             [
-                [0.09296101, 0.08074864],
-                [0.12179584, 0.08045381],
-                [0.06871516, 0.06971483],
-                [0.08291836, 0.05942195],
-                [0.09998995, 0.05452198],
+                [0.42006322, 0.39721762],
+                [0.38582841, 0.3824161],
+                [0.23203671, 0.20858907],
+                [-0.0534579, -0.06126247],
+                [-0.12367106, -0.14982011],
             ]
         )
         assert np.allclose(test, reference, atol=1e-3)
@@ -126,8 +126,8 @@ class TestZeroParam:
                 variance=0.005,
                 parameter_seed=0,
             )
-            x_train = np.arange(-0.2, 0.3, 0.1)
-            y_train = np.abs(x_train)
+            x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+            y_train = np.abs(x_train).ravel()
         else:
             qnn = QNNClassifier(
                 pqc,
@@ -138,8 +138,8 @@ class TestZeroParam:
                 variance=0.005,
                 parameter_seed=0,
             )
-            x_train = np.arange(-0.2, 0.3, 0.1)
-            y_train = np.array([0, 1, 1, 0, 0])
+            x_train = np.arange(-0.2, 0.3, 0.1).reshape(-1, 1)
+            y_train = np.array([0, 1, 1, 0, 0]).ravel()
 
         return qnn, x_train, y_train
 
