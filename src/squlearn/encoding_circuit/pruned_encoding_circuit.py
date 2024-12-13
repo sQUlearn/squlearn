@@ -36,8 +36,65 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
     """
 
     def __init__(self, encoding_circuit: EncodingCircuitBase, pruned_parameters: list):
+
         self._encoding_circuit = encoding_circuit
         self._pruned_parameters = pruned_parameters
+
+    @property
+    def num_parameters(self) -> int:
+        """Number of parameters in the pruned pqc"""
+        return len(self._p)
+
+    @property
+    def feature_bounds(self) -> np.ndarray:
+        """Feature bounds of the pruned encoding circuit."""
+        bounds = self._encoding_circuit.feature_bounds
+        return np.delete(bounds, self._pruned_features, 0)
+
+    @property
+    def parameter_bounds(self) -> np.ndarray:
+        """Parameter bounds of the pruned encoding circuit."""
+        bounds = self._encoding_circuit.parameter_bounds
+        return np.delete(bounds, self._pruned_parameters, 0)
+
+    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        """
+        Generates random parameters for the pruned encoding circuit.
+
+        Args:
+            seed (Union[int,None]): Seed for the random number generator (default: None)
+
+        Return:
+            The randomly generated parameters
+        """
+        param = self._encoding_circuit.generate_initial_parameters(seed)
+        return np.delete(param, self._pruned_parameters, 0)
+
+    @property
+    def origin_encoding_circuit(self) -> EncodingCircuitBase:
+        """Encoding circuit that is pruned"""
+        if self._pruned_circuit is None:
+            raise ValueError("Pruned circuit is not available. Please call get_circuit() first.")
+
+        return self._encoding_circuit
+
+    def get_circuit(
+        self,
+        features: Union[ParameterVector, np.ndarray],
+        parameters: Union[ParameterVector, np.ndarray],
+    ) -> QuantumCircuit:
+        """
+        Generates and returns the circuit of the pruned encoding circuit.
+
+        Args:
+            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+                                                          from which the gate inputs are obtained
+            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+                                                           from which the gate inputs are obtained
+
+        Return:
+            The circuit in Qiskit's QuantumCircuit format of the pruned encoding circuit.
+        """
 
         # Read in the original pqc
         self._x_base = ParameterVector("x_base", self._encoding_circuit.num_features)
@@ -101,59 +158,6 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         self._num_features = len(self._x)
         if self._num_features != self._encoding_circuit._num_features:
             warnings.warn("Number of features changed in the pruning process!", RuntimeWarning)
-
-    @property
-    def num_parameters(self) -> int:
-        """Number of parameters in the pruned pqc"""
-        return len(self._p)
-
-    @property
-    def feature_bounds(self) -> np.ndarray:
-        """Feature bounds of the pruned encoding circuit."""
-        bounds = self._encoding_circuit.feature_bounds
-        return np.delete(bounds, self._pruned_features, 0)
-
-    @property
-    def parameter_bounds(self) -> np.ndarray:
-        """Parameter bounds of the pruned encoding circuit."""
-        bounds = self._encoding_circuit.parameter_bounds
-        return np.delete(bounds, self._pruned_parameters, 0)
-
-    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
-        """
-        Generates random parameters for the pruned encoding circuit.
-
-        Args:
-            seed (Union[int,None]): Seed for the random number generator (default: None)
-
-        Return:
-            The randomly generated parameters
-        """
-        param = self._encoding_circuit.generate_initial_parameters(seed)
-        return np.delete(param, self._pruned_parameters, 0)
-
-    @property
-    def origin_encoding_circuit(self) -> EncodingCircuitBase:
-        """Encoding circuit that is pruned"""
-        return self._encoding_circuit
-
-    def get_circuit(
-        self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
-    ) -> QuantumCircuit:
-        """
-        Generates and returns the circuit of the pruned encoding circuit.
-
-        Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
-                                                          from which the gate inputs are obtained
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
-                                                           from which the gate inputs are obtained
-
-        Return:
-            The circuit in Qiskit's QuantumCircuit format of the pruned encoding circuit.
-        """
 
         if len(features) != len(self._x):
             raise ValueError("Number of features does not match the number of input features!")
