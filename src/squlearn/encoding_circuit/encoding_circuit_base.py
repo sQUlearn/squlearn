@@ -1,4 +1,6 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 from typing import Union
@@ -7,7 +9,7 @@ from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
 
-class EncodingCircuitBase:
+class EncodingCircuitBase(ABC):
     """
     Encoding circuit base class
 
@@ -16,7 +18,7 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int, num_features: int) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
         self._num_features = num_features
 
@@ -29,6 +31,10 @@ class EncodingCircuitBase:
     def num_features(self) -> int:
         """The dimension of the features in the encoding circuit."""
         return self._num_features
+
+    @num_features.setter
+    def num_features(self, value: int):
+        self._num_features = value
 
     @property
     def num_parameters(self) -> int:
@@ -51,6 +57,11 @@ class EncodingCircuitBase:
         """
         return np.array([[-np.pi, np.pi]] * self.num_features)
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        return 0
+
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
         Generates random parameters for the encoding circuit
@@ -67,13 +78,14 @@ class EncodingCircuitBase:
         bounds = self.parameter_bounds
         return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
+    @abstractmethod
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -108,12 +120,25 @@ class EncodingCircuitBase:
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
+        if self.num_features is None:
+            warnings.warn(
+                f"`num_features` is not set. Falling back to `num_encoding_slots` ({self.num_encoding_slots}).",
+                UserWarning,
+            )
+            # set the number of features temporarily to the number of encoding slots
+            self.num_features = self.num_encoding_slots
+
+        num_features = self.num_features
+
         feature_vec = ParameterVector(feature_label, self.num_features)
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
         if decompose:
             circ = circ.decompose()
+
+        # restore the actual number of features
+        self.num_features = num_features
 
         return circ.draw(output, **kwargs)
 
@@ -153,6 +178,18 @@ class EncodingCircuitBase:
                 setattr(self, "_" + key, value)
 
         return self
+
+    def _check_feature_encoding_slots(self, features: Union[ParameterVector, np.ndarray]) -> None:
+        """
+        Checks if the number of features fits the available encoding slots.
+
+        Args:
+            features (Union[ParameterVector, np.ndarray]): The input features.
+
+        Raises:
+            EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
+        """
+        raise NotImplementedError()
 
     def __mul__(self, x):
         return self.__add__(x)
@@ -370,3 +407,15 @@ class EncodingCircuitBase:
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
+
+
+class EncodingSlotsMismatchError(Exception):
+    """Exception raised when the number of encoding slots does not match the number of features."""
+
+    def __init__(self, num_slots, num_features):
+        self.num_slots = num_slots
+        self.num_features = num_features
+        self.message = (
+            f"Encoding slots ({num_slots}) do not match the number of features ({num_features})."
+        )
+        super().__init__(self.message)

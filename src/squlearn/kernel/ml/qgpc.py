@@ -3,6 +3,7 @@
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 from squlearn.kernel.matrix.kernel_util import kernel_wrapper
 from sklearn.gaussian_process import GaussianProcessClassifier
+import numpy as np
 
 
 class QGPC(GaussianProcessClassifier):
@@ -61,23 +62,10 @@ class QGPC(GaussianProcessClassifier):
 
     def __init__(self, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
         self._quantum_kernel = quantum_kernel
+        self._kernel_params = kwargs
 
-        # Apply kwargs to set_params of quantum kernel
-
-        print("self.quantum_kernel", self.quantum_kernel)
-        print("kwargs", kwargs)
-
-        quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-        if quantum_kernel_update_params:
-            self.quantum_kernel.set_params(
-                **{key: kwargs[key] for key in quantum_kernel_update_params}
-            )
-            # remove quantum_kernel_kwargs for SVR initialization
-            for key in quantum_kernel_update_params:
-                kwargs.pop(key, None)
-
-        super().__init__(**kwargs)
-        self.kernel = kernel_wrapper(self._quantum_kernel)
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
 
     @classmethod
     def _get_param_names(cls):
@@ -99,6 +87,15 @@ class QGPC(GaussianProcessClassifier):
         Return:
             Returns an instance of self.
         """
+        X = np.array(X)
+        y = np.array(y)
+
+        if self._quantum_kernel.num_features is None:
+            self.quantum_kernel._set_num_features(X)
+            self.__initialize()
+        else:
+            self._quantum_kernel._check_feature_consistency(X)
+
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
@@ -165,3 +162,22 @@ class QGPC(GaussianProcessClassifier):
         """Sets quantum kernel"""
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
+
+    def __initialize(self) -> None:
+        """Initialize the model with the known feature vector"""
+
+        self.quantum_kernel._initialize_kernel()
+
+        quantum_kernel_update_params = (
+            self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
+        )
+        if quantum_kernel_update_params:
+            self.quantum_kernel.set_params(
+                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+            )
+            # remove quantum_kernel_kwargs for SVR initialization
+            for key in quantum_kernel_update_params:
+                self._kernel_params.pop(key, None)
+
+        super().__init__(**self._kernel_params)
+        self.kernel = kernel_wrapper(self._quantum_kernel)

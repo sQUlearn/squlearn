@@ -313,7 +313,7 @@ yields a high variance in the model output.
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(num_qubits=nqubits, num_layers=number_of_layers, num_features=1)
     exe = Executor("pennylane", seed=0)
     exe.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
@@ -378,7 +378,7 @@ in the model, as depicted in `figure 3`_.
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(num_qubits=nqubits, num_layers=number_of_layers, num_features=1)
     exe = Executor("qasm_simulator")
     exe.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")

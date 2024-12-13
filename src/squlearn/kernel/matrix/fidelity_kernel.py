@@ -95,71 +95,18 @@ class FidelityKernel(KernelMatrixBase):
         self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
 
-        if self.num_parameters > 0:
-            self._parameter_vector = ParameterVector("p", self.num_parameters)
-        else:
-            self._parameter_vector = None
+        if self.num_features is not None:
+            self._initialize_kernel()
 
-        if self._executor.quantum_framework == "pennylane":
+    @property
+    def num_features(self) -> int:
+        """Feature dimension of the encoding circuit"""
+        return self.encoding_circuit.num_features
 
-            self._quantum_kernel = FidelityKernelPennyLane(
-                encoding_circuit=self._encoding_circuit,
-                executor=self._executor,
-                evaluate_duplicates=self._evaluate_duplicates,
-            )
-
-        elif self._executor.quantum_framework == "qiskit":
-
-            # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
-            self._feature_vector = ParameterVector("x_", self.num_features)
-
-            self._enc_circ = self._encoding_circuit.get_circuit(
-                self._feature_vector, self._parameter_vector
-            )
-
-            # Automatic select backend if not chosen
-            if not self._executor.backend_chosen:
-                self._enc_circ, _ = self._executor.select_backend(self._enc_circ)
-
-            if self._executor.is_statevector:
-                if self._parameter_vector is None:
-                    self._quantum_kernel = FidelityStatevectorKernel(
-                        feature_map=self._enc_circ,
-                        shots=self._executor.get_shots(),
-                        enforce_psd=False,
-                    )
-                else:
-                    self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                        feature_map=self._enc_circ,
-                        training_parameters=self._parameter_vector,
-                        shots=self._executor.get_shots(),
-                        enforce_psd=False,
-                    )
-            else:
-                sampler = self._executor.get_sampler()
-                if isinstance(sampler, BaseSamplerV2):
-                    raise ValueError(
-                        "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
-                        "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
-                    )
-                fidelity = ComputeUncompute(sampler=sampler)
-                if self._parameter_vector is None:
-                    self._quantum_kernel = FidelityQuantumKernel(
-                        feature_map=self._enc_circ,
-                        fidelity=fidelity,
-                        evaluate_duplicates=self._evaluate_duplicates,
-                        enforce_psd=False,
-                    )
-                else:
-                    self._quantum_kernel = TrainableFidelityQuantumKernel(
-                        feature_map=self._enc_circ,
-                        fidelity=fidelity,
-                        training_parameters=self._parameter_vector,
-                        evaluate_duplicates=self._evaluate_duplicates,
-                        enforce_psd=False,
-                    )
-        else:
-            raise RuntimeError("Invalid quantum framework!")
+    @num_features.setter
+    def num_features(self, value: int) -> None:
+        """Sets feature dimension of the encoding circuit"""
+        self.encoding_circuit.num_features = value
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -250,6 +197,15 @@ class FidelityKernel(KernelMatrixBase):
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
+
+        if self.num_features is None:
+            self._set_num_features(x)
+
+        if not self._is_initialized:
+            self._initialize_kernel()
+
+        if self._parameters is None:
+            self._generate_initial_parameters()
 
         if y is None:
             y = x
@@ -352,3 +308,80 @@ class FidelityKernel(KernelMatrixBase):
         """
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)
+
+    def _set_num_features(self, X) -> None:
+        """Sets feature dimension of the encoding circuit"""
+        if self.num_features is None:
+            if len(X.shape) == 1:
+                self.num_features = 1
+            else:
+                self.num_features = X.shape[1]
+
+    def _initialize_kernel(self) -> None:
+        """Initializes the quantum kernel."""
+
+        if not self._is_initialized:
+            super()._initialize_kernel()
+
+            # Do all the nessacary initialization logic here
+            if self.num_parameters > 0:
+                self._parameter_vector = ParameterVector("p", self.num_parameters)
+            else:
+                self._parameter_vector = None
+
+            if self._executor.quantum_framework == "pennylane":
+
+                self._quantum_kernel = FidelityKernelPennyLane(
+                    encoding_circuit=self._encoding_circuit,
+                    executor=self._executor,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                )
+
+            elif self._executor.quantum_framework == "qiskit":
+
+                # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
+                self._feature_vector = ParameterVector("x_", self.num_features)
+
+                self._enc_circ = self._encoding_circuit.get_circuit(
+                    self._feature_vector, self._parameter_vector
+                )
+
+                # Automatic select backend if not chosen
+                if not self._executor.backend_chosen:
+                    self._enc_circ, _ = self._executor.select_backend(self._enc_circ)
+
+                if self._executor.is_statevector:
+                    if self._parameter_vector is None:
+                        self._quantum_kernel = FidelityStatevectorKernel(
+                            feature_map=self._enc_circ,
+                            shots=self._executor.get_shots(),
+                            enforce_psd=False,
+                        )
+                    else:
+                        self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                            feature_map=self._enc_circ,
+                            training_parameters=self._parameter_vector,
+                            shots=self._executor.get_shots(),
+                            enforce_psd=False,
+                        )
+                else:
+                    fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                    if self._parameter_vector is None:
+                        self._quantum_kernel = FidelityQuantumKernel(
+                            feature_map=self._enc_circ,
+                            fidelity=fidelity,
+                            evaluate_duplicates=self._evaluate_duplicates,
+                            enforce_psd=False,
+                        )
+                    else:
+                        self._quantum_kernel = TrainableFidelityQuantumKernel(
+                            feature_map=self._enc_circ,
+                            fidelity=fidelity,
+                            training_parameters=self._parameter_vector,
+                            evaluate_duplicates=self._evaluate_duplicates,
+                            enforce_psd=False,
+                        )
+            else:
+                raise RuntimeError("Invalid quantum framework!")
+
+            self._is_initialized = True
