@@ -22,7 +22,7 @@ def decompose_to_std(circuit: QuantumCircuit, gate_list: list = []) -> QuantumCi
     ]
     circuit_new = circuit.decompose(decompose_names)
 
-    while len(decompose_names) > 0 and circuit != circuit_new:
+    while decompose_names and circuit != circuit_new:
         circuit = circuit_new
         decompose_names = [
             instruction.operation.name

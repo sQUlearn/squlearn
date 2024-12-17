@@ -946,7 +946,7 @@ def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
         return circ_in.measure_all(inplace=False)
     else:
         qubits = [i for i in range(circ_in.num_qubits)]
-        circ_in = decompose_to_std(circ_in)  # David: Are all gates until here already decomposed?
+        circ_in = decompose_to_std(circ_in)
         for instruction, qargs, cargs in circ_in.data:
             if instruction.name == "measure":
                 for qubit in qargs:
