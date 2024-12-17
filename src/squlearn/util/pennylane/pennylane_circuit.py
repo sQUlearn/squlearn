@@ -143,7 +143,9 @@ class PennyLaneCircuit:
             self._executor = Executor("pennylane")
 
         # Transpile circuit to supported basis gates and expand blocks automatically
-        self._qiskit_circuit = transpile(circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0)
+        self._qiskit_circuit = transpile(
+            circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
+        )
 
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits

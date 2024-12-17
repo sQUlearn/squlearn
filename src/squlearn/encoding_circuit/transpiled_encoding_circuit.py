@@ -8,7 +8,7 @@ from qiskit.providers.backend import Backend
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.decompose_to_std import DecomposeToStd
+from ..util.decompose_to_std import decompose_to_std
 
 
 class TranspiledEncodingCircuit(EncodingCircuitBase):
@@ -52,7 +52,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._x = ParameterVector("x", self._encoding_circuit.num_features)
         self._p = ParameterVector("p", self._encoding_circuit.num_parameters)
 
-        self._circuit = DecomposeToStd(self._encoding_circuit.get_circuit(self._x, self._p))
+        self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
