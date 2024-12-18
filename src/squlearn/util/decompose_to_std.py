@@ -3,7 +3,9 @@ from qiskit.circuit import QuantumCircuit
 from typing import Union
 
 
-def decompose_to_std(circuit: QuantumCircuit, gate_list: Union[None,list] = None) -> QuantumCircuit:
+def decompose_to_std(
+    circuit: QuantumCircuit, gate_list: Union[None, list] = None
+) -> QuantumCircuit:
     """
     Function to decompose the circuit to standard gates.
 
