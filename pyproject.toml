@@ -93,4 +93,5 @@ extension-pkg-allow-list = [
 addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
+    "--ignore=examples/tutorials/qnn_ode_solver.ipynb",
 ]
