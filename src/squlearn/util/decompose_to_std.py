@@ -1,19 +1,20 @@
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit import QuantumCircuit
+from typing import Union
 
 
-def decompose_to_std(circuit: QuantumCircuit, gate_list: list = []) -> QuantumCircuit:
+def decompose_to_std(circuit: QuantumCircuit, gate_list: Union[None,list] = None) -> QuantumCircuit:
     """
     Function to decompose the circuit to standard gates.
 
     Args:
         circuit (QuantumCiruit): The Circuit, which is supposed to be decomposed.
-        gate_list (list): List of gates, which are considered as standard gates. If the gate is not in the list, it will be decomposed. If the list is empty, all gates from qiskit.circuit.library.standard_gates and ["cx","cy","cz","measure"] are considered as standard gates.
+        gate_list (Union[None,list]): List of gates, which are considered as standard gates. If the gate is not in the list, it will be decomposed. If the list is empty, all gates from qiskit.circuit.library.standard_gates and ["cx","cy","cz","measure"] are considered as standard gates.
 
     Returns:
         QuantumCiruit: The decomposed circuit.
     """
-    if len(gate_list) == 0:
+    if not gate_list:
         gate_list = [*dir(standard_gates), "cx", "cy", "cz", "measure"]
     decompose_names = [
         instruction.operation.name
