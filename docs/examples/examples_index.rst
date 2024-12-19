@@ -11,3 +11,4 @@ Examples
     example_kernel_grid_search
     example_quantum_bayesian_optimization
     example_qnn_backend_mitigation
+    example_qnn_ode_solver
