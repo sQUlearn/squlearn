@@ -17,6 +17,7 @@ from pennylane.operation import Observable as PennyLaneObservable
 
 from .pennylane_gates import qiskit_pennylane_gate_dict
 from ..executor import Executor
+from ..decompose_to_std import decompose_to_std
 
 
 def _get_sympy_interface():
@@ -144,7 +145,9 @@ class PennyLaneCircuit:
 
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
-            circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
+            decompose_to_std(circuit),
+            basis_gates=qiskit_pennylane_gate_dict.keys(),
+            optimization_level=0,
         )
 
         self._qiskit_observable = observable
