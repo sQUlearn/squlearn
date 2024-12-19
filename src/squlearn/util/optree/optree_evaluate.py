@@ -11,6 +11,7 @@ from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
+from ...util.decompose_to_std import decompose_to_std
 
 from .optree import (
     OpTreeNodeBase,
@@ -941,19 +942,11 @@ def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
             if i[1] == n:
                 return i[0]
 
-    def maximum_decompose(circ):
-        """Helper function to decompose circuits."""
-        circ_dec = circ.decompose()
-        while circ_dec != circ:
-            circ_dec = circ_dec.decompose()
-            circ = circ.decompose()
-        return circ_dec
-
     if circ_in.num_clbits == 0:
         return circ_in.measure_all(inplace=False)
     else:
         qubits = [i for i in range(circ_in.num_qubits)]
-        circ_in = maximum_decompose(circ_in)
+        circ_in = decompose_to_std(circ_in)
         for instruction, qargs, cargs in circ_in.data:
             if instruction.name == "measure":
                 for qubit in qargs:
