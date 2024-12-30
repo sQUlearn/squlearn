@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from squlearn.encoding_circuit import ChebyshevPQC, circuit_library
+from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 
 
@@ -26,12 +26,23 @@ class TestChebyshevPQC:
                 num_features=2, num_qubits=2, entangling_gate="invalid", nonlinearity="arccos"
             )
 
-    def test_num_parameters(self):
-        circuit = ChebyshevPQC(num_features=2, num_qubits=3, num_layers=1, closed=True)
-        assert circuit.num_parameters == 12
+    def test_num_parameters_closed(self):
+        features = 2
+        qubits = 3
+        layers = 1
+        circuit = ChebyshevPQC(
+            num_features=features, num_qubits=qubits, num_layers=layers, closed=True
+        )
+        assert circuit.num_parameters == 2 * qubits + qubits * layers + qubits * layers
 
-        circuit = ChebyshevPQC(num_features=2, num_qubits=3, num_layers=1, closed=False)
-        assert circuit.num_parameters == 11
+    def test_num_parameters_none_closed(self):
+        features = 2
+        qubits = 3
+        layers = 1
+        circuit = ChebyshevPQC(
+            num_features=features, num_qubits=qubits, num_layers=layers, closed=False
+        )
+        assert circuit.num_parameters == 2 * qubits + qubits * layers + (qubits - 1) * layers
 
     def test_parameter_bounds(self):
         circuit = ChebyshevPQC(num_features=2, num_qubits=2, num_layers=1)
@@ -71,11 +82,20 @@ class TestChebyshevPQC:
 
     def test_set_params(self):
         circuit = ChebyshevPQC(num_features=2, num_qubits=2, num_layers=1)
-        circuit.set_params(num_features=3, num_qubits=3, num_layers=2, closed=False)
+        circuit.set_params(
+            num_features=3,
+            num_qubits=3,
+            num_layers=2,
+            closed=False,
+            alpha=3.0,
+            nonlinearity="arctan",
+        )
         assert circuit.num_features == 3
         assert circuit.num_qubits == 3
         assert circuit.num_layers == 2
         assert circuit.closed is False
+        assert circuit.alpha == 3.0
+        assert circuit.nonlinearity == "arctan"
 
         with pytest.raises(ValueError):
             circuit.set_params(
@@ -88,6 +108,7 @@ class TestChebyshevPQC:
         params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
 
         qc = circuit.get_circuit(features=features, parameters=params)
+        assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 
         used_params = {param for instruction in qc.data for param in instruction.operation.params}
