@@ -3,7 +3,6 @@ import pytest
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from squlearn.encoding_circuit import HighDimEncodingCircuit
-from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 
 
 class TestHighDimEncodingCircuit:
