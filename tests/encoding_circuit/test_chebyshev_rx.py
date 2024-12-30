@@ -3,6 +3,8 @@ from squlearn.encoding_circuit import ChebyshevRx
 import pytest
 import numpy as np
 
+from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
+
 
 class TestChebyshevRx:
     def test_init(self):
@@ -101,3 +103,8 @@ class TestChebyshevRx:
 
         used_params = {param for instruction in qc.data for param in instruction.operation.params}
         assert len(used_params) == len(params)
+
+        with pytest.raises(EncodingSlotsMismatchError):
+            ChebyshevRx(num_features=1, num_qubits=1, num_layers=1).get_circuit(
+                features=features, parameters=params
+            )

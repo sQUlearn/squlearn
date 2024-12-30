@@ -70,7 +70,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         self.entangling_gate = entangling_gate
 
         if self.cycling_type not in ("saw", "hat"):
-            raise ValueError("Unknown layer type:", self.layer_type)
+            raise ValueError("Unknown cycling type:", self.cycling_type)
 
         if self.layer_type not in ("columns", "rows"):
             raise ValueError("Unknown layer type:", self.layer_type)

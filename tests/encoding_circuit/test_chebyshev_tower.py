@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from qiskit import QuantumCircuit
 from squlearn.encoding_circuit import ChebyshevTower
+from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 
 
 class TestChebyshevTower:
@@ -93,3 +94,8 @@ class TestChebyshevTower:
         qc = circuit.get_circuit(features=features)
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
+
+        with pytest.raises(EncodingSlotsMismatchError):
+            ChebyshevTower(
+                num_features=1, num_qubits=1, num_chebyshev=2, num_layers=1
+            ).get_circuit(features=features)
