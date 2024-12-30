@@ -42,9 +42,8 @@ class TestHighDimEncodingCircuit:
     def test_get_circuit(self):
         circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2)
         features = np.array([0.5, -0.5])
-        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
 
-        qc = circuit.get_circuit(features=features, parameters=params)
+        qc = circuit.get_circuit(features=features)
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 

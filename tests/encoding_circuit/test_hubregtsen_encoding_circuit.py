@@ -38,7 +38,7 @@ class TestHubregtsenEncodingCircuit:
         bounds = circuit.parameter_bounds
         assert bounds.shape == (circuit.num_parameters, 2)
         assert np.all(bounds[:qubits] == [-np.pi, np.pi])
-        assert np.all(bounds[qubits:] == [-2 * np.pi, 2 * np.pi])
+        assert np.all(bounds[qubits:] == [-2.0 * np.pi, 2.0 * np.pi])
 
     def test_feature_bounds(self):
         circuit = HubregtsenEncodingCircuit(num_features=2, num_qubits=2)
@@ -60,7 +60,7 @@ class TestHubregtsenEncodingCircuit:
     def test_get_circuit(self):
         circuit = HubregtsenEncodingCircuit(num_features=2, num_qubits=2)
         features = np.array([0.5, -0.5])
-        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
+        params = np.random.uniform(-2.0 * np.pi, 2.0 * np.pi, circuit.num_parameters)
 
         qc = circuit.get_circuit(features=features, parameters=params)
         assert isinstance(qc, QuantumCircuit)

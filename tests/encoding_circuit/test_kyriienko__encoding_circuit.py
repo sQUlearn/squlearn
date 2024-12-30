@@ -77,7 +77,7 @@ class TestKyriienkoEncodingCircuit:
     def test_get_circuit(self):
         circuit = KyriienkoEncodingCircuit(num_qubits=2, num_features=2)
         features = np.array([0.5, -0.5])
-        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
+        params = np.random.uniform(-2.0 * np.pi, 2.0 * np.pi, circuit.num_parameters)
 
         qc = circuit.get_circuit(features=features, parameters=params)
         assert qc.num_qubits == 2
