@@ -107,8 +107,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         if self.num_qubits < 2:
             raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
 
-        if self.num_features > self.num_encoding_slots:
-            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         nfeature = len(features)
         nparam = len(parameters)

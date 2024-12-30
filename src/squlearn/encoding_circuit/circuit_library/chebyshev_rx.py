@@ -193,8 +193,7 @@ class ChebyshevRx(EncodingCircuitBase):
             Returns the circuit in Qiskit's QuantumCircuit format
         """
 
-        if self.num_features > self.num_encoding_slots:
-            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""

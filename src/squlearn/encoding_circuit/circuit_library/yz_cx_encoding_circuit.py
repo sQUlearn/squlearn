@@ -106,8 +106,7 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
             Returns the circuit in qiskit format.
         """
 
-        if self.num_features > self.num_encoding_slots:
-            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         nfeature = len(features)
         nparam = len(parameters)

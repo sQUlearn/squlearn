@@ -425,8 +425,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Either with 'set_params', or with 'build_circuit'."
             )
 
-        if self.num_features > self.num_encoding_slots:
-            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         total_qc = QuantumCircuit(
             self.num_qubits, self._num_measurements

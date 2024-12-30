@@ -60,7 +60,7 @@ class EncodingCircuitBase(ABC):
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the encoding circuit."""
-        return 0
+        raise NotImplementedError()
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """
@@ -179,17 +179,23 @@ class EncodingCircuitBase(ABC):
 
         return self
 
-    def _check_feature_encoding_slots(self, features: Union[ParameterVector, np.ndarray]) -> None:
+    def _check_feature_encoding_slots(
+        self, features: Union[ParameterVector, np.ndarray], num_encoding_slots: int
+    ) -> None:
         """
         Checks if the number of features fits the available encoding slots.
 
         Args:
             features (Union[ParameterVector, np.ndarray]): The input features.
+            num_encoding_slots (int): The number of available encoding slots.
 
         Raises:
             EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
         """
-        raise NotImplementedError()
+        num_features = len(features)
+
+        if num_features > num_encoding_slots:
+            raise EncodingSlotsMismatchError(num_encoding_slots, num_features)
 
     def __mul__(self, x):
         return self.__add__(x)

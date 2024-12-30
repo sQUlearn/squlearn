@@ -160,8 +160,7 @@ class ChebyshevTower(EncodingCircuitBase):
         if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
-        if self.num_features > self.num_encoding_slots:
-            raise EncodingSlotsMismatchError(self.num_encoding_slots, self.num_features)
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit):
             """Creation of a simple NN entangling layer"""
