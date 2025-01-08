@@ -298,7 +298,7 @@ with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
 The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
 yields a high variance in the model output.
 
-.. __figure_qnn 2:
+.. _figure_qnn 2:
 .. plot::
     :caption: **Figure 2** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
               :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
@@ -359,9 +359,9 @@ takes the keyword argument ``iteration`` to dynamically adjust the factor. Value
 :math:`10^{-2}` and :math:`10^{-4}` have shown to yield satisfying results. `[1]`_
 
 Evaluation on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` now yields less variance
-in the model, as depicted in `_figure_qnn 3`_.
+in the model, as depicted in `figure_qnn 3`_.
 
-.. __figure_qnn 3:
+.. _figure_qnn 3:
 .. plot::
     :caption: **Figure 3** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
               regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
