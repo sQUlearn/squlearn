@@ -15,19 +15,19 @@ minimized by a classical optimizer. The resultant QNN can then be employed to pr
 for new input data.
 
 In many cases, QNNs adhere to a layered design, akin to classical neural networks, as illustrated
-in `figure 2`_. However, it is essential to note that they do not adhere to the concept of
+in `figure_qnn 1`_. However, it is essential to note that they do not adhere to the concept of
 neurons as seen in classical neural networks. Therefore, the term "Quantum Neural Network" may
 be somewhat misleading, as QNNs do not conform to the traditional neural network paradigm.
 Nevertheless, their application domain closely resembles that of classical neural networks,
 which explains the established nomenclature.
 
-.. _figure 2:
+.. _figure_qnn 1:
 .. figure:: ../_static/qnn/qnn.svg
     :alt: Quantum Neural Network (QNN)
     :width: 600
     :align: center
 
-    **Figure 2** Layered design of a QNN with alternating encoding (orange) and parameter (blue) layers.
+    **Figure 1** Layered design of a QNN with alternating encoding (orange) and parameter (blue) layers.
     The QNN is trained in a hybrid quantum-classical scheme by optimizing the QNN's parameters
     :math:`{\theta}` for a given cost function :math:`L`.
 
@@ -57,7 +57,7 @@ It's worth noting that both the embedding layers :math:`U_i({x})` and the observ
 
 To train Quantum Neural Networks (QNNs), a hybrid quantum-classical approach is employed.
 The training process consists of two phases: quantum circuit evaluation and classical optimization
-(as illustrated in `figure 2`_).
+(as illustrated in `figure_qnn 1`_).
 
 In the quantum circuit evaluation phase, the QNN and its gradient with respect to the parameters
 are assessed using a quantum computer or simulator. The gradient can be obtained using the
@@ -298,7 +298,7 @@ with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
 The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
 yields a high variance in the model output.
 
-.. _figure 3:
+.. __figure_qnn 2:
 .. plot::
     :caption: **Figure 2** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
               :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
@@ -359,11 +359,11 @@ takes the keyword argument ``iteration`` to dynamically adjust the factor. Value
 :math:`10^{-2}` and :math:`10^{-4}` have shown to yield satisfying results. `[1]`_
 
 Evaluation on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` now yields less variance
-in the model, as depicted in `figure 4`_.
+in the model, as depicted in `_figure_qnn 3`_.
 
-.. _figure 4:
+.. __figure_qnn 3:
 .. plot::
-    :caption: **Figure 4** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
+    :caption: **Figure 3** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
               regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
               The QNN output has a low variance.
     :align: center

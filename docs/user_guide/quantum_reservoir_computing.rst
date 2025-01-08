@@ -6,14 +6,14 @@
 Quantum Reservoir Computing
 ===========================
 
-In contrast to conventional deep learning architectures, which require weight optimization across all layers, Reservoir Computing (RC) leverages a fixed,
-randomly connected network structure called the 'reservoir.' This reservoir enables dynamic, nonlinear transformations of input data into a 
-high-dimensional feature space, followed by linear regression to produce the output. Quantum Reservoir Computing (QRC) 
-tries to take advantage of the exponential scaling dimension of the Hilbert space in the quantum computing context 
+Reservoir Computing (RC) in general leverages a fixed, randomly connected network structure called the 'reservoir.'
+This is in strong contrast to conventional deep learning architectures, which performe the optimization of weight across all layers.
+In RC, the reservoir enables dynamic, nonlinear transformations of input data into a high-dimensional feature space, followed by linear regression to produce the output.
+Quantum Reservoir Computing (QRC) tries to take advantage of the exponential scaling dimension of the Hilbert space in the quantum computing context 
 to potentially provide an advantage over the classical RC. In QRC there is a register of accessable qubits :math:`\rho_0`, which are subject to
 encoding the classical information and measurements, and hidden qubits :math:`\rho_{\mathrm{hid}}`, which are related to the reservoir and 
 artifically raise the dimension, the reservoir dynamic acts on, by the size of the hidden register. The hidden qubits can either be provided by an additional register
-or the enviroment.
+or interaction with the enviroment.
 
 First the classical input data :math:`x=\lbrace x^{(i)}\rbrace_{i=1}^D`, where :math:`D` denotes the samplesize, gets related to a unitary 
 evolution :math:`U(x)`, called encoding circuit, that evolves the initial state of the accessable qubits :math:`\rho_0` to 
@@ -41,7 +41,7 @@ can be used to perform classical machine learning algorithms like linear regress
 that one does not optimize over the weights of a complex parametrized quantum circuit, but keeps the complex part fix and later 
 optimizes the readout vectors via cheaper algorithms.
 
-.. _figure 5:
+.. _figure_qrc 1:
 .. figure:: ../_static/qrc/QRC_user_guide.png
     :alt: Quantum Reservoir Computing (QRC)
     :width: 600
@@ -161,7 +161,7 @@ In the end we can plot our results and see how it worked:
     plt.legend()
     plt.show()
 
-.. _figure 6:
+.. _figure_qrc 2:
 .. figure:: ../_static/qrc/qrc_classification_transparent.png
     :alt: Classification
     :width: 600
@@ -246,7 +246,7 @@ Result
     plt.legend()
     plt.show()
 
-.. _figure 7:
+.. _figure_qrc 3:
 .. figure:: ../_static/qrc/qrc_regression_transparent.png
     :alt: Regression
     :width: 600
