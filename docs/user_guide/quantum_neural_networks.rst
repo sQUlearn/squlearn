@@ -292,7 +292,7 @@ The noise level of the model thus depends on its variance, which can be calculat
     \sigma_f^2 = \langle\Psi\lvert\hat{C}^2\rvert\Psi\rangle -
     \langle\Psi\lvert\hat{C}\rvert\Psi\rangle^2 \text{.}
 
-`Figure 3`_ shows the output of a :class:`QNNRegressor` fit to a logarithm
+`Figure_qnn 3`_ shows the output of a :class:`QNNRegressor` fit to a logarithm
 with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
 :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
 The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
