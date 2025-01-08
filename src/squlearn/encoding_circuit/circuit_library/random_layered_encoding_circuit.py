@@ -57,8 +57,6 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self.min_num_layers = min_num_layers
         self.max_num_layers = max_num_layers
         self.feature_probability = feature_probability
-        self._fm_str = self._generate_circuit_string()
-        self._layered_encoding_circuit = self._build_layered_encoding_circuit()
 
     def _generate_circuit_string(self) -> str:
         """Generates a random Layered encoding circuit string."""
@@ -156,6 +154,9 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         Returns:
             QuantumCircuit: The quantum circuit of the Random Layered encoding circuit.
         """
+
+        self._fm_str = self._generate_circuit_string()
+        self._layered_encoding_circuit = self._build_layered_encoding_circuit()
 
         parameter = np.zeros(self._layered_encoding_circuit.num_parameters)
 
