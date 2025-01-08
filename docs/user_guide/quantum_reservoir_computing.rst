@@ -6,15 +6,14 @@
 Quantum Reservoir Computing
 ===========================
 
-Reservoir Computing (RC) unlike conventional deep neural network architectures, which demand weight
-optimization through all layers, utilizes a specific, fixed, connected network layer (usually randomized)
-called the "reservoir". This reservoir allows for a dynamic, nonlinear transformation of the input data 
-into a high-dimensional feature space and then performing linear regression on it. Quantum Reservoir Computing (QRC) 
+In contrast to conventional deep learning architectures, which require weight optimization across all layers, Reservoir Computing (RC) leverages a fixed,
+randomly connected network structure called the 'reservoir.' This reservoir enables dynamic, nonlinear transformations of input data into a 
+high-dimensional feature space, followed by linear regression to produce the output. Quantum Reservoir Computing (QRC) 
 tries to take advantage of the exponential scaling dimension of the Hilbert space in the quantum computing context 
-to prove an advantage over the classical RC. In QRC there is a register of accessable qubits :math:`\rho_0`, which are subject to
+to potentially provide an advantage over the classical RC. In QRC there is a register of accessable qubits :math:`\rho_0`, which are subject to
 encoding the classical information and measurements, and hidden qubits :math:`\rho_{\mathrm{hid}}`, which are related to the reservoir and 
-artifically raise the dimension, the reservoir dynamic acts on, by the size of the hidden register. Therefore much richer
-internal dynamics are possible.
+artifically raise the dimension, the reservoir dynamic acts on, by the size of the hidden register. The hidden qubits can either be provided by an additional register
+or the enviroment.
 
 First the classical input data :math:`x=\lbrace x^{(i)}\rbrace_{i=1}^D`, where :math:`D` denotes the samplesize, gets related to a unitary 
 evolution :math:`U(x)`, called encoding circuit, that evolves the initial state of the accessable qubits :math:`\rho_0` to 
@@ -39,31 +38,32 @@ are deteremined by measurements for all :math:`j = 1 ,\ldots,M`. The resulting v
     \symbf{v}(x):= \begin{bmatrix}\langle O_1 \rangle_x\\\vdots\\\langle O_M \rangle_x\end{bmatrix}
 
 can be used to perform classical machine learning algorithms like linear regression. So the key advantage over QNN is
-that one does not optimize over the weights of a complex neural network, but keeps the complex part fix and later 
+that one does not optimize over the weights of a complex parametrized quantum circuit, but keeps the complex part fix and later 
 optimizes the readout vectors via cheaper algorithms.
 
 .. _figure 5:
-.. figure:: ../_static/qrc/QRC_user_guide.jpg
+.. figure:: ../_static/qrc/QRC_user_guide.png
     :alt: Quantum Reservoir Computing (QRC)
     :width: 600
     :align: center
 
-    **Figure 5** An example of a quantum reservoir computing circuit. In the graphic we set the hidden qubits :math:`\rho_{\mathrm{hid}}` as :math:`\ket{000}`.
+    **Figure 1** An example of a quantum reservoir computing circuit (see Ref. [1]). In the graphic we set the hidden qubits :math:`\rho_{\mathrm{hid}}` as :math:`\ket{000}`.
     The encoding circuit (orange) and the quantum reservoir (blue) evolve the initial accessable qubit register :math:`\ket{\rho_0}` and
     the composite of accessable and hidden qubits respectively. After the measurement with respect to the observable :math:`O_k` we can
     repeat with similar circuits for all the other observables and use the expectation values to do classical machine learning.
 
 
 
-Note that in sQUlearn there is no hidden qubit register. This yields that the reservoir gate :math:`U_R` only acts on accessable qubit register. This is no particular
-problem in the functionality of the algorithm but only sets some limitations to the possible reservoir dynamics.
+Note that in sQUlearn, there is no hidden qubit register available in the pre-configured encoding circuits. This can be constructed manually if needed, or if run on a 
+quantum computer, it may be due to the (non-controllable) interaction with the surrounding bath.
 
 With the outputs of our QRC circuit we construct the so called readout vector 
 
 .. math::
     \symbf{v}^*(x)= \symbf{w}^\top \symbf{v}(x) = \sum\limits^M_{j=1} \symrm{w}_j \cdot \langle O_j \rangle_x,
 
-where :math:`\symbf{w}^\top = (\symrm{w}_1, \ldots, \symrm{w}_M)`, and the task of classical maschine learning is to determine the best collection of weights :math:`\symrm{w}_j`.
+where :math:`\symbf{w}^\top = (\symrm{w}_1, \ldots, \symrm{w}_M)`, and the task of classical maschine learning is to determine the best collection of weights :math:`\symrm{w}_j`. This can 
+be done, for example, using a pseudo inverse method.
 
 High-level methods for QRC
 ===========================
@@ -79,8 +79,8 @@ With sQUlearn it is possible to use QRC to do regression and classification task
    QRCClassifier
    QRCRegressor
 
-By passing either of both classes the keyword argument ``mlp`` (multi-layer perceptron classification model), ``linear`` (single layer perceptron) or 
-``kernel`` (Support Vector Classifier with a RBF kernel) one can set the desired maschine learning model. 
+By passing either of both classes a fitting keyword argument ``mlp`` (multi-layer perceptron model), ``linear`` (linear model or single layer perceptron for classification) or 
+``kernel`` (support vector maschine) one can set the desired maschine learning model. 
 We will now go step by step through the implementation of an example QRC for both methods with sQUlearn. 
 
 Classification
@@ -162,12 +162,12 @@ In the end we can plot our results and see how it worked:
     plt.show()
 
 .. _figure 6:
-.. figure:: ../_static/qrc/classification_plot.jpg
+.. figure:: ../_static/qrc/qrc_classification_transparent.png
     :alt: Classification
     :width: 600
     :align: center
 
-    **Figure 6** One can see that on this particular case the classification was very successful.
+    **Figure 2** One can see that on this particular case the classification was very successful.
     
 
 Regression
@@ -176,8 +176,8 @@ Regression
 Setup
 -----
 
-Just like in the classifier example we start by encoding the classical data and reservoir with the :class:`_encoding_circuits` class.
-This time our choice is the :class:`~squlearn.encoding_circuit.HubregtsenEncodingCircuit` as our encoding circuit.
+Just like in the classifier example we start by encoding the classical data and reservoir with the :class:`_encoding_circuit` class.
+This time, we choose the :class:`~squlearn.encoding_circuit.HubregtsenEncodingCircuit` as our encoding circuit, again with randomly picked parameters.
 
 .. jupyter-execute::
 
@@ -247,9 +247,18 @@ Result
     plt.show()
 
 .. _figure 7:
-.. figure:: ../_static/qrc/regression_plot.jpg
+.. figure:: ../_static/qrc/qrc_regression_transparent.png
     :alt: Regression
     :width: 600
     :align: center
 
-    **Figure 7** The regression of our discrete data set fits the function locally with high precision.
+    **Figure 3** The regression of our discrete data set fits the function locally with high precision.
+
+
+.. rubric:: References
+
+_`[1]` Xiong, Weijie, et al. "On fundamental aspects of quantum extreme learning machines"
+`arXiv:2312.15124 <https://arxiv.org/abs/2312.15124>`_ (2023).
+
+_`[2]` Suzuki, Y., Gao, Q., Pradel, K.C. et al. "Natural quantum reservoir computing for temporal information processing"
+`Sci Rep 12, 1353 <https://doi.org/10.1038/s41598-022-05061-w>`_ (2022).
