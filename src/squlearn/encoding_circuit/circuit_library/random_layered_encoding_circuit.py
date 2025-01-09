@@ -57,6 +57,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self.min_num_layers = min_num_layers
         self.max_num_layers = max_num_layers
         self.feature_probability = feature_probability
+        self._fm_str = None
 
     def _generate_circuit_string(self) -> str:
         """Generates a random Layered encoding circuit string."""
@@ -109,6 +110,11 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             r"crz(p;=0*p+1/8*np.pi,{p})",
         ]
 
+        if self.num_features is None:
+            _num_features = self.num_encoding_slots
+        else:
+            _num_features = self.num_features
+
         random.seed(self.seed)
         gates_with_x = [action for action in gates if "(x)" in action]
         weights = [
@@ -118,7 +124,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         num_layers = random.randint(self.min_num_layers, self.max_num_layers)
         layers = random.choices(gates, k=num_layers, weights=weights)
 
-        min_x = (self.num_features - 1) // self.num_qubits + 1
+        min_x = (_num_features - 1) // self.num_qubits + 1
         if min_x > self.min_num_layers:
             raise ValueError("Minimum number of layers is not enough to encode all features!")
 
@@ -196,3 +202,21 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self._layered_encoding_circuit = self._build_layered_encoding_circuit()
 
         return self
+
+    @property
+    def num_encoding_slots(self) -> int:
+        if self._fm_str is not None:
+            return self._fm_str.count("(x)")
+        return self.min_num_layers * self.num_qubits
+
+    @property
+    def num_features(self) -> int:
+        return self._num_features
+
+    @num_features.setter
+    def num_features(self, value: int):
+        self._num_features = value
+
+        # Regenerate the circuit
+        self._fm_str = self._generate_circuit_string()
+        self._layered_encoding_circuit = self._build_layered_encoding_circuit()

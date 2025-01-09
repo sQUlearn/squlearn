@@ -169,6 +169,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.encoding_weights = encoding_weights
         self.gate_weights = gate_weights
         self.seed = seed
+        self._num_gates = None
 
         if self.num_features is not None:
             self._gen_random_config(self.seed)
@@ -340,9 +341,11 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         return self._num_parameters
 
     @property
-    def num_encoding_slots(self) -> float:
+    def num_encoding_slots(self) -> int:
         """The number of encoding slots of the random encoding circuit (equal to inf)."""
-        return np.inf
+        if self._num_gates:
+            return self._num_gates
+        return self.min_gates
 
     @property
     def num_features(self) -> int:
@@ -395,3 +398,14 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self._gen_random_config(self.seed)
 
         return self
+
+    def draw(self, output=None, feature_label="x", parameter_label="p", decompose=False, **kwargs):
+        if self.num_features is None:
+            cached_num_features = self.num_features
+            self._num_features = self.min_gates
+
+            self._gen_random_config(self.seed)
+
+            self._num_features = cached_num_features
+
+        return super().draw(output, feature_label, parameter_label, decompose, **kwargs)

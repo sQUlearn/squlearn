@@ -87,8 +87,13 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
     @property
     def num_encoding_slots(self) -> float:
-        """The number of encoding slots of the HighDim encoding circuit (equal to inf)."""
-        return np.inf
+        """The number of encoding slots of the HighDim encoding circuit."""
+        if self._num_features is not None:
+            return self.num_features
+        if self.num_layers is not None:
+            return self.num_qubits * self.num_layers
+        else:
+            return self.num_qubits
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -135,6 +140,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         if self.entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self.entangling_gate)
+
+        cached_num_features = self.num_features
+
+        if self.num_features is None:
+            self.num_features = self.num_encoding_slots
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, index_offset: int):
             """
@@ -243,9 +253,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                     raise ValueError("Unknown entangling gate:", self.entangling_gate)
             QC = build_layer(QC, features, index_offset)
             index_offset += self.num_qubits * 3
-            if self.cycling == False and index_offset >= self.num_features:
+            if self.cycling is False and index_offset >= self.num_features:
                 index_offset = 0
 
+        # restore the number of features
+        self.num_features = cached_num_features
         return QC
 
 

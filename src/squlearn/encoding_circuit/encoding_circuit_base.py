@@ -125,20 +125,17 @@ class EncodingCircuitBase(ABC):
                 f"`num_features` is not set. Falling back to `num_encoding_slots` ({self.num_encoding_slots}).",
                 UserWarning,
             )
-            # set the number of features temporarily to the number of encoding slots
-            self.num_features = self.num_encoding_slots
+            # set the number of features to the number of encoding slots
+            num_features = self.num_encoding_slots
+        else:
+            num_features = self.num_features
 
-        num_features = self.num_features
-
-        feature_vec = ParameterVector(feature_label, self.num_features)
+        feature_vec = ParameterVector(feature_label, num_features)
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
         if decompose:
             circ = circ.decompose()
-
-        # restore the actual number of features
-        self.num_features = num_features
 
         return circ.draw(output, **kwargs)
 
