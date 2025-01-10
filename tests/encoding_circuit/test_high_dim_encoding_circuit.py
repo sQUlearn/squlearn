@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import copy
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from squlearn.encoding_circuit import HighDimEncodingCircuit
@@ -51,3 +52,21 @@ class TestHighDimEncodingCircuit:
         features = ParameterVector("x", 12)
         qc = circuit.get_circuit(features)
         assert circuit.num_layers == 2
+
+    def test_drawing_does_not_violate_circuit_parameters(self):
+        circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2, num_layers=1)
+
+        params_with_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_with_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_with_features_before == params_with_features_after
+
+        # same but with num_features=None
+        circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2, num_layers=1)
+
+        params_without_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_without_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_without_features_before == params_without_features_after

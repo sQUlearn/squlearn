@@ -1,6 +1,7 @@
 from qiskit import QuantumCircuit
 from squlearn.encoding_circuit import ChebyshevRx
 import pytest
+import copy
 import numpy as np
 
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -108,3 +109,21 @@ class TestChebyshevRx:
             ChebyshevRx(num_features=1, num_qubits=1, num_layers=1).get_circuit(
                 features=features, parameters=params
             )
+
+    def test_drawing_does_not_violate_circuit_parameters(self):
+        circuit = ChebyshevRx(num_features=2, num_qubits=2, num_layers=1)
+
+        params_with_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_with_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_with_features_before == params_with_features_after
+
+        # same but with num_features=None
+        circuit = ChebyshevRx(num_features=2, num_qubits=2, num_layers=1)
+
+        params_without_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_without_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_without_features_before == params_without_features_after

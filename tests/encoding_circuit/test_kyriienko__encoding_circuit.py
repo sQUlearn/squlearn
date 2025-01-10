@@ -1,6 +1,6 @@
-from black import Encoding
 import numpy as np
 import pytest
+import copy
 from qiskit import QuantumCircuit
 from squlearn.encoding_circuit import KyriienkoEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -87,3 +87,21 @@ class TestKyriienkoEncodingCircuit:
             KyriienkoEncodingCircuit(num_qubits=2, num_features=1).get_circuit(
                 features=[0.3, 0.5, -0.5], parameters=params
             )
+
+    def test_drawing_does_not_violate_circuit_parameters(self):
+        circuit = KyriienkoEncodingCircuit(num_features=2, num_qubits=2)
+
+        params_with_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_with_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_with_features_before == params_with_features_after
+
+        # same but with num_features=None
+        circuit = KyriienkoEncodingCircuit(num_features=2, num_qubits=2)
+
+        params_without_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_without_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_without_features_before == params_without_features_after
