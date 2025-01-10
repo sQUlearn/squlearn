@@ -2,8 +2,12 @@ import pytest
 import copy
 import numpy as np
 from qiskit import QuantumCircuit
+from sklearn.preprocessing import MinMaxScaler
+from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
+from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
+from squlearn.kernel.ml.qgpr import QGPR
 
 
 class TestChebyshevTower:
@@ -118,3 +122,17 @@ class TestChebyshevTower:
         params_without_features_after = copy.deepcopy(circuit.get_params())
 
         assert params_without_features_before == params_without_features_after
+
+    def test_minimal_fit(self):
+        circuit = ChebyshevTower(num_features=2, num_qubits=2, num_chebyshev=2)
+
+        X_train = np.array([[-1.0, -0.8], [-0.6, -0.4], [-0.2, 0.0], [0.4, 0.6], [0.8, 1.0]])
+        y_train = np.array([-0.6, -0.2, 0.2, 0.6, 1.0])
+
+        kernel = FidelityKernel(encoding_circuit=circuit, executor=Executor())
+        estimator = QGPR(quantum_kernel=kernel)
+
+        estimator.fit(X_train, y_train)
+        result = estimator.predict(X_train)
+
+        assert np.allclose(result, y_train, atol=1e-3)

@@ -8,6 +8,7 @@ from qiskit.circuit import ParameterVector
 from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebyshevPQC
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
+from squlearn.kernel.ml.qgpr import QGPR
 
 
 class TestLayeredEncodingCircuit:
@@ -297,3 +298,17 @@ class TestLayeredEncodingCircuit:
         params_without_features_after = copy.deepcopy(circuit.get_params())
 
         assert params_without_features_before == params_without_features_after
+
+    def test_minimal_fit(self):
+        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
+
+        X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
+        y_train = np.array([5, 7, 9, 11, 13])
+
+        kernel = FidelityKernel(encoding_circuit=circuit, executor=Executor())
+        estimator = QGPR(quantum_kernel=kernel)
+
+        estimator.fit(X_train, y_train)
+        result = estimator.predict(X_train)
+
+        assert np.allclose(result, y_train, atol=1e-3)
