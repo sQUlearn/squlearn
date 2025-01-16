@@ -331,8 +331,8 @@ class QulacsCircuit:
         """
         qubit1 = [qubit1] if isinstance(qubit1, int) else qubit1
         qubit2 = [qubit2] if isinstance(qubit2, int) else qubit2
-        qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
-        qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
+        #qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
+        #qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
 
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
@@ -395,8 +395,8 @@ class QulacsCircuit:
 
         qubit1 = [qubit1] if isinstance(qubit1, int) else qubit1
         qubit2 = [qubit2] if isinstance(qubit2, int) else qubit2
-        qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
-        qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
+        #qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
+        #qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
 
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
@@ -502,6 +502,8 @@ class QulacsCircuit:
                 circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)
             ]
 
+            print("wires",wires)
+
             if single_qubit_date:
                 if not paramterized_gate:
                     self._add_single_qubit_gate(qiskit_qulacs_gate_dict[op.operation.name], wires)
@@ -512,7 +514,7 @@ class QulacsCircuit:
                 if len(op.qubits)>2:
                     raise NotImplementedError("Only two qubit gates are supported in sQUlearn's Qulacs backend.")
                 if not paramterized_gate:
-                    self._add_parameterized_two_qubit_gate(qiskit_qulacs_gate_dict[op.operation.name], wires[0], wires[1])
+                    self._add_two_qubit_gate(qiskit_qulacs_gate_dict[op.operation.name], wires[0], wires[1])
                 else:
                     print("len(op.operation.params)",len(op.operation.params))
                     self._add_parameterized_two_qubit_gate(qiskit_qulacs_gate_dict[op.operation.name], wires[0], wires[1], op.operation.params[0])
@@ -642,19 +644,18 @@ class QulacsCircuit:
                 parameters = [parameters]
             self._singleparameter_index_list = [p.index for p in parameters]
 
-        if self._rebuild_circuit_func:
-            self._rebuild_circuit_func = not cache_function
+        #if self._rebuild_circuit_func:
+        #    self._rebuild_circuit_func = not cache_function
 
-            def qulacs_circuit(parameter):
+        def qulacs_circuit(parameter):
 
-                circuit = ParametricQuantumCircuit(self.num_qubits)
-                for i in range(len(self._operation_list)):
+            circuit = ParametricQuantumCircuit(self.num_qubits)
+            for i in range(len(self._operation_list)):
+                self._operation_list[i](circuit,*self._qubit_list[i])
 
-                    self._operation_list[i](circuit,self._qubit_list[i][0])
+            return circuit
 
-                return circuit
+        #    if cache_function:
+        #        self._circuit_func = qulacs_circuit
 
-            if cache_function:
-                self._circuit_func = qulacs_circuit
-
-        return self._circuit_func
+        return qulacs_circuit
