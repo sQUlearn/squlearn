@@ -16,6 +16,7 @@ from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util.pennylane.pennylane_circuit import PennyLaneCircuit
+from ..util.decompose_to_std import decompose_to_std
 
 
 class DirectEvaluation:
@@ -455,7 +456,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         self._x = ParameterVector("x", self._pqc.num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._qiskit_circuit = self._pqc.get_circuit(self._x, self._param)
+        self._qiskit_circuit = decompose_to_std(self._pqc.get_circuit(self._x, self._param))
 
         # PennyLane Circuit function of the QNN
         self._pennylane_circuit = PennyLaneCircuit(

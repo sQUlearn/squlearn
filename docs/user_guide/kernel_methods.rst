@@ -50,6 +50,21 @@ state [1]. In the quantum computational practice, the Hilbert-Schmidt inner prod
 measurements. Consequently, in quantum computing, access to the Hilbert space of quantum states is
 given by measurements.
 
+.. _figure 1:
+.. figure:: ../_static/qkm/QKM_scheme_pic.jpg
+    :alt: Quantum Kernel Methods
+    :width: 500
+    :align: center
+
+    **Figure 1** Schematic illustration of the function principle of quantum kernel methods, which can be formally embedded in the rich
+    mathematical framework of conventional kernel theory. Data points  :math:`\symbf{x}` are mapped to the quantum Hilbert space by
+    encoding them into a quantum state  :math:`\ket{\symbf{\psi}(\symbf{x})}`. Access to the quantum Hilbert space is granted by
+    measurements. :math:`\symbf{Left:}` In quantum mechanics measurements are expressed through Hilbert-Schmidt inner products. 
+    Quantum kernels, which are defined using this fidelity-type metric are thus referred to as fidelity quantum kernels (FQKs).
+    More on FQKs in sQUlearn will be discussed below. :math:`\symbf{Right:}` When projecting the quantum states to an approximate
+    classical representation using, e.g., reduced physical observables this gives rise to a family of projected quantum kernels (PQKs).
+    These will be also subject to discussion in the sQUlearn context below.
+
 
 .. currentmodule:: squlearn.kernel.ml
 
