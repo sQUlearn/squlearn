@@ -169,7 +169,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.encoding_weights = encoding_weights
         self.gate_weights = gate_weights
         self.seed = seed
-        self.available_feature_gates
+        self.available_feature_gates = None
 
         if self.num_features is not None:
             self._gen_random_config(self.seed)
@@ -407,7 +407,8 @@ class RandomEncodingCircuit(EncodingCircuitBase):
             self._num_features = self.min_gates
 
             self._gen_random_config(self.seed)
+            super().draw(output, feature_label, parameter_label, decompose, **kwargs)
 
             self._num_features = cached_num_features
-
-        return super().draw(output, feature_label, parameter_label, decompose, **kwargs)
+        else:
+            super().draw(output, feature_label, parameter_label, decompose, **kwargs)

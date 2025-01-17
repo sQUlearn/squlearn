@@ -131,7 +131,7 @@ class TestRandomEncodingCircuit:
 
         # same but with num_features=None
         circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
+            num_features=None, num_qubits=2, min_gates=9, max_gates=40, seed=42
         )
 
         params_without_features_before = copy.deepcopy(circuit.get_params())

@@ -39,11 +39,14 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
         self._encoding_circuit = encoding_circuit
         self._pruned_parameters = pruned_parameters
+        self._p = None
 
     @property
     def num_parameters(self) -> int:
         """Number of parameters in the pruned pqc"""
-        return len(self._p)
+        if self._p is not None:
+            return len(self._p)
+        return self._encoding_circuit.num_parameters - len(self._pruned_parameters)
 
     @property
     def feature_bounds(self) -> np.ndarray:
@@ -56,6 +59,14 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         """Parameter bounds of the pruned encoding circuit."""
         bounds = self._encoding_circuit.parameter_bounds
         return np.delete(bounds, self._pruned_parameters, 0)
+
+    @property
+    def num_features(self) -> int:
+        return self._encoding_circuit.num_features
+
+    @property
+    def num_encoding_slots(self) -> int:
+        return self._encoding_circuit.num_encoding_slots
 
     def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
         """

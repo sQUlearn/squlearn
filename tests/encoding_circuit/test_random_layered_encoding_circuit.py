@@ -174,7 +174,7 @@ class TestRandomLayeredEncodingCircuit:
             min_num_layers=3,
             max_num_layers=12,
             feature_probability=0.5,
-            seed=42,
+            seed=40,
         )
 
         X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
