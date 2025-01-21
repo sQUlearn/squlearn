@@ -31,7 +31,7 @@ class QRCClassifier(BaseQRC, ClassifierMixin):
         ml_model (str): The classical machine learning model to use (default: linear), possible
             values are:
 
-                * ``"mlp"`` for a multi-layer perceptron calsification model.
+                * ``"mlp"`` for a multi-layer perceptron classification model.
                 * ``"linear"`` for a single layer perceptron.
                 * ``"kernel"`` for a Support Vector Classifier with a RBF kernel.
 
