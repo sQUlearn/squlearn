@@ -156,6 +156,8 @@ class QulacsCircuit:
             basis_gates=qiskit_qulacs_gate_dict.keys(),
             optimization_level=0,
         )
+        
+        print("self._qiskit_circuit",self._qiskit_circuit)
 
         #self._qiskit_circuit = decompose_to_std(circuit)
         #self._qiskit_circuit = circuit
@@ -273,6 +275,9 @@ class QulacsCircuit:
         param_list_element = angle
         func_list_element = None
         func_grad_list_element = None
+
+        # Change sign because of the way Qulacs defines the rotation gates
+        angle = -angle
 
         print("angle",angle)
         print("type(angle)",type(angle))
