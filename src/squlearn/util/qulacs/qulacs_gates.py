@@ -50,6 +50,18 @@ def qulacs_gate_cz(circuit: ParametricQuantumCircuit, control: int, target: int)
     """CZ gate."""
     circuit.add_gate(CZ(control, target))
 
+def qulacs_gate_rx(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """RX gate."""
+    circuit.add_gate(RX(index, angle))
+
+def qulacs_gate_ry(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """RY gate."""
+    circuit.add_gate(RY(index, angle))
+
+def qulacs_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """RZ gate."""
+    circuit.add_gate(RZ(index, angle))
+
 # def qulacs_gate_cy(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
 #     """CY gate."""
 #     circuit.add_gate(CY(control, target)) # NOT IMPLEMENTED
@@ -125,6 +137,9 @@ qiskit_qulacs_gate_dict = {
     "sdg": qulacs_gate_sdg,
     "tdg": qulacs_gate_tdg,
     "cp": qulacs_gate_cp,
+    "rx": qulacs_gate_rx,
+    "ry": qulacs_gate_ry,
+    "rz": qulacs_gate_rz,
     #"cy" does not exist in Qulacs
     
 }

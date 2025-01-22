@@ -157,6 +157,9 @@ class QulacsCircuit:
             optimization_level=0,
         )
 
+        #self._qiskit_circuit = decompose_to_std(circuit)
+        #self._qiskit_circuit = circuit
+
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits
 
@@ -271,7 +274,16 @@ class QulacsCircuit:
         func_list_element = None
         func_grad_list_element = None
 
-        if isinstance(angle, ParameterVectorElement):
+        print("angle",angle)
+        print("type(angle)",type(angle))
+
+        if isinstance(angle, float):
+            # Single float value
+            func_list_element = None
+            func_grad_list_element = None
+            param_list_element = angle
+
+        elif isinstance(angle, ParameterVectorElement):
             # Single parameter vector element
             func_list_element = lambda x: x
             func_grad_list_element = lambda x: 1.0
@@ -519,6 +531,9 @@ class QulacsCircuit:
                     print("len(op.operation.params)",len(op.operation.params))
                     self._add_parameterized_two_qubit_gate(qiskit_qulacs_gate_dict[op.operation.name], wires[0], wires[1], op.operation.params[0])
 
+
+
+
     # def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
     #     """
     #     Function to build the instructions for the Qulacs observable from the Qiskit observable.
@@ -651,7 +666,13 @@ class QulacsCircuit:
 
             circuit = ParametricQuantumCircuit(self.num_qubits)
             for i in range(len(self._operation_list)):
-                self._operation_list[i](circuit,*self._qubit_list[i])
+                if self._param_list[i] is None:
+                    self._operation_list[i](circuit,*self._qubit_list[i])
+                elif isinstance(self._param_list[i], float):
+                    self._operation_list[i](circuit,self._param_list[i],*self._qubit_list[i])
+                else:
+                    #parameterized gates
+                    pass
 
             return circuit
 
