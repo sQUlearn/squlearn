@@ -693,9 +693,10 @@ class Executor:
                     else:
                         shots = 1024
                         self._estimator.options.default_shots = 1024
-                self._estimator.options.update(
-                    simulator={"seed_simulator": self._set_seed_for_primitive}
-                )
+                if self._set_seed_for_primitive:
+                    self._estimator.options.update(
+                        simulator={"seed_simulator": self._set_seed_for_primitive}
+                    )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
@@ -723,9 +724,10 @@ class Executor:
                     else:
                         shots = 1024
                         self._sampler.options.default_shots = 1024
-                self._sampler.options.update(
-                    simulator={"seed_simulator": self._set_seed_for_primitive}
-                )
+                if self._set_seed_for_primitive:
+                    self._sampler.options.update(
+                        simulator={"seed_simulator": self._set_seed_for_primitive}
+                    )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
