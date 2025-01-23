@@ -1,15 +1,15 @@
 from typing import Union
 
-from ..observables.observable_base import ObservableBase
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..util import Executor
+from ...observables.observable_base import ObservableBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...util import Executor
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 
 
-class LowLevelQNN(LowLevelQNNBase):
+class LowLevelQNN:
     """
     Low-level QNN factory, which creates the specific low-level QNN based on the quantum framework.
 

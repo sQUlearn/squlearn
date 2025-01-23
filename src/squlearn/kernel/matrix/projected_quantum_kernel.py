@@ -22,7 +22,7 @@ from ...util.data_preprocessing import to_tuple
 
 
 from ...qnn.lowlevel_qnn import LowLevelQNN
-from ...qnn.lowlevel_qnn_base import LowLevelQNNBase
+from ...qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 
 from ...observables import SinglePauli
 from ...observables.observable_base import ObservableBase

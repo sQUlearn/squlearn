@@ -4,7 +4,7 @@ from sklearn.utils import gen_batches
 from typing import Union
 
 from .loss import LossBase
-from .lowlevel_qnn_base import LowLevelQNNBase
+from .lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
 from ..util import Executor
 

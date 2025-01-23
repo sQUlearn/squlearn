@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from .lowlevel_qnn_base import LowLevelQNNBase
-from .lowlevel_qnn import LowLevelQNN
+from .lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 
 from ..util.data_preprocessing import adjust_parameters
 
