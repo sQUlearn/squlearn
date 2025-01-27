@@ -604,14 +604,14 @@ class QulacsCircuit:
     ):
         """Returns the Qulacs circuit function for the circuit."""
 
-        cache_function = True
-        self._singleparameter_index_list = None
-        if parameters is not None:
-            cache_function = False
-            self._rebuild_circuit_func = True
-            if not isinstance(parameters, list):
-                parameters = [parameters]
-            self._singleparameter_index_list = [p.index for p in parameters]
+        # cache_function = True
+        # self._singleparameter_index_list = None
+        # if parameters is not None:
+        #     cache_function = False
+        #     self._rebuild_circuit_func = True
+        #     if not isinstance(parameters, list):
+        #         parameters = [parameters]
+        #     self._singleparameter_index_list = [p.index for p in parameters]
 
         #if self._rebuild_circuit_func:
         #    self._rebuild_circuit_func = not cache_function
