@@ -4,92 +4,92 @@ from qulacs import ParametricQuantumCircuit
 from qulacs.gate import *
 
 def qulacs_gate_i(circuit: ParametricQuantumCircuit, qubit: int) -> None:
-    print("Adding I gate on qubit", qubit)
+    #print("Adding I gate on qubit", qubit)
     circuit.add_gate(Identity(qubit))
 
 def qulacs_gate_h(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """Hadamard gate."""
-    print("Adding H gate on qubit", qubit)
+    #print("Adding H gate on qubit", qubit)
     circuit.add_gate(H(qubit))
 
 def qulacs_gate_x(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """Pauli-X gate."""
-    print("Adding X gate on qubit", qubit)
+    #print("Adding X gate on qubit", qubit)
     circuit.add_gate(X(qubit))
 
 def qulacs_gate_y(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """Pauli-Y gate."""
-    print("Adding Y gate on qubit", qubit)
+    #print("Adding Y gate on qubit", qubit)
     circuit.add_gate(Y(qubit))
 
 def qulacs_gate_z(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """Pauli-Z gate."""
-    print("Adding Z gate on qubit", qubit)
+    #print("Adding Z gate on qubit", qubit)
     circuit.add_gate(Z(qubit))
 
 def qulacs_gate_s(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """S gate."""
-    print("Adding S gate on qubit", qubit)
+    #print("Adding S gate on qubit", qubit)
     circuit.add_gate(S(qubit))
 
 def qulacs_gate_sdg(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """S-dagger gate."""
-    print("Adding S-dagger gate on qubit", qubit)
+    #print("Adding S-dagger gate on qubit", qubit)
     circuit.add_gate(Sdag(qubit))
 
 def qulacs_gate_t(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """T gate."""
-    print("Adding T gate on qubit", qubit)
+    #print("Adding T gate on qubit", qubit)
     circuit.add_gate(T(qubit))
 
 def qulacs_gate_tdg(circuit: ParametricQuantumCircuit, qubit: int) -> None:
     """T-dagger gate."""
-    print("Adding T-dagger gate on qubit", qubit)
+    #print("Adding T-dagger gate on qubit", qubit)
     circuit.add_gate(Tdag(qubit))
 
 def qulacs_gate_swap(circuit: ParametricQuantumCircuit, qubit1: int, qubit2: int) -> None:
     """SWAP gate."""
-    print("Adding SWAP gate between qubits", qubit1, "and", qubit2)
+    #print("Adding SWAP gate between qubits", qubit1, "and", qubit2)
     circuit.add_gate(SWAP(qubit1, qubit2))
 
 def qulacs_gate_cnot(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
     """CNOT gate."""
-    print("Adding CNOT gate with control qubit", control, "and target qubit", target)
+    #print("Adding CNOT gate with control qubit", control, "and target qubit", target)
     circuit.add_gate(CNOT(control, target))
 
 def qulacs_gate_cz(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
     """CZ gate."""
-    print("Adding CZ gate with control qubit", control, "and target qubit", target)
+    #print("Adding CZ gate with control qubit", control, "and target qubit", target)
     circuit.add_gate(CZ(control, target))
 
 def qulacs_gate_rx(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """RX gate."""
-    print("Adding RX gate with angle", angle, "on qubit", index)
+    #print("Adding RX gate with angle", angle, "on qubit", index)
     circuit.add_gate(RX(index, angle))
 
 def qulacs_param_gate_rx(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """Parameterized RX gate."""
-    print("Adding Parameterized RX gate with angle", angle, "on qubit", index)
+    #print("Adding Parameterized RX gate with angle", angle, "on qubit", index)
     circuit.add_gate(ParametricRX(index, angle))
 
 def qulacs_gate_ry(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """RY gate."""
-    print("Adding RY gate with angle", angle, "on qubit", index)
+    #print("Adding RY gate with angle", angle, "on qubit", index)
     circuit.add_gate(RY(index, angle))
 
 def qulacs_param_gate_ry(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """Parameterized RY gate."""
-    print("Adding Parameterized RY gate with angle", angle, "on qubit", index)
+    #print("Adding Parameterized RY gate with angle", angle, "on qubit", index)
     circuit.add_gate(ParametricRY(index, angle))
 
 def qulacs_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """RZ gate."""
-    print("Adding RZ gate with angle", angle, "on qubit", index)
+    #print("Adding RZ gate with angle", angle, "on qubit", index)
     circuit.add_gate(RZ(index, angle))
 
 def qulacs_param_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """Parameterized RZ gate."""
-    print("Adding Parameterized RZ gate with angle", angle, "on qubit", index)
+    #print("Adding Parameterized RZ gate with angle", angle, "on qubit", index)
     circuit.add_gate(ParametricRZ(index, angle))
 
 # def qulacs_gate_cy(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
@@ -98,12 +98,12 @@ def qulacs_param_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index:
 
 def qulacs_gate_cp(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
     """CP gate."""
-    print("Adding CP gate with control qubit", control, "and target qubit", target)
+    #print("Adding CP gate with control qubit", control, "and target qubit", target)
     circuit.add_gate(CP(control, target))
 
 def qulacs_gate_U1(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """U1 gate."""
-    print("Adding U1 gate with angle", angle, "on qubit", index)
+    #print("Adding U1 gate with angle", angle, "on qubit", index)
     circuit.add_gate(U1(index, angle))
 
 # TODO

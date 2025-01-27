@@ -79,7 +79,7 @@ class QulacsCircuit:
             optimization_level=0,
         )
         
-        print("self._qiskit_circuit",self._qiskit_circuit)
+        #print("self._qiskit_circuit",self._qiskit_circuit)
 
         #self._qiskit_circuit = decompose_to_std(circuit)
         #self._qiskit_circuit = circuit
@@ -210,12 +210,10 @@ class QulacsCircuit:
 
         if isinstance(angle, float):
             # Single float value
-            print("Single float value")
             func_list_element = angle
             func_grad_list_element = None
         elif isinstance(angle, ParameterVectorElement):
             # Single parameter vector element
-            print("ParameterVectorElement")
             parameterized = True
             func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = [lambda x: 1.0]
@@ -223,7 +221,6 @@ class QulacsCircuit:
 
         elif isinstance(angle, ParameterExpression):
             # Parameter is in a expression (equation)
-            print("ParameterExpression")
             parameterized = True
             func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = []
@@ -449,8 +446,6 @@ class QulacsCircuit:
                 if param.vector.name not in self._qualcs_obs_parameters:
                     self._qualcs_obs_parameters.append(param.vector.name)
 
-        print("self._qualcs_obs_parameters",self._qualcs_obs_parameters)
-
         def sort_parameters_after_index(parameter_vector):
             index_list = [p.index for p in parameter_vector]
             argsort_list = np.argsort(index_list)
@@ -466,11 +461,6 @@ class QulacsCircuit:
                 [],
             )
         )
-
-
-        #self._symbol_tuple = tuple([sympify(p._symbol_expr) for observable in observables for p in observable.parameters])
-
-        print("self._symbol_tuple ",self._symbol_tuple )
 
         # Convert observables
         self._operators_real = []
@@ -497,13 +487,8 @@ class QulacsCircuit:
                     #if p_ != "I":
                     string += p_ + " " + str(i) + " "
 
-                print("p",p)
-                print("c",c)
-                print("string",string)
-
                 if isinstance(c, ParameterVectorElement):
                     # Single parameter vector element
-                    print("obs: ParameterVectorElement")
                     operator_param_func.append(lambdify(self._symbol_tuple, sympify(c._symbol_expr)))
                     operator_param_func_grad.append([lambda x: 1.0])
                     self._free_parameters.add(c)
@@ -514,9 +499,6 @@ class QulacsCircuit:
 
                 elif isinstance(c, ParameterExpression):
                     # Parameter is in a expression (equation)
-                    print("obs: ParameterExpression")
-                    print("self._symbol_tuple, sympify(c._symbol_expr)",self._symbol_tuple, sympify(c._symbol_expr))
-
                     operator_param_func.append(lambdify(self._symbol_tuple, sympify(c._symbol_expr)))
                     func_grad_list_element = []
                     for param_element in c._parameter_symbols.keys():
@@ -569,8 +551,6 @@ class QulacsCircuit:
             circ_param_list = sum(
                 [list(args[i]) for i in range(len(self._qualcs_gates_parameters))], []
             )
-            
-            print("circ_param_list",circ_param_list)
 
             # Build the Qulacs circuit and evaluate the parametric terms
             circuit = ParametricQuantumCircuit(self.num_qubits)
@@ -616,8 +596,6 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     sim.initialize_state(0)
     sim.simulate()
 
-    print("obs_param_list",obs_param_list)
-
     real_values = np.array(
         [
             o if isinstance(o, float) else sim.get_expectation_value(o)
@@ -640,9 +618,6 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
         [0.0 if not callable(f) else f(*obs_param_list)
         for f in operator] for operator in circuit._operators_param_func
     ])
-    
-    print("param_obs_values",param_obs_values)
-    print("param_func_values",param_func_values)
 
     # Compute the final parameter values by combining function and observable values
     param_values = np.array([
