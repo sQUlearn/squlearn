@@ -451,7 +451,24 @@ class QulacsCircuit:
 
         print("self._qualcs_obs_parameters",self._qualcs_obs_parameters)
 
-        self._symbol_tuple = tuple([sympify(p._symbol_expr) for observable in observables for p in observable.parameters])
+        def sort_parameters_after_index(parameter_vector):
+            index_list = [p.index for p in parameter_vector]
+            argsort_list = np.argsort(index_list)
+            return [parameter_vector[i] for i in argsort_list]
+
+
+        self._symbol_tuple = tuple(
+            sum(
+                [
+                    [sympify(p._symbol_expr) for p in sort_parameters_after_index(obs.parameters)]
+                    for obs in observables
+                ],
+                [],
+            )
+        )
+
+
+        #self._symbol_tuple = tuple([sympify(p._symbol_expr) for observable in observables for p in observable.parameters])
 
         print("self._symbol_tuple ",self._symbol_tuple )
 
@@ -477,8 +494,12 @@ class QulacsCircuit:
             for c, p in zip(coeff, paulis):
                 string = ""
                 for i, p_ in enumerate(p):
-                    if p_ != "I":
-                        string += p_ + " " + str(i) + " "
+                    #if p_ != "I":
+                    string += p_ + " " + str(i) + " "
+
+                print("p",p)
+                print("c",c)
+                print("string",string)
 
                 if isinstance(c, ParameterVectorElement):
                     # Single parameter vector element
@@ -494,6 +515,8 @@ class QulacsCircuit:
                 elif isinstance(c, ParameterExpression):
                     # Parameter is in a expression (equation)
                     print("obs: ParameterExpression")
+                    print("self._symbol_tuple, sympify(c._symbol_expr)",self._symbol_tuple, sympify(c._symbol_expr))
+
                     operator_param_func.append(lambdify(self._symbol_tuple, sympify(c._symbol_expr)))
                     func_grad_list_element = []
                     for param_element in c._parameter_symbols.keys():
@@ -546,6 +569,8 @@ class QulacsCircuit:
             circ_param_list = sum(
                 [list(args[i]) for i in range(len(self._qualcs_gates_parameters))], []
             )
+            
+            print("circ_param_list",circ_param_list)
 
             # Build the Qulacs circuit and evaluate the parametric terms
             circuit = ParametricQuantumCircuit(self.num_qubits)
@@ -591,6 +616,8 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     sim.initialize_state(0)
     sim.simulate()
 
+    print("obs_param_list",obs_param_list)
+
     real_values = np.array(
         [
             o if isinstance(o, float) else sim.get_expectation_value(o)
@@ -613,6 +640,9 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
         [0.0 if not callable(f) else f(*obs_param_list)
         for f in operator] for operator in circuit._operators_param_func
     ])
+    
+    print("param_obs_values",param_obs_values)
+    print("param_func_values",param_func_values)
 
     # Compute the final parameter values by combining function and observable values
     param_values = np.array([

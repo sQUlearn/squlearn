@@ -331,7 +331,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             output = [
                 #evaluate_circuit(self.penn)
                 #    todo_class, x_inp_, param_inp_, param_obs_inp_
-                evaluate_circuit(self._qulacs_circuit, x_inp_, param_inp_, param_obs_inp_)
+                evaluate_circuit(self._qulacs_circuit, param_inp_,x_inp_, param_obs_inp_)
 
                 for x_inp_ in x_inp
                 for param_inp_ in param_inp
