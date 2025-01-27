@@ -8,6 +8,7 @@ from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classicalregister import Clbit
 
+from qulacs import QuantumCircuit, QuantumState, QuantumCircuitSimulator
 
 from typing import List, Union, Iterable
 
@@ -15,7 +16,7 @@ from qiskit.compiler import transpile
 from qiskit_aer import Aer
 
 from qulacs import ParametricQuantumCircuit
-
+from qulacs import Observable
 #import qulacs as qml
 #import qulacs.numpy as pnp
 #import qulacs.pauli as pauli
@@ -24,85 +25,6 @@ from qulacs import ParametricQuantumCircuit
 from .qulacs_gates import qiskit_qulacs_gate_dict, qiskit_qulacs_param_gate_dict
 from ..executor import Executor
 from ..decompose_to_std import decompose_to_std
-
-
-def _get_sympy_interface():
-    """
-    Returns the sympy interface that is used in the parameter conversion.
-
-    Necessary for the correct conversion of sympy expressions in Qiskit to
-    python functions in Qulacs.
-
-    Returns:
-        Tuple of sympy printer and sympy modules
-    """
-    # SymPy printer for qulacs numpy implementation has to be set manually,
-    # otherwise math functions are used in lambdify instead of qulacs.numpy functions
-    from sympy.printing.numpy import NumPyPrinter as Printer
-
-    user_functions = {}
-    printer = Printer(
-        {
-            "fully_qualified_modules": False,
-            "inline": True,
-            "allow_unknown_functions": True,
-            "user_functions": user_functions,
-        }
-    )
-    # Use Pennylane numpy for sympy lambdify
-    modules = pnp
-
-    # The functions down below can be used to switch between different gradient engines
-    # as tensorflow, jax and torch. However, this is not supported and implemented yet.
-
-    #     # SymPy printer for qulacs numpy implementation has to be set manually,
-    #     # otherwise math functions are used in lambdify instead of qulacs.numpy functions
-    #     from sympy.printing.tensorflow import TensorflowPrinter as Printer  # type: ignore
-
-    #     user_functions = {}
-    #     printer = Printer(
-    #         {
-    #             "fully_qualified_modules": False,
-    #             "inline": True,
-    #             "allow_unknown_functions": True,
-    #             "user_functions": user_functions,
-    #         }
-    #     )  #
-    #     modules = tf
-
-    # elif self._gradient_engine == "jax":
-    #     from sympy.printing.numpy import JaxPrinter as Printer  # type: ignore
-
-    #     user_functions = {}
-    #     printer = Printer(
-    #         {
-    #             "fully_qualified_modules": False,
-    #             "inline": True,
-    #             "allow_unknown_functions": True,
-    #             "user_functions": user_functions,
-    #         }
-    #     )  #
-    #     modules = jnp
-    # elif self._gradient_engine == "torch" or self._gradient_engine == "pytorch":
-    #     from sympy.printing.pycode import PythonCodePrinter as Printer  # type: ignore
-
-    #     user_functions = {}
-    #     printer = Printer(
-    #         {
-    #             "fully_qualified_modules": False,
-    #             "inline": True,
-    #             "allow_unknown_functions": True,
-    #             "user_functions": user_functions,
-    #         }
-    #     )  #
-    #     modules = torch
-
-    # else:
-    #     # tbd for jax and tensorflow
-    #     printer = None
-    #     modules = None
-
-    return printer, modules
 
 
 class QulacsCircuit:
@@ -191,6 +113,10 @@ class QulacsCircuit:
         self._num_clbits = self._qiskit_circuit.num_clbits
 
         self._build_circuit_instructions(self._qiskit_circuit)
+
+        self._operators_imag = []
+        self._operators_real = []
+        self.build_observable_instructions(self._qiskit_observable)
 
         #self._qulacs_circuit = self.build_qulacs_circuit()
 
@@ -488,115 +414,62 @@ class QulacsCircuit:
 
 
 
-    # def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
-    #     """
-    #     Function to build the instructions for the Qulacs observable from the Qiskit observable.
+    def build_observable_instructions(self, observables: Union[List[SparsePauliOp], SparsePauliOp]):
+        """
+        Function to build the instructions for the Qulacs observable from the Qiskit observable.
 
-    #     This functions converts the Qiskit SparsePauli and parameter expressions to Qulacs
-    #     compatible Pauli words and functions.
+        This functions converts the Qiskit SparsePauli and parameter expressions to Qulacs
+        compatible Pauli words and functions.
 
-    #     Args:
-    #         observable (Union[List[SparsePauliOp], SparsePauliOp]): Qiskit observable to convert
-    #                                                                 to Qulacs
+        Args:
+            observable (Union[List[SparsePauliOp], SparsePauliOp]): Qiskit observable to convert
+                                                                    to Qulacs
 
-    #     Returns:
-    #         Tuple with lists of Qulacs observable parameter functions, Qulacs Pauli words,
-    #         Qulacs observable parameters and Qulacs observable parameter dimensions
-    #     """
-    #     if observable == None:
-    #         return None, None, None
+        Returns:
+            Tuple with lists of Qulacs observable parameter functions, Qulacs Pauli words,
+            Qulacs observable parameters and Qulacs observable parameter dimensions
+        """
+#        if observables == None:
+#            return None, None, None
 
-    #     qulacs_obs_param_function = []
-    #     qulacs_obs_parameters = []
-    #     qulacs_words = []
+        self.multiple_observables = False
+        if isinstance(observables, SparsePauliOp):
+            observables = [observables]
+        elif isinstance(observables, list):
+            self.multiple_observables = True
+        else:
+            raise ValueError("Unsupported observable type")
 
-    #     islist = True
-    #     if not isinstance(observable, list):
-    #         islist = False
-    #         observable = [observable]
+        # Convert observables
+        self._operators_real = []
+        self._operators_imag = []
+        for observable in observables:
 
-    #     def sort_parameters_after_index(parameter_vector):
-    #         index_list = [p.index for p in parameter_vector]
-    #         argsort_list = np.argsort(index_list)
-    #         return [parameter_vector[i] for i in argsort_list]
+            paulis = [str(p[::-1]) for p in observable._pauli_list]
+            coeff = list(np.real_if_close([c for c in observable.coeffs]))
+            operator_real = Observable(self.num_qubits)
+            operator_imag = Observable(self.num_qubits)
+            num_real = 0
+            num_imag = 0
+            for c, p in zip(coeff, paulis):
+                string = ""
+                for i, p_ in enumerate(p):
+                    if p_ != "I":
+                        string += p_ + " " + str(i) + " "
+                if np.abs(np.imag(c)) > 1e-12:
+                    operator_imag.add_operator(np.imag(c), string)
+                    num_imag += 1
+                if np.abs(np.real(c)) > 1e-12:
+                    operator_real.add_operator(np.real(c), string)
+                    num_real += 1
 
-    #     printer, modules = _get_sympy_interface()
+            if num_real == 0:
+                operator_real = 0.0
+            if num_imag == 0:
+                operator_imag = 0.0
 
-    #     # Get names of all parameters in all observables
-    #     qulacs_obs_parameters = []
-    #     qulacs_obs_parameters_dimensions = {}
-    #     for obs in observable:
-    #         for param in obs.parameters:
-    #             if param.vector.name not in qulacs_obs_parameters:
-    #                 qulacs_obs_parameters.append(param.vector.name)
-    #                 qulacs_obs_parameters_dimensions[param.vector.name] = 1
-    #             else:
-    #                 qulacs_obs_parameters_dimensions[param.vector.name] += 1
-
-    #     # Handle observable parameter expressions and convert them to compatible python functions
-
-    #     symbol_tuple = tuple(
-    #         sum(
-    #             [
-    #                 [sympify(p._symbol_expr) for p in sort_parameters_after_index(obs.parameters)]
-    #                 for obs in observable
-    #             ],
-    #             [],
-    #         )
-    #     )
-
-    #     qulacs_obs_param_function = []
-    #     for obs in observable:
-    #         qulacs_obs_param_function_ = []
-    #         for coeff in obs.coeffs:
-    #             if isinstance(coeff, ParameterExpression):
-    #                 if coeff._symbol_expr == None:
-    #                     coeff = coeff._coeff
-    #                     if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
-    #                         if np.imag(coeff) != 0:
-    #                             raise ValueError(
-    #                                 "Imaginary part of observable coefficient is not supported"
-    #                             )
-    #                         coeff = float(np.real(coeff))
-    #                     else:
-    #                         coeff = float(coeff)
-    #                 else:
-    #                     symbol_expr = sympify(coeff._symbol_expr)
-    #                     f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
-    #                     qulacs_obs_param_function_.append(f)
-    #             else:
-    #                 if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
-    #                     if np.imag(coeff) != 0:
-    #                         raise ValueError(
-    #                             "Imaginary part of observable coefficient is not supported"
-    #                         )
-    #                     coeff = float(np.real(coeff))
-    #                 else:
-    #                     coeff = float(coeff)
-    #                 qulacs_obs_param_function_.append(coeff)
-    #         qulacs_obs_param_function.append(qulacs_obs_param_function_)
-
-    #     # Convert Pauli strings into Qulacs Pauli words
-    #     qulacs_words = []
-    #     for obs in observable:
-    #         qulacs_words.append(
-    #             [pauli.string_to_pauli_word(str(p[::-1])) for p in obs._pauli_list]
-    #         )
-
-    #     if islist:
-    #         return (
-    #             qulacs_obs_param_function,
-    #             qulacs_words,
-    #             qulacs_obs_parameters,
-    #             qulacs_obs_parameters_dimensions,
-    #         )
-    #     else:
-    #         return (
-    #             qulacs_obs_param_function[0],
-    #             qulacs_words[0],
-    #             qulacs_obs_parameters,
-    #             qulacs_obs_parameters_dimensions,
-    #         )
+            self._operators_real.append(operator_real)
+            self._operators_imag.append(operator_imag)
 
     def get_circuit_func(
         self,
@@ -652,3 +525,44 @@ class QulacsCircuit:
         #        self._circuit_func = qulacs_circuit
 
         return qulacs_circuit
+    
+    
+
+
+def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
+    """
+    Function to evaluate the Qulacs circuit with the given parameters.
+
+    Args:
+        circuit (QulacsCircuit): Qulacs circuit to evaluate
+        parameters (List[float]): List of parameters to evaluate the circuit
+
+    Returns:
+        np.ndarray: Result of the evaluation
+    """
+
+    circ = circuit.get_circuit_func()(*args)
+    state = QuantumState(circuit.num_qubits)
+    sim = QuantumCircuitSimulator(circ, state)
+    sim.initialize_state(0)
+    sim.simulate()
+
+    real_values = np.array(
+        [
+            o if isinstance(o, float) else sim.get_expectation_value(o)
+            for o in circuit._operators_real
+        ]
+    )
+    imag_values = np.array(
+        [
+            o if isinstance(o, float) else sim.get_expectation_value(o)
+            for o in circuit._operators_imag
+        ]
+    )
+
+    values = np.real_if_close(real_values + 1j * imag_values)
+
+    if not circuit.multiple_observables:
+        return values[0]
+
+    return values
