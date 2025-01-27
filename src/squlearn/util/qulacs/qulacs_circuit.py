@@ -181,6 +181,10 @@ class QulacsCircuit:
         self._func_list = []
         self._func_grad_list = []
         self._free_parameters = set()
+        
+        self._qualcs_gates_parameters = []
+        self._symbol_tuple = tuple()
+        
 
         self._rebuild_circuit_func = True
         self._circuit_func = None
@@ -307,14 +311,18 @@ class QulacsCircuit:
             for param_element in angle._parameter_symbols.keys():
                 param_list_element.append(param_element.index)
                 self._free_parameters.add(param_element)
-                symbol_tuple += (sympify(param_element._symbol_expr),)
+                #symbol_tuple += (sympify(param_element._symbol_expr),)
 
                 # information about the gradient of the parameter expression
                 param_grad.append(angle.gradient(param_element))
 
 
             # Create functions for value and gradient
-            func_list_element = lambdify(symbol_tuple, sympify(angle._symbol_expr))
+            func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
+            
+            print("self._symbol_tuple, sympify(angle._symbol_expr)",self._symbol_tuple, sympify(angle._symbol_expr))
+            print("func_list_element",func_list_element)
+            
             func_grad_list_element = []
             for p in param_grad:
                 if isinstance(p, float):
@@ -500,6 +508,14 @@ class QulacsCircuit:
         self._func_list = []
         self._func_grad_list = []
         self._free_parameters = set()
+        self._qualcs_gates_parameters = []
+        self._symbol_tuple = tuple()
+
+        for param in circuit.parameters:
+            if param.vector.name not in self._qualcs_gates_parameters:
+                self._qualcs_gates_parameters.append(param.vector.name)
+
+        self._symbol_tuple = tuple([sympify(p._symbol_expr) for p in circuit.parameters])
 
         for op in circuit.data:
 
@@ -702,7 +718,25 @@ class QulacsCircuit:
         #if self._rebuild_circuit_func:
         #    self._rebuild_circuit_func = not cache_function
 
-        def qulacs_circuit(parameter):
+        print("self._qualcs_gates_parameters",self._qualcs_gates_parameters)
+
+        def qulacs_circuit(*args):
+
+            # Collects the args values connected to the circuit parameters
+            circ_param_list = sum(
+                [list(args[i]) for i in range(len(self._qualcs_gates_parameters))], []
+            )
+
+            # # Collects the args values connected to the observable parameters
+            # obs_param_list = sum(
+            #     [
+            #         list(args[len(self._pennylane_gates_parameters) + i])
+            #         for i in range(len(self._pennylane_obs_parameters))
+            #     ],
+            #     [],
+            # )
+
+            print("circ_param_list",circ_param_list)
 
             circuit = ParametricQuantumCircuit(self.num_qubits)
             for i in range(len(self._operation_list)):
@@ -712,9 +746,9 @@ class QulacsCircuit:
                     self._operation_list[i](circuit,self._param_list[i],*self._qubit_list[i])
                 else:
                     if self._func_list[i]:
-                        value = self._func_list[i](parameter[self._param_list[i][0]])
+                        value = self._func_list[i](*circ_param_list)
                     else:
-                        value = parameter[self._param_list[i][0]]
+                        value = circ_param_list[self._param_list[i][0]]
                     self._operation_list[i](circuit,value,*self._qubit_list[i])
 
             return circuit
