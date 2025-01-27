@@ -176,7 +176,6 @@ class QulacsCircuit:
         # Build circuit instructions for the qulacs observable from the qiskit circuit
 
         self._operation_list = []
-        self._param_list = []
         self._qubit_list = []
         self._func_list = []
         self._func_grad_list = []
@@ -264,10 +263,10 @@ class QulacsCircuit:
     ):
         """
         Adds a parameter expression to the circuit and do the pre-processing.
-        
+
         Args:
             angle (ParameterVectorElement or ParameterExpression or float): angle of rotation
-        
+
         Returns:
             int: index of the parameter in the parameter vector
             callable: function to calculate the parameter expression
@@ -276,7 +275,6 @@ class QulacsCircuit:
         """
 
         # In case angle is a float or something similar, we do not need to add a parameter
-        param_list_element = angle
         func_list_element = None
         func_grad_list_element = None
         parameterized = False
@@ -284,73 +282,36 @@ class QulacsCircuit:
         # Change sign because of the way Qulacs defines the rotation gates
         angle = -angle
 
-        print("angle",angle)
-        print("type(angle)",type(angle))
-
         if isinstance(angle, float):
             # Single float value
-            func_list_element = None
+            print("Single float value")
+            func_list_element = angle
             func_grad_list_element = None
-            param_list_element = angle
         elif isinstance(angle, ParameterVectorElement):
             # Single parameter vector element
-            func_list_element = lambda x: x
-            func_grad_list_element = [lambda x: 1.0]
-            param_list_element = [angle.index]
-            self._free_parameters.add(angle)
+            print("ParameterVectorElement")
             parameterized = True
+            func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
+            func_grad_list_element = [lambda x: 1.0]
+            self._free_parameters.add(angle)
+
         elif isinstance(angle, ParameterExpression):
             # Parameter is in a expression (equation)
-
+            print("ParameterExpression")
             parameterized = True
-
-            symbol_tuple = ()
-            param_list_element = []
-            param_grad = []
-
-            for param_element in angle._parameter_symbols.keys():
-                param_list_element.append(param_element.index)
-                self._free_parameters.add(param_element)
-                #symbol_tuple += (sympify(param_element._symbol_expr),)
-
-                # information about the gradient of the parameter expression
-                param_grad.append(angle.gradient(param_element))
-
-
-            # Create functions for value and gradient
             func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
-            
-            print("self._symbol_tuple, sympify(angle._symbol_expr)",self._symbol_tuple, sympify(angle._symbol_expr))
-            print("func_list_element",func_list_element)
-            
             func_grad_list_element = []
-            for p in param_grad:
-                if isinstance(p, float):
+            for param_element in angle._parameter_symbols.keys():
+                self._free_parameters.add(param_element)
+                # information about the gradient of the parameter expression
+                param_grad = angle.gradient(param_element)
+                if isinstance(param_grad, float):
                     # create a call by value labmda function
-                    func_grad_list_element.append(lambda *arg, p=p: p)
+                    func_grad_list_element.append(lambda *arg, param_grad=param_grad: param_grad)
                 else:
-                    func_grad_list_element.append(lambdify(symbol_tuple, sympify(p._symbol_expr)))
+                    func_grad_list_element.append(lambdify(self._symbol_tuple, sympify(param_grad._symbol_expr)))
 
-
-            # if len(angle._parameter_symbols) > 1:
-            #     raise ValueError("More then one free paramter per gate is not supported")
-
-            # param_element = list(angle._parameter_symbols.keys())[0]
-            # param_list_element = param_element.index
-            # self._free_parameters.add(param_element)
-            # symbol_tuple = (sympify(param_element._symbol_expr),)
-            # # Create a lambda function for the parameter expression
-            # func_list_element = lambdify(symbol_tuple, sympify(angle._symbol_expr))
-            # # Calculate gradient of the parameter expression
-            # param_grad = angle.gradient(param_element)
-
-            # if isinstance(param_grad, float):
-            #     # create a call by value labmda function
-            #     func_grad_list_element = lambda *arg, param_grad=param_grad: param_grad
-            # else:
-            #     func_grad_list_element = lambdify(symbol_tuple, sympify(param_grad._symbol_expr))
-
-        return param_list_element, func_list_element, func_grad_list_element, parameterized
+        return func_list_element, func_grad_list_element, parameterized
 
     def _add_single_qubit_gate(self, gate_name: str, qubits: Union[int, Iterable[int]]):
         """
@@ -366,7 +327,6 @@ class QulacsCircuit:
             if q >= self.num_qubits:
                 raise ValueError(f"Qubit index {q} is out of range")
             self._qubit_list.append([q])
-            self._param_list.append(None)
             self._func_list.append(None)
             self._func_grad_list.append(None)
 
@@ -385,15 +345,12 @@ class QulacsCircuit:
         """
         qubit1 = [qubit1] if isinstance(qubit1, int) else qubit1
         qubit2 = [qubit2] if isinstance(qubit2, int) else qubit2
-        #qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
-        #qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
 
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
                 raise ValueError(f"Qubit index is out of range")
             self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
             self._qubit_list.append([control, target])
-            self._param_list.append(None)
             self._func_list.append(None)
             self._func_grad_list.append(None)
 
@@ -413,7 +370,7 @@ class QulacsCircuit:
             qubits (int or Iterable[int]): qubit indices
             angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
         """
-        param_list_element, func_list_element, func_grad_list_element, parameterized = (
+        func_list_element, func_grad_list_element, parameterized = (
             self._add_parameter_expression(angle)
         )
 
@@ -426,7 +383,6 @@ class QulacsCircuit:
             else:
                 self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
             self._qubit_list.append([q])
-            self._param_list.append(param_list_element)
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
 
@@ -446,14 +402,12 @@ class QulacsCircuit:
             qubits (int or Iterable[int]): qubit indices
             angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
         """
-        param_list_element, func_list_element, func_grad_list_element, parameterized = (
+        func_list_element, func_grad_list_element, parameterized = (
             self._add_parameter_expression(angle)
         )
 
         qubit1 = [qubit1] if isinstance(qubit1, int) else qubit1
         qubit2 = [qubit2] if isinstance(qubit2, int) else qubit2
-        #qubit1 = [qubit1] * len(qubit2) if len(qubit1) == 1 else qubit1
-        #qubit2 = [qubit2] * len(qubit1) if len(qubit2) == 1 else qubit2
 
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
@@ -463,7 +417,6 @@ class QulacsCircuit:
             else:
                 self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
             self._qubit_list.append([control, target])
-            self._param_list.append(param_list_element)
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
 
@@ -484,23 +437,6 @@ class QulacsCircuit:
             Tuple with lists of Qulacs gates, Qulacs gate parameter functions,
             Qulacs gate wires, Qulacs gate parameters and Qulacs gate parameter dimensions
         """
-      #  qulacs_gates = []
-      #  qulacs_gates_param_function = []
-      #  qulacs_gates_wires = []
-      #  qulacs_conditions = []
-      #  qulacs_gates_parameters = []
-      #  qulacs_gates_parameters_dimensions = {}
-
-        # symbol_tuple = tuple([sympify(p._symbol_expr) for p in circuit.parameters])
-
-        # for param in circuit.parameters:
-        #     if param.vector.name not in qulacs_gates_parameters:
-        #         qulacs_gates_parameters.append(param.vector.name)
-        #         qulacs_gates_parameters_dimensions[param.vector.name] = 1
-        #     else:
-        #         qulacs_gates_parameters_dimensions[param.vector.name] += 1
-
-        # printer, modules = _get_sympy_interface()
 
         self._operation_list = []
         self._param_list = []
@@ -524,59 +460,22 @@ class QulacsCircuit:
             if op.operation.condition is not None or op.operation.name == "measure":
                 raise NotImplementedError("Conditions are not supported in sQUlearn's Qulacs backend.")
 
-            # param_tuple = None
-            # if len(op.operation.params) >= 1:
-            #     param_tuple = ()
-            #     for param in op.operation.params:
-            #         if isinstance(param, ParameterExpression):
-            #             if param._symbol_expr == None:
-            #                 param = param._coeff
-            #             else:
-            #                 symbol_expr = sympify(param._symbol_expr)
-            #                 f = lambdify(
-            #                     symbol_tuple, symbol_expr, modules=modules, printer=printer
-            #                 )
-
-            #                 param_tuple += (f,)
-            #         else:
-            #             param_tuple += (param,)
-
-            # qulacs_gates_param_function.append(param_tuple)
-
-            # if op.operation.name == "measure":
-            #     # Capture special case of measurement, that is stored in classical bits
-            #     # In the qulacs implementation, classical bits are introduced as an array
-            #     wires = [
-            #         circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)
-            #     ]
-            #     clbits = [
-            #         circuit.find_bit(op.clbits[i]).index for i in range(op.operation.num_clbits)
-            #     ]
-            #     qulacs_gates.append(("measure", clbits))
-            #     qulacs_gates_wires.append(wires)
-            # else:
-                # All other gates
-            if op.operation.name not in qiskit_qulacs_gate_dict:
+            if op.operation.name not in qiskit_qulacs_gate_dict and op.operation.name not in qiskit_qulacs_param_gate_dict:
                 raise NotImplementedError(
                     f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's Qulacs backend."
                 )
 
             paramterized_gate = len(op.operation.params) >= 1
-
-            # check for two qubit gates
             single_qubit_date = len(op.qubits) == 1
 
             wires = [
                 circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)
             ]
 
-            print("wires",wires)
-
             if single_qubit_date:
                 if not paramterized_gate:
                     self._add_single_qubit_gate(op.operation.name, wires)
                 else:
-                    print("len(op.operation.params)",len(op.operation.params))
                     self._add_parameterized_single_qubit_gate(op.operation.name, wires, op.operation.params[0])
             else:
                 if len(op.qubits)>2:
@@ -584,7 +483,6 @@ class QulacsCircuit:
                 if not paramterized_gate:
                     self._add_two_qubit_gate(op.operation.name, wires[0], wires[1])
                 else:
-                    print("len(op.operation.params)",len(op.operation.params))
                     self._add_parameterized_two_qubit_gate(op.operation.name, wires[0], wires[1], op.operation.params[0])
 
 
@@ -740,15 +638,12 @@ class QulacsCircuit:
 
             circuit = ParametricQuantumCircuit(self.num_qubits)
             for i in range(len(self._operation_list)):
-                if self._param_list[i] is None:
+                if self._func_list[i] is None:
                     self._operation_list[i](circuit,*self._qubit_list[i])
-                elif isinstance(self._param_list[i], float):
-                    self._operation_list[i](circuit,self._param_list[i],*self._qubit_list[i])
+                elif isinstance(self._func_list[i], float):
+                    self._operation_list[i](circuit,self._func_list[i],*self._qubit_list[i])
                 else:
-                    if self._func_list[i]:
-                        value = self._func_list[i](*circ_param_list)
-                    else:
-                        value = circ_param_list[self._param_list[i][0]]
+                    value = self._func_list[i](*circ_param_list)
                     self._operation_list[i](circuit,value,*self._qubit_list[i])
 
             return circuit
