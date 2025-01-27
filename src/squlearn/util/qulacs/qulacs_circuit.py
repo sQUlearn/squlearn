@@ -440,28 +440,88 @@ class QulacsCircuit:
         else:
             raise ValueError("Unsupported observable type")
 
+        self._symbol_tuple = tuple()
+
+        self._qualcs_obs_parameters = []
+
+        for observable in observables:
+            for param in observable.parameters:
+                if param.vector.name not in self._qualcs_obs_parameters:
+                    self._qualcs_obs_parameters.append(param.vector.name)
+
+        print("self._qualcs_obs_parameters",self._qualcs_obs_parameters)
+
+        self._symbol_tuple = tuple([sympify(p._symbol_expr) for observable in observables for p in observable.parameters])
+
+        print("self._symbol_tuple ",self._symbol_tuple )
+
         # Convert observables
         self._operators_real = []
         self._operators_imag = []
+        self._operators_param = []
+        self._operators_param_func = []
+        self._operators_param_func_grad = []
         for observable in observables:
 
             paulis = [str(p[::-1]) for p in observable._pauli_list]
             coeff = list(np.real_if_close([c for c in observable.coeffs]))
             operator_real = Observable(self.num_qubits)
             operator_imag = Observable(self.num_qubits)
+            operator_param = []
+            operator_param_func = []
+            operator_param_func_grad = []
+
             num_real = 0
             num_imag = 0
+            num_param = 0
             for c, p in zip(coeff, paulis):
                 string = ""
                 for i, p_ in enumerate(p):
                     if p_ != "I":
                         string += p_ + " " + str(i) + " "
-                if np.abs(np.imag(c)) > 1e-12:
-                    operator_imag.add_operator(np.imag(c), string)
-                    num_imag += 1
-                if np.abs(np.real(c)) > 1e-12:
-                    operator_real.add_operator(np.real(c), string)
-                    num_real += 1
+
+                if isinstance(c, ParameterVectorElement):
+                    # Single parameter vector element
+                    print("obs: ParameterVectorElement")
+                    parameterized = True
+                    operator_param_func.append(lambdify(self._symbol_tuple, sympify(c._symbol_expr)))
+                    operator_param_func_grad.append([lambda x: 1.0])
+                    self._free_parameters.add(c)
+                    op = Observable(self.num_qubits)
+                    op.add_operator(1.0, string)
+                    operator_param.append(op)
+                    num_param += 1
+
+                elif isinstance(c, ParameterExpression):
+                    # Parameter is in a expression (equation)
+                    print("obs: ParameterExpression")
+                    parameterized = True
+                    operator_param_func.append(lambdify(self._symbol_tuple, sympify(c._symbol_expr)))
+                    func_grad_list_element = []
+                    for param_element in c._parameter_symbols.keys():
+                        self._free_parameters.add(param_element)
+                        # information about the gradient of the parameter expression
+                        # param_grad = c.gradient(param_element)
+                        # if isinstance(param_grad, float):
+                        #     # create a call by value labmda function
+                        #     func_grad_list_element.append(lambda *arg, param_grad=param_grad: param_grad)
+                        # else:
+                        #     func_grad_list_element.append(lambdify(self._symbol_tuple, sympify(param_grad._symbol_expr)))
+                    operator_param_func_grad.append(func_grad_list_element)
+                    op = Observable(self.num_qubits)
+                    op.add_operator(1.0, string)
+                    operator_param.append(op)
+                    num_param += 1
+
+                else:
+
+                    operator_param = []
+                    if np.abs(np.imag(c)) > 1e-12:
+                        operator_imag.add_operator(np.imag(c), string)
+                        num_imag += 1
+                    if np.abs(np.real(c)) > 1e-12:
+                        operator_real.add_operator(np.real(c), string)
+                        num_real += 1
 
             if num_real == 0:
                 operator_real = 0.0
@@ -470,6 +530,10 @@ class QulacsCircuit:
 
             self._operators_real.append(operator_real)
             self._operators_imag.append(operator_imag)
+            self._operators_param.append(operator_param)
+            self._operators_param_func.append(operator_param_func)
+            self._operators_param_func_grad.append(operator_param_func_grad)
+
 
     def get_circuit_func(
         self,
@@ -541,7 +605,17 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
         np.ndarray: Result of the evaluation
     """
 
-    circ = circuit.get_circuit_func()(*args)
+    # Collects the args values connected to the observable parameters
+    #obs_param_list = sum(
+    #    [
+    #        list(args[len(self._pennylane_gates_parameters) + i])
+    #        for i in range(len(self._pennylane_obs_parameters))
+    #    ],
+    #    [],
+    #)
+
+    circ = circuit.get_circuit_func()(*args[1:])
+    op_param = args[0]
     state = QuantumState(circuit.num_qubits)
     sim = QuantumCircuitSimulator(circ, state)
     sim.initialize_state(0)
@@ -559,8 +633,24 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
             for o in circuit._operators_imag
         ]
     )
+    param_obs_values = np.array(
+        [
+            [o if isinstance(o, float) else sim.get_expectation_value(o)
+            for o in operator] for operator in circuit._operators_param
+        ]
+    )
+    param_func_values =np.array([
+        [0.0 if not callable(f) else f(*op_param)
+        for f in operator] for operator in circuit._operators_param_func
+    ])
 
-    values = np.real_if_close(real_values + 1j * imag_values)
+    # Compute the final parameter values by combining function and observable values
+    param_values = np.array([
+        np.dot(func_vals, obs_vals)
+        for func_vals, obs_vals in zip(param_func_values, param_obs_values)
+    ])
+
+    values = np.real_if_close(real_values + 1j * imag_values + param_values)
 
     if not circuit.multiple_observables:
         return values[0]
