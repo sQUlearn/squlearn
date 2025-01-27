@@ -306,8 +306,12 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         for todo in values:
 
             #todo_class = _get_class_from_string(todo)
-            todo_class = todo
-            todo_class.key="f"
+            
+            class dummy:
+                pass
+            
+            todo_class=dummy()
+            todo_class.key=todo
 
             if todo_class.key in value_dict:
                 # Skip if the value is already calculated
