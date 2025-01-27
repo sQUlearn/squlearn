@@ -67,15 +67,30 @@ def qulacs_gate_rx(circuit: ParametricQuantumCircuit, angle: float, index: int) 
     print("Adding RX gate with angle", angle, "on qubit", index)
     circuit.add_gate(RX(index, angle))
 
+def qulacs_param_gate_rx(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """Parameterized RX gate."""
+    print("Adding Parameterized RX gate with angle", angle, "on qubit", index)
+    circuit.add_gate(ParametricRX(index, angle))
+
 def qulacs_gate_ry(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """RY gate."""
     print("Adding RY gate with angle", angle, "on qubit", index)
     circuit.add_gate(RY(index, angle))
 
+def qulacs_param_gate_ry(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """Parameterized RY gate."""
+    print("Adding Parameterized RY gate with angle", angle, "on qubit", index)
+    circuit.add_gate(ParametricRY(index, angle))
+
 def qulacs_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """RZ gate."""
     print("Adding RZ gate with angle", angle, "on qubit", index)
     circuit.add_gate(RZ(index, angle))
+
+def qulacs_param_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """Parameterized RZ gate."""
+    print("Adding Parameterized RZ gate with angle", angle, "on qubit", index)
+    circuit.add_gate(ParametricRZ(index, angle))
 
 # def qulacs_gate_cy(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
 #     """CY gate."""
@@ -86,6 +101,13 @@ def qulacs_gate_cp(circuit: ParametricQuantumCircuit, control: int, target: int)
     print("Adding CP gate with control qubit", control, "and target qubit", target)
     circuit.add_gate(CP(control, target))
 
+def qulacs_gate_U1(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
+    """U1 gate."""
+    print("Adding U1 gate with angle", angle, "on qubit", index)
+    circuit.add_gate(U1(index, angle))
+
+# TODO
+# Toffoli gate
 
 
 
@@ -149,6 +171,7 @@ qiskit_qulacs_gate_dict = {
     "swap": qulacs_gate_swap,
     "cx": qulacs_gate_cnot,
     "cnot": qulacs_gate_cnot,
+    #"cy" does not exist in Qulacs
     "cz": qulacs_gate_cz,
     "sdg": qulacs_gate_sdg,
     "tdg": qulacs_gate_tdg,
@@ -156,8 +179,12 @@ qiskit_qulacs_gate_dict = {
     "rx": qulacs_gate_rx,
     "ry": qulacs_gate_ry,
     "rz": qulacs_gate_rz,
-    #"cy" does not exist in Qulacs
-    
+}
+
+qiskit_qulacs_param_gate_dict = {
+    "rx": qulacs_param_gate_rx,
+    "ry": qulacs_param_gate_ry,
+    "rz": qulacs_param_gate_rz,
 }
 
 
