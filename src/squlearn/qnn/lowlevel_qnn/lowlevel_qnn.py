@@ -1,10 +1,11 @@
+"Low-level QNN Factory."
 from typing import Union
+from warnings import warn
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 
-from .lowlevel_qnn_base import LowLevelQNNBase
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 
@@ -25,17 +26,17 @@ class LowLevelQNN:
     """
 
     def __new__(
-        self,
+        cls,
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
         *args,
         **kwargs,
-    ):
+    ) -> [LowLevelQNNPennyLane, LowLevelQNNQiskit]:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
-                RuntimeError("Warning: Primitive argument is not supported for PennyLane")
+                warn("Primitive argument is not supported for PennyLane. Ignoring...")
                 kwargs.pop("primitive")
             return LowLevelQNNPennyLane(
                 parameterized_quantum_circuit, observable, executor, *args, **kwargs
