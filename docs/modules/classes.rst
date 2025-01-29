@@ -290,7 +290,7 @@ Base Classes
     kernel.loss.kernel_loss_base.KernelLossBase
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
-    qnn.loss.LossBase
+    qnn.loss.qnn_loss_base.QNNLossBase
     qrc.base_qrc.BaseQRC
 
 

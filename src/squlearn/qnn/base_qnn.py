@@ -15,7 +15,7 @@ from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
-from .loss import LossBase
+from .loss.qnn_loss_base import QNNLossBase
 
 from .lowlevel_qnn import LowLevelQNN
 from .training import ShotControlBase
@@ -56,7 +56,7 @@ class BaseQNN(BaseEstimator, ABC):
         encoding_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
-        loss: LossBase,
+        loss: QNNLossBase,
         optimizer: OptimizerBase,
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
