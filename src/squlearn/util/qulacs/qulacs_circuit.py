@@ -567,7 +567,56 @@ class QulacsCircuit:
 
         return qulacs_circuit
 
+    def get_gradient_outer_jacobian(
+        self,
+        #parameters: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
+    ):
+        """Returns the outer jacobian needed for the chain rule in circuit derivatives.
 
+        Qulacs does not support multiple parameters and parameter expressions,
+        so we need to calculate a transformation which also includes the gradient of the
+        parameter expression.
+        """
+
+        # # index of parameters to calculate the gradient for (all if parameters=None)
+        # index_list = list(range(self.num_parameters))
+        # if parameters is not None:
+        #     if not isinstance(parameters, list):
+        #         parameters = [parameters]
+        #     index_list = [p.index for p in parameters]
+
+        # enumerate the included parameter indices
+        index_list = list(range(len(self._free_parameters)))
+        index_dict = {}
+        for i, index in enumerate(index_list):
+            index_dict[index] = i
+
+        def outer_jacobian(*args):
+
+            # Collects the args values connected to the circuit parameters
+            circ_param_list = sum(
+                [list(args[i]) for i in range(len(self._qualcs_gates_parameters))], []
+            )
+
+            # Count the number of parameter gates in the circuit
+            num_param_in_circuit = sum(
+                1
+                for i in range(len(self._operation_list))
+                if self._func_list[i] is not None and not isinstance(self._func_list[i], float)
+            )
+
+            outer_jacobian = np.zeros((num_param_in_circuit, len(index_list)))
+            ioff = 0
+            for i in range(len(self._operation_list)):
+                if self._func_list[i] is not None:
+                    outer_jacobian[ioff, index_dict[i]] = (
+                        self._func_grad_list[i][0](*circ_param_list)
+                    )
+                    ioff += 1
+
+            return outer_jacobian
+
+        return outer_jacobian
 
 def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     """
@@ -631,6 +680,95 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
         return values[0]
 
     return values
+
+
+def evaluate_circuit_gradient(circuit: QulacsCircuit, *args) -> np.ndarray:
+    """
+    Function to evaluate the Qulacs circuit with the given parameters.
+
+    Args:
+        circuit (QulacsCircuit): Qulacs circuit to evaluate
+        parameters (List[float]): List of parameters to evaluate the circuit
+
+    Returns:
+        np.ndarray: Result of the evaluation
+    """
+
+    # Collects the args values connected to the observable parameters
+    obs_param_list = sum(
+        [
+            list(args[len(circuit._qualcs_gates_parameters) + i])
+            for i in range(len(circuit._qualcs_obs_parameters))
+        ],
+        [],
+    )
+
+    qulacs_circuit = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
+    state = QuantumState(circuit.num_qubits)
+
+    outer_jacobian = circuit.get_gradient_outer_jacobian()(*args[:len(circuit._qualcs_gates_parameters)])
+
+    print("outer_jacobian",outer_jacobian)
+
+    qulacs_circuit.update_quantum_state(state)
+
+    qulacs_circuit2 = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
+    state = QuantumState(circuit.num_qubits)
+    sim = QuantumCircuitSimulator(qulacs_circuit2, state)
+    sim.initialize_state(0)
+    sim.simulate()
+
+    real_values = np.array(
+        [
+            (
+                np.ones(outer_jacobian.shape[1]) * o
+                if isinstance(o, float)
+                else outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
+            )
+            for o in circuit._operators_real
+        ]
+    )
+    imag_values = np.array(
+        [
+            (
+                np.ones(outer_jacobian.shape[1]) * o
+                if isinstance(o, float)
+                else outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
+            )
+            for o in circuit._operators_imag
+        ]
+    )
+    # param_obs_values = np.array(
+    #     [
+    #         [o if isinstance(o, float) else qulacs_circuit.backprop(o)
+    #         for o in operator] for operator in circuit._operators_param
+    #     ]
+    # )
+    
+    # print("param_obs_values",param_obs_values)
+    
+    # param_func_values =np.array([
+    #     [0.0 if not callable(f) else f(*obs_param_list)
+    #     for f in operator] for operator in circuit._operators_param_func
+    # ])
+
+    # # Compute the final parameter values by combining function and observable values
+    # param_values = np.array([
+    #     np.dot(func_vals, obs_vals)
+    #     for func_vals, obs_vals in zip(param_func_values, param_obs_values)
+    # ])
+
+    values = np.real_if_close(real_values + 1j * imag_values)
+    
+    #values = np.real_if_close(real_values + 1j * imag_values + param_values)
+
+    if not circuit.multiple_observables:
+        return values[0]
+
+    return values
+
+
+
 
 def evaluate_circuit_cc(circuit: QulacsCircuit, *args) -> np.ndarray:
     """
