@@ -1,13 +1,12 @@
-"""Quantum Kernel Ridge Regressor"""
-
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+"""Quantum Kernel Ridge Regression"""
 
 import scipy
 import numpy as np
 from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 
-from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKRR(BaseEstimator, RegressorMixin):
@@ -48,8 +47,8 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     See Also
     --------
-        squlearn.kernel.ml.QGPR : Quantum Gaussian Process regression.
-        squlearn.kernel.ml.QSVR : Quantum Support Vector regression.
+        squlearn.kernel.QGPR : Quantum Gaussian Process regression.
+        squlearn.kernel.QSVR : Quantum Support Vector regression.
 
     References
     -----------
@@ -65,8 +64,8 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import ChebyshevPQC
-        from squlearn.kernel.matrix import ProjectedQuantumKernel
-        from squlearn.kernel.ml import QKRR
+        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
+        from squlearn.kernel import QKRR
 
         enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(

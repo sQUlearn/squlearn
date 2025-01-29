@@ -16,9 +16,9 @@ QML Regressors
    :toctree: generated/
    :template: class.rst
 
-   kernel.ml.QSVR
-   kernel.ml.QKRR
-   kernel.ml.QGPR
+   kernel.QSVR
+   kernel.QKRR
+   kernel.QGPR
    qnn.QNNRegressor
    qrc.QRCRegressor
 
@@ -33,8 +33,8 @@ QML Classifiers
    :toctree: generated/
    :template: class.rst
 
-   kernel.ml.QSVC
-   kernel.ml.QGPC
+   kernel.QSVC
+   kernel.QGPC
    qnn.QNNClassifier
    qrc.QRCClassifier
 
@@ -155,7 +155,7 @@ Core
 Quantum Kernel Core
 ------------------------------------
 
-.. automodule:: squlearn.kernel.matrix
+.. automodule:: squlearn.kernel.lowlevel_kernel
     :no-members:
     :no-inherited-members:
 
@@ -166,8 +166,8 @@ Quantum Kernel Core
    :toctree: generated/
    :template: class.rst
 
-   kernel.matrix.FidelityKernel
-   kernel.matrix.ProjectedQuantumKernel
+   kernel.lowlevel_kernel.FidelityKernel
+   kernel.lowlevel_kernel.ProjectedQuantumKernel
 
 .. automodule:: squlearn.kernel.loss
     :no-members:
@@ -286,7 +286,7 @@ Base Classes
 
     observables.observable_base.ObservableBase
     encoding_circuit.encoding_circuit_base.EncodingCircuitBase
-    kernel.matrix.kernel_matrix_base.KernelMatrixBase
+    kernel.lowlevel_kernel.kernel_matrix_base.KernelMatrixBase
     kernel.loss.kernel_loss_base.KernelLossBase
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
