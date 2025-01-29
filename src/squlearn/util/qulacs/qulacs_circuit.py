@@ -102,6 +102,7 @@ class QulacsCircuit:
         self._func_list = []
         self._func_grad_list = []
         self._free_parameters = set()
+        self._used_parameters = []
         
         self._qualcs_gates_parameters = []
         self._symbol_tuple = tuple()
@@ -204,6 +205,7 @@ class QulacsCircuit:
         func_list_element = None
         func_grad_list_element = None
         parameterized = False
+        used_parameters = None
 
         # Change sign because of the way Qulacs defines the rotation gates
         angle = -angle
@@ -218,14 +220,17 @@ class QulacsCircuit:
             func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = [lambda x: 1.0]
             self._free_parameters.add(angle)
-
+            used_parameters = [angle]
+            
         elif isinstance(angle, ParameterExpression):
             # Parameter is in a expression (equation)
             parameterized = True
             func_list_element = lambdify(self._symbol_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = []
+            used_parameters = []
             for param_element in angle._parameter_symbols.keys():
                 self._free_parameters.add(param_element)
+                used_parameters.append(param_element)
                 # information about the gradient of the parameter expression
                 param_grad = angle.gradient(param_element)
                 if isinstance(param_grad, float):
@@ -234,7 +239,7 @@ class QulacsCircuit:
                 else:
                     func_grad_list_element.append(lambdify(self._symbol_tuple, sympify(param_grad._symbol_expr)))
 
-        return func_list_element, func_grad_list_element, parameterized
+        return func_list_element, func_grad_list_element, used_parameters, parameterized
 
     def _add_single_qubit_gate(self, gate_name: str, qubits: Union[int, Iterable[int]]):
         """
@@ -293,7 +298,7 @@ class QulacsCircuit:
             qubits (int or Iterable[int]): qubit indices
             angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
         """
-        func_list_element, func_grad_list_element, parameterized = (
+        func_list_element, func_grad_list_element, used_parameters, parameterized = (
             self._add_parameter_expression(angle)
         )
 
@@ -308,6 +313,7 @@ class QulacsCircuit:
             self._qubit_list.append([q])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
+            self._used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -325,7 +331,7 @@ class QulacsCircuit:
             qubits (int or Iterable[int]): qubit indices
             angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
         """
-        func_list_element, func_grad_list_element, parameterized = (
+        func_list_element, func_grad_list_element, used_parameters, parameterized = (
             self._add_parameter_expression(angle)
         )
 
@@ -342,6 +348,7 @@ class QulacsCircuit:
             self._qubit_list.append([control, target])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
+            self._used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -609,7 +616,7 @@ class QulacsCircuit:
             ioff = 0
             for i in range(len(self._operation_list)):
                 if self._func_list[i] is not None:
-                    outer_jacobian[ioff, index_dict[i]] = (
+                    outer_jacobian[ioff, self._used_parameters[i][0].index] = (
                         self._func_grad_list[i][0](*circ_param_list)
                     )
                     ioff += 1
