@@ -251,7 +251,7 @@ class QulacsCircuit:
         """
         qubits = [qubits] if isinstance(qubits, int) else qubits
         for q in qubits:
-            self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
+            self._operation_list.append(gate_name)
             if q >= self.num_qubits:
                 raise ValueError(f"Qubit index {q} is out of range")
             self._qubit_list.append([q])
@@ -277,7 +277,7 @@ class QulacsCircuit:
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
                 raise ValueError(f"Qubit index is out of range")
-            self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
+            self._operation_list.append(gate_name)
             self._qubit_list.append([control, target])
             self._func_list.append(None)
             self._func_grad_list.append(None)
@@ -307,9 +307,9 @@ class QulacsCircuit:
             if q >= self.num_qubits:
                 raise ValueError(f"Qubit index {q} is out of range")
             if parameterized:
-                self._operation_list.append(qiskit_qulacs_param_gate_dict[gate_name])
+                self._operation_list.append(gate_name)
             else:
-                self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
+                self._operation_list.append(gate_name)
             self._qubit_list.append([q])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
@@ -342,9 +342,9 @@ class QulacsCircuit:
             if control >= self.num_qubits or target >= self.num_qubits:
                 raise ValueError(f"Qubit index is out of range")
             if parameterized:
-                self._operation_list.append(qiskit_qulacs_param_gate_dict[gate_name])
+                self._operation_list.append(gate_name)
             else:
-                self._operation_list.append(qiskit_qulacs_gate_dict[gate_name])
+                self._operation_list.append(gate_name)
             self._qubit_list.append([control, target])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
@@ -549,8 +549,12 @@ class QulacsCircuit:
             self._operators_param_func_grad.append(operator_param_func_grad)
 
 
-    def get_circuit_func(self):
+    def get_circuit_func(self,gradient_param = None):
         """Returns the Qulacs circuit function for the circuit."""
+
+        if isinstance(gradient_param, ParameterVectorElement):
+            gradient_param = [gradient_param]
+        gradient_param = list(gradient_param) if gradient_param is not None else []
 
         def qulacs_circuit(*args):
 
@@ -561,14 +565,20 @@ class QulacsCircuit:
 
             # Build the Qulacs circuit and evaluate the parametric terms
             circuit = ParametricQuantumCircuit(self.num_qubits)
-            for i in range(len(self._operation_list)):
+            for i, op in enumerate(self._operation_list):
                 if self._func_list[i] is None:
-                    self._operation_list[i](circuit,*self._qubit_list[i])
+                    func = qiskit_qulacs_gate_dict[op]
+                    func(circuit,*self._qubit_list[i])
                 elif isinstance(self._func_list[i], float):
-                    self._operation_list[i](circuit,self._func_list[i],*self._qubit_list[i])
+                    func = qiskit_qulacs_gate_dict[op]
+                    func(circuit,self._func_list[i],*self._qubit_list[i])
                 else:
+                    if any(param in gradient_param for param in self._used_parameters[i]):
+                        func = qiskit_qulacs_param_gate_dict[op]
+                    else:
+                        func = qiskit_qulacs_gate_dict[op]
                     value = self._func_list[i](*circ_param_list)
-                    self._operation_list[i](circuit,value,*self._qubit_list[i])
+                    func(circuit,value,*self._qubit_list[i])
 
             return circuit
 
@@ -576,7 +586,7 @@ class QulacsCircuit:
 
     def get_gradient_outer_jacobian(
         self,
-        #parameters: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
+        gradient_param: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
     ):
         """Returns the outer jacobian needed for the chain rule in circuit derivatives.
 
@@ -592,11 +602,16 @@ class QulacsCircuit:
         #         parameters = [parameters]
         #     index_list = [p.index for p in parameters]
 
-        # enumerate the included parameter indices
-        index_list = list(range(len(self._free_parameters)))
-        index_dict = {}
-        for i, index in enumerate(index_list):
-            index_dict[index] = i
+        ## enumerate the included parameter indices
+        #index_list = list(range(len(self._free_parameters)))
+        #index_dict = {}
+        #for i, index in enumerate(index_list):
+        #    index_dict[index] = i
+        if isinstance(gradient_param, ParameterVectorElement):
+            gradient_param = [gradient_param]
+        gradient_param = list(gradient_param) if gradient_param is not None else []
+        
+        gradient_param_dict = {p:i for i,p in enumerate(gradient_param)}
 
         def outer_jacobian(*args):
 
@@ -609,16 +624,21 @@ class QulacsCircuit:
             num_param_in_circuit = sum(
                 1
                 for i in range(len(self._operation_list))
-                if self._func_list[i] is not None and not isinstance(self._func_list[i], float)
+                if any(param in gradient_param for param in self._used_parameters[i])
             )
 
-            outer_jacobian = np.zeros((num_param_in_circuit, len(index_list)))
+            outer_jacobian = np.zeros((num_param_in_circuit, len(gradient_param)))
+
+            print("outer_jacobian.shape",outer_jacobian.shape)
+
             ioff = 0
             for i in range(len(self._operation_list)):
-                if self._func_list[i] is not None:
-                    outer_jacobian[ioff, self._used_parameters[i][0].index] = (
-                        self._func_grad_list[i][0](*circ_param_list)
-                    )
+                if any(param in gradient_param for param in self._used_parameters[i]):
+                    for iparam,param in enumerate(self._used_parameters[i]):
+                        if param in gradient_param:
+                            outer_jacobian[ioff, gradient_param_dict[param]] = (
+                                self._func_grad_list[i][iparam](*circ_param_list)
+                            )
                     ioff += 1
 
             return outer_jacobian
@@ -689,7 +709,9 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     return values
 
 
-def evaluate_circuit_gradient(circuit: QulacsCircuit, *args) -> np.ndarray:
+def evaluate_circuit_gradient(circuit: QulacsCircuit,
+                              parameters: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
+                              *args) -> np.ndarray:
     """
     Function to evaluate the Qulacs circuit with the given parameters.
 
@@ -710,20 +732,21 @@ def evaluate_circuit_gradient(circuit: QulacsCircuit, *args) -> np.ndarray:
         [],
     )
 
-    qulacs_circuit = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
+    qulacs_circuit = circuit.get_circuit_func(parameters)(*args[:len(circuit._qualcs_gates_parameters)])
     state = QuantumState(circuit.num_qubits)
-
-    outer_jacobian = circuit.get_gradient_outer_jacobian()(*args[:len(circuit._qualcs_gates_parameters)])
-
-    print("outer_jacobian",outer_jacobian)
-
     qulacs_circuit.update_quantum_state(state)
 
-    qulacs_circuit2 = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
-    state = QuantumState(circuit.num_qubits)
-    sim = QuantumCircuitSimulator(qulacs_circuit2, state)
-    sim.initialize_state(0)
-    sim.simulate()
+    outer_jacobian = circuit.get_gradient_outer_jacobian(parameters)(*args[:len(circuit._qualcs_gates_parameters)])
+    print("outer_jacobian\n",outer_jacobian)
+
+
+    qulacs_grad = [
+            np.array(qulacs_circuit.backprop(o))
+            for o in circuit._operators_real
+        ]
+
+    print("qulacs_grad\n",qulacs_grad)
+
 
     real_values = np.array(
         [
