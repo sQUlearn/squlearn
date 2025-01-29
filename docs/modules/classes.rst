@@ -214,11 +214,11 @@ Tools for training QNNs
    :toctree: generated/
    :template: class.rst
 
-   qnn.get_variance_fac
-   qnn.get_lr_decay
-   qnn.ShotsFromRSTD
-   qnn.training.train
-   qnn.training.train_mini_batch
+   qnn.util.get_variance_fac
+   qnn.util.get_lr_decay
+   qnn.util.ShotsFromRSTD
+   qnn.util.training.train
+   qnn.util.training.train_mini_batch
 
 
 Implemented optimizers

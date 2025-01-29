@@ -18,7 +18,7 @@ from ..util import Executor
 from .loss.qnn_loss_base import QNNLossBase
 
 from .lowlevel_qnn import LowLevelQNN
-from .training import ShotControlBase
+from .util.training import ShotControlBase
 
 
 class BaseQNN(BaseEstimator, ABC):

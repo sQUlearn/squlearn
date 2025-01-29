@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .base_qnn import BaseQNN
 from .loss import VarianceLoss
 from .loss.qnn_loss_base import QNNLossBase
-from .training import train_mini_batch, train, ShotControlBase
+from .util.training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase

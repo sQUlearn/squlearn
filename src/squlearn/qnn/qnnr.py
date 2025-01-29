@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .base_qnn import BaseQNN
 from .loss import VarianceLoss
 from .loss.qnn_loss_base import QNNLossBase
-from .training import train_mini_batch, train, ShotControlBase
+from .util.training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -107,7 +107,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         from squlearn import Executor
         from squlearn.encoding_circuit import KyriienkoEncodingCircuit
         from squlearn.observables import SummedPaulis
-        from squlearn.qnn import QNNRegressor, ODELoss, get_lr_decay
+        from squlearn.qnn import QNNRegressor, ODELoss
+        from squlearn.qnn.util import get_lr_decay
         from squlearn.optimizers import Adam
 
 
