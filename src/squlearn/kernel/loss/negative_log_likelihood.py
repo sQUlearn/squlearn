@@ -1,4 +1,4 @@
-""" Negative log likelihood loss function"""
+"""Negative log likelihood loss function"""
 
 import scipy
 import numpy as np

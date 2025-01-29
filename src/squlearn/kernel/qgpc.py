@@ -1,4 +1,4 @@
-""" Quantum Gaussian Process Classification"""
+"""Quantum Gaussian Process Classification"""
 
 from sklearn.gaussian_process import GaussianProcessClassifier
 

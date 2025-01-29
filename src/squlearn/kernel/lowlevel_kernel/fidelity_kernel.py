@@ -1,4 +1,4 @@
-""" Fidelity Quantum Kernel class"""
+"""Fidelity Quantum Kernel class"""
 
 from typing import Union
 import numpy as np
