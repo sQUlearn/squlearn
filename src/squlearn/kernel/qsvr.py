@@ -1,4 +1,5 @@
 """Quantum Support Vector Regression"""
+
 from sklearn.svm import SVR
 from typing import Union, Optional
 

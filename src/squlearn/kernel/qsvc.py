@@ -1,4 +1,5 @@
 """Quantum Support Vector Classification"""
+
 from sklearn.svm import SVC
 from typing import Union, Optional
 

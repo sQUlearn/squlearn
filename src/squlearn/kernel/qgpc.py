@@ -1,4 +1,5 @@
 """ Quantum Gaussian Process Classification"""
+
 from sklearn.gaussian_process import GaussianProcessClassifier
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase

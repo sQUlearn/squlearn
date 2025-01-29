@@ -295,6 +295,7 @@ class _ComposedLoss(QNNLossBase):
         else:
             raise ValueError("Gradient output structure types do not match!")
 
+
 class ConstantLoss(QNNLossBase):
     """Class for constant or independent loss functions.
 
