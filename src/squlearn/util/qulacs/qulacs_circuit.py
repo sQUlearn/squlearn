@@ -8,7 +8,7 @@ from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classicalregister import Clbit
 
-from qulacs import QuantumCircuit, QuantumState, QuantumCircuitSimulator
+from qulacs import QuantumCircuit, QuantumState, QuantumCircuitSimulator, CausalConeSimulator
 
 from typing import List, Union, Iterable
 
@@ -611,6 +611,66 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     param_obs_values = np.array(
         [
             [o if isinstance(o, float) else sim.get_expectation_value(o)
+            for o in operator] for operator in circuit._operators_param
+        ]
+    )
+    param_func_values =np.array([
+        [0.0 if not callable(f) else f(*obs_param_list)
+        for f in operator] for operator in circuit._operators_param_func
+    ])
+
+    # Compute the final parameter values by combining function and observable values
+    param_values = np.array([
+        np.dot(func_vals, obs_vals)
+        for func_vals, obs_vals in zip(param_func_values, param_obs_values)
+    ])
+
+    values = np.real_if_close(real_values + 1j * imag_values + param_values)
+
+    if not circuit.multiple_observables:
+        return values[0]
+
+    return values
+
+def evaluate_circuit_cc(circuit: QulacsCircuit, *args) -> np.ndarray:
+    """
+    Function to evaluate the Qulacs circuit with the given parameters.
+
+    Args:
+        circuit (QulacsCircuit): Qulacs circuit to evaluate
+        parameters (List[float]): List of parameters to evaluate the circuit
+
+    Returns:
+        np.ndarray: Result of the evaluation
+    """
+
+    # Collects the args values connected to the observable parameters
+    obs_param_list = sum(
+        [
+            list(args[len(circuit._qualcs_gates_parameters) + i])
+            for i in range(len(circuit._qualcs_obs_parameters))
+        ],
+        [],
+    )
+
+    circ = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
+    
+
+    real_values = np.array(
+        [
+            o if isinstance(o, float) else CausalConeSimulator(circ, o).get_expectation_value()
+            for o in circuit._operators_real
+        ]
+    )
+    imag_values = np.array(
+        [
+            o if isinstance(o, float) else CausalConeSimulator(circ, o).get_expectation_value()
+            for o in circuit._operators_imag
+        ]
+    )
+    param_obs_values = np.array(
+        [
+            [o if isinstance(o, float) else CausalConeSimulator(circ, o).get_expectation_value()
             for o in operator] for operator in circuit._operators_param
         ]
     )

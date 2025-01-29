@@ -12,7 +12,7 @@ from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
 from ..util import Executor
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
-from ..util.qulacs import QulacsCircuit, evaluate_circuit
+from ..util.qulacs import QulacsCircuit, evaluate_circuit, evaluate_circuit_cc
 from ..util.decompose_to_std import decompose_to_std
 
 
