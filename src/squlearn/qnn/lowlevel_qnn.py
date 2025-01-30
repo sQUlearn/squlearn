@@ -45,6 +45,9 @@ class LowLevelQNN(LowLevelQNNBase):
                 parameterized_quantum_circuit, observable, executor, *args, **kwargs
             )
         elif executor.quantum_framework == "qulacs":
+            if "primitive" in kwargs:
+                RuntimeError("Warning: Primitive argument is not supported for PennyLane")
+                kwargs.pop("primitive")
             return LowLevelQNNQulacs(
                 parameterized_quantum_circuit, observable, executor, *args, **kwargs
             )

@@ -13,6 +13,7 @@ from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
 from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ..util.qulacs import QulacsCircuit, evaluate_circuit, evaluate_circuit_cc
+from ..util.qulacs.qulacs_circuit import evaluate_circuit_gradient, evaluate_operator_gradient
 from ..util.decompose_to_std import decompose_to_std
 
 
@@ -328,16 +329,63 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             # else:
 
             # Direct evaluation of the QNN
-            output = [
-                #evaluate_circuit(self.penn)
-                #    todo_class, x_inp_, param_inp_, param_obs_inp_
-                evaluate_circuit(self._qulacs_circuit, param_inp_,x_inp_, param_obs_inp_)
+                
+                
+            if todo=="f":
+            
+                output = [
+                    #evaluate_circuit(self.penn)
+                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
+                    
+                    evaluate_circuit(self._qulacs_circuit, param_inp_,x_inp_, param_obs_inp_)
 
-                for x_inp_ in x_inp
-                for param_inp_ in param_inp
-                for param_obs_inp_ in param_obs_inp
-            ]
+                    for x_inp_ in x_inp
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
+                ]
+                
+            elif todo=="dfdp":
+                
+                output = [
+                    #evaluate_circuit(self.penn)
+                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
+
+                    evaluate_circuit_gradient(self._qulacs_circuit, self._param, param_inp_,x_inp_, param_obs_inp_)
+
+                    for x_inp_ in x_inp
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
+                ]
+                
+            elif todo=="dfdx":
+                
+                output = [
+                    #evaluate_circuit(self.penn)
+                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
+
+                    evaluate_circuit_gradient(self._qulacs_circuit, self._x, param_inp_,x_inp_, param_obs_inp_)
+
+                    for x_inp_ in x_inp
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
+                ]
+            elif todo=="dfdop":
+                output = [
+                    #evaluate_circuit(self.penn)
+                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
+
+                    evaluate_operator_gradient(self._qulacs_circuit, self._param_obs, param_inp_,x_inp_, param_obs_inp_)
+
+                    for x_inp_ in x_inp
+                    for param_inp_ in param_inp
+                    for param_obs_inp_ in param_obs_inp
+                ]
+            else:
+                raise ValueError("Unknown evaluation function:",todo)
             output = np.array(output)
+
+            #print("todo",todo)
+            #print("output",output)
 
             # Swap higher order derivatives into correct order
             index_list = list(range(len(output.shape)))

@@ -258,6 +258,7 @@ class QulacsCircuit:
             self._qubit_list.append([q])
             self._func_list.append(None)
             self._func_grad_list.append(None)
+            self._used_parameters.append([])
 
         self._rebuild_circuit_func = True
 
@@ -282,6 +283,7 @@ class QulacsCircuit:
             self._qubit_list.append([control, target])
             self._func_list.append(None)
             self._func_grad_list.append(None)
+            self._used_parameters.append([])
 
         self._rebuild_circuit_func = True
 
@@ -769,7 +771,7 @@ def evaluate_circuit_gradient(circuit: QulacsCircuit,
     qulacs_circuit.update_quantum_state(state)
 
     outer_jacobian = circuit.get_gradient_outer_jacobian(parameters)(*args[:len(circuit._qualcs_gates_parameters)])
-    print("outer_jacobian\n",outer_jacobian)
+    #print("outer_jacobian\n",outer_jacobian)
 
     real_values = np.array(
         [
