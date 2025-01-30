@@ -55,7 +55,8 @@ def qulacs_gate_swap(circuit: ParametricQuantumCircuit, qubit1: int, qubit2: int
 def qulacs_gate_cnot(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
     """CNOT gate."""
     # print("Adding CNOT gate with control qubit", control, "and target qubit", target)
-    circuit.add_gate(CNOT(control, target))
+    #circuit.add_gate(CNOT(control, target))
+    circuit.add_CNOT_gate(control, target)
 
 def qulacs_gate_cz(circuit: ParametricQuantumCircuit, control: int, target: int) -> None:
     """CZ gate."""

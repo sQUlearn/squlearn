@@ -16,7 +16,7 @@ from qiskit.compiler import transpile
 from qiskit_aer import Aer
 
 from qulacs import ParametricQuantumCircuit
-from qulacs import Observable
+from qulacs import Observable,GradCalculator, GeneralQuantumOperator, PauliOperator
 #import qulacs as qml
 #import qulacs.numpy as pnp
 #import qulacs.pauli as pauli
@@ -121,6 +121,10 @@ class QulacsCircuit:
         self.build_observable_instructions(self._qiskit_observable)
 
         #self._qulacs_circuit = self.build_qulacs_circuit()
+        
+        self._circuit_func_cache = {}
+        self._outer_jacobi_circuit_cache = {}
+        self._outer_jacobi_obs_cache = {}
 
     @property
     def num_qubits(self) -> int:
@@ -561,6 +565,84 @@ class QulacsCircuit:
             self._used_parameters_obs.append(used_parameters_obs)
 
 
+        # new version
+        self.new_operators = []
+        self.new_operators_coeff = []
+        self.new_operators_coeff_grad = []
+        self.new_operators_used_parameters = []
+        for observable in observables:
+
+            paulis = [str(p[::-1]) for p in observable._pauli_list]
+            coeff = list(np.real_if_close([c for c in observable.coeffs]))
+
+            new_operator = []
+            new_operators_coeff = []
+            new_operators_coeff_grad = []
+            new_operators_used_parameters = []
+            for c, p in zip(coeff, paulis):
+                string = ""
+                for i, p_ in enumerate(p):
+                    #if p_ != "I":
+                    string += p_ + " " + str(i) + " "
+
+                new_operator.append(string)
+
+                if isinstance(c, ParameterVectorElement):
+                    # Single parameter vector element
+                    new_operators_coeff.append(lambdify(self._symbol_tuple_obs, sympify(c._symbol_expr)))
+                    new_operators_coeff_grad.append([lambda *arg: 1.0])
+                    self._free_parameters.add(c)
+                    new_operators_used_parameters.append([c])
+
+                elif isinstance(c, ParameterExpression):
+                    # Parameter is in a expression (equation)
+                    new_operators_coeff.append(lambdify(self._symbol_tuple_obs, sympify(c._symbol_expr)))
+                    func_grad_list_element = []
+                    used_parameters_obs_element = []
+                    for param_element in c._parameter_symbols.keys():
+                        self._free_parameters.add(param_element)
+                        used_parameters_obs_element.append(param_element)
+                        # information about the gradient of the parameter expression
+                        # the 1j fixes a bug in qiskit
+                        param_grad = -1j * ((1j * c).gradient(param_element))
+                        if isinstance(param_grad, complex):
+                            if param_grad.imag == 0:
+                                param_grad = param_grad.real
+                        if isinstance(param_grad, float) or isinstance(param_grad, complex):
+                            # create a call by value labmda function
+                            func_grad_list_element.append(lambda *arg, param_grad=param_grad: param_grad)
+                        else:
+                            func_grad_list_element.append(lambdify(self._symbol_tuple_obs, sympify(param_grad._symbol_expr)))
+                    new_operators_coeff_grad.append(func_grad_list_element)
+                    new_operators_used_parameters.append(used_parameters_obs_element)
+
+                else:
+                    new_operators_coeff.append(lambda *arg: c)
+                    new_operators_coeff_grad.append([lambda *arg: 0.0])
+                    new_operators_used_parameters.append([])
+
+            self.new_operators.append(new_operator)
+            self.new_operators_coeff.append(new_operators_coeff)
+            self.new_operators_coeff_grad.append(new_operators_coeff_grad)
+            self.new_operators_used_parameters.append(new_operators_used_parameters)
+
+    def get_observable_func(self):
+        """ Returns the Qulacs observable function for the observable depending on parameters."""
+
+        def observable_func(*args):
+            list_operators=[]
+            for i,observable in enumerate(self.new_operators):
+                operator = GeneralQuantumOperator(self.num_qubits)
+                for j,op in enumerate(observable):
+                    operator.add_operator(self.new_operators_coeff[i][j](*args),op)
+                list_operators.append(operator)
+
+            return list_operators
+
+        return observable_func
+
+
+
     def get_circuit_func(self,gradient_param = None):
         """Returns the Qulacs circuit function for the circuit."""
 
@@ -572,6 +654,13 @@ class QulacsCircuit:
         parameterized_operations = [
             True if any(param in gradient_param for param in self._used_parameters[i]) else False for i, op in enumerate(self._operation_list)
         ]
+
+        cache_value = "no_gradient"
+        if is_parameterized:
+            cache_value = tuple(gradient_param)
+
+        if cache_value in self._circuit_func_cache:
+            return self._circuit_func_cache[cache_value]
 
         def qulacs_circuit(*args):
 
@@ -600,6 +689,8 @@ class QulacsCircuit:
 
             return circuit
 
+        self._circuit_func_cache[cache_value] = qulacs_circuit
+
         return qulacs_circuit
 
     def get_gradient_outer_jacobian(
@@ -620,6 +711,13 @@ class QulacsCircuit:
             gradient_parameters = [gradient_parameters]
         gradient_parameters = list(gradient_parameters) if gradient_parameters is not None else []
         gradient_param_dict = {p:i for i,p in enumerate(gradient_parameters)}
+
+        cache_value = "no_gradient"
+        if len(gradient_parameters)>0:
+            cache_value = tuple(gradient_parameters)
+
+        if cache_value in self._outer_jacobi_circuit_cache:
+            return self._outer_jacobi_circuit_cache[cache_value]
 
         def outer_jacobian(*args):
 
@@ -644,6 +742,8 @@ class QulacsCircuit:
 
             return outer_jacobian
 
+        self._outer_jacobi_circuit_cache[cache_value] = outer_jacobian
+
         return outer_jacobian
 
     def get_gradient_outer_jacobian_observables(
@@ -665,6 +765,13 @@ class QulacsCircuit:
         gradient_parameters = list(gradient_parameters) if gradient_parameters is not None else []
         gradient_param_dict = {p:i for i,p in enumerate(gradient_parameters)}
 
+        cache_value = "no_gradient"
+        if len(gradient_parameters)>0:
+            cache_value = tuple(gradient_parameters)
+
+        if cache_value in self._outer_jacobi_obs_cache:
+            return self._outer_jacobi_obs_cache[cache_value]
+
         def outer_jacobian(*args):
 
             # Collects the args values connected to the observable parameters
@@ -683,9 +790,75 @@ class QulacsCircuit:
                 outer_jacobians.append(outer_jacobian)
             return outer_jacobians
 
+        self._outer_jacobi_obs_cache[cache_value] = outer_jacobian
+
         return outer_jacobian
 
+    def get_gradient_outer_jacobian_observables_new(
+        self,
+        gradient_parameters: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
+    ):
+        """Returns the outer jacobian needed for the chain rule in circuit derivatives.
 
+        Qulacs does not support multiple parameters and parameter expressions,
+        so we need to calculate a transformation which also includes the gradient of the
+        parameter expression.
+
+        Args:
+            gradient_parameters (Union[None, ParameterVectorElement, List[ParameterVectorElement]]): Parameters to calculate the gradient for
+        """
+
+        if isinstance(gradient_parameters, ParameterVectorElement):
+            gradient_parameters = [gradient_parameters]
+        gradient_parameters = list(gradient_parameters) if gradient_parameters is not None else []
+        gradient_param_dict = {p:i for i,p in enumerate(gradient_parameters)}
+
+        # cache_value = "no_gradient"
+        # if len(gradient_parameters)>0:
+        #     cache_value = tuple(gradient_parameters)
+
+        # if cache_value in self._outer_jacobi_obs_cache:
+        #     return self._outer_jacobi_obs_cache[cache_value]
+
+        def outer_jacobian(*args):
+
+            # Collects the args values connected to the observable parameters
+            obs_param_list = sum(
+                [list(args[i]) for i in range(len(self._qualcs_obs_parameters))], []
+            )
+
+            outer_jacobians = []
+
+            print("self.new_operators_coeff_grad",self.new_operators_coeff_grad)
+
+            for iop,operator in enumerate(self.new_operators_coeff_grad):
+                outer_jacobian = np.zeros((len(operator), len(gradient_parameters)))
+                for i,operation in enumerate(operator):
+                    for j,param in enumerate(self.new_operators_used_parameters[iop][i]):
+                        if param in gradient_parameters:
+                            outer_jacobian[i,gradient_param_dict[param]] = operation[j](*obs_param_list)
+                outer_jacobians.append(outer_jacobian)
+            return outer_jacobians
+
+        #self._outer_jacobi_obs_cache[cache_value] = outer_jacobian
+
+        return outer_jacobian
+
+    def get_operators_for_gradient(self):
+
+        """ Returns the Qulacs observable function for the observable depending on parameters."""
+
+        def observable_func(*args):
+            list_operators=[]
+            for observable in self.new_operators:
+                list_paulis = []
+                for op in observable:
+                    list_paulis.append(PauliOperator(op,1.0))
+                list_operators.append(list_paulis)
+
+            return list_operators
+
+        return observable_func
 
 def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
     """
@@ -710,32 +883,16 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
 
     circ = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
     state = QuantumState(circuit.num_qubits)
-    sim = QuantumCircuitSimulator(circ, state)
-    sim.initialize_state(0)
-    sim.simulate()
+    circ.update_quantum_state(state)
 
-    real_values = np.array(
-        [
-            o if isinstance(o, float) else sim.get_expectation_value(o)
-            for o in circuit._operators_real
-        ]
-    )
-    imag_values = np.array(
-        [
-            o if isinstance(o, float) else sim.get_expectation_value(o)
-            for o in circuit._operators_imag
-        ]
-    )
+    operators = circuit.get_observable_func()(*obs_param_list)
 
     param_values = np.array([
-        np.dot(
-            [0.0 if not callable(f) else f(*obs_param_list) for f in operator_func],
-            [o if isinstance(o, float) else sim.get_expectation_value(o) for o in operator]
-        )
-        for operator, operator_func in zip(circuit._operators_param, circuit._operators_param_func)
+                o.get_expectation_value(state)
+                for o in operators
     ])
 
-    values = np.real_if_close(real_values + 1j * imag_values + param_values)
+    values = np.real_if_close(param_values)
 
     if not circuit.multiple_observables:
         return values[0]
@@ -767,46 +924,15 @@ def evaluate_circuit_gradient(circuit: QulacsCircuit,
     )
 
     qulacs_circuit = circuit.get_circuit_func(parameters)(*args[:len(circuit._qualcs_gates_parameters)])
-    state = QuantumState(circuit.num_qubits)
-    qulacs_circuit.update_quantum_state(state)
-
     outer_jacobian = circuit.get_gradient_outer_jacobian(parameters)(*args[:len(circuit._qualcs_gates_parameters)])
-    #print("outer_jacobian\n",outer_jacobian)
-
-    real_values = np.array(
-        [
-            (
-                np.ones(outer_jacobian.shape[1]) * o
-                if isinstance(o, float)
-                else outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
-            )
-            for o in circuit._operators_real
-        ]
-    )
-    imag_values = np.array(
-        [
-            (
-                np.ones(outer_jacobian.shape[1]) * o
-                if isinstance(o, float)
-                else outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
-            )
-            for o in circuit._operators_imag
-        ]
-    )
+    operators = circuit.get_observable_func()(*obs_param_list)
 
     param_values = np.array([
-        np.dot(
-            [0.0 if not callable(f) else f(*obs_param_list) for f in operator_func],
-            [
-                np.ones(outer_jacobian.shape[1]) * o if isinstance(o, float)
-                else outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
-                for o in operator_obs
-            ]
-        )
-        for operator_func, operator_obs in zip(circuit._operators_param_func, circuit._operators_param)
+                outer_jacobian.T @ np.array(qulacs_circuit.backprop(o))
+                for o in operators
     ])
 
-    values = np.real_if_close(real_values + 1j * imag_values + param_values)
+    values = np.real_if_close(param_values)
 
     if not circuit.multiple_observables:
         return values[0]
@@ -840,12 +966,17 @@ def evaluate_operator_gradient(circuit: QulacsCircuit,
 
     obs_param_list = [obs_param_list]
     outer_jacobian = circuit.get_gradient_outer_jacobian_observables(parameters)(*obs_param_list)
+    outer_jacobian_new = circuit.get_gradient_outer_jacobian_observables_new(parameters)(*obs_param_list)
+
+    print("outer_jacobian",outer_jacobian)
+    print("outer_jacobian_new",outer_jacobian_new)
 
     circ = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
     state = QuantumState(circuit.num_qubits)
-    sim = QuantumCircuitSimulator(circ, state)
-    sim.initialize_state(0)
-    sim.simulate()
+    circ.update_quantum_state(state)
+    operators = circuit.get_operators_for_gradient()()
+
+    print("operators",operators)
 
     # param_obs_values = np.array(
     #     [
@@ -859,13 +990,13 @@ def evaluate_operator_gradient(circuit: QulacsCircuit,
     #         for i in range(len(outer_jacobian))
     #     ]
     #)
-    
+
     param_obs_values = [
-        outer_jacobian[i].T @ np.array(
-            [o if isinstance(o, float) else sim.get_expectation_value(o) for o in operator]
+        outer_jacobian_new[i].T @ np.array(
+            [o if isinstance(o, float) else o.get_expectation_value(state) for o in operator]
         )
-        for i, operator in enumerate(circuit._operators_param)
-    ]    
+        for i, operator in enumerate(operators)
+    ]
 
     #param_values = np.array([
     #    np.dot(func_vals, obs_vals)
