@@ -1,8 +1,10 @@
-import numpy as np
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+"""Quantum Support Vector Regression"""
 
+import numpy as np
 from sklearn.svm import SVR
 from typing import Union, Optional
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
 class QSVR(SVR):
@@ -36,7 +38,7 @@ class QSVR(SVR):
 
     See Also
     --------
-        squlearn.kernel.ml.QSVC : Quantum Support Vector Classification
+        squlearn.kernel.QSVC : Quantum Support Vector Classification
 
     **Example**
 
@@ -48,8 +50,8 @@ class QSVR(SVR):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.ml.qsvr import QSVR
-        from squlearn.kernel.matrix import ProjectedQuantumKernel
+        from squlearn.kernel.qsvr import QSVR
+        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
 
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=1, num_layers=2)
         kernel = ProjectedQuantumKernel(

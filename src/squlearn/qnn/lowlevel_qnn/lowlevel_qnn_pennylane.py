@@ -10,13 +10,13 @@ import pennylane.numpy as pnp
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 
-from ..observables.observable_base import ObservableBase
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...observables.observable_base import ObservableBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
-from ..util import Executor
-from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
-from ..util.pennylane.pennylane_circuit import PennyLaneCircuit
-from ..util.decompose_to_std import decompose_to_std
+from ...util import Executor
+from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
+from ...util.decompose_to_std import decompose_to_std
 
 
 class DirectEvaluation:
@@ -658,7 +658,7 @@ def _get_class_from_string(
         PostProcessingEvaluation,
         ParameterVector,
         ParameterVectorElement,
-    ]
+    ],
 ) -> Union[DirectEvaluation, PostProcessingEvaluation]:
     """Converts an input string to the direct or post processing evaluation object
 

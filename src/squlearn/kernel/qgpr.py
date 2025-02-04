@@ -1,15 +1,26 @@
-"""Quantum Gaussian Process Regressor"""
+"""Quantum Gaussian Process Regression"""
 
 import warnings
-
-from ..matrix.kernel_matrix_base import KernelMatrixBase
-from ..matrix.regularization import regularize_full_kernel
+from packaging import version
 
 import numpy as np
 from typing import Optional, Union
 from scipy.linalg import cholesky, cho_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
+
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.regularization import regularize_full_kernel
 
 
 class QGPR(BaseEstimator, RegressorMixin):
@@ -48,8 +59,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     See Also
     --------
-        squlearn.kernel.ml.QKRR : Quantum Gaussian Process regression.
-        squlearn.kernel.ml.QSVR : Quantum Support Vector regression.
+        squlearn.kernel.QKRR : Quantum Gaussian Process regression.
+        squlearn.kernel.QSVR : Quantum Support Vector regression.
 
     References
     ----------
@@ -67,8 +78,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.matrix import FidelityKernel
-        from squlearn.kernel.ml import QGPR
+        from squlearn.kernel.lowlevel_kernel import FidelityKernel
+        from squlearn.kernel import QGPR
         enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
@@ -132,7 +143,8 @@ class QGPR(BaseEstimator, RegressorMixin):
         else:
             self._quantum_kernel._check_feature_consistency(X)
 
-        X, y = self._validate_data(
+        X, y = validate_data(
+            self,
             X,
             y,
             multi_output=True,
@@ -210,7 +222,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Only returned when `return_cov` is True.
         """
 
-        X = self._validate_data(X, ensure_2d=True, dtype="numeric", reset=False)
+        X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")

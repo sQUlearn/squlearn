@@ -221,7 +221,7 @@ def _build_circuit_list(
     circuit_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -335,7 +335,7 @@ def _build_operator_list(
     operator_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -456,7 +456,7 @@ def _build_measurement_list(
     from .optree import OpTree
 
     def build_list(
-        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -599,7 +599,7 @@ def _build_expectation_list(
     circuit_operator_list = []
 
     def build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeExpectationValue, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeExpectationValue, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and

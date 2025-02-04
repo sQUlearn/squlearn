@@ -1,13 +1,23 @@
-"""Quantum Kernel Ridge Regressor"""
+"""Quantum Kernel Ridge Regression"""
 
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+from packaging import version
 
 import scipy
 import numpy as np
 from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn import __version__
 
-from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKRR(BaseEstimator, RegressorMixin):
@@ -48,8 +58,8 @@ class QKRR(BaseEstimator, RegressorMixin):
 
     See Also
     --------
-        squlearn.kernel.ml.QGPR : Quantum Gaussian Process regression.
-        squlearn.kernel.ml.QSVR : Quantum Support Vector regression.
+        squlearn.kernel.QGPR : Quantum Gaussian Process regression.
+        squlearn.kernel.QSVR : Quantum Support Vector regression.
 
     References
     -----------
@@ -65,8 +75,8 @@ class QKRR(BaseEstimator, RegressorMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import ChebyshevPQC
-        from squlearn.kernel.matrix import ProjectedQuantumKernel
-        from squlearn.kernel.ml import QKRR
+        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
+        from squlearn.kernel import QKRR
 
         enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
@@ -131,8 +141,8 @@ class QKRR(BaseEstimator, RegressorMixin):
         else:
             self._quantum_kernel._check_feature_consistency(X)
 
-        X, y = self._validate_data(
-            X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+        X, y = validate_data(
+            self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
         )
 
         self.X_train = X
@@ -181,7 +191,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        X = self._validate_data(X, accept_sparse=("csr", "csc"), reset=False)
+        X = validate_data(self, X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":

@@ -272,7 +272,7 @@ class KernelMatrixBase(ABC):
                 Gram matrix to be regularized
             method (str) :
                 Can be either thresholding or tikhonov. For more information see
-                squlearn.kernel.matrix.regularization
+                squlearn.kernel.lowlevel_kernel.regularization
         """
         if self._regularization == "thresholding":
             return thresholding_regularization(matrix)

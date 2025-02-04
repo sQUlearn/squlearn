@@ -10,7 +10,7 @@ from squlearn.optimizers import SLSQP, Adam
 from squlearn.qnn.loss import SquaredLoss
 from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
-from squlearn.qnn.training import train_mini_batch, ShotsFromRSTD
+from squlearn.qnn.util.training import train_mini_batch, ShotsFromRSTD
 
 executor = Executor()
 

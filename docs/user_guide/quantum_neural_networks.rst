@@ -239,13 +239,13 @@ This is possible by providing a :class:`List` or a :class:`Callable` to the lear
 Then a learning rate is chosen from the list or calculated by the callable at the beginning of
 each iteration or epoch.
 A suitable function for generating a callable with an exponential decay of the learning rate is
-provided by :meth:`get_lr_decay`. The following example will generate an Adam optimization
+provided by :meth:`util.get_lr_decay`. The following example will generate an Adam optimization
 with an exponential decay in the learning rate from 0.01 to 0.001 over 100 iterations.
 
 .. jupyter-execute::
 
     from squlearn.optimizers import Adam
-    from squlearn.qnn import get_lr_decay
+    from squlearn.qnn.util import get_lr_decay
     adam = Adam({'lr':get_lr_decay(0.01, 0.001, 100)})
 
 
@@ -263,11 +263,12 @@ The high-level implementations of QNNs, :class:`QNNRegressor` and :class:`QNNCla
 can be initialized with a shot controller that takes care to automatically adjust the number of
 shots. The following example will generate a :class:`QNNRegressor`
 with a RSTD threshold of 0.1 and a minimum and maximum number of shots of 100 and 10000.
-It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.ShotsFromRSTD>` shot controller.
+It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.util.ShotsFromRSTD>` shot controller.
 
 .. code-block:: python
 
-    from squlearn.qnn import QNNRegressor, ShotsFromRSTD
+    from squlearn.qnn import QNNRegressor
+    from squlearn.qnn.util import ShotsFromRSTD
     reg = QNNRegressor(
         ...
         shot_controller = ShotsFromRSTD(rstd_bound=0.1, min_shots=100, max_shots=10000),
@@ -407,12 +408,13 @@ stages (see Ref. [1]). This can be achieved by passing a :class:`List` or a :cla
 to the keyword argument ``variance`` of the :class:`QNNRegressor` (or :class:`QNNClassifier`).
 The following example will generate a :class:`QNNRegressor` with a variance
 regularization factor that is adjusted dynamically during the optimization by utilizing the
-function :meth:`get_variance_fac`. The set-up features a final regularization factor of 0.005,
+function :meth:`util.get_variance_fac`. The set-up features a final regularization factor of 0.005,
 a decay factor of 0.08 and a plateau at :math:`\alpha=1` of 20 iterations at the beginning.
 
 .. code-block:: python
 
-    from squlearn.qnn import QNNRegressor,get_variance_fac
+    from squlearn.qnn import QNNRegressor
+    from squlearn.qnn.util import get_variance_fac
     reg = QNNRegressor(
         ...
         variance = get_variance_fac(0.005,0.08,20),

@@ -16,9 +16,9 @@ QML Regressors
    :toctree: generated/
    :template: class.rst
 
-   kernel.ml.QSVR
-   kernel.ml.QKRR
-   kernel.ml.QGPR
+   kernel.QSVR
+   kernel.QKRR
+   kernel.QGPR
    qnn.QNNRegressor
    qrc.QRCRegressor
 
@@ -33,8 +33,8 @@ QML Classifiers
    :toctree: generated/
    :template: class.rst
 
-   kernel.ml.QSVC
-   kernel.ml.QGPC
+   kernel.QSVC
+   kernel.QGPC
    qnn.QNNClassifier
    qrc.QRCClassifier
 
@@ -155,7 +155,7 @@ Core
 Quantum Kernel Core
 ------------------------------------
 
-.. automodule:: squlearn.kernel.matrix
+.. automodule:: squlearn.kernel.lowlevel_kernel
     :no-members:
     :no-inherited-members:
 
@@ -166,8 +166,8 @@ Quantum Kernel Core
    :toctree: generated/
    :template: class.rst
 
-   kernel.matrix.FidelityKernel
-   kernel.matrix.ProjectedQuantumKernel
+   kernel.lowlevel_kernel.FidelityKernel
+   kernel.lowlevel_kernel.ProjectedQuantumKernel
 
 .. automodule:: squlearn.kernel.loss
     :no-members:
@@ -198,10 +198,10 @@ QNN Core
    :template: class.rst
 
    qnn.lowlevel_qnn.LowLevelQNN
-   qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
-   qnn.lowlevel_qnn_qiskit.Expec
-   qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
-   qnn.lowlevel_qnn_base.LowLevelQNNBase
+   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
+   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.Expec
+   qnn.lowlevel_qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
+   qnn.lowlevel_qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.VarianceLoss
    qnn.loss.ODELoss
@@ -214,11 +214,11 @@ Tools for training QNNs
    :toctree: generated/
    :template: class.rst
 
-   qnn.get_variance_fac
-   qnn.get_lr_decay
-   qnn.ShotsFromRSTD
-   qnn.training.train
-   qnn.training.train_mini_batch
+   qnn.util.get_variance_fac
+   qnn.util.get_lr_decay
+   qnn.util.ShotsFromRSTD
+   qnn.util.training.train
+   qnn.util.training.train_mini_batch
 
 
 Implemented optimizers
@@ -286,11 +286,11 @@ Base Classes
 
     observables.observable_base.ObservableBase
     encoding_circuit.encoding_circuit_base.EncodingCircuitBase
-    kernel.matrix.kernel_matrix_base.KernelMatrixBase
+    kernel.lowlevel_kernel.kernel_matrix_base.KernelMatrixBase
     kernel.loss.kernel_loss_base.KernelLossBase
     optimizers.optimizer_base.OptimizerBase
     qnn.base_qnn.BaseQNN
-    qnn.loss.LossBase
+    qnn.loss.qnn_loss_base.QNNLossBase
     qrc.base_qrc.BaseQRC
 
 
