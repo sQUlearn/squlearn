@@ -1,11 +1,22 @@
 """QNNRegressor Implemenation"""
 
+from packaging import version
 from typing import Callable, Union
 from warnings import warn
 import sys
 
 import numpy as np
 from sklearn.base import RegressorMixin
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
 from tqdm import tqdm
 
 from .base_qnn import BaseQNN
@@ -203,7 +214,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
 
         if not self._is_fitted and not self.pretrained:
             warn("The model is not fitted.")

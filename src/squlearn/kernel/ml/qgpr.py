@@ -1,6 +1,7 @@
 """Quantum Gaussian Process Regressor"""
 
 import warnings
+from packaging import version
 
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 from ..matrix.regularization import regularize_full_kernel
@@ -10,6 +11,15 @@ from typing import Optional, Union
 from scipy.linalg import cholesky, cho_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
+
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
 
 
 class QGPR(BaseEstimator, RegressorMixin):
@@ -123,7 +133,8 @@ class QGPR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
 
-        X, y = self._validate_data(
+        X, y = validate_data(
+            self,
             X,
             y,
             multi_output=True,
@@ -201,7 +212,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Only returned when `return_cov` is True.
         """
 
-        X = self._validate_data(X, ensure_2d=True, dtype="numeric", reset=False)
+        X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")

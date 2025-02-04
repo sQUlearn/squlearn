@@ -1,11 +1,22 @@
 """Quantum Kernel Ridge Regressor"""
 
+from packaging import version
+
 from ..matrix.kernel_matrix_base import KernelMatrixBase
 
 import scipy
 import numpy as np
 from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
 
 from ..matrix.regularization import thresholding_regularization, tikhonov_regularization
 
@@ -123,8 +134,8 @@ class QKRR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
 
-        X, y = self._validate_data(
-            X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+        X, y = validate_data(
+            self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
         )
 
         self.X_train = X
@@ -173,7 +184,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        X = self._validate_data(X, accept_sparse=("csr", "csc"), reset=False)
+        X = validate_data(self, X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
