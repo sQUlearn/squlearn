@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
 class KernelLossBase(ABC):

@@ -1,4 +1,4 @@
-""" Tests for QRCClassifier """
+"""Tests for QRCClassifier"""
 
 import pytest
 

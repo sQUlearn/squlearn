@@ -3,7 +3,7 @@
 import numpy as np
 
 from .kernel_loss_base import KernelLossBase
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
 class TargetAlignment(KernelLossBase):

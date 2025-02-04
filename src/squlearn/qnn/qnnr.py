@@ -9,8 +9,9 @@ from sklearn.base import RegressorMixin
 from tqdm import tqdm
 
 from .base_qnn import BaseQNN
-from .loss import LossBase, VarianceLoss
-from .training import train_mini_batch, train, ShotControlBase
+from .loss import VarianceLoss
+from .loss.qnn_loss_base import QNNLossBase
+from .util.training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -34,7 +35,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
-        loss (LossBase): The loss function to be optimized. Can also be combination of multiple
+        loss (QNNLossBase): The loss function to be optimized. Can also be combination of multiple
             loss functions.
         optimizer (OptimizerBase): The optimizer instance that is used to minimize the loss
             function.
@@ -106,7 +107,8 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         from squlearn import Executor
         from squlearn.encoding_circuit import KyriienkoEncodingCircuit
         from squlearn.observables import SummedPaulis
-        from squlearn.qnn import QNNRegressor, ODELoss, get_lr_decay
+        from squlearn.qnn import QNNRegressor, ODELoss
+        from squlearn.qnn.util import get_lr_decay
         from squlearn.optimizers import Adam
 
 
@@ -155,7 +157,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         encoding_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
-        loss: LossBase,
+        loss: QNNLossBase,
         optimizer: OptimizerBase,
         param_ini: np.ndarray = None,
         param_op_ini: np.ndarray = None,

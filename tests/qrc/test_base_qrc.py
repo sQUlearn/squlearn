@@ -1,4 +1,4 @@
-""" Tests for BaseQRC """
+"""Tests for BaseQRC"""
 
 import pytest
 
