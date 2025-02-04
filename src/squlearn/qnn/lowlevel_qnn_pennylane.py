@@ -657,7 +657,7 @@ def _get_class_from_string(
         PostProcessingEvaluation,
         ParameterVector,
         ParameterVectorElement,
-    ]
+    ],
 ) -> Union[DirectEvaluation, PostProcessingEvaluation]:
     """Converts an input string to the direct or post processing evaluation object
 
