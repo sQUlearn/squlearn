@@ -1,17 +1,18 @@
-from . import matrix, ml, loss
+from .lowlevel_kernel import FidelityKernel, ProjectedQuantumKernel, KernelOptimizer
 
-from .matrix import FidelityKernel, ProjectedQuantumKernel, KernelOptimizer
-from .ml import QKRR, QGPC, QGPR, QSVR, QSVC
+from .qgpr import QGPR
+from .qgpc import QGPC
+from .qkrr import QKRR
+from .qsvr import QSVR
+from .qsvc import QSVC
 
 __all__ = [
-    "matrix",
-    "ml",
     "FidelityKernel",
     "ProjectedQuantumKernel",
     "KernelOptimizer",
-    "QKRR",
     "QGPC",
     "QGPR",
+    "QKRR",
     "QSVR",
     "QSVC",
 ]

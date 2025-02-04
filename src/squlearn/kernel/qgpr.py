@@ -1,10 +1,7 @@
-"""Quantum Gaussian Process Regressor"""
+"""Quantum Gaussian Process Regression"""
 
 import warnings
 from packaging import version
-
-from ..matrix.kernel_matrix_base import KernelMatrixBase
-from ..matrix.regularization import regularize_full_kernel
 
 import numpy as np
 from typing import Optional, Union
@@ -20,6 +17,9 @@ else:
 
     def validate_data(self, *args, **kwargs):
         return self._validate_data(*args, **kwargs)
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.regularization import regularize_full_kernel
 
 
 class QGPR(BaseEstimator, RegressorMixin):
@@ -58,8 +58,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     See Also
     --------
-        squlearn.kernel.ml.QKRR : Quantum Gaussian Process regression.
-        squlearn.kernel.ml.QSVR : Quantum Support Vector regression.
+        squlearn.kernel.QKRR : Quantum Gaussian Process regression.
+        squlearn.kernel.QSVR : Quantum Support Vector regression.
 
     References
     ----------
@@ -77,8 +77,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.matrix import FidelityKernel
-        from squlearn.kernel.ml import QGPR
+        from squlearn.kernel.lowlevel_kernel import FidelityKernel
+        from squlearn.kernel import QGPR
         enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))

@@ -1,8 +1,9 @@
-"""Quantum Gaussian process classifier"""
+"""Quantum Gaussian Process Classification"""
 
-from ..matrix.kernel_matrix_base import KernelMatrixBase
-from squlearn.kernel.matrix.kernel_util import kernel_wrapper
 from sklearn.gaussian_process import GaussianProcessClassifier
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.kernel_util import kernel_wrapper
 
 
 class QGPC(GaussianProcessClassifier):
@@ -31,7 +32,7 @@ class QGPC(GaussianProcessClassifier):
 
     See Also
     --------
-        squlearn.kernel.ml.QSVC : Quantum Support Vector classification.
+        squlearn.kernel.QSVC : Quantum Support Vector classification.
 
     **Example**
 
@@ -40,8 +41,8 @@ class QGPC(GaussianProcessClassifier):
         from sklearn.datasets import load_iris
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.matrix import FidelityKernel
-        from squlearn.kernel.ml import QGPC
+        from squlearn.kernel.lowlevel_kernel import FidelityKernel
+        from squlearn.kernel import QGPC
         X, y = load_iris(return_X_y=True)
 
         enc_circ = HubregtsenEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)

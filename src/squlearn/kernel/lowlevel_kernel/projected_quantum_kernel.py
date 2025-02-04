@@ -22,7 +22,7 @@ from ...util.data_preprocessing import to_tuple
 
 
 from ...qnn.lowlevel_qnn import LowLevelQNN
-from ...qnn.lowlevel_qnn_base import LowLevelQNNBase
+from ...qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 
 from ...observables import SinglePauli
 from ...observables.observable_base import ObservableBase
@@ -360,7 +360,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
               ``chi2``, ``poly``, ``polynomial``, ``rbf``, ``laplacian``, ``sigmoid``, ``cosine``
 
     See Also:
-        * Quantum Fidelity Kernel: :class:`squlearn.kernel.matrix.FidelityKernel`
+        * Quantum Fidelity Kernel: :class:`squlearn.kernel.lowlevel_kernel.FidelityKernel`
         * `sklean kernels <https://scikit-learn.org/stable/modules/gaussian_process.html#gp-kernels>`_
 
     References:
@@ -376,7 +376,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
        import numpy as np
        from squlearn.encoding_circuit import ChebyshevTower
-       from squlearn.kernel.matrix import ProjectedQuantumKernel
+       from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
        from squlearn.util import Executor
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
@@ -391,10 +391,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
        import numpy as np
        from squlearn.encoding_circuit import ChebyshevTower
-       from squlearn.kernel.matrix import ProjectedQuantumKernel
+       from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
        from squlearn.util import Executor
        from squlearn.observables import CustomObservable
-       from squlearn.kernel.ml import QKRR
+       from squlearn.kernel import QKRR
 
        fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
 
