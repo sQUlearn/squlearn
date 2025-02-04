@@ -18,6 +18,7 @@ else:
     def validate_data(self, *args, **kwargs):
         return self._validate_data(*args, **kwargs)
 
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.regularization import regularize_full_kernel
 
