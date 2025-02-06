@@ -16,6 +16,7 @@ from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor, BaseSamplerV2
 from ...util.data_preprocessing import convert_to_float64
+from ...util.data_preprocessing import to_tuple
 
 from .fidelity_kernel_pennylane import FidelityKernelPennyLane
 
@@ -355,11 +356,6 @@ class FidelityKernel(KernelMatrixBase):
                 [2, 3],
                 [3, 3]])
             """
-            if x.shape[0] == 1 and y.shape[0] == 1:
-                if x.ndim == 2 and y.ndim == 2:
-                    return np.array([x[0][0], y[0][0]])
-                else:
-                    return np.array([x[0], y[0]])
             if y is None:
                 y = x
                 n = x.shape[0]
