@@ -153,6 +153,67 @@ class EncodingCircuitBase:
                 setattr(self, "_" + key, value)
 
         return self
+    
+    def inverse(self):
+        """
+        Returns the inverse of the encoding circuit.
+
+        Returns:
+            The inverse of the encoding circuit
+        """
+        class InvertedEncodingCircuit(EncodingCircuitBase):        
+            def __init__(self, ec: EncodingCircuitBase):
+                super().__init__(ec.num_qubits, ec.num_features)
+                self.ec = ec
+
+            @property
+            def num_parameters(self) -> int:
+                """Returns the number of trainable parameters of the encoding circuit."""
+                return self.ec.num_parameters
+
+            @property
+            def parameter_bounds(self) -> np.ndarray:
+                """Returns the bounds of the trainable parameters of the encoding circuit."""
+                return self.ec.parameter_bounds
+
+            @property
+            def feature_bounds(self) -> np.ndarray:
+                """Returns the bounds of the features of the encoding circuit."""
+                return self.ec.feature_bounds
+
+            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+                """
+                Generates random parameters for the encoding circuit
+
+                Args:
+                    seed (Union[int,None]): Seed for the random number generator
+
+                Return:
+                    Returns the randomly generated parameters
+                """
+                return self.ec.generate_initial_parameters(seed)
+
+            def get_circuit(
+                self,
+                features: Union[ParameterVector, np.ndarray],
+                parameters: Union[ParameterVector, np.ndarray],
+            ) -> QuantumCircuit:
+                """
+                Returns the inverse circuit of the encoding circuit
+
+                Args:
+                    features Union[ParameterVector,np.ndarray]: Input vector of the features
+                        from which the gate inputs are obtained
+                    param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                        from which the gate inputs are obtained
+
+                Return:
+                    Returns the inverse circuit of the encoding circuit in qiskit QuantumCircuit format
+                """
+                circ = self.ec.get_circuit(features, parameters)
+                return circ.inverse()
+            
+        return InvertedEncodingCircuit(self)
 
     def __mul__(self, x):
         return self.__add__(x)
@@ -180,7 +241,7 @@ class EncodingCircuitBase:
         class ComposedEncodingCircuit(EncodingCircuitBase):
             """
             Special class for composed encoding circuits.
-
+            The only difference with the sum of encoding circuits is that the parameters vector is shared and the features are concatenated.
             Args:
                 num_qubits: num qubits for both encoding circuits (necessary for scikit-learn interface)
                 ec1 (EncodingCircuitBase): right / first encoding circuit
@@ -370,3 +431,221 @@ class EncodingCircuitBase:
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
+    
+
+    def compose(self, x):
+            """
+            Overwrites the a + b function, such that the addition of
+            encoding circuits returns the composition of both encoding circuits.
+
+            Number of qubits and features have to be equal in both encoding circuits!
+            The special function and properties of the both encoding circuits are lost
+            by this composition.
+
+            Args:
+                self (EncodingCircuitBase): right / first encoding circuit
+                x (EncodingCircuitBase): left / second encoding circuit
+
+            Returns:
+                Returns the composed encoding circuit as special class ComposedEncodingCircuit
+            """
+
+            if not isinstance(x, EncodingCircuitBase):
+                raise ValueError("Only the addition with other encoding circuits is allowed!")
+
+            class ComposedEncodingCircuit(EncodingCircuitBase):
+                """
+                Special class for composed encoding circuits.
+
+                Args:
+                    num_qubits: num qubits for both encoding circuits (necessary for scikit-learn interface)
+                    ec1 (EncodingCircuitBase): right / first encoding circuit
+                    ec2 (EncodingCircuitBase): left / second encoding circuit
+                """
+
+                def __init__(
+                    self, num_qubits: int, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
+                ):
+
+                    if ec1.num_qubits != num_qubits:
+                        ec1.set_params(num_qubits=num_qubits)
+                    if ec2.num_qubits != num_qubits:
+                        ec2.set_params(num_qubits=num_qubits)
+
+                    super().__init__(ec1.num_qubits, max(ec1.num_features, ec2.num_features))
+
+                    self.ec1 = ec1
+                    self.ec2 = ec2
+
+                @classmethod
+                def create_from_encoding_circuits(
+                    cls, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
+                ):
+                    """
+                    Create a composed encoding circuit from two encoding circuits.
+
+                    Args:
+                        ec1 (EncodingCircuitBase): right / first encoding circuit
+                        ec2 (EncodingCircuitBase): left / second encoding circuit
+
+                    Returns:
+                        ComposedEncodingCircuit: Composed encoding circuit
+                    """
+                    if ec1.num_qubits != ec2.num_qubits:
+                        raise ValueError("Number of qubits is not equal in both encoding circuits.")
+
+                    return cls(ec1.num_qubits, ec1, ec2)
+
+                @property
+                def num_parameters(self) -> int:
+                    """Returns the number of trainable parameters of composed encoding circuit.
+
+                    Is equal to the sum of both trainable parameters.
+                    """
+                    return self.ec1.num_parameters
+                @property
+                def num_features(self) -> int:
+                    """The dimension of the features in the encoding circuit."""
+                    return self.ec1.num_features + self.ec2.num_features
+
+                @property
+                def parameter_bounds(self) -> np.ndarray:
+                    """Returns the bounds of the trainable parameters of composed encoding circuit.
+
+                    Is equal to the sum of both bounds.
+                    """
+                    return np.concatenate(
+                        (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
+                    )
+
+                @property
+                def feature_bounds(self) -> np.ndarray:
+                    """Returns the bounds of the features of composed encoding circuit.
+
+                    Is equal to the maximum and minimum of both bounds.
+                    """
+
+                    feature_bounds1 = self.ec1.feature_bounds
+                    feature_bounds2 = self.ec2.feature_bounds
+                    feature_bounds_values = np.zeros((self.num_features, 2))
+
+                    min_num_feature = min(self.ec1.num_features, self.ec2.num_features)
+
+                    if self.ec1.num_features == self.num_features:
+                        feature_bounds_values = self.ec1.feature_bounds
+
+                    if self.ec2.num_features == self.num_features:
+                        feature_bounds_values = self.ec2.feature_bounds
+
+                    for i in range(min_num_feature):
+                        feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
+                        feature_bounds_values[i, 1] = max(feature_bounds1[i, 1], feature_bounds2[i, 1])
+
+                    return feature_bounds_values
+
+                def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+                    """
+                    Generates random parameters for the composed encoding circuit
+
+                    Args:
+                        seed (Union[int,None]): Seed for the random number generator
+
+                    Return:
+                        Returns the randomly generated parameters
+                    """
+
+                    return np.concatenate(
+                        (
+                            self.ec1.generate_initial_parameters(seed),
+                            self.ec2.generate_initial_parameters(seed),
+                        ),
+                        axis=0,
+                    )
+
+                def get_params(self, deep: bool = True) -> dict:
+                    """
+                    Returns hyper-parameters and their values of the composed encoding circuit.
+
+                    Hyper-parameter names are prefixed by ``ec1__`` or ``ec2__`` depending on
+                    which encoding circuit they belong to.
+
+                    Args:
+                        deep (bool): If True, also the parameters for
+                                    contained objects are returned (default=True).
+
+                    Return:
+                        Dictionary with hyper-parameters and values.
+                    """
+                    params = dict(ec1=self.ec1, ec2=self.ec2)
+                    if deep:
+                        deep_items = self.ec1.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["ec1__" + k] = val
+                        deep_items = self.ec2.get_params().items()
+                        for k, val in deep_items:
+                            if k != "num_qubits":
+                                params["ec2__" + k] = val
+
+                    params["num_qubits"] = self.ec1.get_params()["num_qubits"]
+
+                    return params
+
+                def set_params(self, **params) -> None:
+                    """
+                    Sets value of the composed kernel hyper-parameters.
+
+                    Args:
+                        params: Hyper-parameters and their values, e.g. ``num_qubits=2``
+                    """
+                    valid_params = self.get_params()
+                    ec1_dict = {}
+                    ec2_dict = {}
+                    for key, value in params.items():
+                        if key not in valid_params:
+                            raise ValueError(
+                                f"Invalid parameter {key!r}. "
+                                f"Valid parameters are {sorted(valid_params)!r}."
+                            )
+                        if key.startswith("ec1__"):
+                            ec1_dict[key[5:]] = value
+                        elif key.startswith("ec2__"):
+                            ec2_dict[key[5:]] = value
+
+                        if key == "num_qubits":
+                            ec1_dict["num_qubits"] = value
+                            ec2_dict["num_qubits"] = value
+                            self._num_qubits = value
+
+                    if len(ec1_dict) > 0:
+                        self.ec1.set_params(**ec1_dict)
+                    if len(ec2_dict) > 0:
+                        self.ec2.set_params(**ec2_dict)
+
+                def get_circuit(
+                    self,
+                    features: Union[ParameterVector, np.ndarray],
+                    parameters: Union[ParameterVector, np.ndarray],
+                ) -> QuantumCircuit:
+                    """
+                    Returns the circuit of the composed encoding circuits
+
+                    Args:
+                        features Union[ParameterVector,np.ndarray]: Input vector of the features
+                            from which the gate inputs are obtained
+                        param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                            from which the gate inputs are obtained
+
+                    Return:
+                        Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
+                    """
+                    circ1 = self.ec1.get_circuit(
+                        features[: self.ec1.num_features], parameters[: self.ec1.num_parameters]
+                    )
+                    circ2 = self.ec2.get_circuit(
+                        features[self.ec1.num_features:], parameters[: self.ec1.num_parameters] #Only line that changes, to include the new features
+                    )
+
+                    return circ1.compose(circ2, range(self.ec1.num_qubits))
+
+            return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
