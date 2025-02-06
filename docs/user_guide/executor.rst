@@ -143,7 +143,7 @@ execution environment:
     executor = Executor(dev, shots = 1234)
 
 
-- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`get_backend <qiskit_ibm_runtime.QiskitRuntimeService.get_backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
+- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`get_backend <qiskit_ibm_runtime.QiskitRuntimeservice.backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
   Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class (remember to close the session at the end of your code when running on IBM Quantum).
 
   .. code-block:: python
@@ -152,7 +152,7 @@ execution environment:
     from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.get_backend('ibm_brisbane'))
+    executor = Executor(service.backend('ibm_brisbane'))
     ...
     # Close the session at the end of your code
     executor.close_session()
@@ -179,7 +179,7 @@ execution environment:
     from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    session = service.create_session(backend = service.get_backend('ibm_brisbane'))
+    session = service.create_session(backend = service.backend('ibm_brisbane'))
     executor = Executor(session)
     ...
     executor.close_session()
@@ -195,7 +195,7 @@ execution environment:
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    session = service.create_session(backend = service.get_backend('ibm_brisbane'))
+    session = service.create_session(backend = service.backend('ibm_brisbane'))
     estimator = Estimator(session=session)
     estimator.options.resilience.zne_mitigation = True
     estimator.options.resilience.zne.noise_factors = (1, 3, 5)
@@ -233,7 +233,7 @@ backend from the :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeS
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
-    executor = Executor(service.get_backend('ibm_brisbane'), # Specify the backend
+    executor = Executor(service.backend('ibm_brisbane'), # Specify the backend
                          cache_dir='cache', # Set cache folder to "cache"
                          caching=True, # Enable caching default for remote executions
                          log_file="executor.log", # Set-up logging file
@@ -296,7 +296,7 @@ They folow the same dictionary datastructure than the original V2 Primtives.
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
-    executor = Executor(service.get_backend("ibm_brisbane"),options_estimator=options)
+    executor = Executor(service.backend("ibm_brisbane"),options_estimator=options)
 
 Alternatively, the options can be adjusted by the attributes :meth:`estimator_options` and :meth:`sampler_options` similar
 to the option interface of the V2 Primtives:
@@ -307,7 +307,7 @@ to the option interface of the V2 Primtives:
     from qiskit_ibm_runtime import QiskitRuntimeService
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.get_backend("ibm_brisbane"))
+    executor = Executor(service.backend("ibm_brisbane"))
     executor.sampler_options.dynamical_decoupling.enable = True
     executor.sampler_options.dynamical_decoupling.sequence_type = "XpXm"
 
@@ -321,7 +321,7 @@ Options can be adjusted by the :meth:`set_options` method of the Primitives that
 
     service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
 
-    executor = Executor(service.get_backend("ibm_brisbane"))
+    executor = Executor(service.backend("ibm_brisbane"))
     estimator = executor.get_estimator()
     estimator.set_options(resilience_level=2)
 
