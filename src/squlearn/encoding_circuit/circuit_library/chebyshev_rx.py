@@ -6,7 +6,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class ChebyshevRx(EncodingCircuitBase):
@@ -36,8 +36,8 @@ class ChebyshevRx(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = False,
         alpha: float = 4.0,
         nonlinearity: str = "arccos",
@@ -109,6 +109,11 @@ class ChebyshevRx(EncodingCircuitBase):
             bounds[:, 1] = np.inf
         return bounds
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ChebyshevRx encoding circuit."""
+        return self.num_layers * self.num_qubits
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the ChebyshevRx encoding circuit
@@ -144,6 +149,32 @@ class ChebyshevRx(EncodingCircuitBase):
             )
         return super().set_params(**kwargs)
 
+    def get_cheb_indices(self, flatten: bool = True):
+        """
+        Function that returns the indices of the parameters involved in the Chebyshev encoding.
+
+        Args:
+            flatten (bool): If true, the indices are returned as a flat list, otherwise
+                            as a list of lists, where the outer list corresponds to the layers
+                            (default: True)
+        """
+        cheb_index = []
+        index_offset = 0
+        for layer in range(self.num_layers):
+            cheb_index_layer = []
+            for i in range(self.num_qubits):
+                cheb_index_layer.append(index_offset)
+                index_offset += 1
+
+            for i in range(self.num_qubits):
+                index_offset += 1
+
+            if flatten:
+                cheb_index += cheb_index_layer
+            else:
+                cheb_index.append(cheb_index_layer)
+        return cheb_index
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -161,6 +192,8 @@ class ChebyshevRx(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
+
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""
@@ -209,29 +242,3 @@ class ChebyshevRx(EncodingCircuitBase):
             QC = entangle_layer(QC)
 
         return QC
-
-    def get_cheb_indices(self, flatten: bool = True):
-        """
-        Function that returns the indices of the parameters involved in the Chebyshev encoding.
-
-        Args:
-            flatten (bool): If true, the indices are returned as a flat list, otherwise
-                            as a list of lists, where the outer list corresponds to the layers
-                            (default: True)
-        """
-        cheb_index = []
-        index_offset = 0
-        for layer in range(self.num_layers):
-            cheb_index_layer = []
-            for i in range(self.num_qubits):
-                cheb_index_layer.append(index_offset)
-                index_offset += 1
-
-            for i in range(self.num_qubits):
-                index_offset += 1
-
-            if flatten:
-                cheb_index += cheb_index_layer
-            else:
-                cheb_index.append(cheb_index_layer)
-        return cheb_index

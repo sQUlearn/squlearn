@@ -1,5 +1,6 @@
 """Quantum Support Vector Regression"""
 
+import numpy as np
 from sklearn.svm import SVR
 from typing import Union, Optional
 
@@ -75,25 +76,12 @@ class QSVR(SVR):
         quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
-        self.quantum_kernel = quantum_kernel
+        # need to save the kwargs as the kernel params, because of the lazy initialization of the kernel
+        self._quantum_kernel = quantum_kernel
+        self._kernel_params = kwargs
 
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
-            # Apply kwargs to set_params of quantum kernel
-            quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-            if quantum_kernel_update_params:
-                self.quantum_kernel.set_params(
-                    **{key: kwargs[key] for key in quantum_kernel_update_params}
-                )
-                # remove quantum_kernel_kwargs for SVR initialization
-                for key in quantum_kernel_update_params:
-                    kwargs.pop(key, None)
-
-            super().__init__(
-                kernel=self.quantum_kernel.evaluate,
-                **kwargs,
-            )
-        else:
-            super().__init__(kernel="precomputed", **kwargs)
+        if quantum_kernel.num_features is not None:
+            self.__initialize()
 
     @classmethod
     def _get_param_names(cls):
@@ -125,8 +113,18 @@ class QSVR(SVR):
         Return:
             Returns an instance of self.
         """
-        if self.quantum_kernel.is_trainable:
-            self.quantum_kernel.run_optimization(X, y)
+
+        X = np.array(X)
+        y = np.array(y)
+
+        if self._quantum_kernel.num_features is None:
+            self._quantum_kernel._set_num_features(X)
+            self.__initialize()
+        else:
+            self._quantum_kernel._check_feature_consistency(X)
+
+        if self._quantum_kernel.is_trainable:
+            self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y, sample_weight)
 
     def get_params(self, deep: bool = True) -> dict:
@@ -147,9 +145,9 @@ class QSVR(SVR):
             params[key] = getattr(self, key)
 
         # add qsvr specific parameters
-        params["quantum_kernel"] = self.quantum_kernel
-        if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
-            params.update(self.quantum_kernel.get_params(deep=deep))
+        params["quantum_kernel"] = self._quantum_kernel
+        if deep and isinstance(self._quantum_kernel, KernelMatrixBase):
+            params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
     def set_params(self, **params) -> None:
@@ -175,10 +173,37 @@ class QSVR(SVR):
                 setattr(self, "_" + key, params[key])
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
-            quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            quantum_kernel_params = self._quantum_kernel.get_params().keys() & params.keys()
             if quantum_kernel_params:
-                self.quantum_kernel.set_params(
+                self._quantum_kernel.set_params(
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self
+
+    def __initialize(self) -> None:
+        """Initialize the model with the known feature vector"""
+
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+
+            self._quantum_kernel._initialize_kernel()
+
+            # Apply kernel_params (kwargs) to set_params of quantum kernel
+            quantum_kernel_update_params = (
+                self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
+            )
+
+            if quantum_kernel_update_params:
+                self._quantum_kernel.set_params(
+                    **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+                )
+                # remove quantum_kernel params (kwargs) for SVR initialization
+                for key in quantum_kernel_update_params:
+                    self._kernel_params.pop(key, None)
+
+            super().__init__(
+                kernel=self._quantum_kernel.evaluate,
+                **self._kernel_params,
+            )
+        else:
+            super().__init__(kernel="precomputed", **self._kernel_params)

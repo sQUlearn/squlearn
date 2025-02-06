@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from typing import Union
 from abc import ABC, abstractmethod
 
@@ -42,11 +43,7 @@ class KernelMatrixBase(ABC):
         self._parameter_seed = parameter_seed
         self._regularization = regularization
         self._is_trainable = False
-
-        if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(
-                self._parameter_seed
-            )
+        self._is_initialized = False
 
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
@@ -65,12 +62,19 @@ class KernelMatrixBase(ABC):
         """Returns the feature dimension of the encoding circuit"""
         return self._encoding_circuit.num_features
 
+    @num_features.setter
+    def num_features(self, value: int) -> None:
+        """Sets the feature dimension of the encoding circuit"""
+        self._encoding_circuit.num_features = value
+
     @property
     def parameters(self) -> np.ndarray:
         """
         Returns the numeric values of the trainable parameters assigned to the
         encoding circuit as np.ndarray
         """
+        if self._parameters is None:
+            self._generate_initial_parameters()
         return self._parameters
 
     @property
@@ -106,6 +110,7 @@ class KernelMatrixBase(ABC):
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
+
         raise NotImplementedError()
 
     def evaluate_pairwise(self, x: np.ndarray, y: np.ndarray = None) -> float:
@@ -151,6 +156,20 @@ class KernelMatrixBase(ABC):
         """
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
+
+    @abstractmethod
+    def _set_num_features(self, X) -> None:
+        """Sets feature dimension of the encoding circuit"""
+        raise NotImplementedError
+
+    def _initialize_kernel(self) -> None:
+        """Fully initializes the kernel"""
+        if self._parameters is None:
+            self._generate_initial_parameters()
+
+    def _generate_initial_parameters(self) -> None:
+        """Generates the initial parameters for the encoding circuit"""
+        self._parameters = self._encoding_circuit.generate_initial_parameters(self._parameter_seed)
 
     def __add__(self, x):
         """
@@ -263,6 +282,29 @@ class KernelMatrixBase(ABC):
             raise AttributeError(
                 "If regularization is not none it must be either thresholding or tikhonov"
             )
+
+    def _check_feature_consistency(self, x: np.ndarray) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, a warning is issued, and the `num_features` attribute
+        of the encoding circuit is updated to reflect the actual number of features in the input data.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Warnings:
+            UserWarning: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = x.shape[1] if len(x.shape) > 1 else 1
+
+        if actual_num_features != self.num_features:
+            warnings.warn(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
+            self.num_features = actual_num_features
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):

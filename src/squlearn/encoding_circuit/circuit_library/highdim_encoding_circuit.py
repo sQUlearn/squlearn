@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+from traitlets import Int
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -53,7 +54,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         cycling: bool = True,
         cycling_type: str = "saw",
         num_layers: Union[None, int] = None,
@@ -69,7 +70,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         self.entangling_gate = entangling_gate
 
         if self.cycling_type not in ("saw", "hat"):
-            raise ValueError("Unknown layer type:", self.layer_type)
+            raise ValueError("Unknown cycling type:", self.cycling_type)
 
         if self.layer_type not in ("columns", "rows"):
             raise ValueError("Unknown layer type:", self.layer_type)
@@ -83,6 +84,16 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def num_parameters(self) -> int:
         """The number of trainable parameters of the HighDim encoding circuit (equal to 0)."""
         return 0
+
+    @property
+    def num_encoding_slots(self) -> float:
+        """The number of encoding slots of the HighDim encoding circuit."""
+        if self._num_features is not None:
+            return self.num_features
+        if self.num_layers is not None:
+            return self.num_qubits * self.num_layers
+        else:
+            return self.num_qubits
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -129,6 +140,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         if self.entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self.entangling_gate)
+
+        cached_num_features = self.num_features
+
+        if self.num_features is None:
+            self.num_features = self.num_encoding_slots
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, index_offset: int):
             """
@@ -237,9 +253,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                     raise ValueError("Unknown entangling gate:", self.entangling_gate)
             QC = build_layer(QC, features, index_offset)
             index_offset += self.num_qubits * 3
-            if self.cycling == False and index_offset >= self.num_features:
+            if self.cycling is False and index_offset >= self.num_features:
                 index_offset = 0
 
+        # restore the number of features
+        self.num_features = cached_num_features
         return QC
 
 

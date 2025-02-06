@@ -6,7 +6,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 
 
 class ChebyshevTower(EncodingCircuitBase):
@@ -45,8 +45,8 @@ class ChebyshevTower(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_chebyshev: int,
+        num_features: int = None,
         alpha: float = 1.0,
         num_layers: int = 1,
         rotation_gate: str = "ry",
@@ -92,6 +92,11 @@ class ChebyshevTower(EncodingCircuitBase):
             bounds[:, 0] = -np.inf
             bounds[:, 1] = np.inf
         return bounds
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the Chebyshev Tower encoding."""
+        return self.num_qubits * self.num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -154,6 +159,8 @@ class ChebyshevTower(EncodingCircuitBase):
 
         if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
+
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit):
             """Creation of a simple NN entangling layer"""

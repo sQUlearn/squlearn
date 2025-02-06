@@ -1,12 +1,14 @@
-import pytest
+import copy
 import numpy as np
 
+import pytest
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebyshevPQC
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
+from squlearn.kernel.ml.qgpr import QGPR
 
 
 class TestLayeredEncodingCircuit:
@@ -256,3 +258,57 @@ class TestLayeredEncodingCircuit:
             np.array([0.5]), np.array([0.5])
         )
         assert np.allclose(kernel, np.array([1.0]))
+
+    def test_init(self):
+        circuit = LayeredEncodingCircuit(num_qubits=2, num_features=2)
+        assert circuit.num_features == 2
+        assert circuit.num_qubits == 2
+
+    def test_generate_initial_parameters(self):
+        circuit = LayeredEncodingCircuit(num_qubits=2, num_features=2)
+        params = circuit.generate_initial_parameters(seed=42)
+        assert len(params) == circuit.num_parameters
+
+    def test_get_circuit(self):
+        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2, num_layers=1)
+        features = np.array([0.5, -0.5])
+        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
+
+        qc = circuit.get_circuit(features=features, parameters=params)
+        assert isinstance(qc, QuantumCircuit)
+        assert qc.num_qubits == 2
+
+        used_params = {param for instruction in qc.data for param in instruction.operation.params}
+        assert len(used_params) == len(params)
+
+    def test_drawing_does_not_violate_circuit_parameters(self):
+        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
+
+        params_with_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_with_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_with_features_before == params_with_features_after
+
+        # same but with num_features=None
+        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
+
+        params_without_features_before = copy.deepcopy(circuit.get_params())
+        circuit.draw(output="mpl")
+        params_without_features_after = copy.deepcopy(circuit.get_params())
+
+        assert params_without_features_before == params_without_features_after
+
+    def test_minimal_fit(self):
+        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
+
+        X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
+        y_train = np.array([5, 7, 9, 11, 13])
+
+        kernel = FidelityKernel(encoding_circuit=circuit, executor=Executor())
+        estimator = QGPR(quantum_kernel=kernel)
+
+        estimator.fit(X_train, y_train)
+        result = estimator.predict(X_train)
+
+        assert np.allclose(result, y_train, atol=1e-3)

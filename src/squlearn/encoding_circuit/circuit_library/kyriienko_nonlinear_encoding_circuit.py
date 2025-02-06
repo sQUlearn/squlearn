@@ -4,7 +4,7 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase
+from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
 from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
 
 
@@ -65,7 +65,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int = 1,
+        num_features: int = None,
         encoding_style: str = "chebyshev_tower",
         variational_arrangement: str = "HEA",
         num_encoding_layers: int = 1,
@@ -110,6 +110,11 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
             num_param = 3 * self.num_qubits * self.block_depth * self.num_variational_layers
         return num_param
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the Kyriienko encoding circuit."""
+        return self.num_qubits * self.num_encoding_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Kyriienko encoding circuit
@@ -138,7 +143,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Generates and returns the circuit of the Kyriienko encoding circuit
+        Generates and returns the circuit of the KyriienkoEncodingCircuit
 
         Args:
             features (Union[ParameterVector, np.ndarray]): The features to encode
@@ -147,6 +152,8 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         Returns:
             QuantumCircuit: The encoding circuit
         """
+
+        self._check_feature_encoding_slots(features, self.num_encoding_slots)
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""
