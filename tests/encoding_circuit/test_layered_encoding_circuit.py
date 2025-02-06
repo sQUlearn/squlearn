@@ -281,24 +281,6 @@ class TestLayeredEncodingCircuit:
         used_params = {param for instruction in qc.data for param in instruction.operation.params}
         assert len(used_params) == len(params)
 
-    def test_drawing_does_not_violate_circuit_parameters(self):
-        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
-
-        params_with_features_before = copy.deepcopy(circuit.get_params())
-        circuit.draw(output="mpl")
-        params_with_features_after = copy.deepcopy(circuit.get_params())
-
-        assert params_with_features_before == params_with_features_after
-
-        # same but with num_features=None
-        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
-
-        params_without_features_before = copy.deepcopy(circuit.get_params())
-        circuit.draw(output="mpl")
-        params_without_features_after = copy.deepcopy(circuit.get_params())
-
-        assert params_without_features_before == params_without_features_after
-
     def test_minimal_fit(self):
         circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
 

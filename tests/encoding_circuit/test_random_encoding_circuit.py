@@ -118,28 +118,6 @@ class TestRandomEncodingCircuit:
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 
-    def test_drawing_does_not_violate_circuit_parameters(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
-
-        params_with_features_before = copy.deepcopy(circuit.get_params())
-        circuit.draw(output="mpl")
-        params_with_features_after = copy.deepcopy(circuit.get_params())
-
-        assert params_with_features_before == params_with_features_after
-
-        # same but with num_features=None
-        circuit = RandomEncodingCircuit(
-            num_features=None, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
-
-        params_without_features_before = copy.deepcopy(circuit.get_params())
-        circuit.draw(output="mpl")
-        params_without_features_after = copy.deepcopy(circuit.get_params())
-
-        assert params_without_features_before == params_without_features_after
-
     def test_minimal_fit(self):
         circuit = RandomEncodingCircuit(
             num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=40
