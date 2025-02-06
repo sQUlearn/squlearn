@@ -143,7 +143,7 @@ execution environment:
     executor = Executor(dev, shots = 1234)
 
 
-- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`get_backend <qiskit_ibm_runtime.QiskitRuntimeservice.backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
+- A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`backend <qiskit_ibm_runtime.QiskitRuntimeservice.backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
   Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class (remember to close the session at the end of your code when running on IBM Quantum).
 
   .. code-block:: python
