@@ -23,7 +23,6 @@ from ..optimizers.optimizer_base import OptimizerBase
 from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
-
 class QKODE(QKRR):
     r"""
     Quantum Kernel Ordinary Differential Equation (QKODE) solver.
