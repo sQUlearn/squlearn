@@ -4,7 +4,6 @@ import scipy
 import numpy as np
 import sympy as sp
 
-from typing import Sequence
 from .kernel_loss_base import KernelLossBase
 from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
@@ -159,15 +158,6 @@ class ODELoss(KernelLossBase):
             )
         elif order_of_ODE > 2:
             raise ValueError("Currently, only 1rst and 2nd order ODEs are supported")
-
-    def set_quantum_kernel(self, quantum_kernel: KernelMatrixBase) -> None:
-        """
-        Set the quantum kernel to be used in the loss function.
-
-        Args:
-            quantum_kernel (KernelMatrixBase): The quantum kernel to be used in the loss function.
-        """
-        self._quantum_kernel = quantum_kernel
 
     def compute(
         self,
