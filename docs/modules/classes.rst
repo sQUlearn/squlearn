@@ -203,6 +203,7 @@ QNN Core
    qnn.lowlevel_qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
    qnn.lowlevel_qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
+   qnn.loss.LogLoss
    qnn.loss.VarianceLoss
    qnn.loss.ODELoss
    qnn.loss.ParameterRegularizationLoss
