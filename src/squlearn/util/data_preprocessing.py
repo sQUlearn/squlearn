@@ -148,3 +148,10 @@ def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> 
             return array_to_nested_tuple(x)
         else:
             return tuple([x])
+
+
+def extract_num_features(X: np.ndarray) -> int:
+    """Extract the number of features from the input array."""
+    if len(np.shape(X)) == 1:
+        return 1
+    return np.shape(X)[1]
