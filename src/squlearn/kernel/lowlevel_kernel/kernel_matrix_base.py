@@ -1,7 +1,8 @@
 import numpy as np
-import warnings
 from typing import Union
 from abc import ABC, abstractmethod
+
+from squlearn.util.data_preprocessing import extract_num_features
 
 from .regularization import thresholding_regularization, tikhonov_regularization
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -157,19 +158,16 @@ class KernelMatrixBase(ABC):
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
 
-    @abstractmethod
-    def _set_num_features(self, X) -> None:
-        """Sets feature dimension of the encoding circuit"""
-        raise NotImplementedError
-
-    def _initialize_kernel(self) -> None:
+    def _initialize_kernel(self, num_features: int) -> None:
         """Fully initializes the kernel"""
         if self._parameters is None:
-            self._generate_initial_parameters()
+            self._generate_initial_parameters(num_features=num_features)
 
-    def _generate_initial_parameters(self) -> None:
+    def _generate_initial_parameters(self, num_features: int) -> None:
         """Generates the initial parameters for the encoding circuit"""
-        self._parameters = self._encoding_circuit.generate_initial_parameters(self._parameter_seed)
+        self._parameters = self._encoding_circuit.generate_initial_parameters(
+            seed=self._parameter_seed, num_features=num_features
+        )
 
     def __add__(self, x):
         """
@@ -297,14 +295,13 @@ class KernelMatrixBase(ABC):
             UserWarning: Raised if the number of features in the input data does not match the
                      `num_features` of the encoding circuit.
         """
-        actual_num_features = x.shape[1] if len(x.shape) > 1 else 1
+        actual_num_features = extract_num_features(x)
 
-        if actual_num_features != self.num_features:
-            warnings.warn(
+        if actual_num_features != self.num_features and self.num_features is not None:
+            raise ValueError(
                 f"Number of features in the input data ({actual_num_features}) "
                 f"does not match the number of features in the encoding circuit ({self.num_features})."
             )
-            self.num_features = actual_num_features
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):
