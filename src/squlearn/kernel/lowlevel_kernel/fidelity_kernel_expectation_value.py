@@ -27,7 +27,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         self,
         encoding_circuit: EncodingCircuitBase,
         executor: Executor,
-        evaluate_duplicates: str = "off_diagonal",
+        evaluate_duplicates: str = "none",
         caching: bool = True,
     ) -> None:
 
@@ -81,7 +81,6 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         """
         from squlearn.qnn.lowlevel_qnn import LowLevelQNN
-
         def P0_squlearn(num_qubits):
             """
             Create the P0 observable: (|0><0|)^\otimes n for the quantum circuit in the format of the squlearn library.
@@ -104,7 +103,38 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             pauli_str = [observable[0] for observable in observable_tuple_list]
             return CustomObservable(num_qubits, pauli_str, parameterized=True)
 
-        def to_FQK_circuit_format(x, y=None):
+        def get_flattened_matrix_indices(n, part="lower"):
+            """
+            Returns the lower triangle indices in flattened form or the diagonal elements in the flattened form.
+
+            Parameters:
+            n (int): Size of the matrix (n x n).
+            part (str): Part of the matrix to return indices for. Options are "lower" for lower triangle and "diagonal" for diagonal elements.
+
+            Returns:
+            numpy.ndarray: Indices in flattened form.
+            """
+            matrix = np.arange(n**2).reshape(n, n)  # Creating a sample n x n matrix
+            flat_matrix = matrix.ravel()  # Flattening the matrix
+
+            if part == "lower":
+                lower_tri_rows, lower_tri_cols = np.tril_indices(n, k=-1)
+                lower_tri_flat_indices = np.ravel_multi_index((lower_tri_rows, lower_tri_cols), (n, n))
+                return lower_tri_flat_indices
+            elif part == "higher":
+                upper_tri_rows, upper_tri_cols = np.triu_indices(n, k=1)
+                upper_tri_flat_indices = np.ravel_multi_index((upper_tri_rows, upper_tri_cols), (n, n))
+                return upper_tri_flat_indices
+            elif part == "diagonal" or part == "off_diagonal":
+                diag_indices = np.arange(0, n * (n + 1), n + 1)
+                remaining_indices = np.setdiff1d(flat_matrix, diag_indices)
+                if part == "diagonal":
+                    return diag_indices
+                return remaining_indices
+            else:
+                raise ValueError("Invalid part specified. Use 'lower' or 'diagonal'.")
+            
+        def to_FQK_circuit_format(x, y=None, evaluate_duplicates="all"):
             """
             Transforms an input array of shape (n, m) into an array of shape (n*n, 2*m),
             where each row consists of all possible ordered pairs of rows from the input array.
@@ -113,9 +143,18 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             x (numpy.ndarray): An input array of shape (n, m), where n is the number of samples
                             and m is the number of features.
 
+            y (numpy.ndarray): An optional input array of shape (n2, m), where n2 is the number of samples
+                            and m is the number of features. If None, y is set to x.
+
+            evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are  
+                            "off_diagonal" to evaluate only off-diagonal elements
+                            "none" to evaluate no duplicates,
+                            "all" to evaluate all kernel values.
+
             Returns:
-            numpy.ndarray: A transformed array of shape (n*n, 2*m), containing all possible
-                        ordered pairs of rows from x.
+            numpy.ndarray: An array of shape (nf, 2*m) where each row consists of all possible ordered pairs of rows from the input array.
+                if x=y, nf = n*(n-1) if evaluate_duplicates is "off_diagonal", nf = n*n-n if evaluate_duplicates is "none", nf = n*n otherwise.
+
 
             Example:
             --------
@@ -133,8 +172,12 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 [2, 3],
                 [3, 3]])
             """
-            if y is None:
-                y = x
+            if np.array_equal(x, y):
+                if np.allclose(x, y):
+                    are_equal = True
+            else:
+                are_equal = False
+            if are_equal:
                 n = x.shape[0]
                 x_rep = np.repeat(x, n, axis=0)  # Repeat each row n times
                 x_tile = np.tile(x, (n, 1))  # Tile the entire array n times
@@ -143,8 +186,93 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 n2 = y.shape[0]
                 x_rep = np.repeat(x, n2, axis=0)
                 x_tile = np.tile(y, (n, 1))
-            result = np.hstack((x_rep, x_tile))
+            result = np.hstack((x_rep, x_tile))  
+            
+            if are_equal:
+                if evaluate_duplicates == "off_diagonal":
+                    result = np.delete(result, get_flattened_matrix_indices(n, part="diagonal"), axis=0)
+                elif evaluate_duplicates == "none":
+                    result = np.delete(result, np.concatenate([get_flattened_matrix_indices(n, part="higher"), get_flattened_matrix_indices(n, part="diagonal")]), axis=0)
+                elif evaluate_duplicates == "all":
+                    pass
+                else:
+                    raise ValueError("Invalid evaluate_duplicates option. Use 'off_diagonal', 'none', or 'all'.")
+            else:
+                self._evaluate_duplicates = "all"
+                print("Warning: evaluate_duplicates is set to 'all' as x and y are not equal.")
             return result
+        
+        def fill_matrix_indices(K_flat, n, matrix_part):
+            """
+            Given a flattened kernel matrix of shape (nf,), fills the missing values according to the specified missing matrix_part.
+
+            Parameters:
+            K_flat (numpy.ndarray): Flattened kernel matrix of shape (nf,) where nf is the number of kernel values to evaluate.
+            n (int): Number of samples in the dataset.
+            matrix_part (str): Part of the matrix to fill. Options are "lower" for the lower triangle and "diagonal" for the diagonal elements.
+                if matrix_part is "lower", K_flat is expected to be of size n*(n-1)/2.
+                if matrix_part is "diagonal", K_flat is expected to be of size n*n-n
+
+            Returns:
+            numpy.ndarray: Filled kernel matrix in flattened form of shape (n*n,).
+
+            """
+            # Fill the upper triangle from the lower triangle
+            K_flat_filled = np.zeros(n * n)
+
+            main_diagonal_indices = get_flattened_matrix_indices(n, part="diagonal")
+            K_flat_filled[main_diagonal_indices] = 1.0  # Set diagonal elements to 1
+            if matrix_part == "lower":
+                lower_triangle_indices = get_flattened_matrix_indices(n, part="lower")
+                K_flat_filled[lower_triangle_indices] = K_flat # Fill the lower triangle with the kernel values
+            elif matrix_part == "diagonal":
+                non_diagonal_indices = get_flattened_matrix_indices(n, part="off_diagonal")
+                print(non_diagonal_indices)
+                K_flat_filled[non_diagonal_indices] = K_flat
+            else:
+                raise ValueError("Invalid matrix_part specified. Use 'lower' or 'diagonal'.")
+            return K_flat_filled
+        
+        def reshape_to_kernel_matrix(k_flat, n, n2, evaluate_duplicates):
+            """
+            Reshapes the kernel values and indices to a kernel matrix.
+
+            Args:
+                k_flat (numpy.ndarray): Flattened kernel matrix of shape (n*n,) or (n*n2, ) where n is the number of samples in the dataset.
+                n (int): Number of samples in the dataset.
+                n2 (int): Number of samples in the dataset.
+                evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are
+                    "off_diagonal" to evaluate only off-diagonal elements
+                    "none" to evaluate no duplicates,
+                    "all" to evaluate all kernel values.
+            Returns:
+                The kernel matrix of shape (n, n) or (n, n2).
+            """
+
+            if n == n2:
+                if evaluate_duplicates == "off_diagonal":
+                    k_flat = fill_matrix_indices(k_flat, n, "diagonal")
+                    k_flat = k_flat.reshape(n, n)
+                elif evaluate_duplicates == "none":
+                    k_flat = fill_matrix_indices(k_flat, n, "lower")
+                    k_flat = k_flat.reshape(n, n)
+                    #make symmetric
+                    k_flat = k_flat + k_flat.T - np.diag(k_flat.diagonal())
+                elif evaluate_duplicates == "all":
+                    k_flat = k_flat.reshape(n, n)
+            else:
+                k_flat = k_flat.reshape(n, n2)
+            
+            return k_flat
+
+
+        if y is None:
+            y = x
+        else:
+            if np.array_equal(x, y) == False:
+                self._evaluate_duplicates = "all"
+            
+        
 
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = []
@@ -179,8 +307,11 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             value_dict = {}
 
         value_dict["x"] = to_FQK_circuit_format(
-            x, y
-        )  # from shape: (n1, m) and (n2, m) to shape: (n1*n2, 2*m)
+            x, y, "all")
+        if self._evaluate_duplicates != "all":
+            value_dict["x_without_duplicates"] = to_FQK_circuit_format(
+                x, y, self._evaluate_duplicates)
+        
         value_dict["param"] = param  # Parameters of Quantum Kernel
         value_dict["param_op"] = param_op  # Constant coefficients for the observable P0
 
@@ -197,10 +328,13 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 continue
             else:
                 if todo == "K":
-                    kernel_matrix = eval_helper(value_dict["x"], "f").reshape(
-                        x.shape[0],
-                        y.shape[0],
-                    )
+                    if self._evaluate_duplicates == "all":
+                        kernel_matrix = eval_helper(value_dict["x"], "f")
+                    else:
+                        kernel_matrix = eval_helper(value_dict["x_without_duplicates"], "f")
+                    kernel_matrix = reshape_to_kernel_matrix(
+                        kernel_matrix, x.shape[0], y.shape[0], self._evaluate_duplicates)
+
                 elif todo == "dKdx" or todo == "dKdy":
                     dKdx = eval_helper(value_dict["x"], "dfdx").reshape(
                         x.shape[0], y.shape[0], 2 * self.num_features
@@ -268,6 +402,9 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                             kernel_matrix = (
                                 jacobian  # shape (2*num_features, 2*num_features, len(x), len(y))
                             )
+                else:
+                    raise NotImplementedError(f"Derivative {todo} not implemented.")
+            
                 value_dict[todo] = kernel_matrix
 
         if self._caching:
