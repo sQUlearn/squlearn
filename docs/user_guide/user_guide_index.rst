@@ -11,3 +11,4 @@ User Guide
    encoding_circuits
    kernel_methods
    quantum_neural_networks
+   quantum_reservoir_computing

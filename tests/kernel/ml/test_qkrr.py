@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from squlearn import Executor
 from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.kernel import QKRR
-from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
+from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel, FidelityKernel
 
 
 class TestQKRR:

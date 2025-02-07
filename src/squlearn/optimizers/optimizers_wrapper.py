@@ -1,4 +1,4 @@
-""" Various optimization methods that are implemented via wrappers"""
+"""Various optimization methods that are implemented via wrappers"""
 
 import numpy as np
 import qiskit_algorithms.optimizers as qiskit_optimizers

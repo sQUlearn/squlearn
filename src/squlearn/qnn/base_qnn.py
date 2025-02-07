@@ -3,22 +3,32 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
+from packaging import version
 from typing import Callable, Union
 from warnings import warn
 
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
 
-from .loss import LossBase
+from .loss.qnn_loss_base import QNNLossBase
 
 from .lowlevel_qnn import LowLevelQNN
-from .training import ShotControlBase
+from .util.training import ShotControlBase
 
 
 class BaseQNN(BaseEstimator, ABC):
@@ -56,7 +66,7 @@ class BaseQNN(BaseEstimator, ABC):
         encoding_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
-        loss: LossBase,
+        loss: QNNLossBase,
         optimizer: OptimizerBase,
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
@@ -339,7 +349,8 @@ class BaseQNN(BaseEstimator, ABC):
         )
 
     def _validate_input(self, X, y, incremental, reset):
-        X, y = self._validate_data(
+        X, y = validate_data(
+            self,
             X,
             y,
             accept_sparse=["csr", "csc"],

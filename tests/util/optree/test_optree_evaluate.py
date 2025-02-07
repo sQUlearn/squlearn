@@ -1,4 +1,4 @@
-""" Tests for OpTree evaluation"""
+"""Tests for OpTree evaluation"""
 
 import pytest
 from typing import Tuple, List

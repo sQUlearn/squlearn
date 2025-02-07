@@ -326,11 +326,11 @@ class Executor:
 
        # Executor with a IBM Quantum backend
        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.get_backend('ibm_brisbane'))
+       executor = Executor(service.backend('ibm_brisbane'))
 
        # Executor with a IBM Quantum backend and caching and logging
        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.get_backend('ibm_brisbane'), caching=True,
+       executor = Executor(service.backend('ibm_brisbane'), caching=True,
                             cache_dir='cache', log_file="log.log")
 
     **Example: Get the Executor based Qiskit primitives**
@@ -575,7 +575,7 @@ class Executor:
         elif isinstance(execution, QiskitRuntimeService):
             self._service = execution
             if isinstance(backend, str):
-                self._backend = self._service.get_backend(backend)
+                self._backend = self._service.backend(backend)
             elif isinstance(backend, Backend):
                 self._backend = backend
             elif isinstance(backend, list):
@@ -595,7 +595,7 @@ class Executor:
             # Execution is a active? session
             self._session = execution
             self._service = self._session.service
-            self._backend = self._session.service.get_backend(self._session.backend())
+            self._backend = self._session.service.backend(self._session.backend())
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
@@ -693,9 +693,10 @@ class Executor:
                     else:
                         shots = 1024
                         self._estimator.options.default_shots = 1024
-                self._estimator.options.update(
-                    simulator={"seed_simulator": self._set_seed_for_primitive}
-                )
+                if self._set_seed_for_primitive:
+                    self._estimator.options.update(
+                        simulator={"seed_simulator": self._set_seed_for_primitive}
+                    )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         elif isinstance(execution, BaseSamplerV2):
@@ -723,9 +724,10 @@ class Executor:
                     else:
                         shots = 1024
                         self._sampler.options.default_shots = 1024
-                self._sampler.options.update(
-                    simulator={"seed_simulator": self._set_seed_for_primitive}
-                )
+                if self._set_seed_for_primitive:
+                    self._sampler.options.update(
+                        simulator={"seed_simulator": self._set_seed_for_primitive}
+                    )
             else:
                 raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
@@ -3086,7 +3088,7 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
 
 
 def _convert_options_to_dict(
-    options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None]
+    options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None],
 ) -> dict:
     """Converts options to a dictionary."""
 

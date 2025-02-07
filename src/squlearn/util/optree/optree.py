@@ -420,7 +420,7 @@ class OpTreeValue(OpTreeLeafBase):
 
 
 def _simplify_operator(
-    element: Union[SparsePauliOp, OpTreeOperator]
+    element: Union[SparsePauliOp, OpTreeOperator],
 ) -> Union[SparsePauliOp, OpTreeOperator]:
     if isinstance(element, OpTreeOperator):
         operator = element.operator
@@ -552,7 +552,7 @@ class OpTree:
 
     @staticmethod
     def get_first_leaf(
-        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
+        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp],
     ) -> Union[OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
         """Returns the first leaf of the supplied OpTree.
 
@@ -634,7 +634,7 @@ class OpTree:
 
     @staticmethod
     def simplify(
-        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]
+        element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp],
     ) -> Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, SparsePauliOp]:
         """
         Function for simplifying an OpTree structure, the input is kept untouched.

@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from squlearn import Executor
 from squlearn.encoding_circuit import YZ_CX_EncodingCircuit
 from squlearn.kernel import QGPR
-from squlearn.kernel.matrix import ProjectedQuantumKernel, FidelityKernel
+from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel, FidelityKernel
 
 
 class TestQGPR:
