@@ -11,6 +11,8 @@ from sklearn.preprocessing._data import _handle_zeros_in_scale
 
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -114,9 +116,6 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         self._kernel_params = kwargs
 
-        if quantum_kernel.num_features is not None:
-            self.__initialize()
-
     def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
         The fit method of the QGPR class just calculates the training kernel matrix.
@@ -137,11 +136,10 @@ class QGPR(BaseEstimator, RegressorMixin):
         X = np.array(X)
         y = np.array(y)
 
-        if self._quantum_kernel.num_features is None:
-            self._quantum_kernel._set_num_features(X)
-            self.__initialize()
-        else:
-            self._quantum_kernel._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+        self._quantum_kernel._check_feature_consistency(X)
+
+        self.__initialize(num_features)
 
         X, y = validate_data(
             self,
@@ -221,6 +219,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Covariance of joint predictive distribution a query points.
                 Only returned when `return_cov` is True.
         """
+        self._quantum_kernel._check_feature_consistency(X)
 
         X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
@@ -338,9 +337,9 @@ class QGPR(BaseEstimator, RegressorMixin):
                 )
         return self
 
-    def __initialize(self) -> None:
+    def __initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
-        self._quantum_kernel._initialize_kernel()
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
 
         # Apply kwargs to set_params
         update_params = self.get_params().keys() & self._kernel_params.keys()

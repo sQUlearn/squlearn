@@ -3,6 +3,8 @@
 from sklearn.gaussian_process import GaussianProcessClassifier
 import numpy as np
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.kernel_util import kernel_wrapper
 
@@ -65,9 +67,6 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
-        if quantum_kernel.num_features is not None:
-            self.__initialize()
-
     @classmethod
     def _get_param_names(cls):
         names = GaussianProcessClassifier._get_param_names()
@@ -91,15 +90,18 @@ class QGPC(GaussianProcessClassifier):
         X = np.array(X)
         y = np.array(y)
 
-        if self._quantum_kernel.num_features is None:
-            self.quantum_kernel._set_num_features(X)
-            self.__initialize()
-        else:
-            self._quantum_kernel._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+        self._quantum_kernel._check_feature_consistency(X)
+
+        self.__initialize(num_features)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
+
+    def predict(self, X):
+        self._quantum_kernel._check_feature_consistency(X)
+        return super().predict(X)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -164,10 +166,10 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
 
-    def __initialize(self) -> None:
+    def __initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
 
-        self.quantum_kernel._initialize_kernel()
+        self.quantum_kernel._initialize_kernel(num_features=num_features)
 
         quantum_kernel_update_params = (
             self.quantum_kernel.get_params().keys() & self._kernel_params.keys()

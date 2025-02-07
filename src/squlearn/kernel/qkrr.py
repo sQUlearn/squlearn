@@ -8,6 +8,8 @@ from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -109,9 +111,6 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.dual_coeff_ = None
         self._kernel_params = kwargs
 
-        if quantum_kernel.num_features is not None:
-            self.__initialize()
-
     def fit(self, X, y):
         """
         Fit the Quantum Kernel Ridge regression model.
@@ -135,11 +134,10 @@ class QKRR(BaseEstimator, RegressorMixin):
         X = np.array(X)
         y = np.array(y)
 
-        if self._quantum_kernel.num_features is None:
-            self._quantum_kernel._set_num_features(X)
-            self.__initialize()
-        else:
-            self._quantum_kernel._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+        self._quantum_kernel._check_feature_consistency(X)
+
+        self.__initialize(num_features)
 
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
@@ -188,6 +186,8 @@ class QKRR(BaseEstimator, RegressorMixin):
             np.ndarray :
                 Returns predicted labels (at X) of shape (n_samples,)
         """
+        self._quantum_kernel._check_feature_consistency(X)
+
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
@@ -258,9 +258,9 @@ class QKRR(BaseEstimator, RegressorMixin):
                 )
         return self
 
-    def __initialize(self) -> None:
+    def __initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
-        self._quantum_kernel._initialize_kernel()
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
 
         # Apply kernel_params (kwargs) to set_params
         update_params = self.get_params().keys() & self._kernel_params.keys()

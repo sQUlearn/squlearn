@@ -4,6 +4,8 @@ from sklearn.svm import SVC
 from typing import Union, Optional
 import numpy as np
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
@@ -81,9 +83,6 @@ class QSVC(SVC):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
-        if quantum_kernel.num_features is not None:
-            self.__initialize()
-
     @classmethod
     def _get_param_names(cls):
         names = SVC._get_param_names()
@@ -117,15 +116,18 @@ class QSVC(SVC):
         X = np.array(X)
         y = np.array(y)
 
-        if self._quantum_kernel.num_features is None:
-            self._quantum_kernel._set_num_features(X)
-            self.__initialize()
-        else:
-            self._quantum_kernel._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+        self._quantum_kernel._check_feature_consistency(X)
+
+        self.__initialize(num_features=num_features)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
+
+    def predict(self, X):
+        self._quantum_kernel._check_feature_consistency(X)
+        return super().predict(X)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -181,11 +183,11 @@ class QSVC(SVC):
                 )
         return self
 
-    def __initialize(self) -> None:
+    def __initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
 
         if isinstance(self._quantum_kernel, KernelMatrixBase):
-            self._quantum_kernel._initialize_kernel()
+            self._quantum_kernel._initialize_kernel(num_features=num_features)
 
             # Apply kwargs to set_params of quantum kernel
             quantum_kernel_update_params = (
