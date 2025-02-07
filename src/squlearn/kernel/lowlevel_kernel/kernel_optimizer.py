@@ -179,12 +179,3 @@ class KernelOptimizer(KernelMatrixBase):
             params.update(self._quantum_kernel.get_params(deep=deep))
 
         return params
-
-    def _set_num_features(self, X: np.ndarray) -> None:
-        self._quantum_kernel._set_num_features(X)
-
-    def _generate_initial_parameters(self) -> None:
-        return super()._generate_initial_parameters()
-
-    def _initialize_kernel(self) -> None:
-        return self._quantum_kernel._initialize_kernel()

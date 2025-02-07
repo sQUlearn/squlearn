@@ -44,7 +44,6 @@ class KernelMatrixBase(ABC):
         self._parameter_seed = parameter_seed
         self._regularization = regularization
         self._is_trainable = False
-        self._is_initialized = False
 
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
@@ -63,19 +62,12 @@ class KernelMatrixBase(ABC):
         """Returns the feature dimension of the encoding circuit"""
         return self._encoding_circuit.num_features
 
-    @num_features.setter
-    def num_features(self, value: int) -> None:
-        """Sets the feature dimension of the encoding circuit"""
-        self._encoding_circuit.num_features = value
-
     @property
     def parameters(self) -> np.ndarray:
         """
         Returns the numeric values of the trainable parameters assigned to the
         encoding circuit as np.ndarray
         """
-        if self._parameters is None:
-            self._generate_initial_parameters()
         return self._parameters
 
     @property
@@ -111,7 +103,6 @@ class KernelMatrixBase(ABC):
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
-
         raise NotImplementedError()
 
     def evaluate_pairwise(self, x: np.ndarray, y: np.ndarray = None) -> float:
@@ -291,8 +282,8 @@ class KernelMatrixBase(ABC):
             x (np.ndarray): Input data to check, where each row corresponds to a data sample
                             and each column to a feature.
 
-        Warnings:
-            UserWarning: Raised if the number of features in the input data does not match the
+        Error:
+            ValueError: Raised if the number of features in the input data does not match the
                      `num_features` of the encoding circuit.
         """
         actual_num_features = extract_num_features(x)

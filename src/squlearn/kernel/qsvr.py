@@ -112,10 +112,6 @@ class QSVR(SVR):
         Return:
             Returns an instance of self.
         """
-
-        X = np.array(X)
-        y = np.array(y)
-
         num_features = extract_num_features(X)
         self._quantum_kernel._check_feature_consistency(X)
 

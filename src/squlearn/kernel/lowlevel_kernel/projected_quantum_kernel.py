@@ -434,19 +434,17 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         super().__init__(
             encoding_circuit, executor, initial_parameters, parameter_seed, regularization
         )
-
         self._measurement_input = measurement
         self._outer_kernel_input = outer_kernel
         self._caching = caching
         self._derivative_cache = {}
+        self._outer_kernel = outer_kernel
 
         # additional variables used in _initialize_kernel
         self._kwargs = kwargs
         self._initial_parameters = initial_parameters
         self._parameter_seed = parameter_seed
 
-        # set all necessary parameters
-        self._set_up_measurement_operator()
         self._set_outer_kernel(outer_kernel, **kwargs)
 
     def __reduce__(self):
@@ -868,6 +866,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     def _initialize_kernel(self, num_features: int) -> None:
         """Initializes the quantum kernel."""
+        self._set_up_measurement_operator()
         self._set_up_qnn(num_features=num_features)
 
         super()._initialize_kernel(num_features=num_features)
