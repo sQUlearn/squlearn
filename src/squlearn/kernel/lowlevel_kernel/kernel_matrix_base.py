@@ -107,6 +107,24 @@ class KernelMatrixBase(ABC):
             Returns the quantum kernel matrix as 2D numpy array.
         """
         raise NotImplementedError()
+    
+    def evaluate_derivatives(self, x: np.ndarray, y: np.ndarray = None, values: str = "K") -> np.ndarray:
+        """
+        Computes the derivatives of the quantum kernel matrix.
+
+        Args:
+            x (np.ndarray) :
+                Vector of training or test data for which the kernel matrix is evaluated
+            y (np.ndarray, default=None) :
+                Vector of training or test data for which the kernel matrix is evaluated
+            values (str) :
+                String that specifies which derivatives of the kernel matrix should be computed.
+                Possible values are "K", "dKdx", "dKdy", "dKdxdx", "dKdp"
+        Returns:
+            Returns the derivatives of the quantum kernel matrix as 2D numpy array.
+        """
+        print("evaluate_derivatives is only implemented for use_expectation_value = True")
+        raise NotImplementedError()
 
     def evaluate_pairwise(self, x: np.ndarray, y: np.ndarray = None) -> float:
         """
