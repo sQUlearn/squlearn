@@ -12,7 +12,7 @@ from ...util.data_preprocessing import to_tuple
 
 class FidelityKernelExpectationValue(KernelMatrixBase):
     """
-    Fidelity Quantum Kernel based on the expectation value of the quantum circuit.
+    Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by U(x)^\dagger U(y) |0> and measuring against P0=|0><0|^\otimes n, where U(x) is the encoding circuit for data x.
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
@@ -172,8 +172,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 [2, 3],
                 [3, 3]])
             """
-            if np.array_equal(x, y):
-                if np.allclose(x, y):
+            if np.array_equal(x, y) and np.allclose(x, y):
                     are_equal = True
             else:
                 are_equal = False
@@ -264,15 +263,10 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 k_flat = k_flat.reshape(n, n2)
             
             return k_flat
-
-
+        
+        
         if y is None:
             y = x
-        else:
-            if np.array_equal(x, y) == False:
-                self._evaluate_duplicates = "all"
-            
-        
 
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = []
@@ -323,18 +317,21 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             mutiple_values = False
             values = [values]
 
+        
+
         for todo in values:
             if todo in value_dict:
                 continue
             else:
+                if self._evaluate_duplicates != "all" and todo != "K":
+                    print(f"Warning: evaluate_duplicates is set to {self._evaluate_duplicates} but, evaluate_duplicates = {self._evaluate_duplicates} is not yet supported for
+                    {todo}. evaluate_duplicates='all' will be used for this evaluation.")
                 if todo == "K":
-                    if self._evaluate_duplicates == "all":
+                    if self._evaluate_duplicates == "all": 
                         kernel_matrix = eval_helper(value_dict["x"], "f")
                     else:
                         kernel_matrix = eval_helper(value_dict["x_without_duplicates"], "f")
-                    kernel_matrix = reshape_to_kernel_matrix(
-                        kernel_matrix, x.shape[0], y.shape[0], self._evaluate_duplicates)
-
+                    kernel_matrix = reshape_to_kernel_matrix(kernel_matrix, x.shape[0], y.shape[0], self._evaluate_duplicates)
                 elif todo == "dKdx" or todo == "dKdy":
                     dKdx = eval_helper(value_dict["x"], "dfdx").reshape(
                         x.shape[0], y.shape[0], 2 * self.num_features
@@ -473,90 +470,3 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         if len(params) > 0:
             raise ValueError("The following parameters could not be assigned:", params)
     
-    # def _pennylane_evaluate_kernel(self, x, y):
-    #     """Function to evaluate the kernel matrix using PennyLane based on fidelity test.
-
-    #     Args:
-    #         x (np.ndarray): Vector of data for which the kernel matrix is evaluated
-    #         y (np.ndarray): Vector of data for which the kernel matrix is evaluated
-    #                         (can be similar to x)
-
-    #     Returns:
-    #         np.ndarray: Quantum kernel matrix as 2D numpy array.
-    #     """
-
-    #     def not_needed(i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool) -> bool:
-    #         """Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
-
-    #         Args:
-    #             i: Row index kernel matrix entry.
-    #             j: Column index kernel matrix matrix entry.
-    #             x_i: A sample from the dataset corresponding to the row in the kernel matrix.
-    #             y_j: A sample from the dataset corresponding to the column in the kernel matrix.
-    #             symmetric: Boolean indicating whether it is a symmetric case or not.
-
-    #         Returns:
-    #             True if value is trivial, False otherwise.
-    #         """
-    #         # evaluate all combinations -> all are needed
-    #         if self._evaluate_duplicates == "all":
-    #             return False
-
-    #         # only off-diagonal entries are needed
-    #         if symmetric and i == j and self._evaluate_duplicates == "off_diagonal":
-    #             return True
-
-    #         # don't evaluate any duplicates
-    #         if np.array_equal(x_i, y_j) and self._evaluate_duplicates == "none":
-    #             return True
-
-    #         # otherwise evaluate
-    #         return False
-
-    #     is_symmetric = np.array_equal(x, y)
-    #     num_features = x.shape[1]
-    #     x_list = np.zeros((0, num_features))
-    #     y_list = np.zeros((0, num_features))
-
-    #     if is_symmetric:
-    #         indices = []
-    #         for i, x_i in enumerate(x):
-    #             for j, x_j in enumerate(x[i:]):
-    #                 if not_needed(i, i + j, x_i, x_j, True):
-    #                     continue
-    #                 x_list = np.vstack((x_list, x_i))
-    #                 y_list = np.vstack((y_list, x_j))
-    #                 indices.append((i, i + j))
-    #     else:
-    #         indices = []
-    #         for i, x_i in enumerate(x):
-    #             for j, y_j in enumerate(y):
-    #                 if not_needed(i, j, x_i, y_j, False):
-    #                     continue
-    #                 x_list = np.vstack((x_list, x_i))
-    #                 y_list = np.vstack((y_list, y_j))
-    #                 indices.append((i, j))
-
-    #     if self._parameter_vector is not None:
-    #         if self._parameters is None:
-    #             raise ValueError(
-    #                 "Parameters have to been set with assign_parameters or as initial parameters!"
-    #             )
-    #         arguments = [(self._parameters, x1, x2) for x1, x2 in zip(y_list, x_list)]
-    #     else:
-    #         arguments = [(x1, x2) for x1, x2 in zip(y_list, x_list)]
-
-    #     circuits = [self._pennylane_circuit] * len(arguments)
-    #     all_probs = self._executor.pennylane_execute_batched(circuits, arguments)
-    #     kernel_entries = [prob[0] for prob in all_probs]  # Get the count of the zero state
-
-    #     kernel_matrix = np.ones((x.shape[0], y.shape[0]))
-    #     if is_symmetric:
-    #         for i, (col, row) in enumerate(indices):
-    #             kernel_matrix[col, row] = kernel_entries[i]
-    #             kernel_matrix[row, col] = kernel_entries[i]
-    #     else:
-    #         for i, (col, row) in enumerate(indices):
-    #             kernel_matrix[col, row] = kernel_entries[i]
-
-    #     return kernel_matrix
