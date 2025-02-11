@@ -324,8 +324,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 continue
             else:
                 if self._evaluate_duplicates != "all" and todo != "K":
-                    print(f"Warning: evaluate_duplicates is set to {self._evaluate_duplicates} but, evaluate_duplicates = {self._evaluate_duplicates} is not yet supported for
-                    {todo}. evaluate_duplicates='all' will be used for this evaluation.")
+                    print(f"Warning: evaluate_duplicates is set to {self._evaluate_duplicates} but, evaluate_duplicates = {self._evaluate_duplicates} is not yet supported for{todo}. evaluate_duplicates='all' will be used for this evaluation.")
                 if todo == "K":
                     if self._evaluate_duplicates == "all": 
                         kernel_matrix = eval_helper(value_dict["x"], "f")
