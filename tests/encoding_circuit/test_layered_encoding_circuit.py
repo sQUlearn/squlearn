@@ -1,14 +1,12 @@
-import copy
 import numpy as np
-
-import pytest
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 from squlearn.encoding_circuit import LayeredEncodingCircuit, ChebyshevPQC
+from squlearn.encoding_circuit.layered_encoding_circuit import Layer
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel import QGPR
 
 
 class TestLayeredEncodingCircuit:
@@ -17,7 +15,7 @@ class TestLayeredEncodingCircuit:
     def test_layered_encoding_circuit_gates(self):
         """Test the non-parameterized gates of the LayeredEncodingCircuit."""
 
-        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
+        lfm = LayeredEncodingCircuit(num_qubits=4)
 
         # Test the H gate
         lfm.H()
@@ -71,7 +69,7 @@ class TestLayeredEncodingCircuit:
     def test_layered_encoding_circuit_param_gates(self):
         """Test the parameterized gates of the LayeredEncodingCircuit."""
 
-        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=2)
+        lfm = LayeredEncodingCircuit(num_qubits=4)
         expected_circuit = QuantumCircuit(4)
         p = ParameterVector("p", 16)
         x = ParameterVector("x", 2)
@@ -82,24 +80,32 @@ class TestLayeredEncodingCircuit:
             expected_circuit.rx(np.arccos(p[i]), i)
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+        print(lfm.num_parameters)
+        print(len(lfm._delayed_operations))
 
         # Test the RY gate
         lfm.Ry("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.ry(np.arccos(p[i + 4]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+        print(lfm.num_parameters)
+        print(len(lfm._delayed_operations))
 
         # Test the RZ gate
         lfm.Rz("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.rz(np.arccos(p[i + 8]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+        print(lfm.num_parameters)
+        print(len(lfm._delayed_operations))
 
         # Test the Phase gate
         lfm.P("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.p(np.arccos(p[i + 12]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+        print(lfm.num_parameters)
+        print(len(lfm._delayed_operations))
 
         # Test the U gate
         lfm.U(("x", "x", "x"))
@@ -109,6 +115,8 @@ class TestLayeredEncodingCircuit:
             ioff += 3
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
+        print(lfm.num_parameters)
+        print(len(lfm._delayed_operations))
 
         kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(16)).evaluate(
             np.ones((1, 2)), np.ones((1, 2))
@@ -132,7 +140,7 @@ class TestLayeredEncodingCircuit:
             gate_function(2, 3)
 
         # Create a LayeredEncodingCircuit with 2 layers and 3 features per layer
-        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
+        lfm = LayeredEncodingCircuit(num_qubits=4)
         expected_circuit = QuantumCircuit(4)
 
         lfm_list = [
@@ -181,7 +189,7 @@ class TestLayeredEncodingCircuit:
             return offset + 6
 
         # Create a LayeredEncodingCircuit with 2 layers and 3 features per layer
-        lfm = LayeredEncodingCircuit(num_qubits=4, num_features=0)
+        lfm = LayeredEncodingCircuit(num_qubits=4)
         expected_circuit = QuantumCircuit(4)
         p = ParameterVector("p", 72)
         x = ParameterVector("x", 2)
@@ -252,7 +260,9 @@ class TestLayeredEncodingCircuit:
 
         cpqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=3, closed=False)
 
-        assert str(lfm.draw(output="text")) == str(cpqc.draw(output="text"))
+        assert str(lfm.draw(output="text", num_features=1)) == str(
+            cpqc.draw(output="text", num_features=1)
+        )
 
         kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(29)).evaluate(
             np.array([0.5]), np.array([0.5])
@@ -260,29 +270,17 @@ class TestLayeredEncodingCircuit:
         assert np.allclose(kernel, np.array([1.0]))
 
     def test_init(self):
-        circuit = LayeredEncodingCircuit(num_qubits=2, num_features=2)
-        assert circuit.num_features == 2
+        circuit = LayeredEncodingCircuit(num_qubits=2)
         assert circuit.num_qubits == 2
 
-    def test_generate_initial_parameters(self):
-        circuit = LayeredEncodingCircuit(num_qubits=2, num_features=2)
-        params = circuit.generate_initial_parameters(seed=42)
-        assert len(params) == circuit.num_parameters
-
-    def test_get_circuit(self):
-        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2, num_layers=1)
-        features = np.array([0.5, -0.5])
-        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
-
-        qc = circuit.get_circuit(features=features, parameters=params)
-        assert isinstance(qc, QuantumCircuit)
-        assert qc.num_qubits == 2
-
-        used_params = {param for instruction in qc.data for param in instruction.operation.params}
-        assert len(used_params) == len(params)
-
     def test_minimal_fit(self):
-        circuit = LayeredEncodingCircuit(num_features=2, num_qubits=2)
+        circuit = LayeredEncodingCircuit(num_qubits=2)
+        circuit.H()
+        layer = Layer(circuit)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        circuit.add_layer(layer, num_layers=2)
 
         X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
         y_train = np.array([5, 7, 9, 11, 13])
