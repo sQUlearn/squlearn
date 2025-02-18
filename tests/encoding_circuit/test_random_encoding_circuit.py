@@ -1,14 +1,13 @@
 import numpy as np
 import pytest
-import copy
 
 from qiskit import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import RandomEncodingCircuit
 from qiskit.circuit import ParameterVector
 
-from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.kernel import QGPR
 
 
 class TestRandomEncodingCircuit:
@@ -47,40 +46,40 @@ class TestRandomEncodingCircuit:
             "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[1]))])",
         ]
 
-        pqc = RandomEncodingCircuit(num_qubits=2, num_features=4, seed=2)
+        # _gen_random_config must be called explictly to ensure the property num_parameters is available
+        pqc = RandomEncodingCircuit(num_qubits=2, seed=2)
         x = ParameterVector("x", 4)
+        pqc._gen_random_config(seed=2, num_features=len(x))
         p = ParameterVector("p", pqc.num_parameters)
         check_list1 = [str(op[0]) for op in pqc.get_circuit(x, p)]
         assert check_list1 == reference1
 
-        pqc.set_params(num_qubits=3, num_features=3, min_gates=3, max_gates=5)
+        pqc.set_params(num_qubits=3, min_gates=3, max_gates=5)
         x = ParameterVector("x", 3)
+        pqc._gen_random_config(seed=2, num_features=len(x))
         p = ParameterVector("p", pqc.num_parameters)
         check_list2 = [str(op[0]) for op in pqc.get_circuit(x, p)]
         assert check_list2 == reference2
 
         pqc.set_params(seed=1234)
+        pqc._gen_random_config(seed=1234, num_features=len(x))
         p = ParameterVector("p", pqc.num_parameters)
         check_list3 = [str(op[0]) for op in pqc.get_circuit(x, p)]
         assert check_list3 == reference3
 
     def test_init(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
-        assert circuit.num_features == 2
+        circuit = RandomEncodingCircuit(num_qubits=2, min_gates=9, max_gates=40, seed=42)
+
         assert circuit.num_qubits == 2
         assert circuit.min_gates == 9
         assert circuit.max_gates == 40
         assert circuit.seed == 42
 
     def test_get_params(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
+        circuit = RandomEncodingCircuit(num_qubits=2, min_gates=9, max_gates=40, seed=42)
         named_params = circuit.get_params()
         assert named_params == {
-            "num_features": 2,
+            "num_features": None,
             "num_qubits": 2,
             "min_gates": 9,
             "max_gates": 40,
@@ -90,16 +89,12 @@ class TestRandomEncodingCircuit:
         }
 
     def test_set_params(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
+        circuit = RandomEncodingCircuit(num_qubits=2, min_gates=9, max_gates=40, seed=42)
         circuit.set_params(
-            num_features=3,
             num_qubits=3,
             min_gates=11,
             max_gates=35,
         )
-        assert circuit.num_features == 3
         assert circuit.num_qubits == 3
         assert circuit.min_gates == 11
         assert circuit.max_gates == 35
@@ -108,9 +103,8 @@ class TestRandomEncodingCircuit:
             circuit.set_params(invalid_param="invalid")
 
     def test_get_circuit(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=42
-        )
+        circuit = RandomEncodingCircuit(num_qubits=2, min_gates=9, max_gates=40, seed=42)
+        circuit._gen_random_config(seed=42, num_features=2)
         features = np.array([0.5, -0.5])
         params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
 
@@ -119,9 +113,7 @@ class TestRandomEncodingCircuit:
         assert qc.num_qubits == 2
 
     def test_minimal_fit(self):
-        circuit = RandomEncodingCircuit(
-            num_features=2, num_qubits=2, min_gates=9, max_gates=40, seed=40
-        )
+        circuit = RandomEncodingCircuit(num_qubits=2, min_gates=9, max_gates=40, seed=40)
 
         X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
         y_train = np.array([5, 7, 9, 11, 13])
