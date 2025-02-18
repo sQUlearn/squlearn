@@ -1,4 +1,3 @@
-from math import inf
 import pytest
 import warnings
 import numpy as np
@@ -22,13 +21,12 @@ class MockCircuitBase(EncodingCircuitBase):
 class TestEncodingCircuitBase:
 
     def test_init(self):
-        circuit = MockCircuitBase(num_features=2, num_qubits=2)
-        assert circuit.num_features == 2
+        circuit = MockCircuitBase(num_qubits=2)
         assert circuit.num_qubits == 2
 
     def test_generate_initial_parameters(self):
         custom_circuit = MockCircuitBase(num_qubits=4)
-        params = custom_circuit.generate_initial_parameters(seed=42)
+        params = custom_circuit.generate_initial_parameters(seed=42, num_features=2)
         assert len(params) == 2
         assert (params >= -np.pi).all() and (params <= np.pi).all()
 
@@ -40,14 +38,13 @@ class TestEncodingCircuitBase:
             assert "`num_features` is not set" in str(w[-1].message)
 
     def test_add(self):
-        circuit_1 = MockCircuitBase(num_qubits=4, num_features=2)
-        circuit_2 = MockCircuitBase(num_qubits=4, num_features=3)
-        circuit_3 = MockCircuitBase(num_qubits=3, num_features=2)
+        circuit_1 = MockCircuitBase(num_qubits=4)
+        circuit_2 = MockCircuitBase(num_qubits=4)
+        circuit_3 = MockCircuitBase(num_qubits=3)
         circuit_composed = circuit_1 + circuit_2
 
-        # check if the composed circuit has the correct number of qubits, features, and parameters
+        # check if the composed circuit has the correct number of qubits and parameters
         assert circuit_composed.num_qubits == 4
-        assert circuit_composed.num_features == 3
         assert circuit_composed.num_parameters == 4
 
         # check if the composed circuit has the correct number of parameters
@@ -60,16 +57,14 @@ class TestEncodingCircuitBase:
         assert composed_named_params == {
             "ec1": circuit_1,
             "ec2": circuit_2,
-            "ec1__num_features": 2,
-            "ec2__num_features": 3,
+            "ec1__num_features": None,
+            "ec2__num_features": None,
             "num_qubits": 4,
         }
 
         # check if the composed circuit can be set with new parameters
-        circuit_composed.set_params(num_qubits=5, ec1__num_features=3, ec2__num_features=4)
+        circuit_composed.set_params(num_qubits=5)
         assert circuit_composed.num_qubits == 5
-        assert circuit_1.num_features == 3
-        assert circuit_2.num_features == 4
 
         # unequal number of qubits
         with pytest.raises(ValueError):
@@ -80,13 +75,12 @@ class TestEncodingCircuitBase:
             circuit_1 + "invalid"
 
     def test_get_and_set_params(self):
-        circuit = MockCircuitBase(num_qubits=4, num_features=2)
+        circuit = MockCircuitBase(num_qubits=4)
         params = circuit.get_params()
-        assert params == {"num_qubits": 4, "num_features": 2}
+        assert params == {"num_qubits": 4, "num_features": None}
 
-        circuit.set_params(num_qubits=5, num_features=3)
+        circuit.set_params(num_qubits=5)
         assert circuit.num_qubits == 5
-        assert circuit.num_features == 3
 
         with pytest.raises(ValueError):
             circuit.set_params(invalid_param=1)

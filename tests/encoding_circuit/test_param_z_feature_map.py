@@ -1,39 +1,36 @@
 import numpy as np
-import copy
 from qiskit import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import ParamZFeatureMap
-from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.kernel import QGPR
 
 
 class TestParamZFeatureMap:
     def test_init(self):
-        circuit = ParamZFeatureMap(num_qubits=2, num_features=2)
-        assert circuit.num_features == 2
+        circuit = ParamZFeatureMap(num_qubits=2)
         assert circuit.num_qubits == 2
         assert circuit.num_layers == 2
         assert circuit._entangling is False
 
     def test_num_parameters(self):
-        features = 2
         qubits = 3
         layers = 2
-        circuit = ParamZFeatureMap(num_features=features, num_qubits=qubits, num_layers=layers)
-        assert circuit.num_parameters == max(qubits, features) * layers
+        circuit = ParamZFeatureMap(num_qubits=qubits, num_layers=layers)
+        assert circuit.num_parameters() == max(qubits) * layers
 
     def test_get_params(self):
-        circuit = ParamZFeatureMap(num_features=2, num_qubits=2)
+        circuit = ParamZFeatureMap(num_qubits=2)
         named_params = circuit.get_params()
         assert named_params == {
-            "num_features": 2,
+            "num_features": None,
             "num_qubits": 2,
             "num_layers": 2,
             "entangling": False,
         }
 
     def test_get_ciruit(self):
-        circuit = ParamZFeatureMap(num_features=2, num_qubits=2)
+        circuit = ParamZFeatureMap(num_qubits=2)
         features = np.array([0.5, -0.5])
         params = np.array([0.1, 0.2, 0.3, 0.4])
 
@@ -42,7 +39,7 @@ class TestParamZFeatureMap:
         assert qc.num_qubits == 2
 
     def test_minimal_fit(self):
-        circuit = ParamZFeatureMap(num_features=2, num_qubits=2, num_layers=2)
+        circuit = ParamZFeatureMap(num_qubits=2, num_layers=2)
 
         X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
         y_train = np.array([5, 7, 9, 11, 13])

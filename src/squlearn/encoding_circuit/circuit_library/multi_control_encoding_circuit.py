@@ -4,7 +4,9 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class MultiControlEncodingCircuit(EncodingCircuitBase):
@@ -107,10 +109,10 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         if self.num_qubits < 2:
             raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
 
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
+        num_features = extract_num_features(features)
+        num_params = len(parameters)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
-        nfeature = len(features)
-        nparam = len(parameters)
         QC = QuantumCircuit(self.num_qubits)
         index_offset = 0
         feature_offset = 0
@@ -119,7 +121,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
             # First ZZ-encoding circuit
             QC.h(range(self.num_qubits))
             for i in range(self.num_qubits):
-                QC.rz(features[feature_offset % nfeature], i)
+                QC.rz(features[feature_offset % num_features], i)
                 feature_offset += 1
 
             if self.closed:
@@ -128,11 +130,11 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                 istop = self.num_qubits - 1
 
             for i in range(0, istop, 2):
-                QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                QC.crx(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                 index_offset += 1
-                QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                QC.cry(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                 index_offset += 1
-                QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                QC.crz(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                 index_offset += 1
 
             if self.num_qubits >= 2:
@@ -142,15 +144,15 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                     istop = self.num_qubits - 1
 
                 for i in range(1, istop, 2):
-                    QC.crx(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    QC.crx(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
-                    QC.cry(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    QC.cry(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
-                    QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    QC.crz(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
 
         if self.final_encoding:
             for i in range(self.num_qubits):
-                QC.rz(features[feature_offset % nfeature], i)
+                QC.rz(features[feature_offset % num_features], i)
                 feature_offset += 1
         return QC

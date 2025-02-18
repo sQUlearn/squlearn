@@ -36,7 +36,6 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
     """
 
     def __init__(self, encoding_circuit: EncodingCircuitBase, pruned_parameters: list):
-
         self._encoding_circuit = encoding_circuit
         self._pruned_parameters = pruned_parameters
         self._p = None
@@ -50,9 +49,8 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Feature bounds of the pruned encoding circuit."""
-        bounds = self._encoding_circuit.feature_bounds
-        return np.delete(bounds, self._pruned_features, 0)
+        """Feature bounds of the pruned encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
+        return self._encoding_circuit.feature_bounds
 
     @property
     def parameter_bounds(self) -> np.ndarray:
@@ -180,6 +178,11 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
         return self._pruned_circuit.assign_parameters(exchange_both)
+
+    def get_feature_bounds(self, num_features: int) -> np.ndarray:
+        """Returns the feature bounds expanded for a given number of features."""
+        bounds = np.tile(self.feature_bounds, (num_features, 1))
+        return np.delete(bounds, self._pruned_features, 0)
 
 
 def automated_pruning(

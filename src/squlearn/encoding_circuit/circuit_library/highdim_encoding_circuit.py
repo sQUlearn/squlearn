@@ -1,8 +1,10 @@
+import math
 import numpy as np
 from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
-from traitlets import Int
+
+from squlearn.util.data_preprocessing import extract_num_features
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -88,12 +90,10 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> float:
         """The number of encoding slots of the HighDim encoding circuit."""
-        if self._num_features is not None:
-            return self.num_features
         if self.num_layers is not None:
-            return self.num_qubits * self.num_layers
+            return 3 * self.num_qubits * self.num_layers
         else:
-            return self.num_qubits
+            return math.inf
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -141,10 +141,8 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         if self.entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self.entangling_gate)
 
-        cached_num_features = self.num_features
-
-        if self.num_features is None:
-            self.num_features = self.num_encoding_slots
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, index_offset: int):
             """
@@ -169,18 +167,18 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                 ii = index_offset + i
                 if self.cycling:
                     if self.cycling_type == "saw":
-                        ii = ii % self.num_features
+                        ii = ii % num_features
                     elif self.cycling_type == "hat":  # todo better name
-                        itest = ii % max(self.num_features + self.num_features - 2, 1)
-                        if itest >= self.num_features:
-                            ii = self.num_features + self.num_features - 2 - itest
+                        itest = ii % max(num_features + num_features - 2, 1)
+                        if itest >= num_features:
+                            ii = num_features + num_features - 2 - itest
                         else:
                             ii = itest
                     else:
                         raise ValueError("Unknown cycling type!")
 
                 # Terminate if all features in this layer have been addressed
-                if iqubit >= self.num_qubits or ii >= self.num_features:
+                if iqubit >= self.num_qubits or ii >= num_features:
                     break
 
                 # Create Rz and Ry gates
@@ -221,9 +219,6 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                 QC.cx(i, i + 1)
             return QC
 
-        if self.num_features != len(features):
-            raise ValueError("Wrong number of features")
-
         if parameters is not None:
             if len(parameters) != 0:
                 raise ValueError("No parameters are needed!")
@@ -235,10 +230,10 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         # Determine the number of layers of not given
         if self.num_layers is None:
-            self.num_layers = max(int(self.num_features / (self.num_qubits * 3)), 2)
+            self.num_layers = max(int(num_features / (self.num_qubits * 3)), 2)
 
         # Check if all features are represented in the encoding circuit
-        if self.num_layers * self.num_qubits * 3 < self.num_features:
+        if self.num_layers * self.num_qubits * 3 < num_features:
             raise RuntimeError("Not all features are represented in the encoding circuit!")
 
         # Loop through the layers
@@ -253,11 +248,9 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                     raise ValueError("Unknown entangling gate:", self.entangling_gate)
             QC = build_layer(QC, features, index_offset)
             index_offset += self.num_qubits * 3
-            if self.cycling is False and index_offset >= self.num_features:
+            if self.cycling is False and index_offset >= num_features:
                 index_offset = 0
 
-        # restore the number of features
-        self.num_features = cached_num_features
         return QC
 
 

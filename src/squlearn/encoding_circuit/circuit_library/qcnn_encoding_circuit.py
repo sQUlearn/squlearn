@@ -1,16 +1,16 @@
 import numpy as np
+import math
 from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.converters import circuit_to_gate, circuit_to_instruction
 
-from squlearn.encoding_circuit.encoding_circuit_base import (
-    EncodingCircuitBase,
-    EncodingSlotsMismatchError,
-)
+from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+
 from squlearn.encoding_circuit.circuit_library.param_z_feature_map import ParamZFeatureMap
 from squlearn.observables import CustomObservable, SummedPaulis
 from squlearn.observables.observable_base import ObservableBase
+from squlearn.util.data_preprocessing import extract_num_features
 
 
 class QCNNEncodingCircuit(EncodingCircuitBase):
@@ -66,7 +66,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """Returns the number of encoding slots of the current QCNNEncodingCircuit."""
-        return self.num_qubits
+        return math.inf
 
     def set_params(self, **params):
         """
@@ -425,14 +425,14 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                 "Either with 'set_params', or with 'build_circuit'."
             )
 
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
-
         total_qc = QuantumCircuit(
             self.num_qubits, self._num_measurements
         )  # keeps track of the whole encoding circuit
 
         # if it is asked for a intrinsic feature map
-        num_features = len(features)
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+
         if num_features > 0:
             feature_map = ParamZFeatureMap(self.num_qubits, num_features, 1).get_circuit(
                 features=features, parameters=[1] * num_features

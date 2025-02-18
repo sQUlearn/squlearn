@@ -6,7 +6,9 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class ChebyshevTower(EncodingCircuitBase):
@@ -83,15 +85,11 @@ class ChebyshevTower(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the ChebyshevPQC encoding circuit."""
-        bounds = np.zeros((self.num_features, 2))
+        """The bounds of the features of the ChebyshevPQC encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
         if self.nonlinearity == "arccos":
-            bounds[:, 0] = -1.0
-            bounds[:, 1] = 1.0
+            return np.array([-1.0, 1.0])
         elif self.nonlinearity == "arctan":
-            bounds[:, 0] = -np.inf
-            bounds[:, 1] = np.inf
-        return bounds
+            return np.array([-np.inf, np.inf])
 
     @property
     def num_encoding_slots(self) -> int:
@@ -160,7 +158,8 @@ class ChebyshevTower(EncodingCircuitBase):
         if self.arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit):
             """Creation of a simple NN entangling layer"""
@@ -182,8 +181,6 @@ class ChebyshevTower(EncodingCircuitBase):
                 """Non-linear mapping for x: alpha*i*arctan(x)"""
                 return self.alpha * i * np.arctan(x)
 
-        nfeature = len(features)
-
         QC = QuantumCircuit(self.num_qubits)
 
         if self.hadamard_start:
@@ -195,10 +192,10 @@ class ChebyshevTower(EncodingCircuitBase):
             icheb = 1
             # Loops through the data encoding gates
             if self.arrangement == "block":
-                outer = self.num_features
+                outer = num_features
                 inner = self.num_chebyshev
             elif self.arrangement == "alternating":
-                inner = self.num_features
+                inner = num_features
                 outer = self.num_chebyshev
             else:
                 raise ValueError("Arrangement must be either 'block' or 'alternating'")
@@ -207,17 +204,17 @@ class ChebyshevTower(EncodingCircuitBase):
                 for inner_ in range(inner):
                     if self.rotation_gate.lower() == "rx":
                         QC.rx(
-                            mapping(features[index_offset % nfeature], icheb),
+                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                     elif self.rotation_gate.lower() == "ry":
                         QC.ry(
-                            mapping(features[index_offset % nfeature], icheb),
+                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                     elif self.rotation_gate.lower() == "rz":
                         QC.rz(
-                            mapping(features[index_offset % nfeature], icheb),
+                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                     else:

@@ -3,7 +3,9 @@ from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class HubregtsenEncodingCircuit(EncodingCircuitBase):
@@ -87,11 +89,6 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         return bound_array
 
     @property
-    def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the Hubregtsen encoding circuit."""
-        return np.array([[-np.pi, np.pi]] * self.num_features)
-
-    @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the Hubregtsen encoding circuit."""
         return self.num_qubits * self.num_layers
@@ -130,11 +127,9 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the Hubregtsen circuit in qiskit QuantumCircuit format
         """
-
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
-
-        nfeatures = len(features)
-        nparam = len(parameters)
+        num_features = extract_num_features(features)
+        num_params = len(parameters)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         QC = QuantumCircuit(self.num_qubits)
         index_offset = 0
@@ -144,16 +139,16 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         # Loops through the layers
         for layer in range(self.num_layers):
             # Loops through the data encoding gates
-            n_feature_loop = int(np.ceil(self.num_features / self.num_qubits))
+            n_feature_loop = int(np.ceil(num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):
                 if (i // self.num_qubits) % 2 == 0:
-                    QC.rz(features[i % nfeatures], i % self.num_qubits)
+                    QC.rz(features[i % num_features], i % self.num_qubits)
                 else:
-                    QC.rx(features[i % nfeatures], i % self.num_qubits)
+                    QC.rx(features[i % num_features], i % self.num_qubits)
 
             # Single theta Ry gates
             for i in range(self.num_qubits):
-                QC.ry(parameters[index_offset % nparam], i)
+                QC.ry(parameters[index_offset % num_params], i)
                 index_offset += 1
 
             # Entangled theta CRZ gates
@@ -164,16 +159,16 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
                     istop = self.num_qubits - 1
 
                 for i in range(istop):
-                    QC.crz(parameters[index_offset % nparam], i, (i + 1) % self.num_qubits)
+                    QC.crz(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
 
         if self.final_encoding:
             # Repeat encoding finally to make the previous rotations not redundant
-            n_feature_loop = int(np.ceil(self.num_features / self.num_qubits))
+            n_feature_loop = int(np.ceil(num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):
                 if int(np.ceil(i / self.num_qubits)) % 2 == 0:
-                    QC.rz(features[i % nfeatures], i % self.num_qubits)
+                    QC.rz(features[i % num_features], i % self.num_qubits)
                 else:
-                    QC.rx(features[i % nfeatures], i % self.num_qubits)
+                    QC.rx(features[i % num_features], i % self.num_qubits)
 
         return QC

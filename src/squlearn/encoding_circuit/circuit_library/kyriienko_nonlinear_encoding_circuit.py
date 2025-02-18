@@ -3,8 +3,11 @@ from typing import Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
+from sympy import nfloat
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
 
 
@@ -152,8 +155,8 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         Returns:
             QuantumCircuit: The encoding circuit
         """
-
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""
@@ -195,10 +198,10 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                                 QC.cx(i, 0)
             return QC, index_offset
 
-        nfeature = len(features)
+        num_features = extract_num_features(features)
 
         if self.encoding_style == "chebyshev_product":
-            QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=self.num_features)
+            QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=num_features)
             layer = Layer(QC)
             {"rx": layer.Rx, "ry": layer.Ry, "rz": layer.Rz}[self.rotation_gate](
                 "x", encoding=np.arcsin
@@ -213,13 +216,13 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                 iqubit = 0
                 icheb = 1
 
-                inner = self.num_features
+                inner = num_features
                 outer = self.num_chebyshev
 
                 for outer_ in range(outer):
                     for inner_ in range(inner):
                         {"rx": QC.rx, "ry": QC.ry, "rz": QC.rz}[self.rotation_gate](
-                            mapping(features[index_offset_encoding % nfeature], icheb),
+                            mapping(features[index_offset_encoding % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                         iqubit += 1

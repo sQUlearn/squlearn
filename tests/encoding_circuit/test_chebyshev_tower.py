@@ -1,19 +1,16 @@
 import pytest
-import copy
 import numpy as np
 from qiskit import QuantumCircuit
-from sklearn.preprocessing import MinMaxScaler
 from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
-from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.kernel import QGPR
 
 
 class TestChebyshevTower:
     def test_init(self):
-        circuit = ChebyshevTower(num_qubits=2, num_chebyshev=2, num_features=2)
-        assert circuit.num_features == 2
+        circuit = ChebyshevTower(num_qubits=2, num_chebyshev=2)
         assert circuit.num_qubits == 2
         assert circuit.num_chebyshev == 2
         assert circuit.alpha == 1.0
@@ -24,13 +21,13 @@ class TestChebyshevTower:
         assert circuit.nonlinearity == "arccos"
 
         with pytest.raises(ValueError):
-            ChebyshevTower(num_qubits=2, num_chebyshev=2, num_features=2, rotation_gate="invalid")
+            ChebyshevTower(num_qubits=2, num_chebyshev=2, rotation_gate="invalid")
 
         with pytest.raises(ValueError):
-            ChebyshevTower(num_qubits=2, num_chebyshev=2, num_features=2, arrangement="invalid")
+            ChebyshevTower(num_qubits=2, num_chebyshev=2, arrangement="invalid")
 
         with pytest.raises(ValueError):
-            ChebyshevTower(num_qubits=2, num_chebyshev=2, num_features=2, nonlinearity="invalid")
+            ChebyshevTower(num_qubits=2, num_chebyshev=2, nonlinearity="invalid")
 
     def test_feature_bounds(self):
         circuit = ChebyshevTower(
@@ -50,10 +47,10 @@ class TestChebyshevTower:
         assert bounds[0, 1] == np.inf
 
     def test_get_params(self):
-        circuit = ChebyshevTower(num_features=2, num_qubits=2, num_layers=1, num_chebyshev=2)
+        circuit = ChebyshevTower(num_qubits=2, num_layers=1, num_chebyshev=2)
         named_params = circuit.get_params()
         assert named_params == {
-            "num_features": 2,
+            "num_features": None,
             "num_qubits": 2,
             "num_layers": 1,
             "num_chebyshev": 2,
@@ -65,9 +62,8 @@ class TestChebyshevTower:
         }
 
     def test_set_params(self):
-        circuit = ChebyshevTower(num_features=2, num_qubits=2, num_layers=1, num_chebyshev=1)
+        circuit = ChebyshevTower(num_qubits=2, num_layers=1, num_chebyshev=1)
         circuit.set_params(
-            num_features=3,
             num_qubits=3,
             num_layers=2,
             num_chebyshev=2,
@@ -77,7 +73,6 @@ class TestChebyshevTower:
             arrangement="alternating",
             nonlinearity="arctan",
         )
-        assert circuit.num_features == 3
         assert circuit.num_qubits == 3
         assert circuit.num_layers == 2
         assert circuit.num_chebyshev == 2
@@ -88,12 +83,10 @@ class TestChebyshevTower:
         assert circuit.nonlinearity == "arctan"
 
         with pytest.raises(ValueError):
-            circuit.set_params(
-                num_features=3, num_qubits=3, num_layers=2, num_chebyshev=1, nonlinearity="invalid"
-            )
+            circuit.set_params(num_qubits=3, num_layers=2, num_chebyshev=1, nonlinearity="invalid")
 
     def test_get_circuit(self):
-        circuit = ChebyshevTower(num_features=2, num_qubits=2, num_layers=1, num_chebyshev=1)
+        circuit = ChebyshevTower(num_qubits=2, num_layers=1, num_chebyshev=1)
         features = np.array([0.5, -0.5])
 
         qc = circuit.get_circuit(features=features)
@@ -101,12 +94,12 @@ class TestChebyshevTower:
         assert qc.num_qubits == 2
 
         with pytest.raises(EncodingSlotsMismatchError):
-            ChebyshevTower(
-                num_features=1, num_qubits=1, num_chebyshev=2, num_layers=1
-            ).get_circuit(features=features)
+            ChebyshevTower(num_qubits=1, num_chebyshev=2, num_layers=1).get_circuit(
+                features=features
+            )
 
     def test_minimal_fit(self):
-        circuit = ChebyshevTower(num_features=2, num_qubits=2, num_chebyshev=2)
+        circuit = ChebyshevTower(num_qubits=2, num_chebyshev=2)
 
         X_train = np.array([[-1.0, -0.8], [-0.6, -0.4], [-0.2, 0.0], [0.4, 0.6], [0.8, 1.0]])
         y_train = np.array([-0.6, -0.2, 0.2, 0.6, 1.0])

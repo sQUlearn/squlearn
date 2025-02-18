@@ -5,8 +5,11 @@ from typing import Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
+from sympy import N
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class ChebyshevRx(EncodingCircuitBase):
@@ -74,7 +77,9 @@ class ChebyshevRx(EncodingCircuitBase):
                 index_offset += 1
         return bounds
 
-    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+    def generate_initial_parameters(
+        self, num_features: int, seed: Union[int, None] = None
+    ) -> np.ndarray:
         """
         Generates random parameters for the ChebyshevPQC encoding circuit
 
@@ -84,11 +89,11 @@ class ChebyshevRx(EncodingCircuitBase):
         Return:
             The randomly generated parameters
         """
-        param = super().generate_initial_parameters(seed)
+        param = super().generate_initial_parameters(num_features, seed)
 
         if len(param) > 0:
             index = self.get_cheb_indices(False)
-            features_per_qubit = int(np.ceil(self.num_qubits / self.num_features))
+            features_per_qubit = int(np.ceil(self.num_qubits / num_features))
             p = np.linspace(0.01, self.alpha, features_per_qubit)
 
             for index2 in index:
@@ -99,15 +104,11 @@ class ChebyshevRx(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the ChebyshevPQC encoding circuit."""
-        bounds = np.zeros((self.num_features, 2))
+        """The bounds of the features of the ChebyshevPQC encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
         if self.nonlinearity == "arccos":
-            bounds[:, 0] = -1.0
-            bounds[:, 1] = 1.0
+            return np.array([-1.0, 1.0])
         elif self.nonlinearity == "arctan":
-            bounds[:, 0] = -np.inf
-            bounds[:, 1] = np.inf
-        return bounds
+            return np.array([-np.inf, np.inf])
 
     @property
     def num_encoding_slots(self) -> int:
@@ -192,8 +193,8 @@ class ChebyshevRx(EncodingCircuitBase):
         Return:
             Returns the circuit in Qiskit's QuantumCircuit format
         """
-
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""
@@ -218,8 +219,8 @@ class ChebyshevRx(EncodingCircuitBase):
                 """Helper function for returning a*arctan(x)"""
                 return a * np.arctan(x)
 
-        nfeature = len(features)
-        nparam = len(parameters)
+        num_features = extract_num_features(features)
+        num_params = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
         index_offset = 0
@@ -229,7 +230,8 @@ class ChebyshevRx(EncodingCircuitBase):
             for i in range(self.num_qubits):
                 QC.rx(
                     mapping(
-                        parameters[index_offset % nparam], features[feature_offset % nfeature]
+                        parameters[index_offset % num_params],
+                        features[feature_offset % num_features],
                     ),
                     i,
                 )
@@ -237,7 +239,7 @@ class ChebyshevRx(EncodingCircuitBase):
                 feature_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                QC.rx(parameters[index_offset % nparam], i)
+                QC.rx(parameters[index_offset % num_params], i)
                 index_offset += 1
             QC = entangle_layer(QC)
 

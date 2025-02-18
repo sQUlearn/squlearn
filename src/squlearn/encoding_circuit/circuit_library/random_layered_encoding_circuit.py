@@ -3,6 +3,8 @@ from typing import Union
 import numpy as np
 from qiskit.circuit import ParameterVector, QuantumCircuit
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 
 from ..layered_encoding_circuit import LayeredEncodingCircuit
 from ..encoding_circuit_base import EncodingCircuitBase
@@ -59,7 +61,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self.feature_probability = feature_probability
         self._fm_str = None
 
-    def _generate_circuit_string(self) -> str:
+    def _generate_circuit_string(self, num_features: int) -> str:
         """Generates a random Layered encoding circuit string."""
         gates = [
             "H",
@@ -110,11 +112,6 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             r"crz(p;=0*p+1/8*np.pi,{p})",
         ]
 
-        if self.num_features is None:
-            _num_features = self.num_encoding_slots
-        else:
-            _num_features = self.num_features
-
         random.seed(self.seed)
         gates_with_x = [action for action in gates if "(x)" in action]
         weights = [
@@ -124,7 +121,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         num_layers = random.randint(self.min_num_layers, self.max_num_layers)
         layers = random.choices(gates, k=num_layers, weights=weights)
 
-        min_x = (_num_features - 1) // self.num_qubits + 1
+        min_x = (num_features - 1) // self.num_qubits + 1
         if min_x > self.min_num_layers:
             raise ValueError("Minimum number of layers is not enough to encode all features!")
 
@@ -135,12 +132,12 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
 
         return "-".join(layers)
 
-    def _build_layered_encoding_circuit(self) -> LayeredEncodingCircuit:
+    def _build_layered_encoding_circuit(self, num_features: int) -> LayeredEncodingCircuit:
         """Builds and returns the LayeredEncodingCircuit object from the fm_str."""
         return LayeredEncodingCircuit.from_string(
             encoding_circuit_str=self._fm_str,
             num_qubits=self.num_qubits,
-            num_features=self.num_features,
+            num_features=num_features,
         )
 
     def get_circuit(
@@ -160,9 +157,10 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         Returns:
             QuantumCircuit: The quantum circuit of the Random Layered encoding circuit.
         """
+        num_features = extract_num_features(features)
 
-        self._fm_str = self._generate_circuit_string()
-        self._layered_encoding_circuit = self._build_layered_encoding_circuit()
+        self._fm_str = self._generate_circuit_string(num_features)
+        self._layered_encoding_circuit = self._build_layered_encoding_circuit(num_features)
 
         parameter = np.zeros(self._layered_encoding_circuit.num_parameters)
 
@@ -196,27 +194,10 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
         super().set_params(**params)
-
-        # Regenerate the circuit
-        self._fm_str = self._generate_circuit_string()
-        self._layered_encoding_circuit = self._build_layered_encoding_circuit()
-
         return self
 
     @property
     def num_encoding_slots(self) -> int:
         if self._fm_str is not None:
-            return self._fm_str.count("(x)")
-        return self.min_num_layers * self.num_qubits
-
-    @property
-    def num_features(self) -> int:
-        return self._num_features
-
-    @num_features.setter
-    def num_features(self, value: int):
-        self._num_features = value
-
-        # Regenerate the circuit
-        self._fm_str = self._generate_circuit_string()
-        self._layered_encoding_circuit = self._build_layered_encoding_circuit()
+            return self._fm_str.count("(x)") * self.num_qubits
+        return 0

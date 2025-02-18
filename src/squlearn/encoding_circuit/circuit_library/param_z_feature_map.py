@@ -3,6 +3,8 @@ from typing import Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+
+from squlearn.util.data_preprocessing import extract_num_features
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
@@ -40,6 +42,7 @@ class ParamZFeatureMap(EncodingCircuitBase):
         self._num_layers = num_layers
         self._entangling = entangling
 
+    # TODO: How to handle num_features here?
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the encoding circuit."""
@@ -84,17 +87,17 @@ class ParamZFeatureMap(EncodingCircuitBase):
             The circuit of the parameterized Z feature map in the form of a QuantumCircuit
         """
 
-        num_features = len(features)
-        num_param = len(parameters)
+        num_features = extract_num_features(features)
+        num_params = len(parameters)
 
         circuit = QuantumCircuit(self._num_qubits)
         index_offset = 0
         for _ in range(self._num_layers):
-            for i in range(max(self._num_qubits, self._num_features)):
+            for i in range(max(self._num_qubits, num_features)):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(
-                    parameters[index_offset % num_param] * features[i % num_features],
+                    parameters[index_offset % num_params] * features[i % num_features],
                     i % self._num_qubits,
                 )
                 index_offset += 1

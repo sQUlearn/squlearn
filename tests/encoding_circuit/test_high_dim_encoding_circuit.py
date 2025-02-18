@@ -1,19 +1,17 @@
 import numpy as np
 import pytest
-import copy
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from squlearn import Executor
 from squlearn.encoding_circuit import HighDimEncodingCircuit
-from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.kernel import QGPR
 
 
 class TestHighDimEncodingCircuit:
 
     def test_init(self):
-        circuit = HighDimEncodingCircuit(num_qubits=2, num_features=2)
-        assert circuit.num_features == 2
+        circuit = HighDimEncodingCircuit(num_qubits=2)
         assert circuit.num_qubits == 2
         assert circuit.cycling is True
         assert circuit.cycling_type == "saw"
@@ -22,19 +20,19 @@ class TestHighDimEncodingCircuit:
         assert circuit.entangling_gate == "iswap"
 
         with pytest.raises(ValueError):
-            HighDimEncodingCircuit(num_features=2, num_qubits=2, cycling_type="invalid")
+            HighDimEncodingCircuit(num_qubits=2, cycling_type="invalid")
 
         with pytest.raises(ValueError):
-            HighDimEncodingCircuit(num_features=2, num_qubits=2, layer_type="invalid")
+            HighDimEncodingCircuit(num_qubits=2, layer_type="invalid")
 
         with pytest.raises(ValueError):
-            HighDimEncodingCircuit(num_features=2, num_qubits=2, entangling_gate="invalid")
+            HighDimEncodingCircuit(num_qubits=2, entangling_gate="invalid")
 
     def test_get_params(self):
-        circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2)
+        circuit = HighDimEncodingCircuit(num_qubits=2)
         named_params = circuit.get_params()
         assert named_params == {
-            "num_features": 2,
+            "num_features": None,
             "num_qubits": 2,
             "num_layers": None,
             "cycling": True,
@@ -44,20 +42,22 @@ class TestHighDimEncodingCircuit:
         }
 
     def test_get_circuit(self):
-        circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2)
+        circuit = HighDimEncodingCircuit(num_qubits=2)
         features = np.array([0.5, -0.5])
 
         qc = circuit.get_circuit(features=features)
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 
-        circuit = HighDimEncodingCircuit(num_qubits=4, num_features=12)
+        circuit = HighDimEncodingCircuit(
+            num_qubits=4,
+        )
         features = ParameterVector("x", 12)
         qc = circuit.get_circuit(features)
         assert circuit.num_layers == 2
 
     def test_minimal_fit(self):
-        circuit = HighDimEncodingCircuit(num_features=2, num_qubits=2)
+        circuit = HighDimEncodingCircuit(num_qubits=2)
 
         X_train = np.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
         y_train = np.array([5, 7, 9, 11, 13])

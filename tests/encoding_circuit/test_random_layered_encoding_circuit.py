@@ -1,14 +1,11 @@
 import numpy as np
-import pytest
-import copy
-
 from qiskit import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import RandomLayeredEncodingCircuit
 from qiskit.circuit import ParameterVector
 
-from squlearn.kernel.matrix.fidelity_kernel import FidelityKernel
-from squlearn.kernel.ml.qgpr import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.kernel import QGPR
 
 
 class TestRandomLayeredEncodingCircuit:
@@ -48,12 +45,12 @@ class TestRandomLayeredEncodingCircuit:
             "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[ParameterVectorElement(x[2])])",
         ]
 
-        pqc = RandomLayeredEncodingCircuit(num_qubits=2, num_features=4, max_num_layers=3)
+        pqc = RandomLayeredEncodingCircuit(num_qubits=2, max_num_layers=3)
         x = ParameterVector("x", 4)
         check_list1 = [str(op[0]) for op in pqc.get_circuit(x, [])]
         assert check_list1 == reference1
 
-        pqc.set_params(num_qubits=3, num_features=3, max_num_layers=3)
+        pqc.set_params(num_qubits=3, max_num_layers=3)
         x = ParameterVector("x", 3)
         check_list2 = [str(op[0]) for op in pqc.get_circuit(x, [])]
         assert check_list2 == reference2
@@ -64,14 +61,13 @@ class TestRandomLayeredEncodingCircuit:
 
     def test_init(self):
         circuit = RandomLayeredEncodingCircuit(
-            num_features=2,
             num_qubits=2,
             min_num_layers=3,
             max_num_layers=12,
             feature_probability=0.5,
             seed=42,
         )
-        assert circuit.num_features == 2
+
         assert circuit.num_qubits == 2
         assert circuit.min_num_layers == 3
         assert circuit.max_num_layers == 12
@@ -80,7 +76,6 @@ class TestRandomLayeredEncodingCircuit:
 
     def test_get_params(self):
         circuit = RandomLayeredEncodingCircuit(
-            num_features=2,
             num_qubits=2,
             min_num_layers=3,
             max_num_layers=12,
@@ -89,7 +84,7 @@ class TestRandomLayeredEncodingCircuit:
         )
         named_params = circuit.get_params()
         assert named_params == {
-            "num_features": 2,
+            "num_features": None,
             "num_qubits": 2,
             "min_num_layers": 3,
             "max_num_layers": 12,
@@ -99,7 +94,6 @@ class TestRandomLayeredEncodingCircuit:
 
     def test_set_params(self):
         circuit = RandomLayeredEncodingCircuit(
-            num_features=2,
             num_qubits=2,
             min_num_layers=3,
             max_num_layers=12,
@@ -107,13 +101,12 @@ class TestRandomLayeredEncodingCircuit:
             seed=42,
         )
         circuit.set_params(
-            num_features=3,
             num_qubits=3,
             min_num_layers=2,
             max_num_layers=11,
             feature_probability=0.4,
         )
-        assert circuit.num_features == 3
+
         assert circuit.num_qubits == 3
         assert circuit.min_num_layers == 2
         assert circuit.max_num_layers == 11
@@ -121,7 +114,6 @@ class TestRandomLayeredEncodingCircuit:
 
     def test_get_circuit(self):
         circuit = RandomLayeredEncodingCircuit(
-            num_features=2,
             num_qubits=2,
             min_num_layers=3,
             max_num_layers=12,
@@ -137,7 +129,6 @@ class TestRandomLayeredEncodingCircuit:
 
     def test_minimal_fit(self):
         circuit = RandomLayeredEncodingCircuit(
-            num_features=2,
             num_qubits=2,
             min_num_layers=3,
             max_num_layers=12,
