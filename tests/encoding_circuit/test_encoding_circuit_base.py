@@ -1,5 +1,4 @@
 import pytest
-import warnings
 import numpy as np
 from qiskit import QuantumCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -30,12 +29,10 @@ class TestEncodingCircuitBase:
         assert len(params) == 2
         assert (params >= -np.pi).all() and (params <= np.pi).all()
 
-    def test_draw_warning(self):
+    def test_draw_error(self):
         circuit = MockCircuitBase(num_qubits=4)
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.raises(ValueError):
             circuit.draw()
-            assert len(w) == 1
-            assert "`num_features` is not set" in str(w[-1].message)
 
     def test_add(self):
         circuit_1 = MockCircuitBase(num_qubits=4)
@@ -48,7 +45,7 @@ class TestEncodingCircuitBase:
         assert circuit_composed.num_parameters == 4
 
         # check if the composed circuit has the correct number of parameters
-        composed_params = circuit_composed.generate_initial_parameters(seed=42)
+        composed_params = circuit_composed.generate_initial_parameters(seed=42, num_features=None)
         assert len(composed_params) == 4
         assert (composed_params >= -np.pi).all() and (composed_params <= np.pi).all()
 

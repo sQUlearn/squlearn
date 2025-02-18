@@ -51,15 +51,15 @@ class TestChebyshevPQC:
         assert len(params) == circuit.num_parameters
 
     def test_feature_bounds(self):
-        circuit = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1, nonlinearity="arccos")
-        bounds = circuit.feature_bounds
-        assert bounds.shape == (circuit.num_features, 2)
+        circuit = ChebyshevPQC(num_qubits=2, num_layers=1, nonlinearity="arccos")
+        bounds = circuit.get_feature_bounds(num_features=2)
+        assert bounds.shape == (2, 2)
         assert bounds[0, 0] == -1.0
         assert bounds[0, 1] == 1.0
 
-        circuit = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1, nonlinearity="arctan")
-        bounds = circuit.feature_bounds
-        assert bounds.shape == (circuit.num_features, 2)
+        circuit = ChebyshevPQC(num_qubits=2, num_layers=1, nonlinearity="arctan")
+        bounds = circuit.get_feature_bounds(num_features=2)
+        assert bounds.shape == (2, 2)
         assert bounds[0, 0] == -np.inf
         assert bounds[0, 1] == np.inf
 
