@@ -238,7 +238,10 @@ class EncodingCircuitBase(ABC):
             """
 
             def __init__(
-                self, num_qubits: int, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
+                self,
+                num_qubits: int,
+                ec1: EncodingCircuitBase,
+                ec2: EncodingCircuitBase,
             ):
 
                 if ec1.num_qubits != num_qubits:
@@ -250,6 +253,11 @@ class EncodingCircuitBase(ABC):
 
                 self.ec1 = ec1
                 self.ec2 = ec2
+
+                # Store the number of features for the first and second encoding circuit.
+                # If it is not set, it has to be set manually with the set_num_features method.
+                self.num_features_ec1 = ec1.num_features
+                self.num_features_ec2 = ec2.num_features
 
             @classmethod
             def create_from_encoding_circuits(
@@ -290,28 +298,17 @@ class EncodingCircuitBase(ABC):
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of composed encoding circuit.
+                """Returns the bounds of the features of composed encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds().
 
                 Is equal to the maximum and minimum of both bounds.
                 """
-
                 feature_bounds1 = self.ec1.feature_bounds
                 feature_bounds2 = self.ec2.feature_bounds
-                feature_bounds_values = np.zeros((self.num_features, 2))
 
-                min_num_feature = min(self.ec1.num_features, self.ec2.num_features)
+                min_bound = np.minimum(feature_bounds1[0], feature_bounds2[0])
+                max_bound = np.maximum(feature_bounds1[1], feature_bounds2[1])
 
-                if self.ec1.num_features == self.num_features:
-                    feature_bounds_values = self.ec1.feature_bounds
-
-                if self.ec2.num_features == self.num_features:
-                    feature_bounds_values = self.ec2.feature_bounds
-
-                for i in range(min_num_feature):
-                    feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
-                    feature_bounds_values[i, 1] = max(feature_bounds1[i, 1], feature_bounds2[i, 1])
-
-                return feature_bounds_values
+                return np.array([min_bound, max_bound])
 
             def generate_initial_parameters(
                 self, num_features: int, seed: Union[int, None] = None
@@ -394,6 +391,17 @@ class EncodingCircuitBase(ABC):
                 if len(ec2_dict) > 0:
                     self.ec2.set_params(**ec2_dict)
 
+            def set_num_features(self, num_features_ec1: int, num_features_ec2: int) -> None:
+                """
+                Sets the number of features for the first and second encoding circuit
+
+                Args:
+                    num_features_ec1 (int): Number of features for the first encoding circuit
+                    num_features_ec2 (int): Number of features for the second encoding circuit
+                """
+                self.num_features_ec1 = num_features_ec1
+                self.num_features_ec2 = num_features_ec2
+
             def get_circuit(
                 self,
                 features: Union[ParameterVector, np.ndarray],
@@ -411,12 +419,24 @@ class EncodingCircuitBase(ABC):
                 Return:
                     Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
                 """
+                if self.num_features_ec1 is None or self.num_features_ec2 is None:
+                    raise ValueError(
+                        "Number of features for the first and second encoding circuit has to be provided.\n"
+                        "Use the set_num_features() function to set the number of features for both encoding circuits."
+                    )
+
+                # Apply stored operations if available. This is only available for LayeredEncodingCircuits and has to be called before get_circuit
+                if hasattr(self.ec1, "_apply_stored_operations"):
+                    self.ec1._apply_stored_operations(self.num_features_ec1)
+
+                if hasattr(self.ec2, "_apply_stored_operations"):
+                    self.ec2._apply_stored_operations(self.num_features_ec2)
 
                 circ1 = self.ec1.get_circuit(
-                    features[: self.ec1.num_features], parameters[: self.ec1.num_parameters]
+                    features[: self.num_features_ec1], parameters[: self.ec1.num_parameters]
                 )
                 circ2 = self.ec2.get_circuit(
-                    features[: self.ec2.num_features], parameters[self.ec1.num_parameters :]
+                    features[: self.num_features_ec2], parameters[self.ec1.num_parameters :]
                 )
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))

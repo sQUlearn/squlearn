@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from qiskit import QuantumCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from squlearn.encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 
 
 class MockCircuitBase(EncodingCircuitBase):
@@ -34,6 +35,19 @@ class TestEncodingCircuitBase:
         with pytest.raises(ValueError):
             circuit.draw()
 
+    def test_get_and_set_params(self):
+        circuit = MockCircuitBase(num_qubits=4)
+        params = circuit.get_params()
+        assert params == {"num_qubits": 4, "num_features": None}
+
+        circuit.set_params(num_qubits=5)
+        assert circuit.num_qubits == 5
+
+        with pytest.raises(ValueError):
+            circuit.set_params(invalid_param=1)
+
+
+class TestComposedEncodingCircuit:
     def test_add(self):
         circuit_1 = MockCircuitBase(num_qubits=4)
         circuit_2 = MockCircuitBase(num_qubits=4)
@@ -71,13 +85,26 @@ class TestEncodingCircuitBase:
         with pytest.raises(ValueError):
             circuit_1 + "invalid"
 
-    def test_get_and_set_params(self):
-        circuit = MockCircuitBase(num_qubits=4)
-        params = circuit.get_params()
-        assert params == {"num_qubits": 4, "num_features": None}
+    def test_get_circuit(self):
+        circuit1 = LayeredEncodingCircuit(num_qubits=2)
+        circuit2 = LayeredEncodingCircuit(num_qubits=2)
 
-        circuit.set_params(num_qubits=5)
-        assert circuit.num_qubits == 5
+        circuit1.H()
+        circuit2.H()
+
+        composed_circuit = circuit1 + circuit2
 
         with pytest.raises(ValueError):
-            circuit.set_params(invalid_param=1)
+            composed_circuit.get_circuit([], [])
+
+        composed_circuit.set_num_features(2, 2)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.h(range(2))
+        expected_circuit.h(range(2))
+
+        assert str(composed_circuit.get_circuit([], [])) == str(expected_circuit)
+
+    def test_unequal_num_qubits_error(self):
+        with pytest.raises(ValueError):
+            MockCircuitBase(num_qubits=2) + MockCircuitBase(num_qubits=3)
