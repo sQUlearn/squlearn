@@ -573,7 +573,7 @@ class QulacsCircuit:
 
         is_parameterized = len(gradient_param)
         parameterized_operations = [
-            True if any(param in gradient_param for param in self._used_parameters[i]) else False for i, op in enumerate(self._operation_list)
+            any(param in gradient_param for param in self._used_parameters[i]) for i, _ in enumerate(self._operation_list)
         ]
 
         cache_value = "no_gradient"
