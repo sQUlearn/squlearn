@@ -2153,11 +2153,12 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         self._feature_str = feature_str
         self._parameter_str = parameter_str
         self._x = None
-        self._p = VariableGroup(variable_name=parameter_str)
-        self._layered_pqc = LayeredPQC(num_qubits)
+        self._p = None
+        self._layered_pqc = None
         self._encoding_circuit_str = ""
 
-        self._delayed_operations = []
+        self._stored_operations = []
+        self._stored_layers = []
 
         if kwargs:
             self.set_params(**kwargs)
@@ -2165,13 +2166,9 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     @property
     def num_parameters(self) -> int:
         """Returns number of parameters of the Layered Encoding Circuit"""
-        # If the LayeredPQC is not initialized, we need to initialize it to get the number of parameters.
-        # Avoid the size for the feature variable group, as it is not available yet. This gets overwritten in the get_circuit method.
-        if self._layered_pqc is None:
-            self._x = VariableGroup(self._feature_str)
-            self._p = VariableGroup(self._parameter_str)
-            self._layered_pqc = LayeredPQC(self._num_qubits, (self._x, self._p))
-        return self._layered_pqc.get_number_of_variables(self._p)
+        if self._layered_pqc is not None:
+            return self._layered_pqc.get_number_of_variables(self._p)
+        raise ValueError("LayeredPQC is not initialized.")
 
     def get_params(self, deep: bool = True) -> dict:
         params = self._layered_pqc.get_params(deep)
@@ -2213,6 +2210,12 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         return self
 
+    def generate_initial_parameters(self, num_features, seed=None):
+        # apply the stored operations to the circuit to make sure that the circuit is up to date
+        # and the initial_parameters can be calculated correctly in the following step
+        self._apply_stored_operations(num_features)
+        return super().generate_initial_parameters(num_features, seed)
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -2230,25 +2233,35 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the circuit in qiskit QuantumCircuit format
         """
-        if len(self._delayed_operations) != 0:
+        # apply all stored operations before calling the get_circuit
+        num_features = extract_num_features(features)
+        self._apply_stored_operations(num_features)
 
-            num_features = extract_num_features(features)
+        return self._layered_pqc.get_circuit(features, parameters)
 
-            self._x = VariableGroup(self._feature_str, size=num_features)
-            self._p = VariableGroup(self._parameter_str)
-            self._layered_pqc = LayeredPQC(self._num_qubits, (self._x, self._p))
+    def _apply_stored_operations(self, num_features: int) -> None:
+        """
+        Apply all stored operations to the LayeredPQC and reset the stored operations
+
+        Args:
+            num_features (int): Number of features of the encoding circuit
+        """
+        if len(self._stored_operations) != 0:
+            if self._layered_pqc is None:
+                self._x = VariableGroup(self._feature_str, size=num_features)
+                self._p = VariableGroup(self._parameter_str)
+                self._layered_pqc = LayeredPQC(self._num_qubits, (self._x, self._p))
             # apply all stored operations to the LayeredPQC
-            for op, args, kwargs in self._delayed_operations:
+            for op, args, kwargs in self._stored_operations:
                 resolved_args = [self._resolve_arg(arg) for arg in args]
-
                 getattr(self._layered_pqc, op)(*resolved_args, **kwargs)
+            self._stored_operations = []
         # apply all stored layers with their respective operations stored in the layer and the number of repetitions
-        if hasattr(self, "_stored_layers"):
+        if len(self._stored_layers) != 0:
             for layer, num_layers in self._stored_layers:
                 layer.initialize()
                 self._layered_pqc.add_layer(layer.layered_pqc, num_layers)
-
-        return self._layered_pqc.get_circuit(features, parameters)
+            self._stored_layers = []
 
     @classmethod
     def from_string(
@@ -2339,14 +2352,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
-        self._delayed_operations.append((gate_name, variable, {"map": encoding}))
+        self._stored_operations.append((gate_name, variable, {"map": encoding}))
 
     def _param_gate_U(self, *variable, gate_name):
         """
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
-        self._delayed_operations.append((gate_name, variable, {}))
+        self._stored_operations.append((gate_name, variable, {}))
 
     def _two_param_gate(
         self, *variable, gate_name, ent_strategy="NN", encoding: Union[Callable, None] = None
@@ -2355,45 +2368,45 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Internal conversion routine for two qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
-        self._delayed_operations.append(
+        self._stored_operations.append(
             (gate_name, variable, {"ent_strategy": ent_strategy, "map": encoding})
         )
 
     def H(self):
         """Adds a layer of H gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("H", [], {}))
+        self._stored_operations.append(("H", [], {}))
 
     def X(self):
         """Adds a layer of X gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("X", [], {}))
+        self._stored_operations.append(("X", [], {}))
 
     def Y(self):
         """Adds a layer of Y gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("Y", [], {}))
+        self._stored_operations.append(("Y", [], {}))
 
     def Z(self):
         """Adds a layer of Z gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("Z", [], {}))
+        self._stored_operations.append(("Z", [], {}))
 
     def I(self):
         """Adds a layer of I gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("I", [], {}))
+        self._stored_operations.append(("I", [], {}))
 
     def S(self):
         """Adds a layer of S gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("S", [], {}))
+        self._stored_operations.append(("S", [], {}))
 
     def S_conjugate(self):
         """Adds a layer of conjugated S gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("S_conjugate", [], {}))
+        self._stored_operations.append(("S_conjugate", [], {}))
 
     def T(self):
         """Adds a layer of T gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("T", [], {}))
+        self._stored_operations.append(("T", [], {}))
 
     def T_conjugate(self):
         """Adds a layer of conjugated T gates to the Layered Encoding Circuit"""
-        self._delayed_operations.append(("T_conjugate", [], {}))
+        self._stored_operations.append(("T_conjugate", [], {}))
 
     def Rx(self, *variable_str: str, encoding: Union[Callable, None] = None):
         """Adds a layer of Rx gates to the Layered Encoding Circuit
@@ -2452,7 +2465,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._delayed_operations.append(("ch_entangling", [], {"ent_strategy": ent_strategy}))
+        self._stored_operations.append(("ch_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cx_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled X gates to the Layered Encoding Circuit
@@ -2461,7 +2474,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._delayed_operations.append(("cx_entangling", [], {"ent_strategy": ent_strategy}))
+        self._stored_operations.append(("cx_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cy_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled Y gates to the Layered Encoding Circuit
@@ -2470,7 +2483,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._delayed_operations.append(("cy_entangling", [], {"ent_strategy": ent_strategy}))
+        self._stored_operations.append(("cy_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cz_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled Z gates to the Layered Encoding Circuit
@@ -2479,7 +2492,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._delayed_operations.append(("cz_entangling", [], {"ent_strategy": ent_strategy}))
+        self._stored_operations.append(("cz_entangling", [], {"ent_strategy": ent_strategy}))
 
     def swap(self, ent_strategy="NN"):
         """Adds a layer of swap gates to the Layered Encoding Circuit
@@ -2488,7 +2501,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._delayed_operations.append(("swap", [], {"ent_strategy": ent_strategy}))
+        self._stored_operations.append(("swap", [], {"ent_strategy": ent_strategy}))
 
     def cp_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None

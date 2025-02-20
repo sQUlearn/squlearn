@@ -80,32 +80,24 @@ class TestLayeredEncodingCircuit:
             expected_circuit.rx(np.arccos(p[i]), i)
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
-        print(lfm.num_parameters)
-        print(len(lfm._delayed_operations))
 
         # Test the RY gate
         lfm.Ry("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.ry(np.arccos(p[i + 4]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
-        print(lfm.num_parameters)
-        print(len(lfm._delayed_operations))
 
         # Test the RZ gate
         lfm.Rz("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.rz(np.arccos(p[i + 8]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
-        print(lfm.num_parameters)
-        print(len(lfm._delayed_operations))
 
         # Test the Phase gate
         lfm.P("p", encoding=np.arccos)
         for i in range(4):
             expected_circuit.p(np.arccos(p[i + 12]), i)
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
-        print(lfm.num_parameters)
-        print(len(lfm._delayed_operations))
 
         # Test the U gate
         lfm.U(("x", "x", "x"))
@@ -115,8 +107,6 @@ class TestLayeredEncodingCircuit:
             ioff += 3
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
-        print(lfm.num_parameters)
-        print(len(lfm._delayed_operations))
 
         kernel = FidelityKernel(lfm, Executor(), initial_parameters=0.5 * np.ones(16)).evaluate(
             np.ones((1, 2)), np.ones((1, 2))
