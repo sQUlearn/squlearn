@@ -359,7 +359,10 @@ class QulacsCircuit:
             self._qubit_list.append([control, target])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
-            self._used_parameters.append(used_parameters)
+            if used_parameters is None:
+                self._used_parameters.append([])
+            else:
+                self._used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
