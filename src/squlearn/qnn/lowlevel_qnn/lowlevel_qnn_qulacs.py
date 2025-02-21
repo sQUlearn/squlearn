@@ -7,14 +7,14 @@ from qiskit.circuit.parametervector import ParameterVectorElement
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 
-from ..observables.observable_base import ObservableBase
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...observables.observable_base import ObservableBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
-from ..util import Executor
-from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
-from ..util.qulacs import QulacsCircuit, evaluate_circuit, evaluate_circuit_cc
-from ..util.qulacs.qulacs_circuit import evaluate_circuit_gradient, evaluate_operator_gradient
-from ..util.decompose_to_std import decompose_to_std
+from ...util import Executor
+from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ...util.qulacs import QulacsCircuit, evaluate_circuit, evaluate_circuit_cc
+from ...util.qulacs.qulacs_circuit import evaluate_circuit_gradient, evaluate_operator_gradient
+from ...util.decompose_to_std import decompose_to_std
 
 
 class LowLevelQNNQulacs(LowLevelQNNBase):
