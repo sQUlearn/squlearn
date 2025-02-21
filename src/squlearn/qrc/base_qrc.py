@@ -1,15 +1,27 @@
 import numpy as np
 from typing import Union, List
 from abc import abstractmethod, ABC
+from packaging import version
 
 from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
 from qiskit.quantum_info.random import random_pauli_list
 
 from ..observables.observable_base import ObservableBase
 from ..observables import CustomObservable, SinglePauli
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
+from ..qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 from ..qnn.lowlevel_qnn import LowLevelQNN
 
 
@@ -93,7 +105,7 @@ class BaseQRC(BaseEstimator, ABC):
         return self._operators
 
     @property
-    def qnn(self) -> LowLevelQNN:
+    def qnn(self) -> LowLevelQNNBase:
         """Returns the underlying low-level QNN object."""
         return self._qnn
 
@@ -117,7 +129,7 @@ class BaseQRC(BaseEstimator, ABC):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
         X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
         return self._ml_model.predict(X_qnn)
 
@@ -277,7 +289,8 @@ class BaseQRC(BaseEstimator, ABC):
         return self
 
     def _validate_input(self, X, y, incremental, reset):
-        X, y = self._validate_data(
+        X, y = validate_data(
+            self,
             X,
             y,
             accept_sparse=["csr", "csc"],

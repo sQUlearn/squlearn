@@ -66,7 +66,7 @@ given by measurements.
     These will be also subject to discussion in the sQUlearn context below.
 
 
-.. currentmodule:: squlearn.kernel.ml
+.. currentmodule:: squlearn.kernel
 
 High-Level methods that employ quantum kernels
 ----------------------------------------------
@@ -132,7 +132,7 @@ kernel matrices using either *thresholding* or *tikhonov* approach as described 
 Regularization is by default switched of but can be set via the :code:`regularization`
 argument.
 
-.. currentmodule:: squlearn.kernel.matrix
+.. currentmodule:: squlearn.kernel.lowlevel_kernel
 
 Fidelity Quantum Kernel (FQK) via :class:`FidelityKernel`
 #########################################################
