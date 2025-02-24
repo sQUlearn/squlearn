@@ -902,7 +902,11 @@ def evaluate_circuit_gradient(
     )
     operators = circuit.get_observable_func()(*obs_param_list)
 
-    is_parameterized = len(sum([list(param) for param in parameters if param], []))
+    if isinstance(parameters, ParameterVectorElement):
+        parameters = [parameters]
+    parameters = list(parameters) if parameters is not None else []
+
+    is_parameterized = len(parameters)
 
     if is_parameterized:
         param_values = np.array(
