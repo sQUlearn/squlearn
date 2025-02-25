@@ -79,7 +79,7 @@ class TestQSVC:
     def test_that_qsvc_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVC."""
         qsvc_instance = QSVC(MagicMock())
-        qsvc_instance._QSVC__initialize()
+        qsvc_instance._initialize(2)
         assert list(qsvc_instance.get_params(deep=False).keys()) == [
             "C",
             "break_ties",
@@ -169,11 +169,15 @@ class TestQSVC:
     def test_kernel_params_can_be_changed_after_initialization(self, qsvc, request, data):
         """Tests concerning the kernel parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
+        qsvc_instance._initialize(2)
 
         qsvc_params = qsvc_instance.get_params()
         assert qsvc_params["num_qubits"] == 3
         assert qsvc_params["regularization"] == "thresholding"
         qsvc_instance.set_params(num_qubits=4, regularization="tikhonov")
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qsvc_instance._initialize(2)
 
         qsvc_params_updated = qsvc_instance.get_params()
         assert qsvc_params_updated["num_qubits"] == 4
@@ -192,8 +196,12 @@ class TestQSVC:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qsvc_instance = request.getfixturevalue(qsvc)
+        qsvc_instance._initialize(2)
         assert qsvc_instance.get_params()["num_layers"] == 2
         qsvc_instance.set_params(num_layers=4)
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qsvc_instance._initialize(2)
         assert qsvc_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

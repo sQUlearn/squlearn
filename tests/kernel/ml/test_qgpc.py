@@ -79,7 +79,7 @@ class TestQGPC:
     def test_that_qgpc_params_are_present(self):
         """Asserts that all classical parameters are present in the QGPC."""
         qgpc_instance = QGPC(quantum_kernel=MagicMock())
-        qgpc_instance._QGPC__initialize()
+        qgpc_instance._initialize(0)
         assert list(qgpc_instance.get_params(deep=False).keys()) == [
             "copy_X_train",
             "max_iter_predict",
@@ -184,11 +184,15 @@ class TestQGPC:
     def test_kernel_params_can_be_changed_after_initialization(self, qgpc, request, data):
         """Tests concerning the kernel parameter changes."""
         qgpc_instance = request.getfixturevalue(qgpc)
+        qgpc_instance._initialize(2)
 
         qgpc_params = qgpc_instance.get_params()
         assert qgpc_params["num_qubits"] == 3
         assert qgpc_params["regularization"] == "thresholding"
         qgpc_instance.set_params(num_qubits=4, regularization="tikhonov")
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qgpc_instance._initialize(2)
 
         qgpc_params_updated = qgpc_instance.get_params()
         assert qgpc_params_updated["num_qubits"] == 4
@@ -209,6 +213,9 @@ class TestQGPC:
         qgpc_instance = request.getfixturevalue(qgpc)
         assert qgpc_instance.get_params()["num_layers"] == 2
         qgpc_instance.set_params(num_layers=4)
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qgpc_instance._initialize(0)
         assert qgpc_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

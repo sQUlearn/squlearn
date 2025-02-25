@@ -90,7 +90,7 @@ class QGPC(GaussianProcessClassifier):
         num_features = extract_num_features(X)
         self._quantum_kernel._check_feature_consistency(X)
 
-        self.__initialize(num_features)
+        self._initialize(num_features)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
@@ -163,8 +163,8 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
 
-    def __initialize(self, num_features: int) -> None:
-        """Initialize the model with the known feature vector"""
+    def _initialize(self, num_features: int) -> None:
+        """Initialize the model with the known number of features."""
 
         self.quantum_kernel._initialize_kernel(num_features=num_features)
 

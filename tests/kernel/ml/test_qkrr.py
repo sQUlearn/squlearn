@@ -8,7 +8,7 @@ from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import ParamZFeatureMap
+from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.kernel import QKRR
 from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel, FidelityKernel
 
@@ -28,11 +28,9 @@ class TestQKRR:
     @pytest.fixture(scope="module")
     def qkrr_fidelity(self) -> QKRR:
         """QKRR module with FidelityKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=2, num_layers=2, entangling=True
-        )
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit=encoding_circuit,
             executor=executor,
@@ -44,11 +42,9 @@ class TestQKRR:
     @pytest.fixture(scope="module")
     def qkrr_pqk(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=2, num_layers=2, entangling=True
-        )
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )
@@ -57,11 +53,9 @@ class TestQKRR:
     @pytest.fixture(scope="module")
     def qkrr_fidelity_without_num_features(self) -> QKRR:
         """QKRR module with FidelityKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=None, num_layers=2, entangling=True
-        )
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit=encoding_circuit,
             executor=executor,
@@ -73,11 +67,9 @@ class TestQKRR:
     @pytest.fixture(scope="module")
     def qkrr_pqk_without_num_features(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=None, num_layers=2, entangling=True
-        )
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )
@@ -145,11 +137,15 @@ class TestQKRR:
     def test_kernel_params_can_be_changed_after_initialization(self, qkrr, request, data):
         """Tests concerning the kernel parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
+        qkrr_instance._initialize(2)
 
         qkrr_params = qkrr_instance.get_params()
         assert qkrr_params["num_qubits"] == 3
         assert qkrr_params["regularization"] == "thresholding"
         qkrr_instance.set_params(num_qubits=4, regularization="tikhonov")
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qkrr_instance._initialize(2)
 
         qkrr_params_updated = qkrr_instance.get_params()
         assert qkrr_params_updated["num_qubits"] == 4
@@ -168,8 +164,12 @@ class TestQKRR:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
+        qkrr_instance._initialize(2)
         assert qkrr_instance.get_params()["num_layers"] == 2
         qkrr_instance.set_params(num_layers=4)
+
+        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
+        qkrr_instance._initialize(2)
         assert qkrr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

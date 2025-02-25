@@ -135,7 +135,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         num_features = extract_num_features(X)
         self._quantum_kernel._check_feature_consistency(X)
 
-        self.__initialize(num_features)
+        self._initialize(num_features)
 
         X, y = validate_data(
             self,
@@ -333,7 +333,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 )
         return self
 
-    def __initialize(self, num_features: int) -> None:
+    def _initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
         self._quantum_kernel._initialize_kernel(num_features=num_features)
 

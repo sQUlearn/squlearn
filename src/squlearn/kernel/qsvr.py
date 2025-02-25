@@ -115,7 +115,7 @@ class QSVR(SVR):
         num_features = extract_num_features(X)
         self._quantum_kernel._check_feature_consistency(X)
 
-        self.__initialize(num_features)
+        self._initialize(num_features)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
@@ -179,7 +179,7 @@ class QSVR(SVR):
                 )
         return self
 
-    def __initialize(self, num_features: int) -> None:
+    def _initialize(self, num_features: int) -> None:
         """Initialize the model with the known feature vector"""
 
         if isinstance(self._quantum_kernel, KernelMatrixBase):
