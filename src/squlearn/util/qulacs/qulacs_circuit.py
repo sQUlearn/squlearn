@@ -801,6 +801,25 @@ def evaluate_circuit_statevec(circuit: QulacsCircuit, *args) -> np.ndarray:
 
     return state.get_vector()
 
+def evaluate_circuit_probabilites(circuit: QulacsCircuit, *args) -> np.ndarray:
+    """
+    Function to evaluate the probabilites of the Qulacs circuit with the given parameters.
+
+    Args:
+        circuit (QulacsCircuit): Qulacs circuit to evaluate
+        parameters (List[float]): List of parameters to evaluate the circuit
+
+    Returns:
+        np.ndarray: Probabilites of the circuit
+    """
+
+    # Collects the args values connected to the observable parameters
+    circ = circuit.get_circuit_func()(*args[:len(circuit._qualcs_gates_parameters)])
+    state = QuantumState(circuit.num_qubits)
+    circ.update_quantum_state(state)
+
+    return np.square(np.abs(state.get_vector()))
+
 def evaluate_circuit_gradient(circuit: QulacsCircuit,
                               parameters: Union[None, ParameterVectorElement, List[ParameterVectorElement]] = None,
                               *args) -> np.ndarray:
