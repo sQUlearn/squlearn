@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from squlearn import Executor
 from squlearn.encoding_circuit import LayeredEncodingCircuit
-from squlearn.kernel.matrix import ProjectedQuantumKernel
+from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
 
 
 class TestProjectedQuantumKernel:

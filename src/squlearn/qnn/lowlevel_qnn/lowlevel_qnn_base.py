@@ -6,9 +6,9 @@ import copy
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from ..observables.observable_base import ObservableBase
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..util import Executor
+from ...observables.observable_base import ObservableBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...util import Executor
 
 
 class LowLevelQNNBase(abc.ABC):

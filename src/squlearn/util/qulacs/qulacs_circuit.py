@@ -321,7 +321,10 @@ class QulacsCircuit:
             self._qubit_list.append([q])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
-            self._used_parameters.append(used_parameters)
+            if used_parameters is None:
+                self._used_parameters.append([])
+            else:
+                self._used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -357,7 +360,10 @@ class QulacsCircuit:
             self._qubit_list.append([control, target])
             self._func_list.append(func_list_element)
             self._func_grad_list.append(func_grad_list_element)
-            self._used_parameters.append(used_parameters)
+            if used_parameters is None:
+                self._used_parameters.append([])
+            else:
+                self._used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -579,8 +585,8 @@ class QulacsCircuit:
 
         is_parameterized = len(gradient_param)
         parameterized_operations = [
-            True if any(param in gradient_param for param in self._used_parameters[i]) else False
-            for i, op in enumerate(self._operation_list)
+            any(param in gradient_param for param in self._used_parameters[i])
+            for i, _ in enumerate(self._operation_list)
         ]
 
         cache_value = "no_gradient"
@@ -787,16 +793,28 @@ def evaluate_circuit(circuit: QulacsCircuit, *args) -> np.ndarray:
         np.ndarray: Result of the evaluation
     """
 
+    # TODO: Check if this is desired functionality
     # Collects the args values connected to the observable parameters
-    obs_param_list = sum(
-        [
-            list(args[len(circuit._qualcs_gates_parameters) + i])
-            for i in range(len(circuit._qualcs_obs_parameters))
-        ],
-        [],
-    )
+    # obs_param_list = sum(
+    #     [
+    #         list(args[len(circuit._qualcs_gates_parameters) + i])
+    #         for i in range(len(circuit._qualcs_obs_parameters))
+    #     ],
+    #     [],
+    # )
+    if circuit._qualcs_obs_parameters:
+        obs_param_list = list(args[-1])
+    else:
+        obs_param_list = []
 
-    circ = circuit.get_circuit_func()(*args[: len(circuit._qualcs_gates_parameters)])
+    # TODO: Check if this is desired functionality
+    circ = circuit.get_circuit_func()(
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
+    )
     state = QuantumState(circuit.num_qubits)
     circ.update_quantum_state(state)
 
@@ -824,8 +842,15 @@ def evaluate_circuit_statevec(circuit: QulacsCircuit, *args) -> np.ndarray:
         np.ndarray: Statevector solution of the circuit
     """
 
+    # TODO: Check if this is desired functionality
     # Collects the args values connected to the observable parameters
-    circ = circuit.get_circuit_func()(*args[: len(circuit._qualcs_gates_parameters)])
+    circ = circuit.get_circuit_func()(
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
+    )
     state = QuantumState(circuit.num_qubits)
     circ.update_quantum_state(state)
 
@@ -868,26 +893,51 @@ def evaluate_circuit_gradient(
         np.ndarray: Result of the evaluation
     """
 
+    # TODO: Check if this is desired functionality
     # Collects the args values connected to the observable parameters
-    obs_param_list = sum(
-        [
-            list(args[len(circuit._qualcs_gates_parameters) + i])
-            for i in range(len(circuit._qualcs_obs_parameters))
-        ],
-        [],
+    # obs_param_list = sum(
+    #     [
+    #         list(args[len(circuit._qualcs_gates_parameters) + i])
+    #         for i in range(len(circuit._qualcs_obs_parameters))
+    #     ],
+    #     [],
+    # )
+    if circuit._qualcs_obs_parameters:
+        obs_param_list = list(args[-1])
+    else:
+        obs_param_list = []
+
+    # TODO check if this is desired functionality
+    qulacs_circuit = circuit.get_circuit_func(parameters)(
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
     )
 
-    qulacs_circuit = circuit.get_circuit_func(parameters)(
-        *args[: len(circuit._qualcs_gates_parameters)]
-    )
+    # TODO check if this is desired functionality
     outer_jacobian = circuit.get_gradient_outer_jacobian(parameters)(
-        *args[: len(circuit._qualcs_gates_parameters)]
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
     )
     operators = circuit.get_observable_func()(*obs_param_list)
 
-    param_values = np.array(
-        [outer_jacobian.T @ np.array(qulacs_circuit.backprop(o)) for o in operators]
-    )
+    if isinstance(parameters, ParameterVectorElement):
+        parameters = [parameters]
+    parameters = list(parameters) if parameters is not None else []
+
+    is_parameterized = len(parameters)
+
+    if is_parameterized:
+        param_values = np.array(
+            [outer_jacobian.T @ np.array(qulacs_circuit.backprop(o)) for o in operators]
+        )
+    else:
+        param_values = np.array([[]])
 
     values = np.real_if_close(param_values)
 
@@ -913,21 +963,33 @@ def evaluate_operator_gradient(
         np.ndarray: Result of the evaluation
     """
 
+    # TODO: Check if this is desired functionality
     # Collects the args values connected to the observable parameters
-    obs_param_list = sum(
-        [
-            list(args[len(circuit._qualcs_gates_parameters) + i])
-            for i in range(len(circuit._qualcs_obs_parameters))
-        ],
-        [],
-    )
+    # obs_param_list = sum(
+    #     [
+    #         list(args[len(circuit._qualcs_gates_parameters) + i])
+    #         for i in range(len(circuit._qualcs_obs_parameters))
+    #     ],
+    #     [],
+    # )
+    if circuit._qualcs_obs_parameters:
+        obs_param_list = list(args[-1])
+    else:
+        obs_param_list = []
 
     obs_param_list = [obs_param_list]
     outer_jacobian_new = circuit.get_gradient_outer_jacobian_observables_new(parameters)(
         *obs_param_list
     )
 
-    circ = circuit.get_circuit_func()(*args[: len(circuit._qualcs_gates_parameters)])
+    # TODO check if this is desired functionality
+    circ = circuit.get_circuit_func()(
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
+    )
     state = QuantumState(circuit.num_qubits)
     circ.update_quantum_state(state)
     operators = circuit.get_operators_for_gradient(parameters)()
@@ -960,16 +1022,28 @@ def evaluate_circuit_cc(circuit: QulacsCircuit, *args) -> np.ndarray:
         np.ndarray: Result of the evaluation
     """
 
-    # Collects the args values connected to the observable parameters
-    obs_param_list = sum(
-        [
-            list(args[len(circuit._qualcs_gates_parameters) + i])
-            for i in range(len(circuit._qualcs_obs_parameters))
-        ],
-        [],
-    )
 
-    circ = circuit.get_circuit_func()(*args[: len(circuit._qualcs_gates_parameters)])
+    # TODO: Check if this is desired functionality
+    #  Collects the args values connected to the observable parameters
+    # obs_param_list = sum(
+    #     [
+    #         list(args[len(circuit._qualcs_gates_parameters) + i])
+    #         for i in range(len(circuit._qualcs_obs_parameters))
+    #     ],
+    #     [],
+    # )
+    if circuit._qualcs_obs_parameters:
+        obs_param_list = list(args[-1])
+    else:
+        obs_param_list = []
+
+    circ = circuit.get_circuit_func()(
+        *[
+            args[i]
+            for i, arg in enumerate(circuit._qualcs_gates_parameters)
+            if arg in circuit._qualcs_gates_parameters
+        ]
+    )
 
     operators = circuit.get_observable_func()(*obs_param_list)
 
