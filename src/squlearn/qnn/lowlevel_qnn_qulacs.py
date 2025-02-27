@@ -231,8 +231,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         param_obs: Union[float, np.ndarray],
         *values: Union[
             str,
-            #DirectEvaluation,
-            #PostProcessingEvaluation,
+            # DirectEvaluation,
+            # PostProcessingEvaluation,
             ParameterVector,
             ParameterVectorElement,
             tuple,
@@ -306,13 +306,13 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         values = [values[i] for i in indices]
         for todo in values:
 
-            #todo_class = _get_class_from_string(todo)
-            
+            # todo_class = _get_class_from_string(todo)
+
             class dummy:
                 pass
-            
-            todo_class=dummy()
-            todo_class.key=todo
+
+            todo_class = dummy()
+            todo_class.key = todo
 
             if todo_class.key in value_dict:
                 # Skip if the value is already calculated
@@ -329,63 +329,60 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             # else:
 
             # Direct evaluation of the QNN
-                
-                
-            if todo=="f":
-            
-                output = [
-                    #evaluate_circuit(self.penn)
-                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
-                    
-                    evaluate_circuit(self._qulacs_circuit, param_inp_,x_inp_, param_obs_inp_)
 
+            if todo == "f":
+
+                output = [
+                    # evaluate_circuit(self.penn)
+                    #    todo_class, x_inp_, param_inp_, param_obs_inp_
+                    evaluate_circuit(self._qulacs_circuit, param_inp_, x_inp_, param_obs_inp_)
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
                     for param_obs_inp_ in param_obs_inp
                 ]
-                
-            elif todo=="dfdp":
-                
+
+            elif todo == "dfdp":
+
                 output = [
-                    #evaluate_circuit(self.penn)
+                    # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
-
-                    evaluate_circuit_gradient(self._qulacs_circuit, self._param, param_inp_,x_inp_, param_obs_inp_)
-
+                    evaluate_circuit_gradient(
+                        self._qulacs_circuit, self._param, param_inp_, x_inp_, param_obs_inp_
+                    )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
                     for param_obs_inp_ in param_obs_inp
                 ]
-                
-            elif todo=="dfdx":
-                
+
+            elif todo == "dfdx":
+
                 output = [
-                    #evaluate_circuit(self.penn)
+                    # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
-
-                    evaluate_circuit_gradient(self._qulacs_circuit, self._x, param_inp_,x_inp_, param_obs_inp_)
-
+                    evaluate_circuit_gradient(
+                        self._qulacs_circuit, self._x, param_inp_, x_inp_, param_obs_inp_
+                    )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
                     for param_obs_inp_ in param_obs_inp
                 ]
-            elif todo=="dfdop":
+            elif todo == "dfdop":
                 output = [
-                    #evaluate_circuit(self.penn)
+                    # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
-
-                    evaluate_operator_gradient(self._qulacs_circuit, self._param_obs, param_inp_,x_inp_, param_obs_inp_)
-
+                    evaluate_operator_gradient(
+                        self._qulacs_circuit, self._param_obs, param_inp_, x_inp_, param_obs_inp_
+                    )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
                     for param_obs_inp_ in param_obs_inp
                 ]
             else:
-                raise ValueError("Unknown evaluation function:",todo)
+                raise ValueError("Unknown evaluation function:", todo)
             output = np.array(output)
 
-            #print("todo",todo)
-            #print("output",output)
+            # print("todo",todo)
+            # print("output",output)
 
             # Swap higher order derivatives into correct order
             index_list = list(range(len(output.shape)))

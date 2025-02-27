@@ -432,7 +432,11 @@ class PennyLaneCircuit:
                         f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
                         pennylane_obs_param_function_.append(f)
                 else:
-                    if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64) or isinstance(coeff, complex):
+                    if (
+                        isinstance(coeff, np.complex128)
+                        or isinstance(coeff, np.complex64)
+                        or isinstance(coeff, complex)
+                    ):
                         if np.imag(coeff) != 0:
                             raise ValueError(
                                 "Imaginary part of observable coefficient is not supported"

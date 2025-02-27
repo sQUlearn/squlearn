@@ -9,6 +9,7 @@ from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 
+
 class LowLevelQNN(LowLevelQNNBase):
     """
     Low-level QNN factory, which creates the specific low-level QNN based on the quantum framework.

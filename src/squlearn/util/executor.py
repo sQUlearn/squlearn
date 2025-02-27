@@ -528,7 +528,7 @@ class Executor:
                     shots = self._pennylane_device.shots.total_shots
             elif execution in ["qulacs"]:
                 self._quantum_framework = "qulacs"
-                #if shots is None:
+                # if shots is None:
                 #    shots = 0
             else:
                 raise ValueError("Unknown backend string: " + execution)
@@ -2171,9 +2171,9 @@ class Executor:
             num_shots = 0
 
         if self.quantum_framework == "qulacs":
-            
-            pass # TODO
-        
+
+            pass  # TODO
+
         elif self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
@@ -2268,9 +2268,9 @@ class Executor:
         shots = self._shots
 
         if self.quantum_framework == "qulacs":
-            
+
             return None
-        
+
         elif self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
