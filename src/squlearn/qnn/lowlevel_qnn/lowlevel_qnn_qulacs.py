@@ -335,7 +335,9 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                 output = [
                     # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
-                    evaluate_circuit(self._qulacs_circuit, param_inp_, x_inp_, param_obs_inp_)
+                    evaluate_circuit(
+                        self._qulacs_circuit, param=param_inp_, x=x_inp_, param_obs=param_obs_inp_
+                    )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
                     for param_obs_inp_ in param_obs_inp
@@ -347,7 +349,11 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
                     evaluate_circuit_gradient(
-                        self._qulacs_circuit, self._param, param_inp_, x_inp_, param_obs_inp_
+                        self._qulacs_circuit,
+                        self._param,
+                        param=param_inp_,
+                        x=x_inp_,
+                        param_obs=param_obs_inp_,
                     )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
@@ -360,7 +366,11 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
                     evaluate_circuit_gradient(
-                        self._qulacs_circuit, self._x, param_inp_, x_inp_, param_obs_inp_
+                        self._qulacs_circuit,
+                        self._x,
+                        param=param_inp_,
+                        x=x_inp_,
+                        param_obs=param_obs_inp_,
                     )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp
@@ -371,7 +381,11 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # evaluate_circuit(self.penn)
                     #    todo_class, x_inp_, param_inp_, param_obs_inp_
                     evaluate_operator_gradient(
-                        self._qulacs_circuit, self._param_obs, param_inp_, x_inp_, param_obs_inp_
+                        self._qulacs_circuit,
+                        self._param_obs,
+                        param=param_inp_,
+                        x=x_inp_,
+                        param_obs=param_obs_inp_,
                     )
                     for x_inp_ in x_inp
                     for param_inp_ in param_inp

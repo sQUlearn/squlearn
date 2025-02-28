@@ -119,7 +119,6 @@ def qulacs_param_gate_rz(circuit: ParametricQuantumCircuit, angle: float, index:
 #     circuit.add_gate(CY(control, target)) # NOT IMPLEMENTED
 
 
-
 def qulacs_gate_U1(circuit: ParametricQuantumCircuit, angle: float, index: int) -> None:
     """U1 gate."""
     # print("Adding U1 gate with angle", angle, "on qubit", index)
