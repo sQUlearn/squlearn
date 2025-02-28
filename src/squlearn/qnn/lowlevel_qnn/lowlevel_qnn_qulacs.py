@@ -379,16 +379,33 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # Evaluation of the first-order derivative of the QNN
                     derivative_object = None
                     if todo_class.argnum[0] == 1:
-                        derivative_object = self._x
+                        if isinstance(todo_class.key, str):
+                            derivative_object = self._x
+                        else:
+                            derivative_object = todo_class.key
                         gradient_func = evaluate_circuit_gradient
                     elif todo_class.argnum[0] == 0:
-                        derivative_object = self._param
+                        if isinstance(todo_class.key, str):
+                            derivative_object = self._param
+                        else:
+                            derivative_object = todo_class.key
                         gradient_func = evaluate_circuit_gradient
                     elif todo_class.argnum[0] == 2:
-                        derivative_object = self._param_obs
+                        if isinstance(todo_class.key, str):
+                            derivative_object = self._param_obs
+                        else:
+                            derivative_object = todo_class.key
                         gradient_func = evaluate_operator_gradient
                     else:
-                        raise ValueError("No derivative object found")
+                        raise RuntimeError("Unknown argument number:", todo_class.argnum[0])
+
+                    if isinstance(derivative_object, tuple):
+                        if len(derivative_object) == 1:
+                            derivative_object = derivative_object[0]
+                        else:
+                            raise RuntimeError(
+                                "Higher order derivatives are not supported with qulacs, please use pennylane"
+                            )
 
                     output = [
                         gradient_func(
@@ -404,7 +421,9 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     ]
 
                 else:
-                    raise ValueError("Unknown evaluation function:", todo)
+                    raise RuntimeError(
+                        "Higher order derivatives are not supported with qulacs, please use pennylane"
+                    )
                 output = np.array(output)
 
                 # Swap higher order derivatives into correct order
