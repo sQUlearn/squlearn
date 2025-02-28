@@ -847,7 +847,9 @@ def evaluate_circuit_probabilites(circuit: QulacsCircuit, **kwargs) -> np.ndarra
     """
 
     # Collects the args values connected to the observable parameters
-    circ = circuit.get_circuit_func()(*[kwargs[param] for param in circuit.circuit_parameter_names])
+    circ = circuit.get_circuit_func()(
+        *[kwargs[param] for param in circuit.circuit_parameter_names]
+    )
     state = QuantumState(circuit.num_qubits)
     circ.update_quantum_state(state)
 
