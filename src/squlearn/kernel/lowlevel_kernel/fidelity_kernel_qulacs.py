@@ -9,8 +9,8 @@ from qiskit_algorithms.utils import algorithm_globals
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
-#from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
-#from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
+# from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
+# from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
 from ...util.data_preprocessing import to_tuple, adjust_features
 from ...util.qulacs.qulacs_circuit import QulacsCircuit, evaluate_circuit_statevec
 
@@ -60,14 +60,14 @@ class FidelityKernelQulacs:
                 self._parameter_vector = None
 
             enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-            self._qulacs_circuit = QulacsCircuit(enc_circ, None, self._executor)#, "state", self._executor)
+            self._qulacs_circuit = QulacsCircuit(
+                enc_circ, None, self._executor
+            )  # , "state", self._executor)
 
             @lru_cache(maxsize=self._cache_size)
             def qulacs_circuit_executor(*args):
                 args_numpy = [np.array(arg) for arg in args]
-                return evaluate_circuit_statevec(
-                    self._qulacs_circuit, *args_numpy
-                )
+                return evaluate_circuit_statevec(self._qulacs_circuit, *args_numpy)
 
             self._qulacs_circuit_cached = qulacs_circuit_executor
 
@@ -258,21 +258,24 @@ class FidelityKernelQulacs:
 
         # Convert the input data to the correct format for the lrucache
         x_inp, _ = adjust_features(x, self.num_features)
-#        x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
+        #        x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
         y_inp, _ = adjust_features(y, self.num_features)
-#        y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
+        #        y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
 
-#        print("x_inp", x_inp)
-#        print("x_inpT", x_inpT)
-
+        #        print("x_inp", x_inp)
+        #        print("x_inpT", x_inpT)
 
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-            x_sv = np.array([self._qulacs_circuit_cached(tuple(self._parameters), tuple(x_)) for x_ in x_inp])
-            y_sv = np.array([self._qulacs_circuit_cached(tuple(self._parameters), tuple(y_)) for y_ in y_inp])
+            x_sv = np.array(
+                [self._qulacs_circuit_cached(tuple(self._parameters), tuple(x_)) for x_ in x_inp]
+            )
+            y_sv = np.array(
+                [self._qulacs_circuit_cached(tuple(self._parameters), tuple(y_)) for y_ in y_inp]
+            )
         else:
             x_sv = np.array([self._qulacs_circuit_cached(tuple(x_)) for x_ in x_inp])
             y_sv = np.array([self._qulacs_circuit_cached(tuple(y_)) for y_ in y_inp])
