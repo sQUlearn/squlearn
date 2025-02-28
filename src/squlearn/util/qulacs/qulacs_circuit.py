@@ -118,7 +118,8 @@ class QulacsCircuit:
         self.new_operators_coeff = []
         self.new_operators_coeff_grad = []
         self.new_operators_used_parameters = []
-        self.build_observable_instructions(self._qiskit_observable)
+        if self._is_qiskit_observable:
+            self.build_observable_instructions(self._qiskit_observable)
 
         # self._qulacs_circuit = self.build_qulacs_circuit()
 
