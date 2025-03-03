@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
@@ -66,7 +65,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """Returns the number of encoding slots of the current QCNNEncodingCircuit."""
-        return math.inf
+        return np.inf
 
     def set_params(self, **params):
         """

@@ -1,4 +1,3 @@
-import math
 import numpy as np
 from typing import Union
 from qiskit.circuit import QuantumCircuit
@@ -93,7 +92,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         if self.num_layers is not None:
             return 3 * self.num_qubits * self.num_layers
         else:
-            return math.inf
+            return np.inf
 
     def get_params(self, deep: bool = True) -> dict:
         """

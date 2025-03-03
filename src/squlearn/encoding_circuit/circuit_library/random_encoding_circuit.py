@@ -1,4 +1,3 @@
-import math
 import numpy as np
 from typing import Union
 import random
@@ -347,7 +346,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the random encoding circuit (equal to inf)."""
-        return math.inf
+        return np.inf
 
     def generate_initial_parameters(
         self, num_features: int, seed: Union[int, None] = None
