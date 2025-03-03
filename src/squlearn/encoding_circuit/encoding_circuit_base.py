@@ -8,6 +8,8 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 
 class EncodingCircuitBase(ABC):
     """
@@ -191,6 +193,27 @@ class EncodingCircuitBase(ABC):
                 setattr(self, "_" + key, value)
 
         return self
+
+    def _check_feature_consistency(self, x) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, an Error is raised.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Error:
+            ValueError: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = extract_num_features(x)
+
+        if actual_num_features != self.num_features and self.num_features is not None:
+            raise ValueError(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
 
     def _check_feature_encoding_slots(self, num_features: int, num_encoding_slots: int) -> None:
         """

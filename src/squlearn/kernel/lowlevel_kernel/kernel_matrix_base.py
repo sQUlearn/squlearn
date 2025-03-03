@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 from abc import ABC, abstractmethod
 
+from squlearn.encoding_circuit.circuit_library.random_encoding_circuit import RandomEncodingCircuit
 from squlearn.util.data_preprocessing import extract_num_features
 
 from .regularization import thresholding_regularization, tikhonov_regularization
@@ -272,11 +273,10 @@ class KernelMatrixBase(ABC):
                 "If regularization is not none it must be either thresholding or tikhonov"
             )
 
-    def _check_feature_consistency(self, x: np.ndarray) -> None:
+    def _check_feature_consistency(self, x) -> None:
         """
         Checks if the number of features in the input data matches the expected number of features
-        in the encoding circuit. If they differ, a warning is issued, and the `num_features` attribute
-        of the encoding circuit is updated to reflect the actual number of features in the input data.
+        in the encoding circuit. If they differ, an Error is raised.
 
         Args:
             x (np.ndarray): Input data to check, where each row corresponds to a data sample
@@ -286,13 +286,7 @@ class KernelMatrixBase(ABC):
             ValueError: Raised if the number of features in the input data does not match the
                      `num_features` of the encoding circuit.
         """
-        actual_num_features = extract_num_features(x)
-
-        if actual_num_features != self.num_features and self.num_features is not None:
-            raise ValueError(
-                f"Number of features in the input data ({actual_num_features}) "
-                f"does not match the number of features in the encoding circuit ({self.num_features})."
-            )
+        self._encoding_circuit._check_feature_consistency(x)
 
 
 class _ComposedKernelMatrix(KernelMatrixBase):

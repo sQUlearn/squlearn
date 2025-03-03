@@ -151,7 +151,7 @@ def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> 
             return tuple([x])
 
 
-def extract_num_features(X: Union[np.ndarray, ParameterVector]) -> int:
+def extract_num_features(X: Union[np.ndarray, ParameterVector, list]) -> int:
     """Extract the number of features from the input array."""
     if isinstance(X, list):
         X = np.array(X)
