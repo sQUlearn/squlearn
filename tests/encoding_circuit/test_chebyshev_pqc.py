@@ -28,17 +28,18 @@ class TestChebyshevPQC:
                 num_features=2, num_qubits=2, entangling_gate="invalid", nonlinearity="arccos"
             )
 
-    def test_num_parameters_closed(self):
+    @pytest.mark.parametrize(
+        "closed, expected",
+        [
+            (True, 2 * 3 + 3 * 1 + 3 * 1),  # 12
+            (False, 2 * 3 + 3 * 1 + (3 - 1) * 1),  # 11
+        ],
+    )
+    def test_num_parameters(self, closed, expected):
         qubits = 3
         layers = 1
-        circuit = ChebyshevPQC(num_qubits=qubits, num_layers=layers, closed=True)
-        assert circuit.num_parameters == 2 * qubits + qubits * layers + qubits * layers
-
-    def test_num_parameters_none_closed(self):
-        qubits = 3
-        layers = 1
-        circuit = ChebyshevPQC(num_qubits=qubits, num_layers=layers, closed=False)
-        assert circuit.num_parameters == 2 * qubits + qubits * layers + (qubits - 1) * layers
+        circuit = ChebyshevPQC(num_qubits=qubits, num_layers=layers, closed=closed)
+        assert circuit.num_parameters == expected
 
     def test_parameter_bounds(self):
         circuit = ChebyshevPQC(num_qubits=2, num_layers=1)
