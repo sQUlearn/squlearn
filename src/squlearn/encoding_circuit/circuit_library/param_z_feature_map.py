@@ -42,11 +42,15 @@ class ParamZFeatureMap(EncodingCircuitBase):
         self._num_layers = num_layers
         self._entangling = entangling
 
-    # TODO: How to handle num_features here?
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the encoding circuit."""
-        return max(self._num_qubits, self._num_features) * self._num_layers
+        return self._num_qubits * self._num_layers
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ParamZFeatureMap circuit."""
+        return self._num_qubits * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -93,7 +97,7 @@ class ParamZFeatureMap(EncodingCircuitBase):
         circuit = QuantumCircuit(self._num_qubits)
         index_offset = 0
         for _ in range(self._num_layers):
-            for i in range(max(self._num_qubits, num_features)):
+            for i in range(self._num_qubits):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(

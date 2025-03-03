@@ -17,7 +17,7 @@ class TestParamZFeatureMap:
         qubits = 3
         layers = 2
         circuit = ParamZFeatureMap(num_qubits=qubits, num_layers=layers)
-        assert circuit.num_parameters() == max(qubits) * layers
+        assert circuit.num_parameters == qubits * layers
 
     def test_get_params(self):
         circuit = ParamZFeatureMap(num_qubits=2)
