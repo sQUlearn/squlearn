@@ -59,7 +59,7 @@ class EncodingCircuitBase(ABC):
 
         To get the bounds for a specific number of features, use get_feature_bounds().
 
-        Default bounds are [-pi,pi] for a single feature.
+        Default bounds are [-pi,pi].
         """
         return np.array([-np.pi, np.pi])
 

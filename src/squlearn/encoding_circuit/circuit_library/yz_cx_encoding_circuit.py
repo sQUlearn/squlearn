@@ -3,7 +3,9 @@ from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from ..encoding_circuit_base import EncodingCircuitBase, EncodingSlotsMismatchError
+from squlearn.util.data_preprocessing import extract_num_features
+
+from ..encoding_circuit_base import EncodingCircuitBase
 
 
 class YZ_CX_EncodingCircuit(EncodingCircuitBase):
@@ -105,11 +107,9 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the circuit in qiskit format.
         """
-
-        self._check_feature_encoding_slots(features, self.num_encoding_slots)
-
-        nfeature = len(features)
-        nparam = len(parameters)
+        num_features = extract_num_features(features)
+        num_param = len(parameters)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         # Creates the layers of the encoding circuit
         QC = QuantumCircuit(self.num_qubits)
@@ -118,14 +118,14 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         for layer in range(self.num_layers):
             for i in range(self.num_qubits):
                 QC.ry(
-                    parameters[index_offset % nparam]
-                    + self.c * features[feature_offset % nfeature],
+                    parameters[index_offset % num_param]
+                    + self.c * features[feature_offset % num_features],
                     i,
                 )
                 index_offset += 1
                 QC.rz(
-                    parameters[index_offset % nparam]
-                    + self.c * features[feature_offset % nfeature],
+                    parameters[index_offset % num_param]
+                    + self.c * features[feature_offset % num_features],
                     i,
                 )
                 index_offset += 1

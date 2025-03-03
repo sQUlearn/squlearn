@@ -3,7 +3,6 @@ from typing import Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
-from sympy import nfloat
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -197,8 +196,6 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                             else:
                                 QC.cx(i, 0)
             return QC, index_offset
-
-        num_features = extract_num_features(features)
 
         if self.encoding_style == "chebyshev_product":
             QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=num_features)
