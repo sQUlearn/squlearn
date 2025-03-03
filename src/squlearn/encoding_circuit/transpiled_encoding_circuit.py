@@ -105,7 +105,11 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Bounds of the features of the encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
+        """
+        Bounds of the features of the encoding circuit.
+
+        To get the bounds for a specific number of features, use get_feature_bounds().
+        """
         return self._encoding_circuit.feature_bounds
 
     @property

@@ -54,7 +54,10 @@ class EncodingCircuitBase(ABC):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds().
+        """
+        The bounds of the features of the encoding circuit.
+
+        To get the bounds for a specific number of features, use get_feature_bounds().
 
         Default bounds are [-pi,pi] for a single feature.
         """

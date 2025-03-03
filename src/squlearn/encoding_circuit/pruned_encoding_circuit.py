@@ -49,7 +49,11 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Feature bounds of the pruned encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
+        """
+        Feature bounds of the pruned encoding circuit.
+
+        To get the bounds for a specific number of features, use get_feature_bounds().
+        """
         return self._encoding_circuit.feature_bounds
 
     @property

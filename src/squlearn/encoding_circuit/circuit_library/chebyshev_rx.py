@@ -5,7 +5,6 @@ from typing import Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
-from sympy import N
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -104,7 +103,11 @@ class ChebyshevRx(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the ChebyshevPQC encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds()."""
+        """
+        The bounds of the features of the ChebyshevPQC encoding circuit.
+
+        To get the bounds for a specific number of features, use get_feature_bounds().
+        """
         if self.nonlinearity == "arccos":
             return np.array([-1.0, 1.0])
         elif self.nonlinearity == "arctan":
@@ -194,6 +197,7 @@ class ChebyshevRx(EncodingCircuitBase):
             Returns the circuit in Qiskit's QuantumCircuit format
         """
         num_features = extract_num_features(features)
+        num_params = len(parameters)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
@@ -218,9 +222,6 @@ class ChebyshevRx(EncodingCircuitBase):
             def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
                 return a * np.arctan(x)
-
-        num_features = extract_num_features(features)
-        num_params = len(parameters)
 
         QC = QuantumCircuit(self.num_qubits)
         index_offset = 0
