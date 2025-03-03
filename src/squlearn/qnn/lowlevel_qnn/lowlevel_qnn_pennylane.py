@@ -16,7 +16,12 @@ from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
 from ...util import Executor
-from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ...util.data_preprocessing import (
+    adjust_features,
+    adjust_parameters,
+    extract_num_features,
+    to_tuple,
+)
 from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
 from ...util.decompose_to_std import decompose_to_std
 
@@ -113,7 +118,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
-        num_features: int,
         caching: bool = True,
     ) -> None:
 
@@ -122,7 +126,6 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # Initialize result cache
         self.caching = caching
         self.result_container = {}
-        self._num_features = num_features
         self._preprocess_observable()
 
     def set_params(self, **params) -> None:
@@ -269,9 +272,10 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             The keys of the dictionary are given by the entries in the values tuple
 
         """
+        num_features = extract_num_features(x)
 
         # Pre-process the input data to the format [[x1],[x2]]
-        x_inp, multi_x = adjust_features(x, self._num_features)
+        x_inp, multi_x = adjust_features(x, num_features)
         x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(
@@ -283,7 +287,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         compare_list = []
         if self.num_parameters > 0:
             compare_list.append("param")
-        if self._num_features > 0:
+        if num_features > 0:
             compare_list.append("x")
         if self.num_parameters_observable > 0:
             compare_list.append("param_obs")
@@ -359,7 +363,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     output = np.array(output)
 
                     # Capture some strange edge cases
-                    if self._executor.shots is not None and sum(np.shape(x)) == self._num_features:
+                    if self._executor.shots is not None and sum(np.shape(x)) == num_features:
                         output = output.reshape(output.shape + (1,))
                     if len(x) == 0 and self._executor.shots is None:
                         output = output.reshape((1,) + output.shape)

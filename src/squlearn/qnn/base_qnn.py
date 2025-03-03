@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
+import warnings
 from packaging import version
 from typing import Callable, Union
-from warnings import warn
-import warnings
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -94,9 +93,8 @@ class BaseQNN(BaseEstimator, ABC):
         self.parameter_seed = parameter_seed
         self._qnn_params = kwargs
 
-        if param_ini is None:
-            if pretrained:
-                raise ValueError("If pretrained is True, param_ini must be provided!")
+        if param_ini is None and pretrained:
+            raise ValueError("If pretrained is True, param_ini must be provided!")
 
         self.param_ini = param_ini
 
@@ -120,7 +118,7 @@ class BaseQNN(BaseEstimator, ABC):
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
         ):
-            warn(
+            warnings.warn(
                 f"{optimizer.__class__.__name__} is not of type SGDMixin, thus batch_size, epochs"
                 " and shuffle will be ignored."
             )
@@ -161,8 +159,11 @@ class BaseQNN(BaseEstimator, ABC):
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
 
-        # in case the num_features property is provided initialize everything as usual
-        self.__initialize_based_on_num_features()
+        self._initialize_lowlevel_qnn()
+
+        update_params = self.get_params().keys() & kwargs.keys()
+        if update_params:
+            self.set_params(**{key: kwargs[key] for key in update_params})
 
         self._is_fitted = self.pretrained
 
@@ -195,16 +196,6 @@ class BaseQNN(BaseEstimator, ABC):
         """Number of parameters of the observable."""
         return self._qnn.num_parameters_observable
 
-    @property
-    def num_features(self) -> int:
-        """Number of features of the PQC."""
-        return self.encoding_circuit.num_features
-
-    @num_features.setter
-    def num_features(self, value: int) -> None:
-        """Set the number of features of the PQC."""
-        self.encoding_circuit.num_features = value
-
     def fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a new model to data.
 
@@ -217,10 +208,6 @@ class BaseQNN(BaseEstimator, ABC):
                 Labels
             weights: Weights for each data point
         """
-
-        X = np.array(X)
-        y = np.array(y)
-
         self._check_feature_consistency(X)
         self.__initialize_based_on_num_features(X)
 
@@ -384,50 +371,14 @@ class BaseQNN(BaseEstimator, ABC):
             x (np.ndarray): Input data to check, where each row corresponds to a data sample
                             and each column to a feature.
 
-        Warnings:
-            UserWarning: Raised if the number of features in the input data does not match the
+        Error:
+            ValueError: Raised if the number of features in the input data does not match the
                      `num_features` of the encoding circuit.
         """
-        actual_num_features = x.shape[1] if len(x.shape) > 1 else 1
+        actual_num_features = len(x)
 
-        if actual_num_features != self.num_features:
-            warnings.warn(
+        if actual_num_features != self.num_features and self.num_features is not None:
+            raise ValueError(
                 f"Number of features in the input data ({actual_num_features}) "
                 f"does not match the number of features in the encoding circuit ({self.num_features})."
             )
-            self.num_features = actual_num_features
-
-    def __initialize_based_on_num_features(self, input_X=None) -> None:
-        """Initializes certain components of the class depending on the availability of the
-        `num_features` property.
-        If `num_features` is set, the full initialization is performed immediately.
-        Otherwise, the initialization is deferred until `num_features` becomes available.
-        This method allows flexibility in scenarios where the number of features is unknown
-        at the time of object creation but becomes available later during runtime (e.g., during the fitting process).
-        """
-        if self.num_features is None and input_X is not None:
-            self.__set_num_features(input_X)
-
-        if self.num_features is not None:
-            self.__initialize_param_ini()
-            self._initialize_lowlevel_qnn()
-            self.__update_params()
-
-    def __update_params(self) -> None:
-        update_params = self.get_params().keys() & self._qnn_params.keys()
-        if update_params:
-            self.set_params(**{key: self._qnn_params[key] for key in update_params})
-
-    def __set_num_features(self, X) -> None:
-        """Set the number of features of the PQC."""
-        if len(X.shape) == 1:
-            self.num_features = 1
-        else:
-            self.num_features = X.shape[1]
-
-    def __initialize_param_ini(self) -> None:
-        if self.param_ini is None:
-            self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                seed=self.parameter_seed
-            )
-        self._param = self.param_ini.copy()
