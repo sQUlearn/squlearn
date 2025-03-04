@@ -120,21 +120,26 @@ class EncodingCircuitBase(ABC):
         **kwargs,
     ) -> None:
         """
-        Draws the encoding circuit circuit using the QuantumCircuit.draw() function.
+        Draws the encoding circuit using the QuantumCircuit.draw() function.
 
         Args:
+            num_features (int): Number of features to draw the circuit with (default: None).
+            output (str): Output format of the drawing (default: None).
             feature_label (str): Label for the feature vector (default:"x").
             parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
             kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
+
+        Raises:
+            ValueError: Raised if the number of features is not provided.
 
         Returns:
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
         if self.num_features is None and num_features is None:
-            raise ValueError("Number of features has to be provided.")
-        else:
+            raise ValueError("Number of features has to be provided!")
+        elif self.num_features is not None and num_features is None:
             num_features = self.num_features
 
         feature_vec = ParameterVector(feature_label, num_features)
@@ -203,7 +208,7 @@ class EncodingCircuitBase(ABC):
             x (np.ndarray): Input data to check, where each row corresponds to a data sample
                             and each column to a feature.
 
-        Error:
+        Raises:
             ValueError: Raised if the number of features in the input data does not match the
                      `num_features` of the encoding circuit.
         """
