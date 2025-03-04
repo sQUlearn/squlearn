@@ -2,7 +2,6 @@
 
 from sklearn.svm import SVC
 from typing import Union, Optional
-import numpy as np
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -114,17 +113,11 @@ class QSVC(SVC):
             Returns an instance of self.
         """
         num_features = extract_num_features(X)
-        self._quantum_kernel._check_feature_consistency(X)
-
         self._initialize(num_features=num_features)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
-
-    def predict(self, X):
-        self._quantum_kernel._check_feature_consistency(X)
-        return super().predict(X)
 
     def get_params(self, deep: bool = True) -> dict:
         """

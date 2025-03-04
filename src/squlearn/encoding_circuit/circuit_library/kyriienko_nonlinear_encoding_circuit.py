@@ -156,6 +156,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         """
         num_features = extract_num_features(features)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""

@@ -2236,6 +2236,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         # apply all stored operations before calling the get_circuit
         num_features = extract_num_features(features)
         self._apply_stored_operations(num_features)
+        self._check_feature_consistency(features)
 
         return self._layered_pqc.get_circuit(features, parameters)
 

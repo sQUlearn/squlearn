@@ -133,8 +133,6 @@ class QGPR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
         num_features = extract_num_features(X)
-        self._quantum_kernel._check_feature_consistency(X)
-
         self._initialize(num_features)
 
         X, y = validate_data(
@@ -215,8 +213,6 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Covariance of joint predictive distribution a query points.
                 Only returned when `return_cov` is True.
         """
-        self._quantum_kernel._check_feature_consistency(X)
-
         X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:

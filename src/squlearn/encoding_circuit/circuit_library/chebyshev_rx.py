@@ -199,6 +199,7 @@ class ChebyshevRx(EncodingCircuitBase):
         num_features = extract_num_features(features)
         num_params = len(parameters)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""

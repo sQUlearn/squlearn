@@ -142,6 +142,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         num_features = extract_num_features(features)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         def build_layer(QC: QuantumCircuit, feature_vec: ParameterVector, index_offset: int):
             """

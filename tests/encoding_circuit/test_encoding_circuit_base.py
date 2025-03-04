@@ -21,8 +21,10 @@ class MockCircuitBase(EncodingCircuitBase):
 class TestEncodingCircuitBase:
 
     def test_init(self):
-        circuit = MockCircuitBase(num_qubits=2)
-        assert circuit.num_qubits == 2
+        with pytest.warns(DeprecationWarning):
+            circuit = MockCircuitBase(num_qubits=2, num_features=2)
+            assert circuit.num_qubits == 2
+            assert circuit.num_features == 2
 
     def test_generate_initial_parameters(self):
         custom_circuit = MockCircuitBase(num_qubits=4)

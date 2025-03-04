@@ -158,6 +158,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             QuantumCircuit: The quantum circuit of the Random Layered encoding circuit.
         """
         num_features = extract_num_features(features)
+        self._check_feature_consistency(features)
 
         self._fm_str = self._generate_circuit_string(num_features)
         self._layered_encoding_circuit = self._build_layered_encoding_circuit(num_features)

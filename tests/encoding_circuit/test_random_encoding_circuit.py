@@ -125,3 +125,10 @@ class TestRandomEncodingCircuit:
         result = estimator.predict(X_train)
 
         assert np.allclose(result, y_train, atol=1e-3)
+
+    def test_feature_consistency(self):
+        circuit = RandomEncodingCircuit(num_qubits=4, num_features=3)
+        features = np.array([0.5, -0.5])
+
+        with pytest.raises(ValueError):
+            circuit.get_circuit(features, [])

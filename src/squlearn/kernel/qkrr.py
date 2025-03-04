@@ -19,7 +19,6 @@ else:
 
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
-from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKRR(BaseEstimator, RegressorMixin):
@@ -131,8 +130,6 @@ class QKRR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
         num_features = extract_num_features(X)
-        self._quantum_kernel._check_feature_consistency(X)
-
         self._initialize(num_features)
 
         X, y = validate_data(
@@ -182,8 +179,6 @@ class QKRR(BaseEstimator, RegressorMixin):
             np.ndarray :
                 Returns predicted labels (at X) of shape (n_samples,)
         """
-        self._quantum_kernel._check_feature_consistency(X)
-
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 

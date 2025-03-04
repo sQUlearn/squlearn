@@ -110,6 +110,7 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         num_features = extract_num_features(features)
         num_param = len(parameters)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         # Creates the layers of the encoding circuit
         QC = QuantumCircuit(self.num_qubits)

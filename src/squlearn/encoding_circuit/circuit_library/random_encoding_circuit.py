@@ -195,6 +195,8 @@ class RandomEncodingCircuit(EncodingCircuitBase):
             num_features = extract_num_features(features)
             self._gen_random_config(num_features=num_features, seed=self.seed)
 
+        self._check_feature_consistency(features)
+
         qc = QuantumCircuit(self.num_qubits)
         feature_counter = 0
         parameter_counter = 0

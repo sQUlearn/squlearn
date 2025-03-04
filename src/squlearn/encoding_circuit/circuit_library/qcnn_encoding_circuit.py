@@ -431,6 +431,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         # if it is asked for a intrinsic feature map
         num_features = extract_num_features(features)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         if num_features > 0:
             feature_map = ParamZFeatureMap(self.num_qubits, num_features, 1).get_circuit(

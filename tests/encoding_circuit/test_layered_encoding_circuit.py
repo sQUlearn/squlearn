@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
@@ -282,3 +283,17 @@ class TestLayeredEncodingCircuit:
         result = estimator.predict(X_train)
 
         assert np.allclose(result, y_train, atol=1e-3)
+
+    def test_feature_consistency(self):
+        circuit = LayeredEncodingCircuit(num_qubits=4, num_features=3)
+        circuit.H()
+        layer = Layer(circuit)
+        layer.Rz("x")
+        layer.Ry("p")
+        layer.cx_entangling("NN")
+        circuit.add_layer(layer)
+
+        features = np.array([0.5, -0.5])
+
+        with pytest.raises(ValueError):
+            circuit.get_circuit(features, [])

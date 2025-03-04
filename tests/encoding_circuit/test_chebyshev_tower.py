@@ -111,3 +111,11 @@ class TestChebyshevTower:
         result = estimator.predict(X_train)
 
         assert np.allclose(result, y_train, atol=1e-3)
+
+    def test_feature_consistency(self):
+        circuit = ChebyshevTower(num_qubits=4, num_features=3, num_chebyshev=1)
+        features = np.array([0.5, -0.5])
+        params = np.random.uniform(-np.pi, np.pi, circuit.num_parameters)
+
+        with pytest.raises(ValueError):
+            circuit.get_circuit(features, params)

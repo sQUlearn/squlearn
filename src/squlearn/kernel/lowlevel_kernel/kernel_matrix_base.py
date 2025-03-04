@@ -273,21 +273,6 @@ class KernelMatrixBase(ABC):
                 "If regularization is not none it must be either thresholding or tikhonov"
             )
 
-    def _check_feature_consistency(self, x) -> None:
-        """
-        Checks if the number of features in the input data matches the expected number of features
-        in the encoding circuit. If they differ, an Error is raised.
-
-        Args:
-            x (np.ndarray): Input data to check, where each row corresponds to a data sample
-                            and each column to a feature.
-
-        Error:
-            ValueError: Raised if the number of features in the input data does not match the
-                     `num_features` of the encoding circuit.
-        """
-        self._encoding_circuit._check_feature_consistency(x)
-
 
 class _ComposedKernelMatrix(KernelMatrixBase):
     """

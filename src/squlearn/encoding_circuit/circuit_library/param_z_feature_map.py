@@ -93,6 +93,7 @@ class ParamZFeatureMap(EncodingCircuitBase):
 
         num_features = extract_num_features(features)
         num_params = len(parameters)
+        self._check_feature_consistency(features)
 
         circuit = QuantumCircuit(self._num_qubits)
         index_offset = 0
