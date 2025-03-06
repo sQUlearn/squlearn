@@ -67,6 +67,17 @@ class QGPC(GaussianProcessClassifier):
         self._quantum_kernel = quantum_kernel
         self._kernel_params = kwargs
 
+        # determine the parameters that are relevant for the superclass
+        valid_superclass_params = self._get_param_names()
+        superclass_params = {
+            param_name: param_value
+            for param_name, param_value in self._kernel_params.items()
+            if param_name in valid_superclass_params
+        }
+
+        # call the constructor of the superclass only with the relevant parameters
+        super().__init__(**superclass_params)
+
     @classmethod
     def _get_param_names(cls):
         names = GaussianProcessClassifier._get_param_names()
@@ -88,7 +99,18 @@ class QGPC(GaussianProcessClassifier):
             Returns an instance of self.
         """
         num_features = extract_num_features(X)
-        self._initialize(num_features)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+        quantum_kernel_update_params = (
+            self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
+        )
+        if quantum_kernel_update_params:
+            self._quantum_kernel.set_params(
+                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+            )
+        self.kernel = kernel_wrapper(self._quantum_kernel)
 
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
@@ -156,22 +178,3 @@ class QGPC(GaussianProcessClassifier):
         """Sets quantum kernel"""
         self._quantum_kernel = quantum_kernel
         self.kernel = kernel_wrapper(quantum_kernel)
-
-    def _initialize(self, num_features: int) -> None:
-        """Initialize the model with the known number of features."""
-
-        self.quantum_kernel._initialize_kernel(num_features=num_features)
-
-        quantum_kernel_update_params = (
-            self.quantum_kernel.get_params().keys() & self._kernel_params.keys()
-        )
-        if quantum_kernel_update_params:
-            self.quantum_kernel.set_params(
-                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
-            )
-            # remove quantum_kernel_kwargs for SVR initialization
-            for key in quantum_kernel_update_params:
-                self._kernel_params.pop(key, None)
-
-        super().__init__(**self._kernel_params)
-        self.kernel = kernel_wrapper(self._quantum_kernel)

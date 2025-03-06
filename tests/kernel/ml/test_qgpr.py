@@ -168,7 +168,6 @@ class TestQGPR:
     def test_kernel_params_can_be_changed_after_initialization(self, qgpr, request, data):
         """Tests concerning the kernel parameter changes."""
         qgpr_instance = request.getfixturevalue(qgpr)
-        qgpr_instance._initialize(2)
 
         qgpr_params = qgpr_instance.get_params()
         assert qgpr_params["num_qubits"] == 3
@@ -176,9 +175,6 @@ class TestQGPR:
 
         qgpr_instance.set_params(num_qubits=4)
         qgpr_instance.set_params(full_regularization=False)
-
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qgpr_instance._initialize(2)
 
         qgpr_params_updated = qgpr_instance.get_params()
         assert qgpr_params_updated["num_qubits"] == 4
@@ -197,12 +193,9 @@ class TestQGPR:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qgpr_instance = request.getfixturevalue(qgpr)
-        qgpr_instance._initialize(2)
         assert qgpr_instance.get_params()["num_layers"] == 2
         qgpr_instance.set_params(num_layers=4)
 
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qgpr_instance._initialize(2)
         assert qgpr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

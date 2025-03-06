@@ -130,7 +130,14 @@ class QKRR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
         num_features = extract_num_features(X)
-        self._initialize(num_features)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+        # Apply kernel_params (kwargs) to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
+        if update_params:
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})
 
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
@@ -248,12 +255,3 @@ class QKRR(BaseEstimator, RegressorMixin):
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self
-
-    def _initialize(self, num_features: int) -> None:
-        """Initialize the model with the known feature vector"""
-        self._quantum_kernel._initialize_kernel(num_features=num_features)
-
-        # Apply kernel_params (kwargs) to set_params
-        update_params = self.get_params().keys() & self._kernel_params.keys()
-        if update_params:
-            self.set_params(**{key: self._kernel_params[key] for key in update_params})

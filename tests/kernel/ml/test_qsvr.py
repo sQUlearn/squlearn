@@ -83,7 +83,6 @@ class TestQSVR:
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
         qsvr_instance = QSVR(MagicMock())
-        qsvr_instance._initialize(2)
         assert list(qsvr_instance.get_params(deep=False).keys()) == [
             "C",
             "cache_size",
@@ -164,14 +163,11 @@ class TestQSVR:
     def test_kernel_params_can_be_changed_after_initialization(self, qsvr, request, data):
         """Tests concerning the kernel parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
-        qsvr_instance._initialize(2)
         qsvr_params = qsvr_instance.get_params()
         assert qsvr_params["num_qubits"] == 3
         assert qsvr_params["regularization"] == "thresholding"
         qsvr_instance.set_params(num_qubits=4, regularization="tikhonov")
 
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qsvr_instance._initialize(2)
         qsvr_params_updated = qsvr_instance.get_params()
         assert qsvr_params_updated["num_qubits"] == 4
         assert qsvr_params_updated["regularization"] == "tikhonov"
@@ -189,12 +185,10 @@ class TestQSVR:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
-        qsvr_instance._initialize(2)
+
         assert qsvr_instance.get_params()["num_layers"] == 2
         qsvr_instance.set_params(num_layers=4)
 
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qsvr_instance._initialize(2)
         assert qsvr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

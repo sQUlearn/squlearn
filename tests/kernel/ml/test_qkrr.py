@@ -137,15 +137,11 @@ class TestQKRR:
     def test_kernel_params_can_be_changed_after_initialization(self, qkrr, request, data):
         """Tests concerning the kernel parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
-        qkrr_instance._initialize(2)
 
         qkrr_params = qkrr_instance.get_params()
         assert qkrr_params["num_qubits"] == 3
         assert qkrr_params["regularization"] == "thresholding"
         qkrr_instance.set_params(num_qubits=4, regularization="tikhonov")
-
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qkrr_instance._initialize(2)
 
         qkrr_params_updated = qkrr_instance.get_params()
         assert qkrr_params_updated["num_qubits"] == 4
@@ -164,12 +160,9 @@ class TestQKRR:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qkrr_instance = request.getfixturevalue(qkrr)
-        qkrr_instance._initialize(2)
         assert qkrr_instance.get_params()["num_layers"] == 2
         qkrr_instance.set_params(num_layers=4)
 
-        # explicitly re-initialize the kernel to propagate the changes to all underlying objects
-        qkrr_instance._initialize(2)
         assert qkrr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

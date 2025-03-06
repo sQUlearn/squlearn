@@ -13,8 +13,6 @@ from sklearn.gaussian_process.kernels import (
     PairwiseKernel,
 )
 
-from sklearn.gaussian_process.kernels import Kernel as SklearnKernel
-
 from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 
 
@@ -444,6 +442,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         self._kwargs = kwargs
         self._initial_parameters = initial_parameters
         self._parameter_seed = parameter_seed
+        self._is_initialized = False
+
+        self._set_up_measurement_operator()
+        self._set_up_qnn()
 
         self._set_outer_kernel(outer_kernel, **kwargs)
 
@@ -534,6 +536,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         """
         num_features = extract_num_features(x)
+        self._initialize_kernel(num_features)
 
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = []
@@ -611,7 +614,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     )  # shape (num_parameters, len(x), len(y))
                 elif todo == "dKdxdx":
 
-                    if self.num_features > 1:
+                    if num_features > 1:
                         raise NotImplementedError(
                             "Second-order derivatives wrt multiple feature are not implemented"
                         )
@@ -716,6 +719,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._regularization,
                 self._caching,
             )
+            # self.__init_after_set_params()
             params.pop("num_qubits")
 
         if "measurement" in params:
@@ -836,13 +840,12 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
-    def _set_up_qnn(self, num_features: int) -> None:
+    def _set_up_qnn(self) -> None:
         """Set-up of the QNN"""
         self._qnn = LowLevelQNN(
             self._encoding_circuit,
             self._measurement,
             self._executor,
-            num_features=num_features,
             caching=self._caching,
         )
 
@@ -866,45 +869,46 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
     def _initialize_kernel(self, num_features: int) -> None:
         """Initializes the quantum kernel."""
-        self._set_up_measurement_operator()
-        self._set_up_qnn(num_features=num_features)
+        if not self._is_initialized:
+            super()._initialize_kernel(num_features=num_features)
+            if isinstance(self._qnn, LowLevelQNNPennyLane):
+                self._qnn._initialize_pennylane_circuit(num_features=num_features)
 
-        super()._initialize_kernel(num_features=num_features)
-        if isinstance(self._qnn, LowLevelQNNPennyLane):
-            self._qnn._initialize_pennylane_circuit(num_features=num_features)
-
-        # Generate default parameters of the measurement operators
-        if self._initial_parameters is None:
-            if self._parameters is None:
-                self._parameters = np.array([])
-            if isinstance(self._measurement, list):
-                for i, m in enumerate(self._measurement):
+            # Generate default parameters of the measurement operators
+            if self._initial_parameters is None:
+                if self._parameters is None:
+                    self._parameters = np.array([])
+                if isinstance(self._measurement, list):
+                    for i, m in enumerate(self._measurement):
+                        self._parameters = np.concatenate(
+                            (
+                                self._parameters,
+                                m.generate_initial_parameters(seed=self._parameter_seed + i + 1),
+                            )
+                        )
+                elif isinstance(self._measurement, ObservableBase):
                     self._parameters = np.concatenate(
                         (
                             self._parameters,
-                            m.generate_initial_parameters(seed=self._parameter_seed + i + 1),
+                            self._measurement.generate_initial_parameters(
+                                seed=self._parameter_seed
+                            ),
                         )
                     )
-            elif isinstance(self._measurement, ObservableBase):
-                self._parameters = np.concatenate(
-                    (
-                        self._parameters,
-                        self._measurement.generate_initial_parameters(seed=self._parameter_seed),
+                else:
+                    raise ValueError(
+                        "Unknown type of measurement: {}".format(type(self._measurement_input))
                     )
-                )
-            else:
-                raise ValueError(
-                    "Unknown type of measurement: {}".format(type(self._measurement_input))
-                )
 
-        # Check if the number of parameters is correct
-        if self._parameters is not None:
-            if len(self._parameters) != self.num_parameters:
-                raise ValueError(
-                    "Number of initial parameters is wrong, expected number: {}".format(
-                        self.num_parameters
+            # Check if the number of parameters is correct
+            if self._parameters is not None:
+                if len(self._parameters) != self.num_parameters:
+                    raise ValueError(
+                        "Number of initial parameters is wrong, expected number: {}".format(
+                            self.num_parameters
+                        )
                     )
-                )
+            self._is_initialized = True
 
     def __check_num_params(self):
         """Check if the number of parameters is correct"""
