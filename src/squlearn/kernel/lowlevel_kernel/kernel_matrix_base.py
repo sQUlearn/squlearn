@@ -107,8 +107,10 @@ class KernelMatrixBase(ABC):
             Returns the quantum kernel matrix as 2D numpy array.
         """
         raise NotImplementedError()
-    
-    def evaluate_derivatives(self, x: np.ndarray, y: np.ndarray = None, values: str = "K") -> np.ndarray:
+
+    def evaluate_derivatives(
+        self, x: np.ndarray, y: np.ndarray = None, values: str = "K"
+    ) -> np.ndarray:
         """
         Computes the derivatives of the quantum kernel matrix.
 

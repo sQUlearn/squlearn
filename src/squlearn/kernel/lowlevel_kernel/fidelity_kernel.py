@@ -111,7 +111,7 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
                 caching=caching,
             )
-        
+
         else:
             if self._executor.quantum_framework == "pennylane":
 
@@ -296,23 +296,24 @@ class FidelityKernel(KernelMatrixBase):
         ):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
-    
+
     def evaluate_derivatives(
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
-        
+
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
             self._quantum_kernel.assign_training_parameters(self._parameters)
-            
+
         if self._use_expectation:
             return self._quantum_kernel.evaluate_derivatives(x, y, values)
         else:
-            raise NotImplementedError("Derivatives are only implemented for the option use expectation=True")
-
+            raise NotImplementedError(
+                "Derivatives are only implemented for the option use expectation=True"
+            )
 
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
         """Function to mitigate depolarizing noise using msplit method.

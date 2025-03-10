@@ -3,16 +3,25 @@
 import numpy as np
 from typing import Union
 
+from qiskit.quantum_info import SparsePauliOp
+from squlearn.observables import CustomObservable
+
 from .kernel_matrix_base import KernelMatrixBase
 
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 from ...util.data_preprocessing import to_tuple
 
+from ...qnn.lowlevel_qnn import LowLevelQNN
+
 
 class FidelityKernelExpectationValue(KernelMatrixBase):
     """
-    Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by U(x)^\dagger U(y) |0> and measuring against P0=|0><0|^\otimes n, where U(x) is the encoding circuit for data x.
+    Fidelity Quantum Kernel evaluation based on quantum circuit and expectation values.
+
+    Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by
+    U(x)^\dagger U(y) |0> and measuring against P0=|0><0|^\otimes n,
+    where U(x) is the encoding circuit for data x.
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
@@ -38,7 +47,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         self._derivative_cache = {}
         self._caching = caching
 
-    def assign_training_parameters(self, parameters: np.ndarray) -> None:
+    def assign_training_parameters(self, Args: np.ndarray) -> None:
         """Assigns trainable parameters to the encoding circuit.
 
         Args:
@@ -78,40 +87,37 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             Dictionary with the evaluated values
 
         """
-        from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 
-        def P0_squlearn(num_qubits):
+        def P0_operator(num_qubits):
             """
             Create the P0 observable: (|0><0|)^\otimes n for the quantum circuit in the format of the squlearn library.
             Note that |0><0| = 0.5*(I + Z)
 
-            Parameters:
+            Args:
             num_qubits: int, the number of qubits in the quantum circuit.
 
             return:
             - CustomObservable: The P0 observable in the format of the squlearn library.
             """
-            from qiskit.quantum_info import SparsePauliOp
-            from squlearn.observables import CustomObservable
-
             P0_single_qubit = SparsePauliOp.from_list([("Z", 0.5), ("I", 0.5)])
             P0_temp = P0_single_qubit
-            for i in range(1, num_qubits):
+            for _ in range(1, num_qubits):
                 P0_temp = P0_temp.expand(P0_single_qubit)
-            observable_tuple_list = P0_temp.to_list()
+            observable_tuple_list = P0_temp.simplify().simplify().to_list()
             pauli_str = [observable[0] for observable in observable_tuple_list]
             return CustomObservable(num_qubits, pauli_str, parameterized=True)
 
         def get_flattened_matrix_indices(n, part="lower"):
             """
-            Returns the lower triangle indices in flattened form or the diagonal elements in the flattened form.
+            Returns the lower triangle or diagonal elements indices in flattened form.
 
-            Parameters:
+            Args:
             n (int): Size of the matrix (n x n).
-            part (str): Part of the matrix to return indices for. Options are "lower" for lower triangle and "diagonal" for diagonal elements.
+            part (str): Part of the matrix to return indices for. Options are "lower" for
+                        lower triangle and "diagonal" for diagonal elements.
 
             Returns:
-            numpy.ndarray: Indices in flattened form.
+                numpy.ndarray: Indices in flattened form.
             """
             matrix = np.arange(n**2).reshape(n, n)  # Creating a sample n x n matrix
             flat_matrix = matrix.ravel()  # Flattening the matrix
@@ -142,7 +148,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             Transforms an input array of shape (n, m) into an array of shape (n*n, 2*m),
             where each row consists of all possible ordered pairs of rows from the input array.
 
-            Parameters:
+            Args:
             x (numpy.ndarray): An input array of shape (n, m), where n is the number of samples
                             and m is the number of features.
 
@@ -221,7 +227,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             """
             Given a flattened kernel matrix of shape (nf,), fills the missing values according to the specified missing matrix_part.
 
-            Parameters:
+            Args:
             K_flat (numpy.ndarray): Flattened kernel matrix of shape (nf,) where nf is the number of kernel values to evaluate.
             n (int): Number of samples in the dataset.
             matrix_part (str): Part of the matrix to fill. Options are "lower" for the lower triangle and "diagonal" for the diagonal elements.
@@ -239,9 +245,9 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             K_flat_filled[main_diagonal_indices] = 1.0  # Set diagonal elements to 1
             if matrix_part == "lower":
                 lower_triangle_indices = get_flattened_matrix_indices(n, part="lower")
-                K_flat_filled[
-                    lower_triangle_indices
-                ] = K_flat  # Fill the lower triangle with the kernel values
+                K_flat_filled[lower_triangle_indices] = (
+                    K_flat  # Fill the lower triangle with the kernel values
+                )
             elif matrix_part == "diagonal":
                 non_diagonal_indices = get_flattened_matrix_indices(n, part="off_diagonal")
                 print(non_diagonal_indices)
@@ -299,7 +305,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         # we use squlearn's circuit compose and inverse
         self._qnn = LowLevelQNN(
             (self.encoding_circuit).compose(self.encoding_circuit.inverse()),
-            P0_squlearn(self.encoding_circuit.num_qubits),
+            P0_operator(self.encoding_circuit.num_qubits),
             executor=self._executor,
         )
 
