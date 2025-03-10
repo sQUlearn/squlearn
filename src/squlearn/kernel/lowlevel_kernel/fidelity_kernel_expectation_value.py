@@ -47,7 +47,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         self._derivative_cache = {}
         self._caching = caching
 
-    def assign_training_parameters(self, Args: np.ndarray) -> None:
+    def assign_training_parameters(self, parameters: np.ndarray) -> None:
         """Assigns trainable parameters to the encoding circuit.
 
         Args:
