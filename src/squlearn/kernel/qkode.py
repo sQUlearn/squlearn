@@ -1,6 +1,5 @@
 """Quantum Kernel ODE"""
 
-
 from packaging import version
 
 import numpy as np
