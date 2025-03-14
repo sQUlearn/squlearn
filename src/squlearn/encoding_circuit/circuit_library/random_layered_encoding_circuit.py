@@ -6,7 +6,7 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from squlearn.util.data_preprocessing import extract_num_features
 
 
-from ..layered_encoding_circuit import LayeredEncodingCircuit
+from ..layered_encoding_circuit import LayeredEncodingCircuit, LayeredPQC
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
@@ -62,7 +62,15 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self._fm_str = None
 
     def _generate_circuit_string(self, num_features: int) -> str:
-        """Generates a random Layered encoding circuit string."""
+        """
+        Generates a random Layered encoding circuit string.
+
+        Args:
+            num_features (int): The number of features.
+
+        Returns:
+            str: The random layered encoding circuit string.
+        """
         gates = [
             "H",
             "X",
@@ -132,13 +140,25 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
 
         return "-".join(layers)
 
-    def _build_layered_encoding_circuit(self, num_features: int) -> LayeredEncodingCircuit:
-        """Builds and returns the LayeredEncodingCircuit object from the fm_str."""
-        return LayeredEncodingCircuit.from_string(
+    def _build_layered_encoding_circuit(self, num_features: int) -> tuple[LayeredPQC, int]:
+        """
+        Builds the layered encoding circuit.
+
+        Args:
+            num_features (int): The number of features.
+
+        Returns:
+            tuple[LayeredPQC, int]: The layered encoding circuit and the number of parameters.
+        """
+        layered_encoding_circuit = LayeredEncodingCircuit.from_string(
             encoding_circuit_str=self._fm_str,
             num_qubits=self.num_qubits,
-            num_features=num_features,
         )
+
+        layered_pqc = layered_encoding_circuit._build_layered_pqc(num_features)
+        num_params = layered_encoding_circuit.num_parameters
+
+        return (layered_pqc, num_params)
 
     def get_circuit(
         self,
@@ -161,11 +181,11 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self._check_feature_consistency(features)
 
         self._fm_str = self._generate_circuit_string(num_features)
-        self._layered_encoding_circuit = self._build_layered_encoding_circuit(num_features)
+        (layered_pqc, num_parameters) = self._build_layered_encoding_circuit(num_features)
 
-        parameter = np.zeros(self._layered_encoding_circuit.num_parameters)
+        parameter = np.zeros(num_parameters)
 
-        return self._layered_encoding_circuit.get_circuit(features, parameter)
+        return layered_pqc.get_circuit(features, parameter)
 
     def get_params(self, deep: bool = True) -> dict:
         r"""

@@ -172,7 +172,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.gate_weights = gate_weights
         self.seed = seed
         self.available_feature_gates = None
-        self.random_config_is_available = False
+        self._num_parameters = None
 
     def get_circuit(
         self,
@@ -189,11 +189,8 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the random encoding circuit in qiskit QuantumCircuit format
         """
-
-        # _gen_random_config has to be called before get_circuit
-        if not self.random_config_is_available:
-            num_features = extract_num_features(features)
-            self._gen_random_config(num_features=num_features, seed=self.seed)
+        num_features = extract_num_features(features)
+        self._gen_random_config(num_features=num_features, seed=self.seed)
 
         self._check_feature_consistency(features)
 
@@ -234,7 +231,13 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         return available_gates.keys()
 
     def _gen_random_config(self, num_features: int, seed: int):
-        """Generates a random configuration for the random encoding circuit."""
+        """
+        Generates a random configuration for the random encoding circuit.
+
+        Args:
+            num_features (int): Number of features of the input data.
+            seed (int): Seed for the random number generator.
+        """
 
         random.seed(seed)
 
@@ -338,11 +341,14 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         )
 
         self.available_feature_gates = num_feature_gates
-        self.random_config_is_available = True
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the random encoding circuit."""
+        if self._num_parameters is None:
+            raise ValueError(
+                "No random configuration available. Generate one with _gen_random_config."
+            )
         return self._num_parameters
 
     @property
@@ -353,9 +359,8 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     def generate_initial_parameters(
         self, num_features: int, seed: Union[int, None] = None
     ) -> np.ndarray:
-        # the random configuration must be available before generating the parameters
-        if not self.random_config_is_available:
-            self._gen_random_config(num_features=num_features, seed=seed)
+        # the random configuration must be generated before generating the parameters
+        self._gen_random_config(num_features=num_features, seed=self.seed)
         return super().generate_initial_parameters(num_features, seed)
 
     def get_params(self, deep: bool = True) -> dict:
@@ -395,7 +400,4 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                 setattr(self, key, value)
             except:
                 setattr(self, "_" + key, value)
-        # Reset the random configuration and force the circuit to generate a new one in the get_circuit
-        self.random_config_is_available = False
-
         return self
