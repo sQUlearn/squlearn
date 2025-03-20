@@ -199,7 +199,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
     @property
     def num_qubits(self) -> int:
         """Return the number of qubits of the QNN"""
-        return self._pennylane_circuit._num_qubits
+        return self._pqc.num_qubits
 
     @property
     def num_parameters(self) -> int:
@@ -273,6 +273,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         """
         num_features = extract_num_features(x)
+        self._initialize_pennylane_circuit(num_features)
 
         # Pre-process the input data to the format [[x1],[x2]]
         x_inp, multi_x = adjust_features(x, num_features)
@@ -455,7 +456,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         # apply the stored operations to the layered encoding circuit to make sure that the circuit is up to date
         # and the num_parameters can be calculated correctly in the following step
         if isinstance(self._pqc, LayeredEncodingCircuit):
-            self._pqc._apply_stored_operations(num_features)
+            self._pqc._build_layered_pqc(num_features)
 
         self._x = ParameterVector("x", num_features)
         self._param = ParameterVector("param", self._pqc.num_parameters)

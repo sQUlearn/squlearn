@@ -12,6 +12,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -93,10 +95,12 @@ class BaseQNN(BaseEstimator, ABC):
         self.parameter_seed = parameter_seed
         self._qnn_params = kwargs
 
-        if param_ini is None and pretrained:
+        self.param_ini = param_ini
+
+        if pretrained and param_ini is None:
             raise ValueError("If pretrained is True, param_ini must be provided!")
 
-        self.param_ini = param_ini
+        self._param = param_ini.copy() if param_ini is not None else None
 
         if param_op_ini is None:
             if pretrained:
@@ -208,8 +212,12 @@ class BaseQNN(BaseEstimator, ABC):
                 Labels
             weights: Weights for each data point
         """
-        self._check_feature_consistency(X)
-        self.__initialize_based_on_num_features(X)
+        self.encoding_circuit._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+
+        self.param_ini = self.encoding_circuit.generate_initial_parameters(
+            seed=self.parameter_seed, num_features=num_features
+        )
 
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
@@ -300,11 +308,6 @@ class BaseQNN(BaseEstimator, ABC):
             initialize_qnn = True
 
         if initialize_qnn:
-            # If the number of parameters has changed, reinitialize the parameters
-            if self.encoding_circuit.num_parameters != len(self.param_ini):
-                self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                    seed=self.parameter_seed
-                )
             if isinstance(self.operator, list):
                 num_op_parameters = sum(operator.num_parameters for operator in self.operator)
                 if num_op_parameters != len(self.param_op_ini):
@@ -360,25 +363,3 @@ class BaseQNN(BaseEstimator, ABC):
         if y.ndim == 2 and y.shape[1] == 1:
             y = column_or_1d(y, warn=True)
         return X, y
-
-    def _check_feature_consistency(self, x: np.ndarray) -> None:
-        """
-        Checks if the number of features in the input data matches the expected number of features
-        in the encoding circuit. If they differ, a warning is issued, and the `num_features` attribute
-        of the encoding circuit is updated to reflect the actual number of features in the input data.
-
-        Args:
-            x (np.ndarray): Input data to check, where each row corresponds to a data sample
-                            and each column to a feature.
-
-        Error:
-            ValueError: Raised if the number of features in the input data does not match the
-                     `num_features` of the encoding circuit.
-        """
-        actual_num_features = len(x)
-
-        if actual_num_features != self.num_features and self.num_features is not None:
-            raise ValueError(
-                f"Number of features in the input data ({actual_num_features}) "
-                f"does not match the number of features in the encoding circuit ({self.num_features})."
-            )
