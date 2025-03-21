@@ -155,6 +155,11 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
                 self._kwargs["seed_transpiler"] = 0
             self._transpiled_circuit = transpile(self._circuit, self._backend, **self._kwargs)
 
+    def _setup_transpiled_circuit_and_qubit_mapping(self, num_features: int):
+        self._create_inner_circuit(num_features)
+        self._create_transpiled_circuit()
+        self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -174,9 +179,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         """
         num_features = extract_num_features(features)
 
-        self._create_inner_circuit(num_features)
-        self._create_transpiled_circuit()
-        self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
+        self._setup_transpiled_circuit_and_qubit_mapping(num_features)
 
         exchange_dict_x = dict(zip(self._x, features))
         exchange_dict_p = dict(zip(self._p, parameters))

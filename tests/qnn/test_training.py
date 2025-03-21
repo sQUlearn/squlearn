@@ -20,7 +20,7 @@ examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 class TestSolvemini_batch:
     """Tests for mini-batch gradient descent."""
 
-    pqc = ChebyshevPQC(4, 1, 3, False)
+    pqc = ChebyshevPQC(num_qubits=4, closed=False)
     cost_op = SummedPaulis(4)
     qnn = LowLevelQNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
@@ -49,7 +49,7 @@ class TestShotsFromRSTD:
     def test_qnn_training(self):
         """Test a optimization with variance reduction and shots from RSTD."""
 
-        pqc = ChebyshevPQC(2, 1, 1, False)
+        pqc = ChebyshevPQC(num_qubits=2, closed=False)
         ob = SummedPaulis(2)
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -72,7 +72,7 @@ class TestShotsFromRSTD:
     def test_qnn_training_two_outputs(self):
         """Test a optimization with variance reduction and shots from RSTD with two outputs."""
 
-        pqc = ChebyshevPQC(2, 1, 1, False)
+        pqc = ChebyshevPQC(num_qubits=2, closed=False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -151,7 +151,7 @@ class TestZeroParam:
             "QNNRegressor": np.array([0.11503425, 0.10989764, 0.11377155, 0.12618358, 0.14544058]),
             "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
-        pqc = ChebyshevPQC(2, 1, 1)
+        pqc = ChebyshevPQC(num_qubits=2)
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
@@ -168,7 +168,7 @@ class TestZeroParam:
             "QNNClassifier": np.array([1, 0, 0, 0, 0]),
         }
 
-        pqc = HighDimEncodingCircuit(2, 1, num_layers=1)
+        pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)
         ob = SummedPaulis(2)
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
@@ -185,7 +185,7 @@ class TestZeroParam:
             "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
 
-        pqc = HighDimEncodingCircuit(2, 1, num_layers=1)
+        pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
