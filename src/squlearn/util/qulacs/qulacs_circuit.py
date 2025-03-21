@@ -390,13 +390,18 @@ class QulacsCircuit:
         self._func_grad_list = []
         self._free_parameters = set()
         self._qulacs_gates_parameters = []
-        self._symbol_tuple_circuit = tuple()
+        self._symbol_tuple_circuit = []
 
         for param in circuit.parameters:
             if param.vector.name not in self._qulacs_gates_parameters:
                 self._qulacs_gates_parameters.append(param.vector.name)
+                self._symbol_tuple_circuit += [
+                    sympify(p._symbol_expr) for p in param.vector.params
+                ]
 
-        self._symbol_tuple_circuit = tuple([sympify(p._symbol_expr) for p in circuit.parameters])
+        self._symbol_tuple_circuit = tuple(
+            sorted(self._symbol_tuple_circuit, key=lambda x: x.__repr__())
+        )
 
         for op in circuit.data:
 
