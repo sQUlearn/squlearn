@@ -2344,9 +2344,7 @@ class Executor:
 
         if self._service is not None:
             if self._backend is not None:
-                self._session = Session(
-                    backend=self._backend, max_time=self._max_session_time
-                )
+                self._session = Session(backend=self._backend, max_time=self._max_session_time)
             else:
                 raise RuntimeError("Session can not started because of missing backend!")
             self._logger.info("Executor created a new session.")
