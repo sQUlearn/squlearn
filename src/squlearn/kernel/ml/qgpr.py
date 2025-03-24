@@ -8,6 +8,7 @@ from ..matrix.regularization import regularize_full_kernel
 import numpy as np
 from typing import Optional, Union
 from scipy.linalg import cholesky, cho_solve
+from scipy.linalg import lu_factor, lu_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
 
@@ -98,7 +99,8 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_train = None
         self.K_test = None
         self.K_testtrain = None
-        self._L = None
+        self._LU = None
+        self._piv = None
         self._alpha = None
 
         # Apply kwargs to set_params
@@ -239,11 +241,11 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])
 
         try:
-            self._L = cholesky(self.K_train, lower=True)
+            self._LU, self._piv = lu_factor(self.K_train)
         except np.linalg.LinAlgError:
             self.K_train += 1e-8 * np.identity(self.K_train.shape[0])
-            self._L = cholesky(self.K_train, lower=True)
-        self._alpha = cho_solve((self._L, True), self.y_train)
+            self._LU, self._piv = lu_factor(self.K_train)
+        self._alpha = lu_solve((self._LU, self._piv), self.y_train)
         mean, cov = self.calculate_cov_and_mean()
 
         # undo normalization
@@ -260,7 +262,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     def calculate_cov_and_mean(self):
         """Calculates the mean and covariance of the QGPR model"""
         QGP_mean = self.K_testtrain.dot(self._alpha)
-        v = cho_solve((self._L, True), self.K_testtrain.T)
+        v = lu_solve((self._LU, self._piv), self.K_testtrain.T)
         QGP_cov = self.K_test - (self.K_testtrain @ v)
         return QGP_mean, QGP_cov
 
