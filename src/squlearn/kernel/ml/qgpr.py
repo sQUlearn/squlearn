@@ -7,7 +7,6 @@ from ..matrix.regularization import regularize_full_kernel
 
 import numpy as np
 from typing import Optional, Union
-from scipy.linalg import cholesky, cho_solve
 from scipy.linalg import lu_factor, lu_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
