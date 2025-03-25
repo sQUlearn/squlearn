@@ -15,13 +15,13 @@ minimized by a classical optimizer. The resultant QNN can then be employed to pr
 for new input data.
 
 In many cases, QNNs adhere to a layered design, akin to classical neural networks, as illustrated
-in `figure 1`_. However, it is essential to note that they do not adhere to the concept of
+in `figure_qnn 1`_. However, it is essential to note that they do not adhere to the concept of
 neurons as seen in classical neural networks. Therefore, the term "Quantum Neural Network" may
 be somewhat misleading, as QNNs do not conform to the traditional neural network paradigm.
 Nevertheless, their application domain closely resembles that of classical neural networks,
 which explains the established nomenclature.
 
-.. _figure 1:
+.. _figure_qnn 1:
 .. figure:: ../_static/qnn/qnn.svg
     :alt: Quantum Neural Network (QNN)
     :width: 600
@@ -57,7 +57,7 @@ It's worth noting that both the embedding layers :math:`U_i({x})` and the observ
 
 To train Quantum Neural Networks (QNNs), a hybrid quantum-classical approach is employed.
 The training process consists of two phases: quantum circuit evaluation and classical optimization
-(as illustrated in `figure 1`_).
+(as illustrated in `figure_qnn 1`_).
 
 In the quantum circuit evaluation phase, the QNN and its gradient with respect to the parameters
 are assessed using a quantum computer or simulator. The gradient can be obtained using the
@@ -239,13 +239,13 @@ This is possible by providing a :class:`List` or a :class:`Callable` to the lear
 Then a learning rate is chosen from the list or calculated by the callable at the beginning of
 each iteration or epoch.
 A suitable function for generating a callable with an exponential decay of the learning rate is
-provided by :meth:`get_lr_decay`. The following example will generate an Adam optimization
+provided by :meth:`util.get_lr_decay`. The following example will generate an Adam optimization
 with an exponential decay in the learning rate from 0.01 to 0.001 over 100 iterations.
 
 .. jupyter-execute::
 
     from squlearn.optimizers import Adam
-    from squlearn.qnn import get_lr_decay
+    from squlearn.qnn.util import get_lr_decay
     adam = Adam({'lr':get_lr_decay(0.01, 0.001, 100)})
 
 
@@ -263,11 +263,12 @@ The high-level implementations of QNNs, :class:`QNNRegressor` and :class:`QNNCla
 can be initialized with a shot controller that takes care to automatically adjust the number of
 shots. The following example will generate a :class:`QNNRegressor`
 with a RSTD threshold of 0.1 and a minimum and maximum number of shots of 100 and 10000.
-It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.ShotsFromRSTD>` shot controller.
+It utilizes the :class:`ShotsFromRSTD <squlearn.qnn.util.ShotsFromRSTD>` shot controller.
 
 .. code-block:: python
 
-    from squlearn.qnn import QNNRegressor, ShotsFromRSTD
+    from squlearn.qnn import QNNRegressor
+    from squlearn.qnn.util import ShotsFromRSTD
     reg = QNNRegressor(
         ...
         shot_controller = ShotsFromRSTD(rstd_bound=0.1, min_shots=100, max_shots=10000),
@@ -292,13 +293,13 @@ The noise level of the model thus depends on its variance, which can be calculat
     \sigma_f^2 = \langle\Psi\lvert\hat{C}^2\rvert\Psi\rangle -
     \langle\Psi\lvert\hat{C}\rvert\Psi\rangle^2 \text{.}
 
-`Figure 2`_ shows the output of a :class:`QNNRegressor` fit to a logarithm
+`Figure_qnn 3`_ shows the output of a :class:`QNNRegressor` fit to a logarithm
 with :class:`SquaredLoss <squlearn.qnn.loss.SquaredLoss>` evaluated on Qiskit's
 :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
 The model has been trained with a noise-free simulator, but evaluating it on a noisy simulator
 yields a high variance in the model output.
 
-.. _figure 2:
+.. _figure_qnn 2:
 .. plot::
     :caption: **Figure 2** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)` evaluated on Qiskit's
               :class:`QasmSimulator <qiskit_aer.QasmSimulator>`. The QNN output has a high variance.
@@ -359,9 +360,9 @@ takes the keyword argument ``iteration`` to dynamically adjust the factor. Value
 :math:`10^{-2}` and :math:`10^{-4}` have shown to yield satisfying results. `[1]`_
 
 Evaluation on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>` now yields less variance
-in the model, as depicted in `figure 3`_.
+in the model, as depicted in `figure_qnn 3`_.
 
-.. _figure 3:
+.. _figure_qnn 3:
 .. plot::
     :caption: **Figure 3** Logarithm and output of :class:`QNNRegressor` :math:`f(\theta, x)`, trained with variance
               regularization, evaluated on Qiskit's :class:`QasmSimulator <qiskit_aer.QasmSimulator>`.
@@ -407,12 +408,13 @@ stages (see Ref. [1]). This can be achieved by passing a :class:`List` or a :cla
 to the keyword argument ``variance`` of the :class:`QNNRegressor` (or :class:`QNNClassifier`).
 The following example will generate a :class:`QNNRegressor` with a variance
 regularization factor that is adjusted dynamically during the optimization by utilizing the
-function :meth:`get_variance_fac`. The set-up features a final regularization factor of 0.005,
+function :meth:`util.get_variance_fac`. The set-up features a final regularization factor of 0.005,
 a decay factor of 0.08 and a plateau at :math:`\alpha=1` of 20 iterations at the beginning.
 
 .. code-block:: python
 
-    from squlearn.qnn import QNNRegressor,get_variance_fac
+    from squlearn.qnn import QNNRegressor
+    from squlearn.qnn.util import get_variance_fac
     reg = QNNRegressor(
         ...
         variance = get_variance_fac(0.005,0.08,20),

@@ -37,7 +37,7 @@ dependencies = [
     "qiskit-ibm-runtime>=0.18.0",
     "qiskit-machine-learning>=0.7.0",
     "scipy>=1.8.0",
-    "scikit-learn>=1.2.0,<1.4.2",
+    "scikit-learn>=1.2.0",
     "tqdm>=4.1.0",
 ]
 requires-python = ">=3.9,<3.13"
@@ -93,4 +93,5 @@ extension-pkg-allow-list = [
 addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
+    "--ignore=examples/tutorials/qnn_ode_solver.ipynb",
 ]

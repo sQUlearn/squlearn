@@ -1,4 +1,4 @@
-""" Tests for QRCRegressor """
+"""Tests for QRCRegressor"""
 
 import pytest
 

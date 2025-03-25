@@ -1,16 +1,28 @@
 """QNNClassifier Implemenation"""
 
+from packaging import version
 from typing import Callable, Union
 import sys
 
 import numpy as np
 from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
 from tqdm import tqdm
 
 from .base_qnn import BaseQNN
-from .loss import LossBase, VarianceLoss
-from .training import train_mini_batch, train, ShotControlBase
+from .loss import VarianceLoss
+from .loss.qnn_loss_base import QNNLossBase
+from .util.training import train_mini_batch, train, ShotControlBase
 
 from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -33,7 +45,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             is used in the expectation value of the QNN. Can be a list for multiple outputs. For a
             list of operators, check this list of implemented :ref:`operators`.
         executor (Executor): Executor instance.
-        loss (LossBase): The loss function to be optimized. Can also be combination of multiple
+        loss (QNNLossBase): The loss function to be optimized. Can also be combination of multiple
             loss functions.
         optimizer (OptimizerBase): The optimizer instance that is used to minimize the loss
             function.
@@ -105,7 +117,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         encoding_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list[ObservableBase]],
         executor: Executor,
-        loss: LossBase,
+        loss: QNNLossBase,
         optimizer: OptimizerBase,
         param_ini: np.ndarray = None,
         param_op_ini: np.ndarray = None,
@@ -154,7 +166,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = self._validate_data(X, accept_sparse=["csr", "csc"], reset=False)
+        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
 
         if not self._is_fitted and not self.pretrained:
             raise RuntimeError("The model is not fitted.")
