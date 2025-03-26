@@ -698,7 +698,9 @@ class Executor:
                         simulator={"seed_simulator": self._set_seed_for_primitive}
                     )
             else:
-                raise ValueError("Unknown execution type: " + str(type(execution)))
+                self._estimator = execution
+                
+                
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
