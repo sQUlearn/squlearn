@@ -399,9 +399,13 @@ class QulacsCircuit:
                     sympify(p._symbol_expr) for p in param.vector.params
                 ]
 
-        self._symbol_tuple_circuit = tuple(
-            sorted(self._symbol_tuple_circuit, key=lambda x: x.__repr__())
-        )
+        def sort_key(item):
+            item_string = repr(item)
+            variable_name = item_string.split("[")[0]
+            index = int(item_string[item_string.index("[") + 1 : item_string.index("]")])
+            return (variable_name, index)
+
+        self._symbol_tuple_circuit = tuple(sorted(self._symbol_tuple_circuit, key=sort_key))
 
         for op in circuit.data:
 
