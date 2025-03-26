@@ -700,7 +700,6 @@ class Executor:
             else:
                 self._estimator = execution
                 
-                
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
