@@ -309,9 +309,24 @@ class EncodingCircuitBase:
 
                 Is equal to the sum of both bounds.
                 """
-                return np.concatenate(
-                    (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
-                )
+                if concatenate_parameters:
+                    return np.concatenate(
+                        (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
+                    )
+                else:
+                    #We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds, we return a new array
+                    #with the shape of the largest array, and the minimum values of the two arrays for the first column (lower bound), 
+                    #and the maximum values of the two arrays for the second column (upper bound)
+
+                    # Extend parameter bounds to the shape of the largest array with np.pad
+                    parameter_bounds1_extended = np.pad(self.ec1.parameter_bounds, ((0, self.num_parameters - self.ec1.num_parameters), (0, 0)), constant_values=np.nan)
+                    parameter_bounds2_extended = np.pad(self.ec2.parameter_bounds, ((0, self.num_parameters - self.ec2.num_parameters), (0, 0)), constant_values=np.nan)
+
+                    # Compute the minimum lower bound values for the first column and maximum upper bounds for the second column
+                    parameter_bounds3_first_col = np.nanmin(np.array([parameter_bounds1_extended[:, 0], parameter_bounds2_extended[:, 0]]), axis=0)
+                    parameter_bounds3_second_col = np.nanmax(np.array([parameter_bounds1_extended[:, 1], parameter_bounds2_extended[:, 1]]), axis=0)
+                    # Stack the results into the final array 
+                    return np.column_stack((parameter_bounds3_first_col, parameter_bounds3_second_col))
 
             @property
             def feature_bounds(self) -> np.ndarray:
@@ -349,13 +364,24 @@ class EncodingCircuitBase:
                     Returns the randomly generated parameters
                 """
 
-                return np.concatenate(
-                    (
-                        self.ec1.generate_initial_parameters(seed),
-                        self.ec2.generate_initial_parameters(seed),
-                    ),
-                    axis=0,
-                )
+                if concatenate_parameters:
+                    return np.concatenate(
+                        (
+                            self.ec1.generate_initial_parameters(seed),
+                            self.ec2.generate_initial_parameters(seed),
+                        ),
+                        axis=0,
+                    )
+                else:
+                    if self.num_parameters == 0:
+                        return np.array([])
+                    r = np.random.RandomState(seed)
+                    bounds = self.parameter_bounds
+                    return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
+                    
+
+
+          
 
             def get_params(self, deep: bool = True) -> dict:
                 """
