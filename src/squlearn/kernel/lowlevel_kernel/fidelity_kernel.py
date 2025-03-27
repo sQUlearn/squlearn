@@ -57,8 +57,8 @@ class FidelityKernel(KernelMatrixBase):
             ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.
         use_expectation (bool, default=False):
-            Option for using the expectation value of a QNN circuit that implements
-
+            Option for using the expectation value of a QNN circuit that implements #LATEXHERE
+            
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
         Nature 567, 209-212 (2019).
@@ -116,6 +116,7 @@ class FidelityKernel(KernelMatrixBase):
 
         else:
             if self._executor.quantum_framework == "pennylane":
+
                 self._quantum_kernel = FidelityKernelPennyLane(
                     encoding_circuit=self._encoding_circuit,
                     executor=self._executor,
@@ -123,6 +124,7 @@ class FidelityKernel(KernelMatrixBase):
                 )
 
             elif self._executor.quantum_framework == "qiskit":
+
                 # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
                 self._feature_vector = ParameterVector("x_", self.num_features)
 
@@ -300,6 +302,18 @@ class FidelityKernel(KernelMatrixBase):
     def evaluate_derivatives(
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
+        """Evaluates the Fidelity Quantum Kernel and its derivatives for the given data points x and y.
+
+        Args:
+            x (np.ndarray): Data points x
+            y (np.ndarray): Data points y, if None y = x is used
+            values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
+                Possible values are:
+                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp`` and ``jacobian``.
+        Returns:
+            Dictionary with the evaluated values
+        """
+
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(

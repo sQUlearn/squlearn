@@ -305,7 +305,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             ]
         )
         # _qnn that implements a circuit U(y)^\dagger U(x) |0>
-        # and measure against P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y)) is obtained.
+        # and then expectation value of P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y)) is obtained.
         # we use squlearn's circuit compose and inverse
         self._qnn = LowLevelQNN(
             (self.encoding_circuit).compose(self.encoding_circuit.inverse()),
