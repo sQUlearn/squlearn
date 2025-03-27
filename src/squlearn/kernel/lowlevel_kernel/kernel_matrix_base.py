@@ -121,7 +121,8 @@ class KernelMatrixBase(ABC):
                 Vector of training or test data for which the kernel matrix is evaluated
             values (str) :
                 String that specifies which derivatives of the kernel matrix should be computed.
-                Possible values are "K", "dKdx", "dKdy", "dKdxdx", "dKdp"
+                Possible values are ``K``, ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdp``.
+                FQKs also support ``dKdxdy`` and ``dKdydx`` and ``jacobian``
         Returns:
             Returns the derivatives of the quantum kernel matrix as 2D numpy array.
         """

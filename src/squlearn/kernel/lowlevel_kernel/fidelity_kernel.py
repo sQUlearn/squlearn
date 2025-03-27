@@ -56,6 +56,10 @@ class FidelityKernel(KernelMatrixBase):
             Option for choosing different regularization techniques (``"thresholding"`` or
             ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.
+        use_expectation (bool, default=False):
+            Option for using the expectation value of a QNN circuit that implements $U(x)^\dagger U(y) |0\rangle$ 
+            and measures the expectation value of $P_0 = |0\rangle\langle 0|^{\otimes n}$, where 
+            $U(x)$ is the encoding circuit unitary evaluated for data $x$.
 
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
