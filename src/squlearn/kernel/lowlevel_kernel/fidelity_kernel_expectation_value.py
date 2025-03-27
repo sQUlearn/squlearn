@@ -20,9 +20,10 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
     Fidelity Quantum Kernel evaluation based on quantum circuit and expectation values.
 
     Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by
-    $U(x)^\dagger U(y) |0\rangle$ and measuring the expectation value of the operator 
-    $P_0 = |0\rangle\langle 0|^{\otimes n}$, where $U(x)$ is the encoding circuit unitary 
-    evaluated for data $x$.
+    :math:`U(x)^\dagger U(y) |0\rangle` and measuring the expectation value of the operator
+    :math:`P_0 = |0\rangle\langle 0|^{\otimes n}`, where :math:`U(x)` is the encoding circuit unitary
+    evaluated for data `x`.
+
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
