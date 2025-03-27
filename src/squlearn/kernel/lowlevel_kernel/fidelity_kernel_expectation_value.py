@@ -91,14 +91,14 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def P0_operator(num_qubits):
             """
-            Create the P0 observable: (|0><0|)^\otimes n for the quantum circuit in the format of the squlearn library.
-            Note that |0><0| = 0.5*(I + Z)
+                Creates the :math:`P_0` observable: :math:`(|0\\rangle\l\angle0|)^{\\otimes n}` for the quantum circuit in the format of the squlearn library.
+                Note that :math:`|0\\rangle\\langle0| = 0.5 \cdot (I + Z)`.
 
             Args:
                 num_qubits (int): Number of qubits in the quantum circuit.
 
             return:
-                The P0 observable in the CustomObservable format of sQUlearn.
+                CustomObservable: The P0 observable in the squlearn library format
             """
             P0_single_qubit = SparsePauliOp.from_list([("Z", 0.5), ("I", 0.5)])
             P0_temp = P0_single_qubit
@@ -110,7 +110,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def get_flattened_matrix_indices(n, part="lower"):
             """
-            Returns the lower triangle or diagonal elements indices in flattened form.
+            Returns the indices of the lower triangle or diagonal elements of a matrix in flattened form.
 
             Args:
                 n (int): Size of the matrix (n x n).
@@ -146,24 +146,25 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def to_FQK_circuit_format(x, y=None, evaluate_duplicates="all"):
             """
-            Transforms an input array of shape (n, m) into an array of shape (n*n, 2*m),
+            Transforms an input array of shape (n, m) into an array of shape (nf, 2*m),
             where each row consists of all possible ordered pairs of rows from the input array.
 
             Args:
-            x (numpy.ndarray): An input array of shape (n, m), where n is the number of samples
-                            and m is the number of features.
-
-            y (numpy.ndarray): An optional input array of shape (n2, m), where n2 is the number of samples
-                            and m is the number of features. If None, y is set to x.
-
-            evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are
-                            "off_diagonal" to evaluate only off-diagonal elements
-                            "none" to evaluate no duplicates,
-                            "all" to evaluate all kernel values.
+                x (numpy.ndarray): An input array of shape (n, m), where n is the number of samples
+                                and m is the number of features.
+                y (numpy.ndarray, optional): An optional input array of shape (n2, m), where n2 is the number of samples
+                                            and m is the number of features. If None, y is set to x. Defaults to None.
+                evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are:
+                                        - "off_diagonal": Evaluate only off-diagonal elements.
+                                        - "none": Evaluate no duplicates.
+                                        - "all": Evaluate all kernel values. Defaults to "all".
 
             Returns:
-                numpy.ndarray: An array of shape (nf, 2*m) where each row consists of all possible ordered pairs of rows from the input array.
-                if x=y, nf = n*(n-1) if evaluate_duplicates is "off_diagonal", nf = n*n-n if evaluate_duplicates is "none", nf = n*n otherwise.
+                numpy.ndarray: An array of shape (nf, 2*m) where each row consists of all possible ordered pairs of rows
+                            from the input array. The value of nf depends on the `evaluate_duplicates` parameter:
+                            - If `evaluate_duplicates` is "off_diagonal", nf = n*(n-1).
+                            - If `evaluate_duplicates` is "none", nf = n*n-n.
+                            - Otherwise, nf = n*n.
 
 
             Example:
@@ -226,7 +227,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def fill_matrix_indices(K_flat, n, matrix_part):
             """
-            Given a flattened kernel matrix of shape (nf,), fills the missing values according to the specified missing matrix_part.
+            Given a flattened kernel matrix of shape (nf,), fills the values not calculated according to the specified missing matrix_part.
 
             Args:
             K_flat (numpy.ndarray):
@@ -261,10 +262,11 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def reshape_to_kernel_matrix(k_flat, n, n2, evaluate_duplicates):
             """
-            Reshapes the kernel values and indices to a kernel matrix.
+            Reshapes the flattened kernel matrix to a 2D kernel matrix.
 
             Args:
-                k_flat (numpy.ndarray): Flattened kernel matrix of shape (n*n,) or (n*n2, ) where n is the number of samples in the dataset.
+                k_flat (numpy.ndarray): 
+                    Flattened kernel matrix of shape (n*n,) or (n*n2, ) where n is the number of samples in the dataset.
                 n (int): Number of samples in the dataset.
                 n2 (int): Number of samples in the dataset.
                 evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are
@@ -272,7 +274,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     "none" to evaluate no duplicates,
                     "all" to evaluate all kernel values.
             Returns:
-                The kernel matrix of shape (n, n) or (n, n2).
+                numpy.ndarray: Kernel matrix of shape (n, n) or (n, n2) depending on the input shape.
             """
 
             if n == n2:
