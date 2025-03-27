@@ -20,7 +20,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
     Fidelity Quantum Kernel evaluation based on quantum circuit and expectation values.
 
     Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by
-    
+    #LATEXHERE
 
 
     Args:
@@ -82,7 +82,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
             values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
-                Possible values are: 
+                Possible values are:
                 ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp`` and ``jacobian``.
         Returns:
             Dictionary with the evaluated values
@@ -229,10 +229,10 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             Given a flattened kernel matrix of shape (nf,), fills the missing values according to the specified missing matrix_part.
 
             Args:
-            K_flat (numpy.ndarray): 
+            K_flat (numpy.ndarray):
                 Flattened kernel matrix of shape (nf,) where nf is the number of kernel values to evaluate.
             n (int): Number of samples in the dataset.
-            matrix_part (str): Part of the matrix to fill. Options are "lower" for the 
+            matrix_part (str): Part of the matrix to fill. Options are "lower" for the
                 lower triangle and "diagonal" for the diagonal elements.
                 if matrix_part is "lower", K_flat is expected to be of size n*(n-1)/2.
                 if matrix_part is "diagonal", K_flat is expected to be of size n*n-n
@@ -248,9 +248,9 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             K_flat_filled[main_diagonal_indices] = 1.0  # Set diagonal elements to 1
             if matrix_part == "lower":
                 lower_triangle_indices = get_flattened_matrix_indices(n, part="lower")
-                K_flat_filled[lower_triangle_indices] = (
-                    K_flat  # Fill the lower triangle with the kernel values
-                )
+                K_flat_filled[
+                    lower_triangle_indices
+                ] = K_flat  # Fill the lower triangle with the kernel values
             elif matrix_part == "diagonal":
                 non_diagonal_indices = get_flattened_matrix_indices(n, part="off_diagonal")
                 print(non_diagonal_indices)
@@ -304,7 +304,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 for i in range(2**self.encoding_circuit.num_qubits)
             ]
         )
-        # _qnn that implements a circuit U(y)^\dagger U(x) |0> 
+        # _qnn that implements a circuit U(y)^\dagger U(x) |0>
         # and measure against P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y)) is obtained.
         # we use squlearn's circuit compose and inverse
         self._qnn = LowLevelQNN(
@@ -364,8 +364,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     dKdx = eval_helper(value_dict["x"], "dfdx").reshape(
                         x.shape[0], y.shape[0], 2 * self.num_features
                     )  # shape (len(x), len(y), 2*num_features)
-                    #For consistency with the PQK derivatives: 
-                    #we transpose the dKdx matrix to be of shape (2*num_features, len(x), len(y))
+                    # For consistency with the PQK derivatives:
+                    # we transpose the dKdx matrix to be of shape (2*num_features, len(x), len(y))
                     dKdx = dKdx.transpose(2, 0, 1)
                     if self.num_features == 1:
                         if todo[2:] == "dx":
@@ -381,8 +381,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     dKdp = eval_helper(value_dict["x"], "dfdp").reshape(
                         x.shape[0], y.shape[0], self.num_parameters
                     )  # shape (len(x), len(y), num_parameters)
-                    #For consistency with the PQK derivatives: 
-                    #we transpose the dKdp matrix to be of shape (num_parameters, len(x), len(y))
+                    # For consistency with the PQK derivatives:
+                    # we transpose the dKdp matrix to be of shape (num_parameters, len(x), len(y))
                     kernel_matrix = dKdp.transpose(2, 0, 1)
                 elif (
                     todo == "dKdxdx"
@@ -395,8 +395,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     jacobian = eval_helper(value_dict["x"], "dfdxdx").reshape(
                         x.shape[0], y.shape[0], 2 * self.num_features, 2 * self.num_features
                     )  # shape (len(x), len(y), 2*num_features, 2*num_features)
-                    #For consistency with the PQK derivatives:
-                    #we transpose the jacobian matrix to be of shape (2*num_features, 2*num_features, len(x), len(y))
+                    # For consistency with the PQK derivatives:
+                    # we transpose the jacobian matrix to be of shape (2*num_features, 2*num_features, len(x), len(y))
                     jacobian = jacobian.transpose(2, 3, 0, 1)
                     if self.num_features == 1:
                         if todo[2:] == "dxdx":

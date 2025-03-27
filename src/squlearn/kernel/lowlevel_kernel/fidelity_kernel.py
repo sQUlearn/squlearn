@@ -58,7 +58,7 @@ class FidelityKernel(KernelMatrixBase):
             linear system in the ``fit()``-procedure.
         use_expectation (bool, default=False):
             Option for using the expectation value of a QNN circuit that implements
-            
+
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
         Nature 567, 209-212 (2019).
@@ -116,7 +116,6 @@ class FidelityKernel(KernelMatrixBase):
 
         else:
             if self._executor.quantum_framework == "pennylane":
-
                 self._quantum_kernel = FidelityKernelPennyLane(
                     encoding_circuit=self._encoding_circuit,
                     executor=self._executor,
@@ -124,7 +123,6 @@ class FidelityKernel(KernelMatrixBase):
                 )
 
             elif self._executor.quantum_framework == "qiskit":
-
                 # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
                 self._feature_vector = ParameterVector("x_", self.num_features)
 
@@ -302,7 +300,6 @@ class FidelityKernel(KernelMatrixBase):
     def evaluate_derivatives(
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
-
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
