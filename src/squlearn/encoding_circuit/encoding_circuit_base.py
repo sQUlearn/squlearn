@@ -314,7 +314,7 @@ class EncodingCircuitBase:
                         (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
                     )
                 else:
-                    #We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds, we return a new array
+                    #We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds, we return a new array,
                     #with the shape of the largest array, and the minimum values of the two arrays for the first column (lower bound), 
                     #and the maximum values of the two arrays for the second column (upper bound)
 
