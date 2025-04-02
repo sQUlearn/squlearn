@@ -699,7 +699,7 @@ class Executor:
                     )
             else:
                 self._estimator = execution
-                
+
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
@@ -1038,7 +1038,7 @@ class Executor:
     @property
     def backend_chosen(self) -> bool:
         """Returns true if the backend has been chosen."""
-        if self.backend is None:
+        if len(self._backend_list) > 1 and self.backend is None:
             return False
         else:
             return True
