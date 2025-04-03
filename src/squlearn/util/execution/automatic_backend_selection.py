@@ -11,9 +11,6 @@ from packaging import version
 from qiskit import qasm3, transpile, QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.providers import Backend, BackendV2
-from qiskit.providers.fake_provider.utils.json_decoder import (
-    decode_backend_properties,
-)
 from qiskit.providers.models import BackendProperties
 from qiskit_ibm_runtime import QiskitRuntimeService
 import mapomatic as mm
