@@ -2300,7 +2300,6 @@ class Executor:
             raise RuntimeError("Session can not started because of missing backend!")
         self._logger.info("Executor created a new session.")
 
-
     def close_session(self):
         """Closes the current session, is called automatically."""
 
@@ -3030,7 +3029,7 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
 
 
 def _convert_options_to_dict(
-    options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None]
+    options: Union[Options, RuntimeOptionsV1, RuntimeOptionsV2, dict, None],
 ) -> dict:
     """Converts options to a dictionary."""
 
