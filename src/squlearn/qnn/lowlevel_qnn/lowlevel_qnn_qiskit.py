@@ -5,17 +5,17 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 
-from ..observables.observable_base import ObservableBase
-from ..observables.observable_derivatives import ObservableDerivatives
+from ...observables.observable_base import ObservableBase
+from ...observables.observable_derivatives import ObservableDerivatives
 
-from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ..encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
-from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
+from ...encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-from ..util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
-from ..util import Executor
+from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ...util import Executor
 
-from ..util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
+from ...util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 

@@ -1,18 +1,20 @@
-from ..matrix.kernel_matrix_base import KernelMatrixBase
+"""Quantum Support Vector Classification"""
 
-from sklearn.svm import SVR
+from sklearn.svm import SVC
 from typing import Union, Optional
 
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
-class QSVR(SVR):
+
+class QSVC(SVC):
     """
-    Quantum Support Vector Regression
+    Quantum Support Vector Classification
 
-    This class is a wrapper of :class:`sklearn.svm.SVR`. It uses a quantum kernel matrix
-    to replace the kernel matrix in the :class:`sklearn.svm.SVR` class. The parameters of the
-    parent class can be adjusted via ``**kwargs``.
-    See the documentation there for additional information about the standard SVR parameters.
-    The scikit-learn SVR has kernel specific arguments that are omitted here because they do not
+    This class is a wrapper of :class:`sklearn.svm.SVC`. It uses a quantum kernel matrix
+    to replace the kernel matrix in the :class:`sklearn.svm.SVC` class.
+    The parameters of the parent class can be adjusted via ``**kwargs``. See the documentation
+    there for additional information about the standard SVC parameters.
+    The scikit-learn SVC has kernel specific arguments that are omitted here because they do not
     apply to the quantum kernels. These are
 
         - `kernel`
@@ -28,14 +30,14 @@ class QSVR(SVR):
             matrices from real backends to numpy arrays.
         **kwargs: Possible arguments can be
             obtained by calling ``get_params()``. Notable examples are parameters of the
-            :class:`sklearn.svm.SVR` class such as the regularization parameters ``C``
-            (float, default=1.0) or epsilon (float, default=0.1). Additionally, properties of the
-            underlying encoding circuit can be adjusted via kwargs such as the number of qubits
-            (``num_qubits``), or (if supported) the number of layers (``num_layers``).
+            :class:`sklearn.svm.SVC` class such as the regularization parameters ``C``
+            (float, default=1.0). Additionally, properties of the underlying encoding circuit can be
+            adjusted via kwargs such as the number of qubits (``num_qubits``), or (if supported)
+            the number of layers (``num_layers``).
 
     See Also
     --------
-        squlearn.kernel.ml.QSVC : Quantum Support Vector Classification
+        squlearn.kernel.QSVR : Quantum Support Vector Regression
 
     **Example**
 
@@ -43,24 +45,25 @@ class QSVR(SVR):
 
         import numpy as np
 
+        from sklearn.datasets import make_moons
         from sklearn.model_selection import train_test_split
 
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.ml.qsvr import QSVR
-        from squlearn.kernel.matrix import ProjectedQuantumKernel
+        from squlearn.kernel.qsvc import QSVC
+        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
 
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=1, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
             executor=Executor(),
-            initial_parameters=np.random.rand(encoding_circuit.num_parameters))
+            initial_parameters=np.random.rand(encoding_circuit.num_parameters)
+        )
 
-        X = np.linspace(0, np.pi, 100)
-        y = np.sin(X)
+        X, y = make_moons(n_samples=100, noise=0.3, random_state=0)
         X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
 
-        qsvc = QSVR(quantum_kernel=kernel)
+        qsvc = QSVC(quantum_kernel=kernel)
         qsvc.fit(X_train, y_train)
         print(f"The score on the test set is {qsvc.score(X_test, y_test)}")
 
@@ -95,16 +98,16 @@ class QSVR(SVR):
 
     @classmethod
     def _get_param_names(cls):
-        names = SVR._get_param_names()
+        names = SVC._get_param_names()
         names.remove("kernel")
         names.remove("gamma")
         names.remove("degree")
         names.remove("coef0")
         return names
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y):
         """
-        Fit the QSVR model according to the given training data.
+        Fit the QSVC model according to the given training data.
 
         Args:
             X (array-like, sparse matrix):  Training data of shape (n_samples, n_features)
@@ -125,11 +128,11 @@ class QSVR(SVR):
         """
         if self.quantum_kernel.is_trainable:
             self.quantum_kernel.run_optimization(X, y)
-        return super().fit(X, y, sample_weight)
+        return super().fit(X, y)
 
     def get_params(self, deep: bool = True) -> dict:
         """
-        Returns hyper-parameters and their values of the QSVR class.
+        Returns hyper-parameters and their values of the QSVC class.
 
         Args:
             deep (bool): If True, also the parameters for
@@ -140,11 +143,11 @@ class QSVR(SVR):
         """
         params = dict()
 
-        # get parameters from the parent SVR class
+        # get parameters from the parent SVC class
         for key in self._get_param_names():
             params[key] = getattr(self, key)
 
-        # add qsvr specific parameters
+        # add qsvc specific parameters
         params["quantum_kernel"] = self.quantum_kernel
         if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
             params.update(self.quantum_kernel.get_params(deep=deep))
@@ -152,7 +155,7 @@ class QSVR(SVR):
 
     def set_params(self, **params) -> None:
         """
-        Sets value of the QSVR hyper-parameters.
+        Sets value of the QSVC hyper-parameters.
 
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.

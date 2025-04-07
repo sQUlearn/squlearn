@@ -1,15 +1,26 @@
-"""Quantum Gaussian Process Regressor"""
+"""Quantum Gaussian Process Regression"""
 
 import warnings
-
-from ..matrix.kernel_matrix_base import KernelMatrixBase
-from ..matrix.regularization import regularize_full_kernel
+from packaging import version
 
 import numpy as np
 from typing import Optional, Union
-from scipy.linalg import cholesky, cho_solve
+from scipy.linalg import lu_factor, lu_solve
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.preprocessing._data import _handle_zeros_in_scale
+
+from sklearn import __version__
+
+if version.parse(__version__) >= version.parse("1.6"):
+    from sklearn.utils.validation import validate_data
+else:
+
+    def validate_data(self, *args, **kwargs):
+        return self._validate_data(*args, **kwargs)
+
+
+from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from .lowlevel_kernel.regularization import regularize_full_kernel
 
 
 class QGPR(BaseEstimator, RegressorMixin):
@@ -48,8 +59,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
     See Also
     --------
-        squlearn.kernel.ml.QKRR : Quantum Gaussian Process regression.
-        squlearn.kernel.ml.QSVR : Quantum Support Vector regression.
+        squlearn.kernel.QKRR : Quantum Gaussian Process regression.
+        squlearn.kernel.QSVR : Quantum Support Vector regression.
 
     References
     ----------
@@ -67,8 +78,8 @@ class QGPR(BaseEstimator, RegressorMixin):
 
         from squlearn import Executor
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-        from squlearn.kernel.matrix import FidelityKernel
-        from squlearn.kernel.ml import QGPR
+        from squlearn.kernel.lowlevel_kernel import FidelityKernel
+        from squlearn.kernel import QGPR
         enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
@@ -98,7 +109,8 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_train = None
         self.K_test = None
         self.K_testtrain = None
-        self._L = None
+        self._LU = None
+        self._piv = None
         self._alpha = None
 
         # Apply kwargs to set_params
@@ -123,7 +135,8 @@ class QGPR(BaseEstimator, RegressorMixin):
             Returns an instance of self.
         """
 
-        X, y = self._validate_data(
+        X, y = validate_data(
+            self,
             X,
             y,
             multi_output=True,
@@ -174,7 +187,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         Predict using the  Quantum Gaussian process regression model.
         Depending on the choice of regularization the quantum kernel matrix is regularized.
         The respective solution of the QKRR problem
-        is obtained by solving the linear system using scipy's Cholesky decomposition for
+        is obtained by solving the linear system using scipy's LU decomposition for
         providing numerical stability
         Optionally also
         returns its standard deviation (`return_std=True`) or covariance
@@ -201,7 +214,7 @@ class QGPR(BaseEstimator, RegressorMixin):
                 Only returned when `return_cov` is True.
         """
 
-        X = self._validate_data(X, ensure_2d=True, dtype="numeric", reset=False)
+        X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:
             raise ValueError("There is no training data. Please call the fit method first.")
@@ -239,11 +252,11 @@ class QGPR(BaseEstimator, RegressorMixin):
         self.K_train += self.sigma * np.identity(self.K_train.shape[0])
 
         try:
-            self._L = cholesky(self.K_train, lower=True)
+            self._LU, self._piv = lu_factor(self.K_train)
         except np.linalg.LinAlgError:
             self.K_train += 1e-8 * np.identity(self.K_train.shape[0])
-            self._L = cholesky(self.K_train, lower=True)
-        self._alpha = cho_solve((self._L, True), self.y_train)
+            self._LU, self._piv = lu_factor(self.K_train)
+        self._alpha = lu_solve((self._LU, self._piv), self.y_train)
         mean, cov = self.calculate_cov_and_mean()
 
         # undo normalization
@@ -260,7 +273,7 @@ class QGPR(BaseEstimator, RegressorMixin):
     def calculate_cov_and_mean(self):
         """Calculates the mean and covariance of the QGPR model"""
         QGP_mean = self.K_testtrain.dot(self._alpha)
-        v = cho_solve((self._L, True), self.K_testtrain.T)
+        v = lu_solve((self._LU, self._piv), self.K_testtrain.T)
         QGP_cov = self.K_test - (self.K_testtrain @ v)
         return QGP_mean, QGP_cov
 

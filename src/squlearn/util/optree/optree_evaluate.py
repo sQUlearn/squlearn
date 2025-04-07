@@ -11,6 +11,7 @@ from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
 from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
+from ...util.decompose_to_std import decompose_to_std
 
 from .optree import (
     OpTreeNodeBase,
@@ -220,7 +221,7 @@ def _build_circuit_list(
     circuit_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeLeafBase, QuantumCircuit, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -334,7 +335,7 @@ def _build_operator_list(
     operator_counter = 0
 
     def _build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -455,7 +456,7 @@ def _build_measurement_list(
     from .optree import OpTree
 
     def build_list(
-        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeOperator, SparsePauliOp, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -598,7 +599,7 @@ def _build_expectation_list(
     circuit_operator_list = []
 
     def build_lists_and_index_tree(
-        optree_element: Union[OpTreeNodeBase, OpTreeExpectationValue, OpTreeValue]
+        optree_element: Union[OpTreeNodeBase, OpTreeExpectationValue, OpTreeValue],
     ):
         """
         Helper function for building the circuit list and the parameter list, and
@@ -941,19 +942,11 @@ def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
             if i[1] == n:
                 return i[0]
 
-    def maximum_decompose(circ):
-        """Helper function to decompose circuits."""
-        circ_dec = circ.decompose()
-        while circ_dec != circ:
-            circ_dec = circ_dec.decompose()
-            circ = circ.decompose()
-        return circ_dec
-
     if circ_in.num_clbits == 0:
         return circ_in.measure_all(inplace=False)
     else:
         qubits = [i for i in range(circ_in.num_qubits)]
-        circ_in = maximum_decompose(circ_in)
+        circ_in = decompose_to_std(circ_in)
         for instruction, qargs, cargs in circ_in.data:
             if instruction.name == "measure":
                 for qubit in qargs:
