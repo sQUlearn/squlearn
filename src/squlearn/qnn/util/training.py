@@ -1,12 +1,14 @@
-import numpy as np
+"""QNN Training Utilities."""
 
-from sklearn.utils import gen_batches
 from typing import Union
 
-from .loss import LossBase
-from .lowlevel_qnn_base import LowLevelQNNBase
-from ..optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
-from ..util import Executor
+import numpy as np
+from sklearn.utils import gen_batches
+
+from ..loss.qnn_loss_base import QNNLossBase
+from ..lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
+from ...optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
+from ...util import Executor
 
 
 def get_variance_fac(v: float, a: float, b: float, offset: int = 0):
@@ -214,7 +216,7 @@ def train(
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
     param_op_ini: Union[list, np.ndarray],
-    loss: LossBase,
+    loss: QNNLossBase,
     optimizer: OptimizerBase,
     shot_control: ShotControlBase = None,
     weights: Union[list, np.ndarray] = None,
@@ -230,7 +232,7 @@ def train(
                                                e.g. labels of the training data
         param_ini (Union[list,np.ndarray]): Initial parameters of the encoding circuit
         param_op_ini (Union[list,np.ndarray]): Initial parameters of the observable
-        loss (LossBase): Loss instance that is minimized
+        loss (QNNLossBase): Loss instance that is minimized
         optimizer (OptimizerBase): Optimizer instance that is used for the minimization
         shot_control (ShotControlBase): Shot control instance that is used for setting the shots
                                         for each optimization step (default: None)
@@ -384,7 +386,7 @@ def train_mini_batch(
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
     param_op_ini: Union[list, np.ndarray],
-    loss: LossBase,
+    loss: QNNLossBase,
     optimizer: OptimizerBase,
     shot_control: ShotControlBase = None,
     weights: Union[list, np.ndarray] = None,
@@ -402,7 +404,7 @@ def train_mini_batch(
                                                e.g. labels of the training data
         param_ini (Union[list,np.ndarray]): Initial parameters of the encoding circuit
         param_op_ini (Union[list,np.ndarray]): Initial parameters of the observable
-        loss (LossBase): Loss instance that is minimized
+        loss (QNNLossBase): Loss instance that is minimized
         optimizer (OptimizerBase): Optimizer instance that is used for the minimization
         shot_control (ShotControlBase): Shot control instance that is used for setting the shots
                                         for each optimization step (default: None)
