@@ -134,6 +134,19 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
+
+        def softmax(result_dict: dict):
+            updated_results = result_dict.copy()
+            if "f" in updated_results:
+                if len(updated_results["f"].shape) > 1:
+                    updated_results["f"] = np.exp(updated_results["f"]) / np.sum(
+                        np.exp(updated_results["f"]), axis=1
+                    ).reshape(-1, 1)
+                else:
+                    updated_results["f"] = 1 / (1 + np.exp(-updated_results["f"]))
+            return updated_results
+
+        self._post_processing = softmax
         super().__init__(
             encoding_circuit,
             operator,

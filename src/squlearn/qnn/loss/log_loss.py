@@ -30,9 +30,6 @@ class LogLoss(QNNLossBase):
         if self._opt_param_op:
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
-    
-    def sigmoid(self, x: Union[np.ndarray, float]) -> Union[np.ndarray, float]:
-        return 1 / (1 + np.exp(-x))
 
     def value(self, value_dict: dict, **kwargs) -> float:
         r"""Calculates the log loss.
@@ -57,16 +54,14 @@ class LogLoss(QNNLossBase):
         ground_truth = kwargs["ground_truth"]
         weights = kwargs.get("weights", np.ones_like(ground_truth))
 
-        probability_values =  np.clip(self.sigmoid(value_dict["f"]), self._eps, 1.0 - self._eps)
+        probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
         if probability_values.ndim == 1:
             probability_values = np.stack([probability_values, 1.0 - probability_values], axis=1)
             ground_truth = np.stack([ground_truth, 1.0 - ground_truth], axis=1)
+            weights = np.tile(weights.reshape(-1, 1), 2)
 
         loss = -1.0 * np.mean(
-            np.multiply(
-                np.sum(ground_truth * np.log(probability_values), axis=1),
-                weights,
-            )
+            np.sum(np.multiply(ground_truth * np.log(probability_values), weights), axis=1)
         )
         return loss
 
@@ -99,15 +94,17 @@ class LogLoss(QNNLossBase):
         weights = kwargs.get("weights", np.ones(ground_truth.shape[0]))
         multiple_output = kwargs.get("multiple_output", False)
 
-        probability_values =  np.clip(self.sigmoid(value_dict["f"]), self._eps, 1.0 - self._eps)
+        probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
         binary = probability_values.ndim == 1
         if binary:
             probability_values = np.stack([probability_values, probability_values - 1.0], axis=1)
             ground_truth = np.stack([ground_truth, 1.0 - ground_truth], axis=1)
+            weights = np.tile(weights.reshape(-1, 1), 2)
 
         weighted_outer_gradient = np.multiply(
-             (ground_truth/probability_values  - (1-ground_truth)/(1 - probability_values)),
-            np.tile(weights.reshape(-1, 1), probability_values.shape[1]),
+            # ground_truth / probability_values,
+            (ground_truth / probability_values - (1 - ground_truth) / (1 - probability_values)),
+            weights,
         )
 
         if binary:
