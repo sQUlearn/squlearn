@@ -522,6 +522,10 @@ class Executor:
                 self._pennylane_device = qml.device("default.qubit")
                 if shots is None:
                     shots = self._pennylane_device.shots.total_shots
+            elif execution in ["qulacs"]:
+                self._quantum_framework = "qulacs"
+                # if shots is None:
+                #    shots = 0
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
@@ -757,6 +761,9 @@ class Executor:
                     "Lightning Qubit",
                 ]
             )
+        elif self.quantum_framework == "qulacs":
+            self._remote_backend = False
+            self._ibm_quantum_backend = False
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -989,6 +996,8 @@ class Executor:
             return self._backend
         elif self.quantum_framework == "pennylane":
             return self._pennylane_device
+        elif self.quantum_framework == "qulacs":
+            return None
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -2115,7 +2124,11 @@ class Executor:
         if num_shots is None:
             num_shots = 0
 
-        if self.quantum_framework == "pennylane":
+        if self.quantum_framework == "qulacs":
+
+            pass  # TODO
+
+        elif self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
@@ -2208,7 +2221,11 @@ class Executor:
         """
         shots = self._shots
 
-        if self.quantum_framework == "pennylane":
+        if self.quantum_framework == "qulacs":
+
+            return None
+
+        elif self.quantum_framework == "pennylane":
 
             if self._pennylane_device is not None:
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
@@ -2562,6 +2579,8 @@ class Executor:
                 name in self._pennylane_device.name.lower()
                 for name in ["default.qubit", "default.clifford", "lightning.qubit"]
             )
+        elif self.quantum_framework == "qulacs":
+            return True
         else:
             raise RuntimeError("Unknown quantum framework!")
 
