@@ -1,4 +1,6 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 from typing import Union
@@ -6,8 +8,10 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
+from squlearn.util.data_preprocessing import extract_num_features
 
-class EncodingCircuitBase:
+
+class EncodingCircuitBase(ABC):
     """
     Encoding circuit base class
 
@@ -16,9 +20,16 @@ class EncodingCircuitBase:
         num_features (int): Dimension of the feature vector
     """
 
-    def __init__(self, num_qubits: int, num_features: int) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
         self._num_features = num_features
+
+        if num_features is not None:
+            warnings.warn(
+                "The parameter 'num_features' is deprecated and will be removed in a future version. "
+                "Please update your code accordingly.",
+                DeprecationWarning,
+            )
 
     @property
     def num_qubits(self) -> int:
@@ -45,17 +56,28 @@ class EncodingCircuitBase:
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the encoding circuit.
-
-        Default bounds are [-pi,pi] for each feature.
         """
-        return np.array([[-np.pi, np.pi]] * self.num_features)
+        The bounds of the features of the encoding circuit.
 
-    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        To get the bounds for a specific number of features, use get_feature_bounds().
+
+        Default bounds are [-pi,pi].
+        """
+        return np.array([-np.pi, np.pi])
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        raise NotImplementedError()
+
+    def generate_initial_parameters(
+        self, num_features: int, seed: Union[int, None] = None
+    ) -> np.ndarray:
         """
         Generates random parameters for the encoding circuit
 
         Args:
+            num_features (int): Number of features
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
@@ -67,13 +89,14 @@ class EncodingCircuitBase:
         bounds = self.parameter_bounds
         return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
+    @abstractmethod
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -90,25 +113,36 @@ class EncodingCircuitBase:
     def draw(
         self,
         output: str = None,
+        num_features: int = None,
         feature_label: str = "x",
         parameter_label: str = "p",
         decompose: bool = False,
         **kwargs,
     ) -> None:
         """
-        Draws the encoding circuit circuit using the QuantumCircuit.draw() function.
+        Draws the encoding circuit using the QuantumCircuit.draw() function.
 
         Args:
+            num_features (int): Number of features to draw the circuit with (default: None).
+            output (str): Output format of the drawing (default: None).
             feature_label (str): Label for the feature vector (default:"x").
             parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
             kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
 
+        Raises:
+            ValueError: Raised if the number of features is not provided.
+
         Returns:
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
-        feature_vec = ParameterVector(feature_label, self.num_features)
+        if self.num_features is None and num_features is None:
+            raise ValueError("Number of features has to be provided!")
+        elif self.num_features is not None and num_features is None:
+            num_features = self.num_features
+
+        feature_vec = ParameterVector(feature_label, num_features)
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
@@ -133,6 +167,17 @@ class EncodingCircuitBase:
         param["num_features"] = self._num_features
         return param
 
+    def get_feature_bounds(self, num_features: int) -> np.ndarray:
+        """Returns the feature bounds expanded for a given number of features.
+
+        Args:
+            num_features (int): Number of features to expand the bounds for.
+
+        Returns:
+            np.ndarray: Feature bounds expanded for the number of features.
+        """
+        return np.tile(self.feature_bounds, (num_features, 1))
+
     def set_params(self, **params) -> EncodingCircuitBase:
         """
         Sets value of the encoding circuit hyper-parameters.
@@ -153,6 +198,42 @@ class EncodingCircuitBase:
                 setattr(self, "_" + key, value)
 
         return self
+
+    def _check_feature_consistency(self, x) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, an Error is raised.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Raises:
+            ValueError: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = extract_num_features(x)
+
+        if actual_num_features != self.num_features and self.num_features is not None:
+            raise ValueError(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
+
+    def _check_feature_encoding_slots(self, num_features: int, num_encoding_slots: int) -> None:
+        """
+        Checks if the number of features fits the available encoding slots.
+
+        Args:
+            num_features (int): The number of the input features.
+            num_encoding_slots (int): The number of available encoding slots.
+
+        Raises:
+            EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
+        """
+
+        if num_features > num_encoding_slots:
+            raise EncodingSlotsMismatchError(num_encoding_slots, num_features)
 
     def __mul__(self, x):
         return self.__add__(x)
@@ -188,7 +269,10 @@ class EncodingCircuitBase:
             """
 
             def __init__(
-                self, num_qubits: int, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
+                self,
+                num_qubits: int,
+                ec1: EncodingCircuitBase,
+                ec2: EncodingCircuitBase,
             ):
 
                 if ec1.num_qubits != num_qubits:
@@ -196,10 +280,15 @@ class EncodingCircuitBase:
                 if ec2.num_qubits != num_qubits:
                     ec2.set_params(num_qubits=num_qubits)
 
-                super().__init__(ec1.num_qubits, max(ec1.num_features, ec2.num_features))
+                super().__init__(ec1.num_qubits)
 
                 self.ec1 = ec1
                 self.ec2 = ec2
+
+                # Store the number of features for the first and second encoding circuit.
+                # If it is not set, it has to be set manually with the set_num_features method.
+                self.num_features_ec1 = ec1.num_features
+                self.num_features_ec2 = ec2.num_features
 
             @classmethod
             def create_from_encoding_circuits(
@@ -240,30 +329,21 @@ class EncodingCircuitBase:
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of composed encoding circuit.
+                """Returns the bounds of the features of composed encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds().
 
                 Is equal to the maximum and minimum of both bounds.
                 """
-
                 feature_bounds1 = self.ec1.feature_bounds
                 feature_bounds2 = self.ec2.feature_bounds
-                feature_bounds_values = np.zeros((self.num_features, 2))
 
-                min_num_feature = min(self.ec1.num_features, self.ec2.num_features)
+                min_bound = np.minimum(feature_bounds1[0], feature_bounds2[0])
+                max_bound = np.maximum(feature_bounds1[1], feature_bounds2[1])
 
-                if self.ec1.num_features == self.num_features:
-                    feature_bounds_values = self.ec1.feature_bounds
+                return np.array([min_bound, max_bound])
 
-                if self.ec2.num_features == self.num_features:
-                    feature_bounds_values = self.ec2.feature_bounds
-
-                for i in range(min_num_feature):
-                    feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
-                    feature_bounds_values[i, 1] = max(feature_bounds1[i, 1], feature_bounds2[i, 1])
-
-                return feature_bounds_values
-
-            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+            def generate_initial_parameters(
+                self, num_features: int, seed: Union[int, None] = None
+            ) -> np.ndarray:
                 """
                 Generates random parameters for the composed encoding circuit
 
@@ -276,8 +356,8 @@ class EncodingCircuitBase:
 
                 return np.concatenate(
                     (
-                        self.ec1.generate_initial_parameters(seed),
-                        self.ec2.generate_initial_parameters(seed),
+                        self.ec1.generate_initial_parameters(num_features, seed),
+                        self.ec2.generate_initial_parameters(num_features, seed),
                     ),
                     axis=0,
                 )
@@ -342,6 +422,17 @@ class EncodingCircuitBase:
                 if len(ec2_dict) > 0:
                     self.ec2.set_params(**ec2_dict)
 
+            def set_num_features(self, num_features_ec1: int, num_features_ec2: int) -> None:
+                """
+                Sets the number of features for the first and second encoding circuit
+
+                Args:
+                    num_features_ec1 (int): Number of features for the first encoding circuit
+                    num_features_ec2 (int): Number of features for the second encoding circuit
+                """
+                self.num_features_ec1 = num_features_ec1
+                self.num_features_ec2 = num_features_ec2
+
             def get_circuit(
                 self,
                 features: Union[ParameterVector, np.ndarray],
@@ -359,14 +450,38 @@ class EncodingCircuitBase:
                 Return:
                     Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
                 """
+                if self.num_features_ec1 is None or self.num_features_ec2 is None:
+                    raise ValueError(
+                        "Number of features for the first and second encoding circuit has to be provided.\n"
+                        "Use the set_num_features() function to set the number of features for both encoding circuits."
+                    )
+
+                # Apply stored operations if available. This is only available for LayeredEncodingCircuits and has to be called before get_circuit
+                if hasattr(self.ec1, "_apply_stored_operations"):
+                    self.ec1._apply_stored_operations(self.num_features_ec1)
+
+                if hasattr(self.ec2, "_apply_stored_operations"):
+                    self.ec2._apply_stored_operations(self.num_features_ec2)
 
                 circ1 = self.ec1.get_circuit(
-                    features[: self.ec1.num_features], parameters[: self.ec1.num_parameters]
+                    features[: self.num_features_ec1], parameters[: self.ec1.num_parameters]
                 )
                 circ2 = self.ec2.get_circuit(
-                    features[: self.ec2.num_features], parameters[self.ec1.num_parameters :]
+                    features[: self.num_features_ec2], parameters[self.ec1.num_parameters :]
                 )
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
+
+
+class EncodingSlotsMismatchError(Exception):
+    """Exception raised when the number of encoding slots does not match the number of features."""
+
+    def __init__(self, num_slots, num_features):
+        self.num_slots = num_slots
+        self.num_features = num_features
+        self.message = (
+            f"Encoding slots ({num_slots}) do not match the number of features ({num_features})."
+        )
+        super().__init__(self.message)

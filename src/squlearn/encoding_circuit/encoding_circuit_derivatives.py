@@ -89,11 +89,12 @@ class EncodingCircuitDerivatives:
     def __init__(
         self,
         encoding_circuit: EncodingCircuitBase,
+        num_features: int,
         optree_caching: bool = True,
     ):
         self.encoding_circuit = encoding_circuit
 
-        self._x = ParameterVector("x", self.encoding_circuit.num_features)
+        self._x = ParameterVector("x", num_features)
         self._p = ParameterVector("p", self.encoding_circuit.num_parameters)
 
         self._circuit = encoding_circuit.get_circuit(self._x, self._p)

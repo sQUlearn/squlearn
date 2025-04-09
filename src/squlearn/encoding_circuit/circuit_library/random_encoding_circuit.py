@@ -31,6 +31,8 @@ from qiskit.circuit.library import (
     RZXGate,
 )
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from ..encoding_circuit_base import EncodingCircuitBase
 
 default_gate_weights = {
@@ -156,7 +158,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         seed: int = 0,
         min_gates: int = 10,
         max_gates: int = 50,
@@ -169,8 +171,8 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.encoding_weights = encoding_weights
         self.gate_weights = gate_weights
         self.seed = seed
-
-        self._gen_random_config(self.seed)
+        self.available_feature_gates = None
+        self._num_parameters = None
 
     def get_circuit(
         self,
@@ -187,8 +189,10 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the random encoding circuit in qiskit QuantumCircuit format
         """
+        num_features = extract_num_features(features)
+        self._gen_random_config(num_features=num_features, seed=self.seed)
 
-        # _gen_random_config has to be called before get_circuit
+        self._check_feature_consistency(features)
 
         qc = QuantumCircuit(self.num_qubits)
         feature_counter = 0
@@ -226,14 +230,20 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         """Returns the list of gates from which the random circuit is drawn."""
         return available_gates.keys()
 
-    def _gen_random_config(self, seed: int):
-        """Generates a random configuration for the random encoding circuit."""
+    def _gen_random_config(self, num_features: int, seed: int):
+        """
+        Generates a random configuration for the random encoding circuit.
+
+        Args:
+            num_features (int): Number of features of the input data.
+            seed (int): Seed for the random number generator.
+        """
 
         random.seed(seed)
 
         # Determine number of gates in the random circuit
-        min_gates = max(self.min_gates, self.num_features)
-        max_gates = max(self.min_gates + 1, self.max_gates, self.num_features)
+        min_gates = max(self.min_gates, num_features)
+        max_gates = max(self.min_gates + 1, self.max_gates, num_features)
         self._num_gates = random.randint(min_gates, max_gates)
 
         # Determine the probability of each gate to be drawn in the random selection
@@ -267,18 +277,18 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         num_feature_gates = sum([1 for p in self._picked_encodings if p in feature_encodings], 0)
 
         # In case there are not enough gates with features, add additional gates with features
-        if num_feature_gates < self.num_features:
+        if num_feature_gates < num_features:
             probabilities_feature = [gate_weights[gate] for gate in parameterized_gates]
             extra_gates = random.choices(
                 parameterized_gates,
                 weights=probabilities_feature,
-                k=self.num_features - num_feature_gates,
+                k=num_features - num_feature_gates,
             )
             feature_encoding_probabilities = [encoding_weights[gate] for gate in feature_encodings]
             extra_encodings = random.choices(
                 feature_encodings,
                 weights=feature_encoding_probabilities,
-                k=self.num_features - num_feature_gates,
+                k=num_features - num_feature_gates,
             )
             if len(extra_gates) != 0:
                 self._picked_encodings += extra_encodings
@@ -317,10 +327,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         # e.g. [2,1,3,4,4,3,1,2,3,1,4,3]
         self._num_gates = len(self._picked_gates)
         self._feature_indices = sum(
-            [
-                random.sample(range(self.num_features), k=self.num_features)
-                for i in range(self._num_gates)
-            ],
+            [random.sample(range(num_features), k=num_features) for i in range(self._num_gates)],
             [],
         )
 
@@ -333,10 +340,28 @@ class RandomEncodingCircuit(EncodingCircuitBase):
             [1 for p in self._picked_encodings if p in parameter_encodings], 0
         )
 
+        self.available_feature_gates = num_feature_gates
+
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the random encoding circuit."""
+        if self._num_parameters is None:
+            raise ValueError(
+                "No random configuration available. Generate one with _gen_random_config."
+            )
         return self._num_parameters
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the random encoding circuit (equal to inf)."""
+        return np.inf
+
+    def generate_initial_parameters(
+        self, num_features: int, seed: Union[int, None] = None
+    ) -> np.ndarray:
+        # the random configuration must be generated before generating the parameters
+        self._gen_random_config(num_features=num_features, seed=self.seed)
+        return super().generate_initial_parameters(num_features, seed)
 
     def get_params(self, deep: bool = True) -> dict:
         r"""
@@ -375,7 +400,4 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                 setattr(self, key, value)
             except:
                 setattr(self, "_" + key, value)
-
-        self._gen_random_config(self.seed)
-
         return self

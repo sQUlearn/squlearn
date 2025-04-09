@@ -6,6 +6,8 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .encoding_circuit_base import EncodingCircuitBase
 
 from ..util.decompose_to_std import decompose_to_std
@@ -22,7 +24,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebyshevRx
         from qiskit_ibm_runtime.fake_provider import FakeManilaV2
 
-        fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+        fm = TranspiledEncodingCircuit(ChebyshevRx(3,1,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
         fm.draw("mpl")
 
 
@@ -48,32 +50,27 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._encoding_circuit = encoding_circuit
         self._backend = backend
         self._transpile_func = transpile_func
-
-        self._x = ParameterVector("x", self._encoding_circuit.num_features)
-        self._p = ParameterVector("p", self._encoding_circuit.num_parameters)
-
-        self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
-
-        if self._transpile_func is not None:
-            self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
-        else:
-            if "optimization_level" not in kwargs:
-                kwargs["optimization_level"] = 3
-            if "seed_transpiler" not in kwargs:
-                kwargs["seed_transpiler"] = 0
-            self._transpiled_circuit = transpile(self._circuit, self._backend, **kwargs)
-
-        self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
         self._kwargs = kwargs
+        self._qubit_map = None
 
     @property
     def num_qubits(self) -> int:
         """Number of qubits (physical) of the encoding circuit."""
+        if self._transpiled_circuit is None:
+            raise ValueError(
+                "Transpiled circuit is not available. Please call get_circuit() first."
+            )
+
         return self._transpiled_circuit.num_qubits
 
     @property
     def num_physical_qubits(self) -> int:
         """Number of physical qubits of the encoding circuit."""
+        if self._transpiled_circuit is None:
+            raise ValueError(
+                "Transpiled circuit is not available. Please call get_circuit() first."
+            )
+
         return self._transpiled_circuit.num_qubits
 
     @property
@@ -108,8 +105,16 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """Bounds of the features of the encoding circuit."""
+        """
+        Bounds of the features of the encoding circuit.
+
+        To get the bounds for a specific number of features, use get_feature_bounds().
+        """
         return self._encoding_circuit.feature_bounds
+
+    @property
+    def num_encoding_slots(self) -> int:
+        return self._encoding_circuit.num_encoding_slots
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -135,6 +140,26 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         # Recompute and re-transpile the circuit by re-initializing the class
         self.__init__(self._encoding_circuit, self._backend, self._transpile_func, **self._kwargs)
 
+    def _create_inner_circuit(self, num_features: int):
+        self._x = ParameterVector("x", num_features)
+        self._p = ParameterVector("p", self._encoding_circuit.num_parameters)
+        self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
+
+    def _create_transpiled_circuit(self):
+        if self._transpile_func is not None:
+            self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
+        else:
+            if "optimization_level" not in self._kwargs:
+                self._kwargs["optimization_level"] = 3
+            if "seed_transpiler" not in self._kwargs:
+                self._kwargs["seed_transpiler"] = 0
+            self._transpiled_circuit = transpile(self._circuit, self._backend, **self._kwargs)
+
+    def _setup_transpiled_circuit_and_qubit_mapping(self, num_features: int):
+        self._create_inner_circuit(num_features)
+        self._create_transpiled_circuit()
+        self._qubit_map = _gen_qubit_mapping(self._transpiled_circuit)
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
@@ -152,6 +177,9 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the transpiled circuit in Qiskit's QuantumCircuit format
         """
+        num_features = extract_num_features(features)
+
+        self._setup_transpiled_circuit_and_qubit_mapping(num_features)
 
         exchange_dict_x = dict(zip(self._x, features))
         exchange_dict_p = dict(zip(self._p, parameters))

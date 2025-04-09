@@ -11,6 +11,8 @@ from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
 from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
 from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .encoding_circuit_base import EncodingCircuitBase
 
 
@@ -2142,7 +2144,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         feature_str: str = "x",
         parameter_str: str = "p",
         **kwargs,
@@ -2150,10 +2152,12 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         super().__init__(num_qubits, num_features)
         self._feature_str = feature_str
         self._parameter_str = parameter_str
-        self._x = VariableGroup(self._feature_str, size=num_features)
-        self._p = VariableGroup(self._parameter_str)
-        self._layered_pqc = LayeredPQC(num_qubits=num_qubits, variable_groups=(self._x, self._p))
         self._encoding_circuit_str = ""
+        self._num_params = None
+
+        self._stored_operations = []
+        self._stored_layers = []
+        self._layered_pqc_params = {}
 
         if kwargs:
             self.set_params(**kwargs)
@@ -2161,24 +2165,25 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     @property
     def num_parameters(self) -> int:
         """Returns number of parameters of the Layered Encoding Circuit"""
-        return self._layered_pqc.get_number_of_variables(self._p)
+        if self._num_params is not None:
+            return self._num_params
+        raise ValueError("LayeredPQC is not initialized.")
 
     def get_params(self, deep: bool = True) -> dict:
-        params = self._layered_pqc.get_params(deep)
-        params["num_features"] = self._num_features
-        params["feature_str"] = self._feature_str
-        params["encoding_circuit_str"] = self._encoding_circuit_str
+        params = {
+            "num_features": self._num_features,
+            "feature_str": self._feature_str,
+        }
+
+        if deep:
+            params.update(self._layered_pqc_params)
+            params["encoding_circuit_str"] = self._encoding_circuit_str
+
         return params
 
     def set_params(self, **params) -> None:
         if "encoding_circuit_str" in params:
             self._encoding_circuit_str = params["encoding_circuit_str"]
-            self._p.total_variables_used = 0
-            self._layered_pqc = LayeredPQC.from_string(
-                self._num_qubits,
-                self._encoding_circuit_str,
-                (self._x, self._p),
-            )
 
         valid_params = self.get_params()
         for key, value in params.items():
@@ -2190,18 +2195,23 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         if "num_features" in params:
             self._num_features = params["num_features"]
-            self._x.size = params["num_features"]
 
         if "num_qubits" in params:
             self._num_qubits = params["num_qubits"]
 
         dict_layered_pqc = {}
         for key in params.keys():
-            if key in self._layered_pqc.get_params().keys():
+            if key in self._layered_pqc_params.keys():
                 dict_layered_pqc[key] = params[key]
-        self._layered_pqc.set_params(**dict_layered_pqc)
+        self._layered_pqc_params.update(**dict_layered_pqc)
 
         return self
+
+    def generate_initial_parameters(self, num_features, seed=None):
+        # build the LayeredPQC to set the number of parameters
+        if self._num_params is None:
+            self._build_layered_pqc(num_features)
+        return super().generate_initial_parameters(num_features, seed)
 
     def get_circuit(
         self,
@@ -2220,14 +2230,86 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the circuit in qiskit QuantumCircuit format
         """
-        return self._layered_pqc.get_circuit(features, parameters)
+        num_features = extract_num_features(features)
+        layered_pqc = self._build_layered_pqc(num_features)
+        self._check_feature_consistency(features)
+
+        return layered_pqc.get_circuit(features, parameters)
+
+    def _build_layered_pqc(self, num_features: int) -> LayeredPQC:
+        """
+        Build the LayeredPQC. Apply all stored operations to it and return the LayeredPQC
+
+        Args:
+            num_features (int): Number of features of the encoding circuit
+
+        Returns:
+            LayeredPQC: LayeredPQC object that contains the encoding circuit
+        """
+        x = VariableGroup(self._feature_str, size=num_features)
+        p = VariableGroup(self._parameter_str)
+
+        if self._encoding_circuit_str != "":
+            layered_pqc = LayeredPQC.from_string(
+                self._num_qubits, self._encoding_circuit_str, (x, p)
+            )
+        else:
+            layered_pqc = LayeredPQC(self._num_qubits, (x, p))
+            variable_groups = {self._feature_str: x, self._parameter_str: p}
+
+            if len(self._stored_operations) != 0:
+                # apply all stored operations to the LayeredPQC
+                for op, args, kwargs in self._stored_operations:
+                    resolved_args = [self._resolve_arg(arg, variable_groups) for arg in args]
+                    getattr(layered_pqc, op)(*resolved_args, **kwargs)
+
+            # apply all stored layers with their respective operations stored in the layer and the number of repetitions
+            if len(self._stored_layers) != 0:
+                for layer, num_layers in self._stored_layers:
+                    # layer.layer_pqc = layered_pqc
+                    # layered_pqc.add_layer(layer.layer_pqc, num_layers)
+                    layer_pqc = layer._build_layer_pqc(layered_pqc, variable_groups)
+                    layered_pqc.add_layer(layer_pqc, num_layers)
+
+        # update the number of parameters
+        self._num_params = layered_pqc.get_number_of_variables(p)
+
+        # update the LayeredPQC parameters
+        layered_pqc.set_params(**self._layered_pqc_params)
+        self._layered_pqc_params = layered_pqc.get_params()
+
+        return layered_pqc
+
+    def draw(
+        self,
+        output=None,
+        num_features=None,
+        feature_label="x",
+        parameter_label="p",
+        decompose=False,
+        **kwargs,
+    ):
+        if self._num_features is None and num_features is None:
+            raise ValueError("Number of features has to be provided!")
+        elif self._num_features is not None and num_features is None:
+            num_features = self._num_features
+
+        layered_pqc = self._build_layered_pqc(num_features)
+
+        feature_vec = ParameterVector(feature_label, num_features)
+        parameters_vec = ParameterVector(parameter_label, self.num_parameters)
+
+        circ = layered_pqc.get_circuit(feature_vec, parameters_vec)
+        if decompose:
+            circ = circ.decompose()
+        return circ.draw(output, **kwargs)
 
     @classmethod
     def from_string(
         cls,
         encoding_circuit_str: str,
         num_qubits: int,
-        num_features: int,
+        num_features: int = None,
         feature_str: str = "x",
         parameter_str: str = "p",
         num_layers: int = 1,
@@ -2241,7 +2323,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             num_features (int): Dimension of the feature vector.
             feature_str (str): String that is used in encoding_circuit_str to label features (default: 'x')
             parameter_str (str): String that is used in encoding_circuit_str to label parameters (default: 'p')
-            num_laters (int): Number of layers, i.e., the number of repetitions of the encoding circuit (default: 1)
+            num_layers (int): Number of layers, i.e., the number of repetitions of the encoding circuit (default: 1)
 
         Returns:
             Returns a LayeredEncodingCircuit object that contains the specified encoding circuit.
@@ -2249,14 +2331,10 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
 
         layered_encoding_circuit = cls(num_qubits, num_features, feature_str, parameter_str)
-        layered_encoding_circuit._layered_pqc = LayeredPQC.from_string(
-            num_qubits,
-            encoding_circuit_str,
-            (layered_encoding_circuit._x, layered_encoding_circuit._p),
-        )
         if num_layers > 1:
-            layered_encoding_circuit.set_params(num_layers=num_layers)
+            layered_encoding_circuit._layered_pqc_params["num_layers"] = num_layers
         layered_encoding_circuit._encoding_circuit_str = encoding_circuit_str
+
         return layered_encoding_circuit
 
     def add_layer(self, layer, num_layers=1) -> None:
@@ -2268,9 +2346,11 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             num_layers (int): Number of times that the layer is repeated
 
         """
-        self._layered_pqc.add_layer(layer.layered_pqc, num_layers)
+        self._stored_layers.append((layer, num_layers))
 
-    def _str_to_variable_group(self, input_string: Union[tuple, str]) -> VariableGroup:
+    def _str_to_variable_group(
+        self, input_string: Union[tuple, str], variable_groups: dict
+    ) -> VariableGroup:
         """
         Internal function to convert a string to the
         feature or parameter variable group
@@ -2283,75 +2363,87 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
 
         if input_string == self._feature_str:
-            return self._x
+            return variable_groups[self._feature_str]
         elif input_string == self._parameter_str:
-            return self._p
+            return variable_groups[self._parameter_str]
         elif isinstance(input_string, tuple):
-            return tuple([self._str_to_variable_group(str) for str in input_string])
+            return tuple(
+                [self._str_to_variable_group(str, variable_groups) for str in input_string]
+            )
         else:
             raise ValueError("Unknown variable type!")
 
-    def _param_gate(self, *variable, function, encoding: Union[Callable, None] = None):
+    def _resolve_arg(self, arg, variable_groups: dict):
         """
-        Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
-        variable group data
+        Internal function to resolve the argument of the delayed operations
         """
-        vg_list = [self._str_to_variable_group(str) for str in variable]
-        return function(*vg_list, map=encoding)
+        if isinstance(arg, str):
+            return self._str_to_variable_group(arg, variable_groups)
+        elif isinstance(arg, tuple):
+            return tuple(self._resolve_arg(a, variable_groups) for a in arg)
+        else:
+            return arg
 
-    def _param_gate_U(self, *variable, function):
+    def _param_gate(self, *variable, gate_name, encoding: Union[Callable, None] = None):
         """
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
-        vg_list = [self._str_to_variable_group(str) for str in variable]
-        return function(*vg_list)
+        self._stored_operations.append((gate_name, variable, {"map": encoding}))
+
+    def _param_gate_U(self, *variable, gate_name):
+        """
+        Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
+        variable group data
+        """
+        self._stored_operations.append((gate_name, variable, {}))
 
     def _two_param_gate(
-        self, *variable, function, ent_strategy="NN", encoding: Union[Callable, None] = None
+        self, *variable, gate_name, ent_strategy="NN", encoding: Union[Callable, None] = None
     ):
         """
         Internal conversion routine for two qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
-        vg_list = [self._str_to_variable_group(str) for str in variable]
-        return function(*vg_list, ent_strategy=ent_strategy, map=encoding)
+        self._stored_operations.append(
+            (gate_name, variable, {"ent_strategy": ent_strategy, "map": encoding})
+        )
 
     def H(self):
         """Adds a layer of H gates to the Layered Encoding Circuit"""
-        self._layered_pqc.H()
+        self._stored_operations.append(("H", [], {}))
 
     def X(self):
         """Adds a layer of X gates to the Layered Encoding Circuit"""
-        self._layered_pqc.X()
+        self._stored_operations.append(("X", [], {}))
 
     def Y(self):
         """Adds a layer of Y gates to the Layered Encoding Circuit"""
-        self._layered_pqc.Y()
+        self._stored_operations.append(("Y", [], {}))
 
     def Z(self):
         """Adds a layer of Z gates to the Layered Encoding Circuit"""
-        self._layered_pqc.Z()
+        self._stored_operations.append(("Z", [], {}))
 
     def I(self):
         """Adds a layer of I gates to the Layered Encoding Circuit"""
-        self._layered_pqc.I()
+        self._stored_operations.append(("I", [], {}))
 
     def S(self):
         """Adds a layer of S gates to the Layered Encoding Circuit"""
-        self._layered_pqc.S()
+        self._stored_operations.append(("S", [], {}))
 
     def S_conjugate(self):
         """Adds a layer of conjugated S gates to the Layered Encoding Circuit"""
-        self._layered_pqc.S_conjugate()
+        self._stored_operations.append(("S_conjugate", [], {}))
 
     def T(self):
         """Adds a layer of T gates to the Layered Encoding Circuit"""
-        self._layered_pqc.T()
+        self._stored_operations.append(("T", [], {}))
 
     def T_conjugate(self):
         """Adds a layer of conjugated T gates to the Layered Encoding Circuit"""
-        self._layered_pqc.T_conjugate()
+        self._stored_operations.append(("T_conjugate", [], {}))
 
     def Rx(self, *variable_str: str, encoding: Union[Callable, None] = None):
         """Adds a layer of Rx gates to the Layered Encoding Circuit
@@ -2361,7 +2453,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate(*variable_str, function=self._layered_pqc.Rx, encoding=encoding)
+        self._param_gate(*variable_str, gate_name="Rx", encoding=encoding)
 
     def Ry(self, *variable_str, encoding: Union[Callable, None] = None):
         """Adds a layer of Ry gates to the Layered Encoding Circuit
@@ -2371,7 +2463,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate(*variable_str, function=self._layered_pqc.Ry, encoding=encoding)
+        self._param_gate(*variable_str, gate_name="Ry", encoding=encoding)
 
     def Rz(self, *variable_str, encoding: Union[Callable, None] = None):
         """Adds a layer of Rz gates to the Layered Encoding Circuit
@@ -2381,7 +2473,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate(*variable_str, function=self._layered_pqc.Rz, encoding=encoding)
+        self._param_gate(*variable_str, gate_name="Rz", encoding=encoding)
 
     def P(self, *variable_str, encoding: Union[Callable, None] = None):
         """Adds a layer of P gates to the Layered Encoding Circuit
@@ -2391,7 +2483,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate(*variable_str, function=self._layered_pqc.P, encoding=encoding)
+        self._param_gate(*variable_str, gate_name="P", encoding=encoding)
 
     def U(self, *variable_str):
         """Adds a layer of U gates to the Layered Encoding Circuit
@@ -2401,7 +2493,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             encoding (Callable): Encoding function that is applied to the variables, input in the
                                  same order as the given labels in variable_str
         """
-        self._param_gate_U(*variable_str, function=self._layered_pqc.U)
+        self._param_gate_U(*variable_str, gate_name="U")
 
     def ch_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled H gates to the Layered Encoding Circuit
@@ -2410,7 +2502,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._layered_pqc.ch_entangling(ent_strategy)
+        self._stored_operations.append(("ch_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cx_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled X gates to the Layered Encoding Circuit
@@ -2419,7 +2511,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._layered_pqc.cx_entangling(ent_strategy)
+        self._stored_operations.append(("cx_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cy_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled Y gates to the Layered Encoding Circuit
@@ -2428,7 +2520,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._layered_pqc.cy_entangling(ent_strategy)
+        self._stored_operations.append(("cy_entangling", [], {"ent_strategy": ent_strategy}))
 
     def cz_entangling(self, ent_strategy="NN"):
         """Adds a layer of controlled Z gates to the Layered Encoding Circuit
@@ -2437,7 +2529,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._layered_pqc.cz_entangling(ent_strategy)
+        self._stored_operations.append(("cz_entangling", [], {"ent_strategy": ent_strategy}))
 
     def swap(self, ent_strategy="NN"):
         """Adds a layer of swap gates to the Layered Encoding Circuit
@@ -2446,7 +2538,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             ent_strategy (str): Entanglement strategy that is used to determine the entanglement,
                                 either ``"NN"`` or ``"AA"``.
         """
-        self._layered_pqc.swap(ent_strategy)
+        self._stored_operations.append(("swap", [], {"ent_strategy": ent_strategy}))
 
     def cp_entangling(
         self, *variable_str, ent_strategy="NN", encoding: Union[Callable, None] = None
@@ -2463,7 +2555,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.cp_entangling,
+            gate_name="cp_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2482,7 +2574,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.crx_entangling,
+            gate_name="crx_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2501,7 +2593,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.cry_entangling,
+            gate_name="cry_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2520,7 +2612,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.crz_entangling,
+            gate_name="crz_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2539,7 +2631,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.rxx_entangling,
+            gate_name="rxx_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2558,7 +2650,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.ryy_entangling,
+            gate_name="ryy_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2577,7 +2669,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.rzx_entangling,
+            gate_name="rzx_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2596,7 +2688,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.rzz_entangling,
+            gate_name="rzz_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2615,7 +2707,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._two_param_gate(
             *variable_str,
-            function=self._layered_pqc.cu_entangling,
+            gate_name="cu_entangling",
             ent_strategy=ent_strategy,
             encoding=encoding,
         )
@@ -2631,15 +2723,18 @@ class Layer(LayeredEncodingCircuit):
             encoding_circuit._feature_str,
             encoding_circuit._parameter_str,
         )
-        # Copy relevant data from input encoding_circuit
-        self._x = encoding_circuit._x
-        self._p = encoding_circuit._p
-        self._layered_pqc = LayerPQC(encoding_circuit._layered_pqc)
 
-    @property
-    def layered_pqc(self):
-        """Returns the LayerPQC object of the Layered Encoding Circuit"""
-        return self._layered_pqc
+    def _build_layer_pqc(
+        self, layered_pqc: LayeredPQC, variable_groups: tuple[VariableGroup, VariableGroup]
+    ) -> LayerPQC:
+        layer_pqc = LayerPQC(layered_pqc)
+        if len(self._stored_operations) != 0:
+            # apply all stored operations to the LayerPQC
+            for op, args, kwargs in self._stored_operations:
+                resolved_args = [self._resolve_arg(arg, variable_groups) for arg in args]
+                getattr(layer_pqc, op)(*resolved_args, **kwargs)
+
+        return layer_pqc
 
 
 class _operation_layer:

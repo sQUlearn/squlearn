@@ -2,6 +2,9 @@ import numpy as np
 from typing import Union
 from abc import ABC, abstractmethod
 
+from squlearn.encoding_circuit.circuit_library.random_encoding_circuit import RandomEncodingCircuit
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .regularization import thresholding_regularization, tikhonov_regularization
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
@@ -42,11 +45,6 @@ class KernelMatrixBase(ABC):
         self._parameter_seed = parameter_seed
         self._regularization = regularization
         self._is_trainable = False
-
-        if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(
-                self._parameter_seed
-            )
 
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
@@ -151,6 +149,17 @@ class KernelMatrixBase(ABC):
         """
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
+
+    def _initialize_kernel(self, num_features: int) -> None:
+        """Fully initializes the kernel"""
+        if self._parameters is None:
+            self._generate_initial_parameters(num_features=num_features)
+
+    def _generate_initial_parameters(self, num_features: int) -> None:
+        """Generates the initial parameters for the encoding circuit"""
+        self._parameters = self._encoding_circuit.generate_initial_parameters(
+            seed=self._parameter_seed, num_features=num_features
+        )
 
     def __add__(self, x):
         """

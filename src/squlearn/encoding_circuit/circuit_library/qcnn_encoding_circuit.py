@@ -5,9 +5,11 @@ from qiskit.circuit import ParameterVector
 from qiskit.converters import circuit_to_gate, circuit_to_instruction
 
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+
 from squlearn.encoding_circuit.circuit_library.param_z_feature_map import ParamZFeatureMap
 from squlearn.observables import CustomObservable, SummedPaulis
 from squlearn.observables.observable_base import ObservableBase
+from squlearn.util.data_preprocessing import extract_num_features
 
 
 class QCNNEncodingCircuit(EncodingCircuitBase):
@@ -31,7 +33,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     1273–1278 (2019). <https://doi.org/10.1038/s41567-019-0648-8>`_
     """
 
-    def __init__(self, num_qubits: int = 0, num_features: int = 0, default: bool = False) -> None:
+    def __init__(
+        self, num_qubits: int = 0, num_features: int = None, default: bool = False
+    ) -> None:
         super().__init__(num_qubits, num_features)
         self._num_parameters = 0
         self._left_qubits = [i for i in range(num_qubits)]
@@ -57,6 +61,11 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
     def operations_list(self) -> list:
         """Returns the list of operators currently acting on the encoding circuit."""
         return self._operations_list
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """Returns the number of encoding slots of the current QCNNEncodingCircuit."""
+        return np.inf
 
     def set_params(self, **params):
         """
@@ -420,7 +429,10 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         )  # keeps track of the whole encoding circuit
 
         # if it is asked for a intrinsic feature map
-        num_features = len(features)
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
+
         if num_features > 0:
             feature_map = ParamZFeatureMap(self.num_qubits, num_features, 1).get_circuit(
                 features=features, parameters=[1] * num_features
