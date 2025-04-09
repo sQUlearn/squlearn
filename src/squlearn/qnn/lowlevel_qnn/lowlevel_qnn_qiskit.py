@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union
+from typing import Callable, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
@@ -275,6 +275,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
+        post_processing (Callable): Optional post processing function operating on the result dict
+            after evaluate.
         caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
         primitive (str): Primitive that is used for the evaluation of the QNN. Possible values are
@@ -304,6 +306,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
+        post_processing: Callable = None,
         caching=True,
         primitive: Union[str, None] = None,
     ) -> None:
@@ -323,7 +326,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
                 parameterized_quantum_circuit
             )
 
-        super().__init__(parameterized_quantum_circuit, operator, executor)
+        super().__init__(parameterized_quantum_circuit, operator, executor, post_processing)
 
         self.operator = copy.deepcopy(operator)
 
@@ -858,7 +861,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         result = sampler.run(circuit).result()
         return result.quasi_dists[0].binary_probabilities()
 
-    def evaluate(
+    def _evaluate(
         self,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],
