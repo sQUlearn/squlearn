@@ -2246,19 +2246,18 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Returns:
             LayeredPQC: LayeredPQC object that contains the encoding circuit
         """
+        x = VariableGroup(self._feature_str, size=num_features)
+        p = VariableGroup(self._parameter_str)
+
         if self._encoding_circuit_str != "":
-            x = VariableGroup(self._feature_str, size=num_features)
-            p = VariableGroup(self._parameter_str)
             layered_pqc = LayeredPQC.from_string(
                 self._num_qubits, self._encoding_circuit_str, (x, p)
             )
         else:
-            if len(self._stored_operations) != 0:
-                x = VariableGroup(self._feature_str, size=num_features)
-                p = VariableGroup(self._parameter_str)
-                layered_pqc = LayeredPQC(self._num_qubits, (x, p))
-                variable_groups = {self._feature_str: x, self._parameter_str: p}
+            layered_pqc = LayeredPQC(self._num_qubits, (x, p))
+            variable_groups = {self._feature_str: x, self._parameter_str: p}
 
+            if len(self._stored_operations) != 0:
                 # apply all stored operations to the LayeredPQC
                 for op, args, kwargs in self._stored_operations:
                     resolved_args = [self._resolve_arg(arg, variable_groups) for arg in args]
@@ -2267,8 +2266,10 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             # apply all stored layers with their respective operations stored in the layer and the number of repetitions
             if len(self._stored_layers) != 0:
                 for layer, num_layers in self._stored_layers:
-                    layer.layer_pqc(layered_pqc)
-                    layered_pqc.add_layer(layer.layer_pqc, num_layers)
+                    # layer.layer_pqc = layered_pqc
+                    # layered_pqc.add_layer(layer.layer_pqc, num_layers)
+                    layer_pqc = layer._build_layer_pqc(layered_pqc, variable_groups)
+                    layered_pqc.add_layer(layer_pqc, num_layers)
 
         # update the number of parameters
         self._num_params = layered_pqc.get_number_of_variables(p)
@@ -2345,9 +2346,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             num_layers (int): Number of times that the layer is repeated
 
         """
-        if not hasattr(self, "_stored_layers"):
-            self._stored_layers = []
-            self._stored_layers.append((layer, num_layers))
+        self._stored_layers.append((layer, num_layers))
 
     def _str_to_variable_group(
         self, input_string: Union[tuple, str], variable_groups: dict
@@ -2725,22 +2724,17 @@ class Layer(LayeredEncodingCircuit):
             encoding_circuit._parameter_str,
         )
 
-    @property
-    def layer_pqc(self):
-        """
-        Returns the LayerPQC object of the Layered Encoding Circuit
-        """
-        return self._layered_pqc
+    def _build_layer_pqc(
+        self, layered_pqc: LayeredPQC, variable_groups: tuple[VariableGroup, VariableGroup]
+    ) -> LayerPQC:
+        layer_pqc = LayerPQC(layered_pqc)
+        if len(self._stored_operations) != 0:
+            # apply all stored operations to the LayerPQC
+            for op, args, kwargs in self._stored_operations:
+                resolved_args = [self._resolve_arg(arg, variable_groups) for arg in args]
+                getattr(layer_pqc, op)(*resolved_args, **kwargs)
 
-    @layer_pqc.setter
-    def layer_pqc(self, layered_pqc: LayeredPQC = None):
-        """
-        Sets the LayerPQC object of the Layered Encoding Circuit
-
-        Args:
-            layered_pqc (LayeredPQC): LayeredPQC object that is set to the Layer
-        """
-        self._layered_pqc = LayerPQC(layered_pqc)
+        return layer_pqc
 
 
 class _operation_layer:
