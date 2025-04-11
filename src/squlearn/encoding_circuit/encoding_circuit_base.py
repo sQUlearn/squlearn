@@ -73,7 +73,9 @@ class EncodingCircuitBase:
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the circuit encoding circuit
+
+        Has to be overwritten, otherwise a NotImplementedError is thrown
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -154,13 +156,78 @@ class EncodingCircuitBase:
 
         return self
 
+    def inverse(self):
+        """
+        Returns the inverse of the encoding circuit.
+
+        Returns:
+            The inverse of the encoding circuit
+        """
+
+        class InvertedEncodingCircuit(EncodingCircuitBase):
+            def __init__(self, encoding_circuit: EncodingCircuitBase):
+                super().__init__(encoding_circuit.num_qubits, encoding_circuit.num_features)
+                self._encoding_circuit = encoding_circuit
+
+            @property
+            def num_parameters(self) -> int:
+                """Returns the number of trainable parameters of the encoding circuit."""
+                return self._encoding_circuit.num_parameters
+
+            @property
+            def parameter_bounds(self) -> np.ndarray:
+                """Returns the bounds of the trainable parameters of the encoding circuit."""
+                return self._encoding_circuit.parameter_bounds
+
+            @property
+            def feature_bounds(self) -> np.ndarray:
+                """Returns the bounds of the features of the encoding circuit."""
+                return self._encoding_circuit.feature_bounds
+
+            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+                """
+                Generates random parameters for the encoding circuit
+
+                Args:
+                    seed (Union[int,None]): Seed for the random number generator
+
+                Return:
+                    Returns the randomly generated parameters
+                """
+                return self._encoding_circuit.generate_initial_parameters(seed)
+
+            def get_circuit(
+                self,
+                features: Union[ParameterVector, np.ndarray],
+                parameters: Union[ParameterVector, np.ndarray],
+            ) -> QuantumCircuit:
+                """
+                Returns the inverse circuit of the encoding circuit
+
+                Args:
+                    features Union[ParameterVector,np.ndarray]: Input vector of the features
+                        from which the gate inputs are obtained
+                    param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                        from which the gate inputs are obtained
+
+                Return:
+                    Returns the inverse circuit of the encoding circuit in qiskit QuantumCircuit
+                    format
+                """
+                circ = self._encoding_circuit.get_circuit(features, parameters)
+                return circ.inverse()
+
+        return InvertedEncodingCircuit(self)
+
     def __mul__(self, x):
         return self.__add__(x)
 
     def __add__(self, x):
+        return self.compose(x, concatenate_features=False, concatenate_parameters=True)
+
+    def compose(self, x, concatenate_features=True, concatenate_parameters=False):
         """
-        Overwrites the a + b function, such that the addition of
-        encoding circuits returns the composition of both encoding circuits.
+        Composition of encoding circuits with options for handling features and parameters
 
         Number of qubits and features have to be equal in both encoding circuits!
         The special function and properties of the both encoding circuits are lost
@@ -182,7 +249,8 @@ class EncodingCircuitBase:
             Special class for composed encoding circuits.
 
             Args:
-                num_qubits: num qubits for both encoding circuits (necessary for scikit-learn interface)
+                num_qubits (int): num qubits for both encoding circuits
+                    (necessary for scikit-learn interface)
                 ec1 (EncodingCircuitBase): right / first encoding circuit
                 ec2 (EncodingCircuitBase): left / second encoding circuit
             """
@@ -226,7 +294,18 @@ class EncodingCircuitBase:
 
                 Is equal to the sum of both trainable parameters.
                 """
-                return self.ec1.num_parameters + self.ec2.num_parameters
+                if concatenate_parameters:
+                    return self.ec1.num_parameters + self.ec2.num_parameters
+                else:
+                    return max(self.ec1.num_parameters, self.ec2.num_parameters)
+
+            @property
+            def num_features(self) -> int:
+                """The dimension of the features in the encoding circuit."""
+                if concatenate_features:
+                    return self.ec1.num_features + self.ec2.num_features
+                else:
+                    return max(self.ec1.num_features, self.ec2.num_features)
 
             @property
             def parameter_bounds(self) -> np.ndarray:
@@ -234,9 +313,47 @@ class EncodingCircuitBase:
 
                 Is equal to the sum of both bounds.
                 """
-                return np.concatenate(
-                    (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
-                )
+                if concatenate_parameters:
+                    return np.concatenate(
+                        (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
+                    )
+                else:
+                    # We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds,
+                    # we return a new array,
+                    # with the shape of the largest array, and the minimum values of the two arrays
+                    # for the first column (lower bound),
+                    # and the maximum values of the two arrays for the second column (upper bound)
+
+                    # Extend parameter bounds to the shape of the largest array with np.pad
+                    parameter_bounds1_extended = np.pad(
+                        self.ec1.parameter_bounds,
+                        ((0, self.num_parameters - self.ec1.num_parameters), (0, 0)),
+                        constant_values=np.nan,
+                    )
+                    parameter_bounds2_extended = np.pad(
+                        self.ec2.parameter_bounds,
+                        ((0, self.num_parameters - self.ec2.num_parameters), (0, 0)),
+                        constant_values=np.nan,
+                    )
+
+                    # Compute the minimum lower bound values for the first column and maximum upper
+                    # bounds for the second column
+                    parameter_bounds3_first_col = np.nanmin(
+                        np.array(
+                            [parameter_bounds1_extended[:, 0], parameter_bounds2_extended[:, 0]]
+                        ),
+                        axis=0,
+                    )
+                    parameter_bounds3_second_col = np.nanmax(
+                        np.array(
+                            [parameter_bounds1_extended[:, 1], parameter_bounds2_extended[:, 1]]
+                        ),
+                        axis=0,
+                    )
+                    # Stack the results into the final array
+                    return np.column_stack(
+                        (parameter_bounds3_first_col, parameter_bounds3_second_col)
+                    )
 
             @property
             def feature_bounds(self) -> np.ndarray:
@@ -274,13 +391,20 @@ class EncodingCircuitBase:
                     Returns the randomly generated parameters
                 """
 
-                return np.concatenate(
-                    (
-                        self.ec1.generate_initial_parameters(seed),
-                        self.ec2.generate_initial_parameters(seed),
-                    ),
-                    axis=0,
-                )
+                if concatenate_parameters:
+                    return np.concatenate(
+                        (
+                            self.ec1.generate_initial_parameters(seed),
+                            self.ec2.generate_initial_parameters(seed),
+                        ),
+                        axis=0,
+                    )
+                else:
+                    if self.num_parameters == 0:
+                        return np.array([])
+                    r = np.random.RandomState(seed)
+                    bounds = self.parameter_bounds
+                    return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
             def get_params(self, deep: bool = True) -> dict:
                 """
@@ -291,7 +415,7 @@ class EncodingCircuitBase:
 
                 Args:
                     deep (bool): If True, also the parameters for
-                                 contained objects are returned (default=True).
+                                contained objects are returned (default=True).
 
                 Return:
                     Dictionary with hyper-parameters and values.
@@ -357,14 +481,35 @@ class EncodingCircuitBase:
                         from which the gate inputs are obtained
 
                 Return:
-                    Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
+                    Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit
+                    format
                 """
+                if concatenate_features:
+                    features_c1, features_c2 = (
+                        features[: self.ec1.num_features],
+                        features[self.ec1.num_features :],
+                    )
+                else:
+                    features_c1, features_c2 = (
+                        features[: self.ec1.num_features],
+                        features[: self.ec2.num_features],
+                    )
 
-                circ1 = self.ec1.get_circuit(
-                    features[: self.ec1.num_features], parameters[: self.ec1.num_parameters]
-                )
+                if concatenate_parameters:
+                    parameters_c1, parameters_c2 = (
+                        parameters[: self.ec1.num_parameters],
+                        parameters[self.ec1.num_parameters :],
+                    )
+                else:
+                    parameters_c1, parameters_c2 = (
+                        parameters[: self.ec1.num_parameters],
+                        parameters[: self.ec1.num_parameters],
+                    )
+
+                circ1 = self.ec1.get_circuit(features_c1, parameters_c1)
                 circ2 = self.ec2.get_circuit(
-                    features[: self.ec2.num_features], parameters[self.ec1.num_parameters :]
+                    features_c2,
+                    parameters_c2,  # Only line that changes, to include the new features
                 )
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))

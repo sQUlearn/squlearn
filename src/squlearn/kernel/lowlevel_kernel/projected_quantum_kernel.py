@@ -575,7 +575,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
             values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
-                Possible values are: ``dKdx``, ``dKdy``, ``dKdxdx``
+            Possible values are: ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdp``
         Returns:
             Dictionary with the evaluated values
 
