@@ -73,7 +73,9 @@ class EncodingCircuitBase:
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the circuit encoding circuit
+
+        Has to be overwritten, otherwise a NotImplementedError is thrown
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -209,7 +211,8 @@ class EncodingCircuitBase:
                         from which the gate inputs are obtained
 
                 Return:
-                    Returns the inverse circuit of the encoding circuit in qiskit QuantumCircuit format
+                    Returns the inverse circuit of the encoding circuit in qiskit QuantumCircuit
+                    format
                 """
                 circ = self._encoding_circuit.get_circuit(features, parameters)
                 return circ.inverse()
@@ -246,7 +249,8 @@ class EncodingCircuitBase:
             Special class for composed encoding circuits.
 
             Args:
-                num_qubits: num qubits for both encoding circuits (necessary for scikit-learn interface)
+                num_qubits (int): num qubits for both encoding circuits
+                    (necessary for scikit-learn interface)
                 ec1 (EncodingCircuitBase): right / first encoding circuit
                 ec2 (EncodingCircuitBase): left / second encoding circuit
             """
@@ -314,19 +318,42 @@ class EncodingCircuitBase:
                         (self.ec1.parameter_bounds, self.ec2.parameter_bounds), axis=0
                     )
                 else:
-                    #We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds, we return a new array,
-                    #with the shape of the largest array, and the minimum values of the two arrays for the first column (lower bound), 
-                    #and the maximum values of the two arrays for the second column (upper bound)
+                    # We compare self.ec1.parameter_bounds and self.ec2.parameter_bounds,
+                    # we return a new array,
+                    # with the shape of the largest array, and the minimum values of the two arrays
+                    # for the first column (lower bound),
+                    # and the maximum values of the two arrays for the second column (upper bound)
 
                     # Extend parameter bounds to the shape of the largest array with np.pad
-                    parameter_bounds1_extended = np.pad(self.ec1.parameter_bounds, ((0, self.num_parameters - self.ec1.num_parameters), (0, 0)), constant_values=np.nan)
-                    parameter_bounds2_extended = np.pad(self.ec2.parameter_bounds, ((0, self.num_parameters - self.ec2.num_parameters), (0, 0)), constant_values=np.nan)
+                    parameter_bounds1_extended = np.pad(
+                        self.ec1.parameter_bounds,
+                        ((0, self.num_parameters - self.ec1.num_parameters), (0, 0)),
+                        constant_values=np.nan,
+                    )
+                    parameter_bounds2_extended = np.pad(
+                        self.ec2.parameter_bounds,
+                        ((0, self.num_parameters - self.ec2.num_parameters), (0, 0)),
+                        constant_values=np.nan,
+                    )
 
-                    # Compute the minimum lower bound values for the first column and maximum upper bounds for the second column
-                    parameter_bounds3_first_col = np.nanmin(np.array([parameter_bounds1_extended[:, 0], parameter_bounds2_extended[:, 0]]), axis=0)
-                    parameter_bounds3_second_col = np.nanmax(np.array([parameter_bounds1_extended[:, 1], parameter_bounds2_extended[:, 1]]), axis=0)
-                    # Stack the results into the final array 
-                    return np.column_stack((parameter_bounds3_first_col, parameter_bounds3_second_col))
+                    # Compute the minimum lower bound values for the first column and maximum upper
+                    # bounds for the second column
+                    parameter_bounds3_first_col = np.nanmin(
+                        np.array(
+                            [parameter_bounds1_extended[:, 0], parameter_bounds2_extended[:, 0]]
+                        ),
+                        axis=0,
+                    )
+                    parameter_bounds3_second_col = np.nanmax(
+                        np.array(
+                            [parameter_bounds1_extended[:, 1], parameter_bounds2_extended[:, 1]]
+                        ),
+                        axis=0,
+                    )
+                    # Stack the results into the final array
+                    return np.column_stack(
+                        (parameter_bounds3_first_col, parameter_bounds3_second_col)
+                    )
 
             @property
             def feature_bounds(self) -> np.ndarray:
@@ -378,10 +405,6 @@ class EncodingCircuitBase:
                     r = np.random.RandomState(seed)
                     bounds = self.parameter_bounds
                     return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
-                    
-
-
-          
 
             def get_params(self, deep: bool = True) -> dict:
                 """
@@ -458,7 +481,8 @@ class EncodingCircuitBase:
                         from which the gate inputs are obtained
 
                 Return:
-                    Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
+                    Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit
+                    format
                 """
                 if concatenate_features:
                     features_c1, features_c2 = (

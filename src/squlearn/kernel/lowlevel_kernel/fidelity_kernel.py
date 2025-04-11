@@ -22,7 +22,7 @@ from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
 
 
 class FidelityKernel(KernelMatrixBase):
-    """
+    r"""
     Fidelity Quantum Kernel.
 
     The Fidelity Quantum Kernel is a based on the overlap of the quantum states.
@@ -31,7 +31,7 @@ class FidelityKernel(KernelMatrixBase):
 
     .. math::
 
-        K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
+        K(x,y) = |\langle \phi(x) | \phi(y) \rangle|^2
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
@@ -57,8 +57,12 @@ class FidelityKernel(KernelMatrixBase):
             ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.
         use_expectation (bool, default=False):
-            Option for using the expectation value of a QNN circuit that implements #LATEXHERE
-            
+            Option for using the expectation value of a QNN circuit that computes the fidelity
+            as the expectation value of the observable
+            :math:`P_0 = |0\rangle\langle0|^{\otimes n}`.
+            This is not very efficient in simulation, but allows the computation of
+            derivatives of the kernel.
+
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
         Nature 567, 209-212 (2019).
@@ -302,14 +306,15 @@ class FidelityKernel(KernelMatrixBase):
     def evaluate_derivatives(
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
-        """Evaluates the Fidelity Quantum Kernel and its derivatives for the given data points x and y.
+        """Evaluates the Fidelity Kernel and its derivatives for the given data points x and y.
 
         Args:
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
             values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
                 Possible values are:
-                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp`` and ``jacobian``.
+                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp``
+                and ``jacobian``.
         Returns:
             Dictionary with the evaluated values
         """

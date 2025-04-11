@@ -16,12 +16,12 @@ from ...qnn.lowlevel_qnn import LowLevelQNN
 
 
 class FidelityKernelExpectationValue(KernelMatrixBase):
-    """
+    r"""
     Fidelity Quantum Kernel evaluation based on quantum circuit and expectation values.
 
     Fidelity Quantum Kernel based on the expectation value of the quantum circuit constructed by
-    #LATEXHERE
-
+    evaluating the expectation value of the observable :math:`P_0 = |0\rangle\langle0|^{\otimes n}`
+    with the quantum circuit :math:`U(y)^{\dagger} U(x) |0\rangle`.
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
@@ -76,23 +76,27 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
         self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
     ) -> dict:
         """
-        Evaluates the Fidelity Quantum Kernel and its derivatives for the given data points x and y.
+        Evaluates the Fidelity Kernel and its derivatives for the given data points x and y.
 
         Args:
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
             values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
                 Possible values are:
-                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp`` and ``jacobian``.
+                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp``
+                and ``jacobian``.
         Returns:
             Dictionary with the evaluated values
 
         """
 
         def P0_operator(num_qubits):
-            """
-                Creates the :math:`P_0` observable: :math:`(|0\\rangle\l\angle0|)^{\\otimes n}` for the quantum circuit in the format of the squlearn library.
-                Note that :math:`|0\\rangle\\langle0| = 0.5 \cdot (I + Z)`.
+            r"""
+                Function for creating the |0><0| oberservable
+
+                Creates the :math:`P_0` observable: :math:`(|0\rangle\l\angle0|)^{\otimes n}` for
+                the quantum circuit in the format of the squlearn library.
+                Note that :math:`|0\rangle\langle 0| = 0.5 \cdot (I + Z)`.
 
             Args:
                 num_qubits (int): Number of qubits in the quantum circuit.
@@ -110,7 +114,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def get_flattened_matrix_indices(n, part="lower"):
             """
-            Returns the indices of the lower triangle or diagonal elements of a matrix in flattened form.
+            Returns the indices of the lower triangle or diagonal elements of a matrix in flattened
+            form.
 
             Args:
                 n (int): Size of the matrix (n x n).
@@ -152,16 +157,21 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             Args:
                 x (numpy.ndarray): An input array of shape (n, m), where n is the number of samples
                                 and m is the number of features.
-                y (numpy.ndarray, optional): An optional input array of shape (n2, m), where n2 is the number of samples
-                                            and m is the number of features. If None, y is set to x. Defaults to None.
-                evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are:
+                y (numpy.ndarray, optional): An optional input array of shape (n2, m), where n2 is
+                                            the number of samples
+                                            and m is the number of features. If None, y is set to
+                                            x. Defaults to None.
+                evaluate_duplicates (str): String indicating which kernel values to evaluate.
+                    Options are:
                                         - "off_diagonal": Evaluate only off-diagonal elements.
                                         - "none": Evaluate no duplicates.
                                         - "all": Evaluate all kernel values. Defaults to "all".
 
             Returns:
-                numpy.ndarray: An array of shape (nf, 2*m) where each row consists of all possible ordered pairs of rows
-                            from the input array. The value of nf depends on the `evaluate_duplicates` parameter:
+                numpy.ndarray: An array of shape (nf, 2*m) where each row consists of all possible
+                            ordered pairs of rows
+                            from the input array. The value of nf depends on the
+                            `evaluate_duplicates` parameter:
                             - If `evaluate_duplicates` is "off_diagonal", nf = n*(n-1).
                             - If `evaluate_duplicates` is "none", nf = n*n-n.
                             - Otherwise, nf = n*n.
@@ -227,11 +237,13 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
 
         def fill_matrix_indices(K_flat, n, matrix_part):
             """
-            Given a flattened kernel matrix of shape (nf,), fills the values not calculated according to the specified missing matrix_part.
+            Given a flattened kernel matrix of shape (nf,), fills the values not calculated
+            according to the specified missing matrix_part.
 
             Args:
             K_flat (numpy.ndarray):
-                Flattened kernel matrix of shape (nf,) where nf is the number of kernel values to evaluate.
+                Flattened kernel matrix of shape (nf,) where nf is the number of kernel values to
+                evaluate.
             n (int): Number of samples in the dataset.
             matrix_part (str): Part of the matrix to fill. Options are "lower" for the
                 lower triangle and "diagonal" for the diagonal elements.
@@ -249,9 +261,9 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             K_flat_filled[main_diagonal_indices] = 1.0  # Set diagonal elements to 1
             if matrix_part == "lower":
                 lower_triangle_indices = get_flattened_matrix_indices(n, part="lower")
-                K_flat_filled[
-                    lower_triangle_indices
-                ] = K_flat  # Fill the lower triangle with the kernel values
+                K_flat_filled[lower_triangle_indices] = (
+                    K_flat  # Fill the lower triangle with the kernel values
+                )
             elif matrix_part == "diagonal":
                 non_diagonal_indices = get_flattened_matrix_indices(n, part="off_diagonal")
                 print(non_diagonal_indices)
@@ -265,16 +277,19 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             Reshapes the flattened kernel matrix to a 2D kernel matrix.
 
             Args:
-                k_flat (numpy.ndarray): 
-                    Flattened kernel matrix of shape (n*n,) or (n*n2, ) where n is the number of samples in the dataset.
+                k_flat (numpy.ndarray):
+                    Flattened kernel matrix of shape (n*n,) or (n*n2, ) where n is the number of
+                    samples in the dataset.
                 n (int): Number of samples in the dataset.
                 n2 (int): Number of samples in the dataset.
-                evaluate_duplicates (str): String indicating which kernel values to evaluate. Options are
+                evaluate_duplicates (str): String indicating which kernel values to evaluate.
+                    Options are
                     "off_diagonal" to evaluate only off-diagonal elements
                     "none" to evaluate no duplicates,
                     "all" to evaluate all kernel values.
             Returns:
-                numpy.ndarray: Kernel matrix of shape (n, n) or (n, n2) depending on the input shape.
+                numpy.ndarray: Kernel matrix of shape (n, n) or (n, n2) depending on the
+                input shape.
             """
 
             if n == n2:
@@ -307,7 +322,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             ]
         )
         # _qnn that implements a circuit U(y)^\dagger U(x) |0>
-        # and then expectation value of P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y)) is obtained.
+        # and then expectation value of P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y))
+        # is obtained.
         # we use squlearn's circuit compose and inverse
         self._qnn = LowLevelQNN(
             (self.encoding_circuit).compose(self.encoding_circuit.inverse()),
@@ -352,7 +368,9 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             else:
                 if self._evaluate_duplicates != "all" and todo != "K":
                     print(
-                        f"Warning: evaluate_duplicates is set to {self._evaluate_duplicates} but, evaluate_duplicates = {self._evaluate_duplicates} is not yet supported for{todo}. evaluate_duplicates='all' will be used for this evaluation."
+                        f"Warning: evaluate_duplicates is set to {self._evaluate_duplicates} but, "
+                        f"evaluate_duplicates = {self._evaluate_duplicates} is not yet supported"
+                        f"for{todo}. evaluate_duplicates='all' will be used for this evaluation."
                     )
                 if todo == "K":
                     if self._evaluate_duplicates == "all":
@@ -398,7 +416,8 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                         x.shape[0], y.shape[0], 2 * self.num_features, 2 * self.num_features
                     )  # shape (len(x), len(y), 2*num_features, 2*num_features)
                     # For consistency with the PQK derivatives:
-                    # we transpose the jacobian matrix to be of shape (2*num_features, 2*num_features, len(x), len(y))
+                    # we transpose the jacobian matrix to be of shape
+                    # (2*num_features, 2*num_features, len(x), len(y))
                     jacobian = jacobian.transpose(2, 3, 0, 1)
                     if self.num_features == 1:
                         if todo[2:] == "dxdx":
