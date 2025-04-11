@@ -22,7 +22,6 @@ QML Regressors
    qnn.QNNRegressor
    qrc.QRCRegressor
 
-
 QML Classifiers
 ======================================
 
@@ -182,6 +181,22 @@ Quantum Kernel Core
 
    kernel.loss.negative_log_likelihood.NLL
    kernel.loss.target_alignment.TargetAlignment
+
+Quantum Kernel ODE Solver
+-----------------------------
+.. automodule:: squlearn.kernel
+    :no-members:
+    :no-inherited-members:
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.QKODE
+   kernel.loss.ODELoss
 
 QNN Core
 ------------------------------------
