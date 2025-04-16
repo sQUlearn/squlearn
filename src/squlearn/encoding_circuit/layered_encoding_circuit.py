@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from typing import Union, Callable
 import copy
@@ -2154,6 +2155,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         self._parameter_str = parameter_str
         self._encoding_circuit_str = ""
         self._num_params = None
+        self._num_encoding_slots = 0
 
         self._stored_operations = []
         self._stored_layers = []
@@ -2167,6 +2169,13 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """Returns number of parameters of the Layered Encoding Circuit"""
         if self._num_params is not None:
             return self._num_params
+        raise ValueError("LayeredPQC is not initialized.")
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """Returns number of encoding slots of the Layered Encoding Circuit"""
+        if self._num_encoding_slots is not None:
+            return self._num_encoding_slots
         raise ValueError("LayeredPQC is not initialized.")
 
     def get_params(self, deep: bool = True) -> dict:
@@ -2248,11 +2257,13 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         x = VariableGroup(self._feature_str, size=num_features)
         p = VariableGroup(self._parameter_str)
+        self._num_encoding_slots = 0
 
         if self._encoding_circuit_str != "":
             layered_pqc = LayeredPQC.from_string(
                 self._num_qubits, self._encoding_circuit_str, (x, p)
             )
+            self._num_encoding_slots = self._parse_circuit_string() * self.num_qubits
         else:
             layered_pqc = LayeredPQC(self._num_qubits, (x, p))
             variable_groups = {self._feature_str: x, self._parameter_str: p}
@@ -2261,14 +2272,15 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
                 # apply all stored operations to the LayeredPQC
                 for op, args, kwargs in self._stored_operations:
                     resolved_args = [self._resolve_arg(arg, variable_groups) for arg in args]
+                    self._count_encoding_slots(resolved_args)
                     getattr(layered_pqc, op)(*resolved_args, **kwargs)
 
             # apply all stored layers with their respective operations stored in the layer and the number of repetitions
             if len(self._stored_layers) != 0:
                 for layer, num_layers in self._stored_layers:
-                    # layer.layer_pqc = layered_pqc
-                    # layered_pqc.add_layer(layer.layer_pqc, num_layers)
                     layer_pqc = layer._build_layer_pqc(layered_pqc, variable_groups)
+                    # add the num_encoding_slots of the layer to the total number of encoding slots
+                    self._num_encoding_slots += layer.num_encoding_slots * num_layers
                     layered_pqc.add_layer(layer_pqc, num_layers)
 
         # update the number of parameters
@@ -2348,6 +2360,108 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         self._stored_layers.append((layer, num_layers))
 
+    def _count_encoding_slots(self, *variable):
+        """
+        Internal function to count the number of encoding slots
+        """
+        for var in variable:
+            if isinstance(var, VariableGroup):
+                var = var.variable_name
+            if var == self._feature_str:
+                self._num_encoding_slots += self.num_qubits
+
+    def _parse_circuit_string(self) -> int:
+        """
+        Parse a circuit string and return the number of encoding slots per qubit.
+        """
+        return self._parse_circuit_string_part(self._encoding_circuit_str, self._feature_str)
+
+    def _parse_circuit_string_part(self, s: str, feature_str: str) -> int:
+        """
+        Recursively parses a segment of the circuit string and returns the total count
+        of encoding slots found. The string is split by '-' except when inside square brackets.
+
+        Args:
+            s (str): The circuit string segment to parse.
+            feature_str (str): The feature variable name to look for in gate parameters.
+
+        Returns:
+            int: The total number of encoding slots found in this string segment.
+        """
+        # Remove whitespace for easier processing
+        s = s.replace(" ", "")
+        tokens = []
+        token = ""
+        bracket_level = 0
+        # Split by '-' but ignore '-' inside square brackets
+        for char in s:
+            if char == "[":
+                bracket_level += 1
+                token += char
+            elif char == "]":
+                bracket_level -= 1
+                token += char
+            elif char == "-" and bracket_level == 0:
+                if token:
+                    tokens.append(token)
+                token = ""
+            else:
+                token += char
+        if token:
+            tokens.append(token)
+
+        total = 0
+        for token in tokens:
+            total += self._parse_circuit_string_token(token, feature_str)
+        return total
+
+    def _parse_circuit_string_token(self, token: str, feature_str: str) -> int:
+        """
+        Parses a single token from the circuit string and returns the count of encoding slots
+        from that token. A token can represent:
+        - A gate call (e.g., "Rx(p,x;=y*np.arccos(x),{y,x})")
+        - A repeated layer block (e.g., "3[ ... ]")
+        - A simple layer block (e.g., "[ ... ]")
+
+        An encoding slot is counted if the gate's parameter list contains exactly the feature_str.
+
+        Args:
+            token (str): The token string to parse.
+            feature_str (str): The feature variable name to count.
+
+        Returns:
+            int: The count of encoding slots from this token.
+        """
+        # Check for a repetition layer, e.g., "3[ ... ]"
+        rep_match = re.fullmatch(r"(\d+)\[(.*)\]", token)
+        if rep_match:
+            rep = int(rep_match.group(1))
+            inner = rep_match.group(2)
+            count_inner = self._parse_circuit_string_part(inner, feature_str)
+            return rep * count_inner
+
+        # Check if the entire token is enclosed in square brackets: "[ ... ]"
+        bracket_match = re.fullmatch(r"\[(.*)\]", token)
+        if bracket_match:
+            inner = bracket_match.group(1)
+            return self._parse_circuit_string_part(inner, feature_str)
+
+        # Otherwise, assume the token is a gate call with parentheses, e.g., "GateName(...)".
+        paren_index = token.find("(")
+        if paren_index == -1 or not token.endswith(")"):
+            # kein gültiger Gate-Aufruf, daher 0
+            return 0
+
+        # Extract the gate parameter list
+        params_str = token[paren_index + 1 : -1]
+
+        # Split the parameter list by comma or semicolon
+        parts = re.split(r"[;,]", params_str)
+        for p in parts:
+            if p.strip() == feature_str:
+                return 1
+        return 0
+
     def _str_to_variable_group(
         self, input_string: Union[tuple, str], variable_groups: dict
     ) -> VariableGroup:
@@ -2389,6 +2503,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
+        self._count_encoding_slots(*variable)
         self._stored_operations.append((gate_name, variable, {"map": encoding}))
 
     def _param_gate_U(self, *variable, gate_name):
@@ -2396,6 +2511,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Internal conversion routine for one qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
+        self._count_encoding_slots(*variable)
         self._stored_operations.append((gate_name, variable, {}))
 
     def _two_param_gate(
@@ -2405,6 +2521,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Internal conversion routine for two qubit gates that calls the LayeredPQC routines with the correct
         variable group data
         """
+        self._count_encoding_slots(*variable)
         self._stored_operations.append(
             (gate_name, variable, {"ent_strategy": ent_strategy, "map": encoding})
         )
