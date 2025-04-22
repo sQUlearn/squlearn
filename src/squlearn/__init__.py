@@ -3,7 +3,7 @@
 from .util import Executor
 from . import observables, encoding_circuit, kernel, optimizers, qnn, util
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 __all__ = [
     "Executor",
