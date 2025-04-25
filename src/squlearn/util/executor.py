@@ -215,15 +215,14 @@ class Executor:
                 * A Qiskit backend, to run the jobs on IBM Quantum systems or simulators
                 * A list of Qiskit backends for automatic backend selection later on
                 * A QiskitRuntimeService, to run the jobs on the Qiskit Runtime service.
-                  In this case the backend has to be provided separately via ``backend=``
+                  In this case the backends are automatically selected based on the
+                  available backends of the service, similar to providing a list of backends.
                 * A Session, to run the jobs on the Qiskit Runtime service
                 * A Estimator primitive (either simulator or Qiskit Runtime primitive - V1 or V2)
                 * A Sampler primitive (either simulator or Qiskit Runtime primitive - V1 or V2)
 
             Default is the initialization with PennyLane's
             :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator.
-        backend (Union[Backend, str, None]): The backend that is used for the execution.
-            Only mandatory if a service is provided.
         options_estimator (Union[Any]): The options for the created estimator primitives.
         options_sampler (Union[Any]): The options for the created sampler primitives.
         log_file (str): The name of the log file, if empty, no log file is created.
@@ -260,7 +259,6 @@ class Executor:
         is_statevector (Bool): Returns true if the backend is a statevector simulator.
         qpu_parallelization (Bool): Returns true if QPU parallelization is used.
         session (Session): The session that is used in the Executor.
-        service (QiskitRuntimeService): The service that is used in the Executor.
         quantum_framework (str): The framework used in the Executor (``"qiskit"`` or
             ``"pennylane"``).
         IBMQuantum (bool): Whether the backend is an IBM Quantum backend.
@@ -413,7 +411,6 @@ class Executor:
             BaseSamplerV2,
             PennylaneDevice,
         ] = "pennylane",
-        backend: Union[Backend, str, None] = None,
         options_estimator: Union[Any, None] = None,
         options_sampler: Union[Any, None] = None,
         log_file: str = "",
@@ -430,7 +427,6 @@ class Executor:
         # Default values for internal variables
         self._backend = None
         self._session = None
-        self._service = None
         self._estimator = None
         self._sampler = None
         self._execution_origin = ""
@@ -556,8 +552,6 @@ class Executor:
 
         elif isinstance(execution, Backend):
             # Execution is a backend class
-            if hasattr(execution, "service"):
-                self._service = execution.service
             self._backend = execution
             self._execution_origin = "Backend"
             if shots is None:
@@ -571,25 +565,11 @@ class Executor:
                 self._backend = None
                 self._backend_list = execution
                 self._execution_origin = "BackendList"
-                # Execution is a backend class
-                if hasattr(execution[0], "service"):
-                    self._service = execution[0].service
             else:
                 raise ValueError("Only list of backends are supported!")
         elif isinstance(execution, QiskitRuntimeService):
-            self._service = execution
-            if isinstance(backend, str):
-                self._backend = self._service.backend(backend)
-            elif isinstance(backend, Backend):
-                self._backend = backend
-            elif isinstance(backend, list):
-                self._backend_list = backend
-                self._backend = None
-            elif backend is None:
-                self._backend = None
-                self._backend_list = self._service.backends()
-            else:
-                raise ValueError("Unknown backend type: " + backend)
+            self._backend = None
+            self._backend_list = execution.backends()
             if shots is None and self._backend is not None:
                 shots = self._backend.options.shots
                 if self.is_statevector:
@@ -598,8 +578,7 @@ class Executor:
         elif isinstance(execution, Session):
             # Execution is a active? session
             self._session = execution
-            self._service = self._session.service
-            self._backend = self._session.service.backend(self._session.backend())
+            self._backend = self._session.service.get_backend(self._session.backend())
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
@@ -623,7 +602,6 @@ class Executor:
             # Real Backend
             elif isinstance(self._estimator, RuntimeEstimatorV1):
                 self._session = self._estimator._session
-                self._service = self._estimator._service
                 self._backend = self._estimator._backend
                 # TODO: check if this is duplicate
                 if not shots:
@@ -653,7 +631,6 @@ class Executor:
                         shots = shots_sampler
             elif isinstance(self._sampler, RuntimeSamplerV1):
                 self._session = self._sampler._session
-                self._service = self._sampler._service
                 self._backend = self._sampler._backend
                 # TODO: check if this is duplicate
                 if not shots:
@@ -687,7 +664,6 @@ class Executor:
                     self._session = self._estimator._session
                 elif hasattr(self._estimator, "_mode"):
                     self._session = self._estimator._mode
-                self._service = self._estimator._service
                 self._backend = self._estimator._backend
                 if shots is None:
                     if self._estimator.options.default_shots:
@@ -720,7 +696,6 @@ class Executor:
                     self._session = self._sampler._session
                 elif hasattr(self._sampler, "_mode"):
                     self._session = self._sampler._mode
-                self._service = self._sampler._service
                 self._backend = self._sampler._backend
                 if shots is None:
                     if self._sampler.options.default_shots:
@@ -815,8 +790,6 @@ class Executor:
                 self._logger.info(
                     f"Executor initialized with backend list: {{}}".format(self._backend_list)
                 )
-        if self._service is not None:
-            self._logger.info(f"Executor initialized with service: {{}}".format(self._service))
         if self._session is not None:
             self._logger.info(
                 f"Executor initialized with session: {{}}".format(self._session.session_id)
@@ -1061,11 +1034,6 @@ class Executor:
         """Returns the session that is used in the executor."""
         return self._session
 
-    @property
-    def service(self) -> QiskitRuntimeService:
-        """Returns the service that is used in the executor."""
-        return self._service
-
     def _estimator_v1(self) -> BaseEstimatorV1:
         """Returns the Estimator V1 primitive that is used for the execution.
 
@@ -1098,25 +1066,22 @@ class Executor:
                     self._estimator = RuntimeEstimatorV1(
                         session=self._session, options=self._options_estimator
                     )
-                elif self._service is not None:
-                    # No session but service -> create a new session
+                else:
+                    # No session -> create a new session
                     self.create_session()
                     self._estimator = RuntimeEstimatorV1(
                         session=self._session, options=self._options_estimator
                     )
-                else:
-                    raise RuntimeError(
-                        "Missing Qiskit Runtime service for Estimator initialization!"
-                    )
+
             else:
                 if self.is_statevector:
-                    # No session, no service, but state_vector simulator -> Estimator
+                    # No session, but state_vector simulator -> Estimator
                     self._estimator = PrimitiveEstimatorV1(options=self._options_estimator)
                     self._estimator.set_options(shots=self._shots)
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Estimator initialization!")
                 else:
-                    # No session, no service and no state_vector simulator -> BackendEstimator
+                    # No session and no state_vector simulator -> BackendEstimator
                     self._estimator = BackendEstimatorV1(
                         backend=self._backend, options=self._options_estimator
                     )
@@ -1199,8 +1164,8 @@ class Executor:
                         self._estimator = RuntimeEstimatorV2(
                             mode=self._session, options=self._options_estimator
                         )
-                elif self._service is not None:
-                    # No session but service -> create a new session
+                else:
+                    # No session -> create a new session
                     self.create_session()
                     if QISKIT_RUNTIME_SMALLER_0_23:
                         self._estimator = RuntimeEstimatorV2(
@@ -1210,10 +1175,6 @@ class Executor:
                         self._estimator = RuntimeEstimatorV2(
                             mode=self._session, options=self._options_estimator
                         )
-                else:
-                    raise RuntimeError(
-                        "Missing Qiskit Runtime service for Estimator initialization!"
-                    )
             else:
                 if "fake" in str(self._backend):
                     if shots:
@@ -1230,7 +1191,7 @@ class Executor:
                             mode=self._backend, options=self._options_estimator
                         )
                 elif self.is_statevector:
-                    # No session, no service, but state_vector simulator -> Estimator
+                    # No session, but state_vector simulator -> Estimator
                     self._estimator = StatevectorEstimator(
                         default_precision=1 / shots**0.5 if shots else 0.0
                     )
@@ -1242,7 +1203,7 @@ class Executor:
                             self._options_estimator = {"default_precision": 1 / shots**0.5}
                         else:
                             self._options_estimator["default_precision"] = 1 / shots**0.5
-                    # No session, no service and no state_vector simulator -> BackendEstimator
+                    # No session and no state_vector simulator -> BackendEstimator
                     self._estimator = BackendEstimatorV2(
                         backend=self._backend, options=self._options_estimator
                     )
@@ -1341,26 +1302,22 @@ class Executor:
                         session=self._session, options=self._options_sampler
                     )
 
-                elif self._service is not None:
-                    # No session but service -> create a new session
+                else:
+                    # No session -> create a new session
                     self.create_session()
                     self._sampler = RuntimeSamplerV1(
                         session=self._session,
                         options=self._options_sampler,
                     )
-                else:
-                    raise RuntimeError(
-                        "Missing Qiskit Runtime service for Sampler initialization!"
-                    )
             else:
                 if self.is_statevector:
-                    # No session, no service, but state_vector simulator -> Sampler
+                    # No session, but state_vector simulator -> Sampler
                     self._sampler = PrimitiveSamplerV1(options=self._options_sampler)
                     self._sampler.set_options(shots=self._shots)
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Sampler initialization!")
                 else:
-                    # No session, no service and no state_vector simulator -> BackendSampler
+                    # No session and no state_vector simulator -> BackendSampler
                     self._sampler = BackendSamplerV1(
                         backend=self._backend, options=self._options_sampler
                     )
@@ -1439,8 +1396,8 @@ class Executor:
                             mode=self._session, options=self._options_sampler
                         )
 
-                elif self._service is not None:
-                    # No session but service -> create a new session
+                else:
+                    # No session  -> create a new session
                     self.create_session()
                     if QISKIT_RUNTIME_SMALLER_0_23:
                         self._sampler = RuntimeSamplerV2(
@@ -1452,11 +1409,6 @@ class Executor:
                             mode=self._session,
                             options=self._options_sampler,
                         )
-
-                else:
-                    raise RuntimeError(
-                        "Missing Qiskit Runtime service for Sampler initialization!"
-                    )
             else:
                 if "fake" in str(self._backend).lower():
                     if QISKIT_RUNTIME_SMALLER_0_23:
@@ -1468,7 +1420,7 @@ class Executor:
                             mode=self._backend, options=self._options_sampler
                         )
                 elif self.is_statevector:
-                    # No session, no service, but state_vector simulator -> Sampler
+                    # No session, but state_vector simulator -> Sampler
                     if shots:
                         self._sampler = StatevectorSampler(default_shots=shots)
                     else:
@@ -1477,7 +1429,7 @@ class Executor:
                 elif self._backend is None:
                     raise RuntimeError("Backend missing for Sampler initialization!")
                 else:
-                    # No session, no service and no state_vector simulator -> BackendSampler
+                    # No session and no state_vector simulator -> BackendSampler
                     self._sampler = BackendSamplerV2(
                         backend=self._backend, options=self._options_sampler
                     )
@@ -2365,16 +2317,11 @@ class Executor:
         if not self.IBMQuantum:
             raise RuntimeError("Sessions can only be created for IBM Quantum devices!")
 
-        if self._service is not None:
-            if self._backend is not None:
-                self._session = Session(
-                    self._service, backend=self._backend, max_time=self._max_session_time
-                )
-            else:
-                raise RuntimeError("Session can not started because of missing backend!")
-            self._logger.info("Executor created a new session.")
+        if self._backend is not None:
+            self._session = Session(backend=self._backend, max_time=self._max_session_time)
         else:
-            raise RuntimeError("Session can not started because of missing service!")
+            raise RuntimeError("Session can not started because of missing backend!")
+        self._logger.info("Executor created a new session.")
 
     def close_session(self):
         """Closes the current session, is called automatically."""
@@ -2640,13 +2587,13 @@ class Executor:
 
 class ExecutorEstimatorV2(BaseEstimatorV2):
     """
-    Special Estimator V2 Primitive that uses the Executor service.
+    Special Estimator V2 Primitive that uses the Executor.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_estimator()
 
     Args:
-        executor (Executor): The executor service to use
+        executor (Executor): The executor to use
         options: Options for the estimator
     """
 
@@ -2687,13 +2634,13 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
 
 class ExecutorSamplerV2(BaseSamplerV2):
     """
-    Special Sampler V2 Primitive that uses the Executor service.
+    Special Sampler V2 Primitive that uses the Executor.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_sampler()
 
     Args:
-        executor (Executor): The executor service to use
+        executor (Executor): The executor to use
     """
 
     def __init__(self, executor: Executor):
@@ -2731,13 +2678,13 @@ class ExecutorSamplerV2(BaseSamplerV2):
 
 class ExecutorEstimatorV1(BaseEstimatorV1):
     """
-    Special Estimator V1 Primitive that uses the Executor service.
+    Special Estimator V1 Primitive that uses the Executor.
 
     Usefull for automatic restarting sessions and caching results.
     The object is created by the Executor method get_estimator()
 
     Args:
-        executor (Executor): The executor service to use
+        executor (Executor): The executor to use
         options: Options for the estimator
 
     """
@@ -2856,13 +2803,13 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
 
 class ExecutorSamplerV1(BaseSamplerV1):
     """
-    Special Sampler V1 Primitive that uses the Executor service.
+    Special Sampler V1 Primitive that uses the Executor.
 
     Useful for automatic restarting sessions and caching the results.
     The object is created by the executor method get_sampler()
 
     Args:
-        executor (Executor): The executor service to use
+        executor (Executor): The executor to use
         options: Options for the sampler
 
     """
