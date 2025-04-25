@@ -17,8 +17,9 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor, BaseSamplerV2
 from ...util.data_preprocessing import convert_to_float64
 
-from .fidelity_kernel_pennylane import FidelityKernelPennyLane
 from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
+from .fidelity_kernel_pennylane import FidelityKernelPennyLane
+from .fidelity_kernel_qulacs import FidelityKernelQulacs
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -117,7 +118,6 @@ class FidelityKernel(KernelMatrixBase):
                 evaluate_duplicates=self._evaluate_duplicates,
                 caching=caching,
             )
-
         else:
             if self._executor.quantum_framework == "pennylane":
 
@@ -126,7 +126,13 @@ class FidelityKernel(KernelMatrixBase):
                     executor=self._executor,
                     evaluate_duplicates=self._evaluate_duplicates,
                 )
+            elif self._executor.quantum_framework == "qulacs":
 
+                self._quantum_kernel = FidelityKernelQulacs(
+                    encoding_circuit=self._encoding_circuit,
+                    executor=self._executor,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                )
             elif self._executor.quantum_framework == "qiskit":
 
                 # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
