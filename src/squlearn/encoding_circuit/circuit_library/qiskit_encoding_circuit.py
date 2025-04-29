@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import BlueprintCircuit
@@ -58,12 +59,12 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         **kwargs,
     ) -> None:
         if callable(qiskit_circuit):
-            self._qiskit_circuit = qiskit_circuit(**kwargs).decompose()
+            self._qiskit_circuit = copy.copy(qiskit_circuit(**kwargs).decompose())
         else:
             if decompose:
-                self._qiskit_circuit = qiskit_circuit.decompose()
+                self._qiskit_circuit = copy.copy(qiskit_circuit.decompose())
             else:
-                self._qiskit_circuit = qiskit_circuit
+                self._qiskit_circuit = copy.copy(qiskit_circuit)
 
         self._num_qubits = self._qiskit_circuit.num_qubits
         self._mode = mode
