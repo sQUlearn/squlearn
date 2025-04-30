@@ -49,8 +49,8 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._backend = backend
         self._transpile_func = transpile_func
 
-        self._x = ParameterVector("x", self._encoding_circuit.num_features)
-        self._p = ParameterVector("p", self._encoding_circuit.num_parameters)
+        self._x = ParameterVector("x_", self._encoding_circuit.num_features)
+        self._p = ParameterVector("p_", self._encoding_circuit.num_parameters)
 
         self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
 
