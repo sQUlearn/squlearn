@@ -167,6 +167,7 @@ Quantum Kernel Core
 
    kernel.lowlevel_kernel.FidelityKernel
    kernel.lowlevel_kernel.ProjectedQuantumKernel
+   kernel.lowlevel_kernel.KernelOptimizer
 
 .. automodule:: squlearn.kernel.loss
     :no-members:
