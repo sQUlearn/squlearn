@@ -30,7 +30,9 @@ class QKODE(QKRR):
     (ODEs) using the mixed model regression method as described in Ref. [1].
 
     Args:
-        quantum_kernel (Optional[Union[KernelMatrixBase, str]]): Quantum kernel to be used in the model. If set to "precomputed", the derivatives of the kernel matrix have to be provided in the fit method.
+        quantum_kernel (Union[KernelMatrixBase, str]): Quantum kernel to be used in the model. 
+            If set to "precomputed", 
+            the derivatives of the kernel matrix have to be provided in the fit method.
         loss (KernelLossBase): Loss function to be used for training the model.
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
         **kwargs: Additional keyword arguments to be passed to the base class.
@@ -55,7 +57,7 @@ class QKODE(QKRR):
 
     def __init__(
         self,
-        quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
+        quantum_kernel: Union[KernelMatrixBase, str] = None,
         loss: KernelLossBase = None,
         optimizer: OptimizerBase = None,
         **kwargs,
@@ -67,6 +69,7 @@ class QKODE(QKRR):
         self.k_train = None
         self.dkdx_train = None
         self.dkdxdx_train = None
+
 
     def fit(self, X, y, param_ini=None, K=None, dKdx=None, dKdxdx=None):
         """ """
@@ -93,9 +96,6 @@ class QKODE(QKRR):
             if self._quantum_kernel.is_trainable:
                 print(
                     "The Quantum Kernel is trainable but training the parameters of the kernel is not supported yet. Setting random parameters."
-                )
-                self._quantum_kernel.set_parameters(
-                    np.random.rand(self._quantum_kernel.num_parameters)
                 )
 
             self.k_train = self._quantum_kernel.evaluate_derivatives(self.X_train, values="K")

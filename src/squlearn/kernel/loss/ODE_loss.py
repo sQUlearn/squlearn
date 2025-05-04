@@ -10,7 +10,7 @@ from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 class ODELoss(KernelLossBase):
     r"""
-    Ordinary Differential Equation (ODE) loss function for Quantum Kernels. It uses the same style as the QNN ODE loss function.
+    ODE loss function for Quantum Kernels. It uses the same style as the QNN ODE loss function.
 
     This class implements the ODE loss function for Quantum Kernels. The ODE loss function is
     defined as the sum of the squared residuals of the ODE functional and the initial conditions.
@@ -176,10 +176,13 @@ class ODELoss(KernelLossBase):
                 f_{\vec{\alpha}}, x\right)_j\right)^2  + \eta\left(f_{\vec{\alpha}}(0)
                 - u_0\right)^2 + \eta\left(\dot f_{\vec{\alpha}}(0) - \dot u_0\right)^2
             \end{align}
-        with the ansatz :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`. Importantly, the optimized parameters act as the coefficients of the kernel matrix and do not directly correspond parameterized rotations in the quantum circuit.
+        with the ansatz :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`. 
+        Importantly, the optimized parameters act as the coefficients of the kernel matrix 
+        and do not directly correspond parameterized rotations in the quantum circuit.
 
         Args:
-            parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the ansatz to be optimized.
+            parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the 
+                ansatz to be optimized.
             data (np.ndarray): The training data to be used for the kernel matrix.
             labels (np.ndarray): The labels of the training data.
             kernel_tensor (array): A tensor containing the kernel matrix and its derivatives. The tensor contains the kernel matrix,  the first derivative of the kernel matrix, and the second derivative of the kernel matrix. The shapes of each element in the array are (n_samples, n_samples).
