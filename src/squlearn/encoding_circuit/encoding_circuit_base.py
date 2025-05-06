@@ -285,11 +285,6 @@ class EncodingCircuitBase(ABC):
                 self.ec1 = ec1
                 self.ec2 = ec2
 
-                # Store the number of features for the first and second encoding circuit.
-                # If it is not set, it has to be set manually with the set_num_features method.
-                self.num_features_ec1 = ec1.num_features
-                self.num_features_ec2 = ec2.num_features
-
             @classmethod
             def create_from_encoding_circuits(
                 cls, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
@@ -422,17 +417,6 @@ class EncodingCircuitBase(ABC):
                 if len(ec2_dict) > 0:
                     self.ec2.set_params(**ec2_dict)
 
-            def set_num_features(self, num_features_ec1: int, num_features_ec2: int) -> None:
-                """
-                Sets the number of features for the first and second encoding circuit
-
-                Args:
-                    num_features_ec1 (int): Number of features for the first encoding circuit
-                    num_features_ec2 (int): Number of features for the second encoding circuit
-                """
-                self.num_features_ec1 = num_features_ec1
-                self.num_features_ec2 = num_features_ec2
-
             def get_circuit(
                 self,
                 features: Union[ParameterVector, np.ndarray],
@@ -450,25 +434,19 @@ class EncodingCircuitBase(ABC):
                 Return:
                     Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit format
                 """
-                if self.num_features_ec1 is None or self.num_features_ec2 is None:
-                    raise ValueError(
-                        "Number of features for the first and second encoding circuit has to be provided.\n"
-                        "Use the set_num_features() function to set the number of features for both encoding circuits."
-                    )
 
-                # Apply stored operations if available. This is only available for LayeredEncodingCircuits and has to be called before get_circuit
-                if hasattr(self.ec1, "_apply_stored_operations"):
-                    self.ec1._apply_stored_operations(self.num_features_ec1)
+                num_features = extract_num_features(features)
 
-                if hasattr(self.ec2, "_apply_stored_operations"):
-                    self.ec2._apply_stored_operations(self.num_features_ec2)
+                # build the layered_pqc to apply all stored operations if available.
+                # This is only available for LayeredEncodingCircuits and has to be called before get_circuit
+                if hasattr(self.ec1, "_build_layered_pqc"):
+                    self.ec1._build_layered_pqc(num_features)
 
-                circ1 = self.ec1.get_circuit(
-                    features[: self.num_features_ec1], parameters[: self.ec1.num_parameters]
-                )
-                circ2 = self.ec2.get_circuit(
-                    features[: self.num_features_ec2], parameters[self.ec1.num_parameters :]
-                )
+                if hasattr(self.ec2, "_build_layered_pqc"):
+                    self.ec2._build_layered_pqc(num_features)
+
+                circ1 = self.ec1.get_circuit(features, parameters[: self.ec1.num_parameters])
+                circ2 = self.ec2.get_circuit(features, parameters[self.ec1.num_parameters :])
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 

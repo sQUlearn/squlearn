@@ -56,7 +56,7 @@ class TestComposedEncodingCircuit:
         circuit_3 = MockCircuitBase(num_qubits=3)
         circuit_composed = circuit_1 + circuit_2
 
-        # check if the composed circuit has the correct number of qubits and parameters
+        # check if the composed circuit has the correct number of qubits
         assert circuit_composed.num_qubits == 4
         assert circuit_composed.num_parameters == 4
 
@@ -95,11 +95,6 @@ class TestComposedEncodingCircuit:
         circuit2.H()
 
         composed_circuit = circuit1 + circuit2
-
-        with pytest.raises(ValueError):
-            composed_circuit.get_circuit([], [])
-
-        composed_circuit.set_num_features(2, 2)
 
         expected_circuit = QuantumCircuit(2)
         expected_circuit.h(range(2))
