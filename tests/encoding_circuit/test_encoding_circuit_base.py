@@ -105,3 +105,12 @@ class TestComposedEncodingCircuit:
     def test_unequal_num_qubits_error(self):
         with pytest.raises(ValueError):
             MockCircuitBase(num_qubits=2) + MockCircuitBase(num_qubits=3)
+
+    def test_num_encoding_slots(self):
+        circuit1 = MockCircuitBase(num_qubits=4)
+        circuit2 = MockCircuitBase(num_qubits=4)
+        composed_circuit = circuit1 + circuit2
+        assert (
+            composed_circuit.num_encoding_slots
+            == circuit1.num_encoding_slots + circuit2.num_encoding_slots
+        )

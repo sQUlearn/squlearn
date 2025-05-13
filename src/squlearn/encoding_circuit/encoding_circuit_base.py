@@ -220,19 +220,21 @@ class EncodingCircuitBase(ABC):
                 f"does not match the number of features in the encoding circuit ({self.num_features})."
             )
 
-    def _check_feature_encoding_slots(self, num_features: int, num_encoding_slots: int) -> None:
+    def _check_feature_encoding_slots(
+        self, num_features: int, num_encoding_slots: int | float
+    ) -> None:
         """
         Checks if the number of features fits the available encoding slots.
 
         Args:
             num_features (int): The number of the input features.
-            num_encoding_slots (int): The number of available encoding slots.
+            num_encoding_slots (int|float): The number of available encoding slots.
 
         Raises:
             EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
         """
 
-        if num_features > num_encoding_slots:
+        if not np.isinf(num_encoding_slots) and num_features > num_encoding_slots:
             raise EncodingSlotsMismatchError(num_encoding_slots, num_features)
 
     def __mul__(self, x):
@@ -336,6 +338,10 @@ class EncodingCircuitBase(ABC):
 
                 return np.array([min_bound, max_bound])
 
+            @property
+            def num_encoding_slots(self) -> int:
+                return self.ec1.num_encoding_slots + self.ec2.num_encoding_slots
+
             def generate_initial_parameters(
                 self, num_features: int, seed: Union[int, None] = None
             ) -> np.ndarray:
@@ -436,6 +442,8 @@ class EncodingCircuitBase(ABC):
                 """
 
                 num_features = extract_num_features(features)
+                self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+                self._check_feature_consistency(features)
 
                 # build the layered_pqc to apply all stored operations if available.
                 # This is only available for LayeredEncodingCircuits and has to be called before get_circuit

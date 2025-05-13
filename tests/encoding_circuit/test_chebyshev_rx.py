@@ -29,9 +29,8 @@ class TestChebyshevRx:
 
     def test_parameter_bounds(self):
         qubits = 2
-        features = 2
         layers = 1
-        circuit = ChebyshevRx(num_qubits=qubits, num_features=features, num_layers=layers)
+        circuit = ChebyshevRx(num_qubits=qubits, num_layers=layers)
         bounds = circuit.parameter_bounds
         assert bounds.shape == (circuit.num_parameters, 2)
         assert np.all(bounds[: qubits * layers, 0] == 0.0)
