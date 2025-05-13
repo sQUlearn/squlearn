@@ -458,6 +458,24 @@ class EncodingCircuitBase(ABC):
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
+            def draw(
+                self,
+                output=None,
+                num_features=None,
+                feature_label="x",
+                parameter_label="p",
+                decompose=False,
+                **kwargs,
+            ):
+                # make sure that the LayeredEncodingCircuit is built before drawing
+                if hasattr(self.ec1, "_build_layered_pqc"):
+                    self.ec1._build_layered_pqc(num_features)
+                if hasattr(self.ec2, "_build_layered_pqc"):
+                    self.ec2._build_layered_pqc(num_features)
+                return super().draw(
+                    output, num_features, feature_label, parameter_label, decompose, **kwargs
+                )
+
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
 
 
