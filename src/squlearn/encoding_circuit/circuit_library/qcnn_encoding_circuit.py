@@ -434,7 +434,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         self._check_feature_consistency(features)
 
         if num_features > 0:
-            feature_map = ParamZFeatureMap(self.num_qubits, num_features, 1).get_circuit(
+            feature_map = ParamZFeatureMap(self.num_qubits, 1).get_circuit(
                 features=features, parameters=[1] * num_features
             )
             total_qc = total_qc.compose(feature_map)
