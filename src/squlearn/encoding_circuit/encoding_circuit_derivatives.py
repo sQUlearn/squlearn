@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union, Set
+from typing import Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
@@ -65,8 +65,8 @@ class EncodingCircuitDerivatives:
 
        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
        from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
-       fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
-       fm_deriv = EncodingCircuitDerivatives(fm)
+       fm = HubregtsenEncodingCircuit(num_qubits=2, num_layers=2)
+       fm_deriv = EncodingCircuitDerivatives(fm, 2)
        grad = fm_deriv.get_derivative("dp")
 
     **Example: Derivative with respect to only the first trainable parameter**
@@ -75,13 +75,14 @@ class EncodingCircuitDerivatives:
 
        from squlearn.encoding_circuit import HubregtsenEncodingCircuit
        from squlearn.encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
-       fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
-       fm_deriv = EncodingCircuitDerivatives(fm)
+       fm = HubregtsenEncodingCircuit(num_qubits=2, num_layers=2)
+       fm_deriv = EncodingCircuitDerivatives(fm, 2)
        dp0 = fm_deriv.get_derivative((fm_deriv.parameter_vector[0],))
 
 
     Args:
         encoding_circuit (EncodingCircuitBase): Encoding circuit to differentiate
+        num_features (int): Number of features in the encoding circuit.
         optree_caching (bool): If True, the OpTree expressions are cached for faster
                                evaluation. (default: True)
     """

@@ -19,8 +19,8 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import HighDimEncodingCircuit
-        pqc = HighDimEncodingCircuit(5, 23, num_layers=2)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = HighDimEncodingCircuit(5, num_layers=2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=23)
         plt.tight_layout()
 
     The indexing of the feature vector can be changed by the arguments
@@ -87,7 +87,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         return 0
 
     @property
-    def num_encoding_slots(self) -> float:
+    def num_encoding_slots(self) -> Union[int, float]:
         """The number of encoding slots of the HighDim encoding circuit."""
         if self.num_layers is not None:
             return 3 * self.num_qubits * self.num_layers

@@ -1107,7 +1107,6 @@ class LayeredPQC:
                     otherwise ("AA"): Adds a controlled x all in all entangling operation
                 map: a function for one or more variable groups
         """
-        # self.add_operation(_CX_entangle_operation(self.num_qubits, None, ent_strategy, map=None), None)
         self.add_operation(_CX_entangle_operation(self.num_qubits, None, ent_strategy, map=None))
 
     def cy_entangling(self, ent_strategy="NN"):
@@ -1955,12 +1954,12 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     .. jupyter-execute::
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4)
         encoding_circuit.H()
         encoding_circuit.Rz("x")
         encoding_circuit.Ry("p")
         encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw("mpl")
+        encoding_circuit.draw("mpl", num_features=2)
 
 
     **Create a layered encoding circuit with non-linear input encoding**
@@ -1976,11 +1975,11 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         def func(a,b):
             return a*np.arccos(b)
 
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4)
         encoding_circuit.H()
         encoding_circuit.Rz("p","x",encoding=func)
         encoding_circuit.cx_entangling("NN")
-        encoding_circuit.draw("mpl")
+        encoding_circuit.draw("mpl", num_features=2)
 
 
     **Create a layered encoding circuit with layers**
@@ -1991,14 +1990,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
         from squlearn.encoding_circuit.layered_encoding_circuit import Layer
-        encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=4)
         encoding_circuit.H()
         layer = Layer(encoding_circuit)
         layer.Rz("x")
         layer.Ry("p")
         layer.cx_entangling("NN")
         encoding_circuit.add_layer(layer,num_layers=3)
-        encoding_circuit.draw("mpl")
+        encoding_circuit.draw("mpl", num_features=2)
 
 
     **Create a layered encoding circuit from string**
@@ -2100,44 +2099,43 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         from squlearn.encoding_circuit import LayeredEncodingCircuit
         encoding_circuit = LayeredEncodingCircuit.from_string(
-            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1
-        )
-        encoding_circuit.draw("mpl")
+            "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4)
+        encoding_circuit.draw("mpl", num_features=1)
 
-    ** Hyperparameter optimization  **
+    # ** Hyperparameter optimization  **
 
-    If layers are introduced in the construction of the LayeredEncodingCircuit, the number of
-    layers can be adjusted afterwards by the :meth:`set_params` method. This is also possible
-    for multiple layers, for which the parameters are additionally number, e.g. ``num_layer_1`` .
-    The number of layers as well as the number of qubits and the construction string are available
-    as hyper-parameters that can be optimized in a hyper-parameter search.
+    # If layers are introduced in the construction of the LayeredEncodingCircuit, the number of
+    # layers can be adjusted afterwards by the :meth:`set_params` method. This is also possible
+    # for multiple layers, for which the parameters are additionally number, e.g. ``num_layer_1`` .
+    # The number of layers as well as the number of qubits and the construction string are available
+    # as hyper-parameters that can be optimized in a hyper-parameter search.
 
-    .. jupyter-execute::
+    # .. jupyter-execute::
 
-       from sklearn.datasets import make_regression
-       from sklearn.model_selection import GridSearchCV
-       from squlearn.encoding_circuit import LayeredEncodingCircuit
-       from squlearn.kernel import ProjectedQuantumKernel, QKRR
-       from squlearn.util import Executor
+    #    from sklearn.datasets import make_regression
+    #    from sklearn.model_selection import GridSearchCV
+    #    from squlearn.encoding_circuit import LayeredEncodingCircuit
+    #    from squlearn.kernel import ProjectedQuantumKernel, QKRR
+    #    from squlearn.util import Executor
 
-       X, y = make_regression(n_samples=40, n_features=1, noise=0.1, random_state=42)
+    #    X, y = make_regression(n_samples=40, n_features=1, noise=0.1, random_state=42)
 
-       lec = LayeredEncodingCircuit.from_string("Ry(x)-Rz(x)-cx",1,1)
-       pqk = ProjectedQuantumKernel(lec,Executor())
-       qkrr = QKRR(quantum_kernel=pqk)
-       param_grid ={
-           "encoding_circuit_str": ["Ry(x)-Rz(x)-cx", "Ry(x)-cx-Rx(x)"],
-           "num_qubits" : [1,2],
-           "num_layers" : [1,2]
-       }
-       grid_search = GridSearchCV(qkrr, param_grid, cv=2)
-       grid_search.fit(X, y)
-       print("\nBest solution: ", grid_search.best_params_)
+    #    lec = LayeredEncodingCircuit.from_string("Ry(x)-Rz(x)-cx",1,1)
+    #    pqk = ProjectedQuantumKernel(lec,Executor())
+    #    qkrr = QKRR(quantum_kernel=pqk)
+    #    param_grid ={
+    #        "encoding_circuit_str": ["Ry(x)-Rz(x)-cx", "Ry(x)-cx-Rx(x)"],
+    #        "num_qubits" : [1,2],
+    #        "num_layers" : [1,2]
+    #    }
+    #    grid_search = GridSearchCV(qkrr, param_grid, cv=2)
+    #    grid_search.fit(X, y)
+    #    print("\nBest solution: ", grid_search.best_params_)
 
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
-        num_features (int): Dimension of the feature vector
+        num_features (int): Dimension of the feature vector (default: None)
         feature_str (str): Label for identifying the feature variable group (default: ``"x"``).
         parameter_str (str): Label for identifying the parameter variable group (default: ``"p"``).
     """
@@ -2332,7 +2330,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         Args:
             encoding_circuit_str (str): String that specifies the encoding circuit
             num_qubits (int): Number of qubits in the encoding circuit
-            num_features (int): Dimension of the feature vector.
+            num_features (int): Dimension of the feature vector. (default: None)
             feature_str (str): String that is used in encoding_circuit_str to label features (default: 'x')
             parameter_str (str): String that is used in encoding_circuit_str to label parameters (default: 'p')
             num_layers (int): Number of layers, i.e., the number of repetitions of the encoding circuit (default: 1)

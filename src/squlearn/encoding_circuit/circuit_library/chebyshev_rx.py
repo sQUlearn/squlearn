@@ -20,14 +20,14 @@ class ChebyshevRx(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import ChebyshevRx
-        pqc = ChebyshevRx(4, 2, 2)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = ChebyshevRx(4, 2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=2)
         plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the ChebyshevRx encoding circuit
-        num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
+        num_features (int): Dimension of the feature vector (default: None)
         closed (bool): If true, the last and the first qubit are entangled (default: false)
         alpha (float): Maximum value of the Chebyshev Tower initial parameters, i.e. parameters
                        that appear in the arccos encoding. (default: 4.0)
@@ -83,6 +83,7 @@ class ChebyshevRx(EncodingCircuitBase):
         Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
+            num_features (int): Number of features of the input data
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:

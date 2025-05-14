@@ -80,6 +80,7 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         Generates random parameters for the pruned encoding circuit.
 
         Args:
+            num_features (int): Number of features in the input data
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:

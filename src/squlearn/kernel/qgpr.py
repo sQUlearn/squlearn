@@ -82,7 +82,7 @@ class QGPR(BaseEstimator, RegressorMixin):
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.lowlevel_kernel import FidelityKernel
         from squlearn.kernel import QGPR
-        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpr_ansatz = QGPR(quantum_kernel=q_kernel)

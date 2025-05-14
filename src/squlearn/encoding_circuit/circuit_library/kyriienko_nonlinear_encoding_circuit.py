@@ -33,13 +33,14 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import KyriienkoEncodingCircuit
-        pqc = KyriienkoEncodingCircuit(4, 1, num_encoding_layers=1, num_variational_layers=2,
+        pqc = KyriienkoEncodingCircuit(4, num_encoding_layers=1, num_variational_layers=2,
                                        variational_arrangement="ABA")
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=1)
 
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
+        num_features (int): Dimension of the feature vector (default: None)
         encoding_style (str): Style of the encoding. Options are ``'chebyshev_tower'`` (default),
                               ``'chebyshev_sparse'`` and ``'chebyshev_product'``
                               (see reference [1], Equation  15, 14 and 5 respectively)
@@ -50,7 +51,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         num_variational_layers (int): Number of variational layers (default: 1)
         rotation_gate (str): Rotation gate to use. Either ``'rx'``, ``'ry'`` or
                              ``'rz'`` (default: ``'ry'`` as in reference [1])
-        num_features (int): Dimension of the feature vector (default: 1)
+
         block_width (int): Only necessary for arrangement ``'ABA'``. Width (vertical) of each
                            blocks for the ABA arrangement (default: 2), also refered as Nb in
                            the paper. Must be a divisor of the number of qubits

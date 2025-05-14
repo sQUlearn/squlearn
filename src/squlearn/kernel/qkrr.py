@@ -79,7 +79,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
         from squlearn.kernel import QKRR
 
-        enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circ = ChebyshevPQC(num_qubits=4, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
             executor=Executor(),

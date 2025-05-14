@@ -55,7 +55,7 @@ class QSVR(SVR):
         from squlearn.kernel.qsvr import QSVR
         from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
 
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=1, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
             executor=Executor(),

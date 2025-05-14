@@ -21,8 +21,8 @@ class ChebyshevTower(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import ChebyshevTower
-        pqc = ChebyshevTower(4, 2, 2, num_layers=2)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = ChebyshevTower(4, 2, num_layers=2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=2)
         plt.tight_layout()
 
     The encoding gate and the scaling factor can be adjusted by parameters.
@@ -30,8 +30,8 @@ class ChebyshevTower(EncodingCircuitBase):
 
     Args:
         num_qubits (int): Number of qubits of the ChebyshevTower encoding circuit
-        num_features (int): Dimension of the feature vector
-        n_chebyshev (int): Number of Chebyshev tower terms per feature dimension
+        num_chebyshev (int): Number of Chebyshev tower terms per feature dimension
+        num_features (int): Dimension of the feature vector (default: None)
         alpha (float): Scaling factor of Chebyshev tower
         num_layers (int): Number of layers
         rotation_gate (str): Rotation gate to use. Either ``rx``, ``ry`` or ``rz`` (default: ``ry``)

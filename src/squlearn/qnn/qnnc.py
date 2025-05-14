@@ -97,7 +97,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             X, y, test_size=0.33, random_state=42
         )
         clf = QNNClassifier(
-            ChebyshevRx(4, 2, 2),
+            ChebyshevRx(4, 2),
             SummedPaulis(4),
             Executor(),
             SquaredLoss(),

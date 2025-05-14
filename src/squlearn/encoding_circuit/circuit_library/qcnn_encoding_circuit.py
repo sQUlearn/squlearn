@@ -21,10 +21,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
 
     Args:
         num_qubits (int): Number of initial qubits of the QCNN encoding circuit.
-        num_features (int): Dimension of the feature vector.
-            By default this is 0, so a feature map must be provided.
-            If the number of features is bigger then 0,
-            then in the get_circuit function a ZFeatureMap is built to encode the features.
+        num_features (int): Dimension of the feature vector. (default: None)
         default (bool): If True, the default circuit is built.
 
     References
@@ -63,8 +60,8 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
         return self._operations_list
 
     @property
-    def num_encoding_slots(self) -> int:
-        """Returns the number of encoding slots of the current QCNNEncodingCircuit."""
+    def num_encoding_slots(self) -> float:
+        """Returns the number of encoding slots of the current QCNNEncodingCircuit (equal to np.inf)."""
         return np.inf
 
     def set_params(self, **params):

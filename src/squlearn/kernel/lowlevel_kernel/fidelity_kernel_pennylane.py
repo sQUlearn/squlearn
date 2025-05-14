@@ -24,6 +24,7 @@ class FidelityKernelPennyLane:
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
         executor (Executor): The executor for the quantum circuit.
+        num_features (int): The number of features in the input data.
         evaluate_duplicates (str): The evaluation mode for duplicates. Options are:
             - "all": Evaluate all duplicates.
             - "off_diagonal": Evaluate only off-diagonal duplicates.

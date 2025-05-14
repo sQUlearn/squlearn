@@ -17,7 +17,7 @@ class EncodingCircuitBase(ABC):
 
     Args:
         num_qubits (int): Number of Qubits of the encoding circuit
-        num_features (int): Dimension of the feature vector
+        num_features (int): Dimension of the feature vector (default: None).
     """
 
     def __init__(self, num_qubits: int, num_features: int = None) -> None:
@@ -77,7 +77,7 @@ class EncodingCircuitBase(ABC):
         Generates random parameters for the encoding circuit
 
         Args:
-            num_features (int): Number of features
+            num_features (int): Number of features of the input data
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
@@ -221,7 +221,7 @@ class EncodingCircuitBase(ABC):
             )
 
     def _check_feature_encoding_slots(
-        self, num_features: int, num_encoding_slots: int | float
+        self, num_features: int, num_encoding_slots: Union[int, float]
     ) -> None:
         """
         Checks if the number of features fits the available encoding slots.

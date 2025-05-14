@@ -31,13 +31,13 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import RandomLayeredEncodingCircuit
-        pqc = RandomLayeredEncodingCircuit(num_qubits=4, num_features=6)
-        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = RandomLayeredEncodingCircuit(num_qubits=4)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=6)
         plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
-        num_features (int): Dimension of the feature vector
+        num_features (int): Dimension of the feature vector (default: None)
         seed (int): Seed for the random number generator (default: 0)
         min_num_layers (int): Minimum number of layers (default: 2)
         max_num_layers (int): Maximum number of layers (default: 10)

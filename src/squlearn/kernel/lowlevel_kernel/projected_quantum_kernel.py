@@ -380,7 +380,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
        from squlearn.util import Executor
 
-       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+       fm = ChebyshevTower(num_qubits=4, num_chebyshev=4)
        kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor())
        x = np.random.rand(10)
        kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
@@ -397,7 +397,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.observables import CustomObservable
        from squlearn.kernel import QKRR
 
-       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+       fm = ChebyshevTower(num_qubits=4, num_chebyshev=4)
 
        # Create custom observables
        measuments = []
@@ -868,7 +868,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             )
 
     def _initialize_kernel(self, num_features: int) -> None:
-        """Initializes the quantum kernel."""
+        """Initializes the quantum kernel.
+        Args:
+            num_features (int): Number of features in the input data
+        """
         if not self._is_initialized:
             super()._initialize_kernel(num_features=num_features)
             if isinstance(self._qnn, LowLevelQNNPennyLane):

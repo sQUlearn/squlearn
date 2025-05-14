@@ -31,8 +31,8 @@ class ChebyshevPQC(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import ChebyshevPQC
-        pqc = ChebyshevPQC(4, 2, 2)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = ChebyshevPQC(4, 2)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=2)
         plt.tight_layout()
 
     The entangling gate can be chosen between ``crz`` and ``rzz``.
@@ -42,9 +42,9 @@ class ChebyshevPQC(EncodingCircuitBase):
 
     Args:
         num_qubits (int): Number of qubits of the ChebyshevPQC encoding circuit
-        num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers of the Chebyshev encoding and the two qubit
                           manipulation (default: 1)
+        num_features (int): Dimension of the feature vector (default: None)
         closed (bool): If false, the last and the first qubit are not entangled (default: True)
         entangling_gate (str): Entangling gate to use. Either ``crz``
                                or ``rzz`` (default: ``crz``)
@@ -136,6 +136,7 @@ class ChebyshevPQC(EncodingCircuitBase):
         Generates random parameters for the ChebyshevPQC encoding circuit
 
         Args:
+            num_features (int): Number of features of the input data
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:

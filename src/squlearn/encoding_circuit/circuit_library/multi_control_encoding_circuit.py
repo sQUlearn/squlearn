@@ -18,8 +18,8 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import MultiControlEncodingCircuit
-        pqc = MultiControlEncodingCircuit(4, 2, 1)
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = MultiControlEncodingCircuit(4, 1)
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=2)
         plt.tight_layout()
 
     The circuit is repeated for the number of layers.
@@ -29,8 +29,8 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
 
     Args:
         num_qubits (int): Number of qubits of the MultiControlEncodingCircuit encoding circuit
-        num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers (default: 1)
+        num_features (int): Dimension of the feature vector (default: None)
         closed (bool): If true, the last and the first qubit are entangled;
                        not necessarily hardware efficient! (default: true)
         final_encoding (bool): If True, the encoding is repeated at the end (default: False)

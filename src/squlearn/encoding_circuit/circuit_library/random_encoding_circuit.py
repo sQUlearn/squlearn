@@ -139,13 +139,13 @@ class RandomEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import RandomEncodingCircuit
-        pqc = RandomEncodingCircuit(num_qubits=4, num_features=6, seed = 2)
-        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = RandomEncodingCircuit(num_qubits=4, seed = 2)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=6)
         plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
-        num_features (int): Dimension of the feature vector
+        num_features (int): Dimension of the feature vector (default: None)
         seed (int): Seed for the random number generator (default: 0)
         min_gates (int): Minimum number of gates in the circuit (default: 10)
         max_gates (int): Maximum number of gates in the circuit (default: 50)
@@ -352,13 +352,23 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         return self._num_parameters
 
     @property
-    def num_encoding_slots(self) -> int:
-        """The number of encoding slots of the random encoding circuit (equal to inf)."""
+    def num_encoding_slots(self) -> float:
+        """The number of encoding slots of the random encoding circuit (equal to np.inf)."""
         return np.inf
 
     def generate_initial_parameters(
         self, num_features: int, seed: Union[int, None] = None
     ) -> np.ndarray:
+        """
+        Generates random parameters for the RandomEncodingCircuit.
+
+        Args:
+            num_features (int): Number of features of the input data
+            seed (Union[int,None]): Seed for the random number generator (default: None)
+
+        Return:
+            The randomly generated parameters
+        """
         # the random configuration must be generated before generating the parameters
         self._gen_random_config(num_features=num_features, seed=self.seed)
         return super().generate_initial_parameters(num_features, seed)

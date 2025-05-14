@@ -11,7 +11,6 @@ from qiskit_machine_learning.kernels import (
 )
 from qiskit_algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit import ParameterVector
-from zmq import has
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
