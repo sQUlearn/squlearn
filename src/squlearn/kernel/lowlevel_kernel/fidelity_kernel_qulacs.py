@@ -67,7 +67,7 @@ class FidelityKernelQulacs:
             @lru_cache(maxsize=self._cache_size)
             def qulacs_circuit_executor(*args):
                 args_numpy = [np.array(arg) for arg in args]
-                return evaluate_circuit_statevec(self._qulacs_circuit, *args_numpy)
+                return evaluate_circuit_statevec(self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
 
             self._qulacs_circuit_cached = qulacs_circuit_executor
 
