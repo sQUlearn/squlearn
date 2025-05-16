@@ -9,6 +9,7 @@ from ...util import Executor
 
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 
 
 class LowLevelQNN:
@@ -44,6 +45,13 @@ class LowLevelQNN:
             )
         elif executor.quantum_framework == "qiskit":
             return LowLevelQNNQiskit(
+                parameterized_quantum_circuit, observable, executor, *args, **kwargs
+            )
+        elif executor.quantum_framework == "qulacs":
+            if "primitive" in kwargs:
+                RuntimeError("Warning: Primitive argument is not supported for PennyLane")
+                kwargs.pop("primitive")
+            return LowLevelQNNQulacs(
                 parameterized_quantum_circuit, observable, executor, *args, **kwargs
             )
         else:
