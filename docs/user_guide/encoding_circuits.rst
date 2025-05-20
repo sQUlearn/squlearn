@@ -19,7 +19,7 @@ each gate is applied to all qubits.
 The package facilitate a fully automated pruning algorithm to remove redundant parameters and
 enables the automatic differentiation of arbitrary derivative.
 
-The following functions and classes are are accessible via :class:`squlearn.encoding_circuit`.
+The following functions and classes are accessible via :class:`squlearn.encoding_circuit`.
 
 Implemented Quantum Encoding Circuits
 --------------------------------------
@@ -47,8 +47,8 @@ Feel free to contribute to sQUlearn by adding your own encoding circuits in a Pu
 .. jupyter-execute::
 
    from squlearn.encoding_circuit import HubregtsenEncodingCircuit
-   pqc = HubregtsenEncodingCircuit(num_qubits=4, num_features=2, num_layers=2)
-   pqc.draw(output="mpl")
+   pqc = HubregtsenEncodingCircuit(num_qubits=4, num_layers=2)
+   pqc.draw(output="mpl", num_features=2)
 
 
 Combining Quantum Encoding Circuits
@@ -67,11 +67,11 @@ equal to the sum of the parameters in the two original encoding circuits.
 .. jupyter-execute::
 
    from squlearn.encoding_circuit import HubregtsenEncodingCircuit, ChebyshevPQC
-   fm1 = HubregtsenEncodingCircuit(num_qubits=4, num_features=2, num_layers=1, closed=False)
-   fm2 = ChebyshevPQC(num_qubits=4, num_features=3, num_layers=1)
+   fm1 = HubregtsenEncodingCircuit(num_qubits=4, num_layers=1, closed=False)
+   fm2 = ChebyshevPQC(num_qubits=4, num_layers=1)
    # Combining both encoding circuits
    fm3 = fm1 + fm2
-   fm3.draw(output="mpl")
+   fm3.draw(output="mpl", num_features=2)
 
 
 Wrapping Qiskit Encoding Circuits
@@ -108,14 +108,14 @@ the :class:`LayeredEncodingCircuit` class.
 
    from squlearn.encoding_circuit import LayeredEncodingCircuit
    from squlearn.encoding_circuit.layered_encoding_circuit import Layer
-   encoding_circuit = LayeredEncodingCircuit(num_qubits=4,num_features=2)
+   encoding_circuit = LayeredEncodingCircuit(num_qubits=4)
    encoding_circuit.H()
    layer = Layer(encoding_circuit)
    layer.Rz("x")
    layer.Ry("p")
    layer.cx_entangling("NN")
-   encoding_circuit.add_layer(layer,num_layers=3)
-   encoding_circuit.draw(output="mpl")
+   encoding_circuit.add_layer(layer, num_layers=3)
+   encoding_circuit.draw(output="mpl", num_features=2)
 
 
 **Example: Create your custom layered encoding circuit from a string**
@@ -124,9 +124,9 @@ the :class:`LayeredEncodingCircuit` class.
 
    from squlearn.encoding_circuit import LayeredEncodingCircuit
    encoding_circuit = LayeredEncodingCircuit.from_string(
-      "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_features=1, num_layers=2
+      "Ry(p)-3[Rx(p,x;=y*np.arccos(x),{y,x})-crz(p)]-Ry(p)", num_qubits=4, num_layers=2
    )
-   encoding_circuit.draw(output="mpl")
+   encoding_circuit.draw(output="mpl", num_features=1)
 
 
 Pruning of Quantum Encoding Circuits
@@ -152,6 +152,7 @@ sQUlearn features a fully automated pruning algorithm which can be used by calli
    from squlearn.encoding_circuit import LayeredEncodingCircuit, automated_pruning
    from squlearn.util import Executor
    encoding_circuit = LayeredEncodingCircuit.from_string("Rz(p)-Ry(p)-Z-Ry(p)-Rz(p)", num_qubits=2, num_features=0)
+   encoding_circuit._build_layered_pqc(0)
    pruned_encoding_circuit = automated_pruning(encoding_circuit, Executor())
    pruned_encoding_circuit.draw(output="mpl")
 
@@ -184,8 +185,8 @@ is utilized for the arithmetic operations of the derivatives.
 .. jupyter-execute::
 
    from squlearn.encoding_circuit import HubregtsenEncodingCircuit, EncodingCircuitDerivatives
-   fm = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
-   fm_deriv = EncodingCircuitDerivatives(fm)
+   fm = HubregtsenEncodingCircuit(num_qubits=2, num_layers=2)
+   fm_deriv = EncodingCircuitDerivatives(fm, num_features=2)
    # From String (gradient of the parameter vector)
    grad_from_string = fm_deriv.get_derivative("dp")
    # From Tuple (second order derivative of the parameter vector; equal to the Hessian)
@@ -202,8 +203,7 @@ To transpile a quantum encoding circuit, you can leverage the functionality prov
 :class:`TranspiledEncodingCircuit` class. By utilizing this class, you can input an existing
 quantum encoding circuit and have its circuit transpiled according to the specified backend and
 transpiler settings, which are the same settings used in Qiskit.
-The transpiled encoding circuit is internally employed in the QNN program and projected kernels,
-where it is employed internally.
+The transpiled encoding circuit is internally employed in the QNN program and projected kernels.
 
 **Example: Transpile a existing Encoding Circuit to a fake backend**
 
@@ -212,6 +212,6 @@ where it is employed internally.
    from squlearn.encoding_circuit import TranspiledEncodingCircuit,ChebyshevRx
    from qiskit_ibm_runtime.fake_provider import FakeManilaV2
 
-   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
-   fm.draw(output="mpl")
+   fm = TranspiledEncodingCircuit(ChebyshevRx(3,1),backend=FakeManilaV2(),initial_layout=[0,1,4])
+   fm.draw(output="mpl", num_features=1)
 
