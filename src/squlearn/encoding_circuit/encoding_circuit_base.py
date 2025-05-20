@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import re
 import warnings
 
 import numpy as np
@@ -66,6 +67,7 @@ class EncodingCircuitBase(ABC):
         return np.array([-np.pi, np.pi])
 
     @property
+    @abstractmethod
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the encoding circuit."""
         raise NotImplementedError()
@@ -262,20 +264,31 @@ class EncodingCircuitBase(ABC):
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of the encoding circuit."""
+                """Returns the bounds of the features of the encoding circuit.
+
+                To get the bounds for a specific number of features, use get_feature_bounds().
+                """
                 return self._encoding_circuit.feature_bounds
 
-            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+            @property
+            def num_encoding_slots(self) -> int:
+                """The number of encoding slots of the encoding circuit."""
+                return self._encoding_circuit.num_encoding_slots
+
+            def generate_initial_parameters(
+                self, num_features: int, seed: Union[int, None] = None
+            ) -> np.ndarray:
                 """
                 Generates random parameters for the encoding circuit
 
                 Args:
+                    num_features (int): Number of features of the input data
                     seed (Union[int,None]): Seed for the random number generator
 
                 Return:
                     Returns the randomly generated parameters
                 """
-                return self._encoding_circuit.generate_initial_parameters(seed)
+                return self._encoding_circuit.generate_initial_parameters(num_features, seed)
 
             def get_circuit(
                 self,
@@ -469,14 +482,6 @@ class EncodingCircuitBase(ABC):
                 Return:
                     Returns the randomly generated parameters
                 """
-                return np.concatenate(
-                    (
-                        self.ec1.generate_initial_parameters(num_features, seed),
-                        self.ec2.generate_initial_parameters(num_features, seed),
-                    ),
-                    axis=0,
-                )
-
                 if concatenate_parameters:
                     return np.concatenate(
                         (

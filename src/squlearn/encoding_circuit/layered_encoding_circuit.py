@@ -1,6 +1,6 @@
 import re
 import numpy as np
-from typing import Union, Callable
+from typing import List, Union, Callable
 import copy
 
 import sympy as sp
@@ -2364,9 +2364,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         """
         for var in variable:
             if isinstance(var, VariableGroup):
-                var = var.variable_name
-            if var == self._feature_str:
-                self._num_encoding_slots += self.num_qubits
+                if var.variable_name == self._feature_str:
+                    self._num_encoding_slots += self.num_qubits
+
+            elif isinstance(var, list):
+                for v in var:
+                    if isinstance(v, VariableGroup):
+                        if v.variable_name == self._feature_str:
+                            self._num_encoding_slots += self.num_qubits
 
     def _parse_circuit_string(self) -> int:
         """
