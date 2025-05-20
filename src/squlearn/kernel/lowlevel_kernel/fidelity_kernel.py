@@ -18,10 +18,11 @@ from ...util.executor import Executor
 from ...util.data_preprocessing import convert_to_float64, extract_num_features
 
 from .fidelity_kernel_pennylane import FidelityKernelPennyLane
+from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
 
 
 class FidelityKernel(KernelMatrixBase):
-    """
+    r"""
     Fidelity Quantum Kernel.
 
     The Fidelity Quantum Kernel is a based on the overlap of the quantum states.
@@ -30,7 +31,7 @@ class FidelityKernel(KernelMatrixBase):
 
     .. math::
 
-        K(x,y) = |\\langle \\phi(x) | \\phi(y) \\rangle|^2
+        K(x,y) = |\langle \phi(x) | \phi(y) \rangle|^2
 
     This class wraps to the respective Quantum Kernel implementations from `Qiskit Machine Learning
     <https://qiskit.org/ecosystem/machine-learning/apidocs/qiskit_machine_learning.kernels.html>`_.
@@ -55,6 +56,12 @@ class FidelityKernel(KernelMatrixBase):
             Option for choosing different regularization techniques (``"thresholding"`` or
             ``"tikhonov"``) after Ref. [4] for the training kernel matrix, prior to  solving the
             linear system in the ``fit()``-procedure.
+        use_expectation (bool, default=False):
+            Option for using the expectation value of a QNN circuit that computes the fidelity
+            as the expectation value of the observable
+            :math:`P_0 = |0\rangle\langle0|^{\otimes n}`.
+            This is not very efficient in simulation, but allows the computation of
+            derivatives of the kernel.
 
     References:
         [1]: `Havlicek et al., Supervised learning with quantum-enhanced feature spaces,
@@ -86,6 +93,8 @@ class FidelityKernel(KernelMatrixBase):
         initial_parameters: Union[np.ndarray, None] = None,
         parameter_seed: Union[int, None] = 0,
         regularization: Union[str, None] = None,
+        use_expectation: bool = False,
+        caching: bool = False,
     ) -> None:
         super().__init__(
             encoding_circuit, executor, initial_parameters, parameter_seed, regularization
@@ -93,6 +102,7 @@ class FidelityKernel(KernelMatrixBase):
         self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
         self._is_initialized = False
+        self._use_expectation = use_expectation
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -202,7 +212,6 @@ class FidelityKernel(KernelMatrixBase):
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
             self._quantum_kernel.assign_training_parameters(self._parameters)
-
         kernel_matrix = self._quantum_kernel.evaluate(x, y)
 
         if self._mit_depol_noise is not None:
@@ -223,6 +232,36 @@ class FidelityKernel(KernelMatrixBase):
         ):
             kernel_matrix = self._regularize_matrix(kernel_matrix)
         return kernel_matrix
+
+    def evaluate_derivatives(
+        self, x: np.ndarray, y: np.ndarray = None, values: Union[str, tuple] = "dKdx"
+    ) -> dict:
+        """Evaluates the Fidelity Kernel and its derivatives for the given data points x and y.
+
+        Args:
+            x (np.ndarray): Data points x
+            y (np.ndarray): Data points y, if None y = x is used
+            values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
+                Possible values are:
+                ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdydy``, ``dKdxdy``, ``dKdydx``, ``dKdp``
+                and ``jacobian``.
+        Returns:
+            Dictionary with the evaluated values
+        """
+
+        if self._parameter_vector is not None:
+            if self._parameters is None:
+                raise ValueError(
+                    "Parameters have to been set with assign_parameters or as initial parameters!"
+                )
+            self._quantum_kernel.assign_training_parameters(self._parameters)
+
+        if self._use_expectation:
+            return self._quantum_kernel.evaluate_derivatives(x, y, values)
+        else:
+            raise NotImplementedError(
+                "Derivatives are only implemented for the option use expectation=True"
+            )
 
     def _get_msplit_kernel(self, kernel: np.ndarray) -> np.ndarray:
         """Function to mitigate depolarizing noise using msplit method.
@@ -302,15 +341,22 @@ class FidelityKernel(KernelMatrixBase):
                 self._parameter_vector = ParameterVector("p", self.num_parameters)
             else:
                 self._parameter_vector = None
+            if self._use_expectation:
+              self._quantum_kernel = FidelityKernelExpectationValue(
+                encoding_circuit=self._encoding_circuit,
+                executor=self._executor,
+                evaluate_duplicates=self._evaluate_duplicates,
+                caching=caching,
+            )
+            else:
+                if self._executor.quantum_framework == "pennylane":
 
-            if self._executor.quantum_framework == "pennylane":
-
-                self._quantum_kernel = FidelityKernelPennyLane(
-                    encoding_circuit=self._encoding_circuit,
-                    executor=self._executor,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                    num_features=num_features,
-                )
+                    self._quantum_kernel = FidelityKernelPennyLane(
+                        encoding_circuit=self._encoding_circuit,
+                        executor=self._executor,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        num_features=num_features,
+                    )
 
             elif self._executor.quantum_framework == "qiskit":
 
@@ -340,6 +386,12 @@ class FidelityKernel(KernelMatrixBase):
                             enforce_psd=False,
                         )
                 else:
+                    sampler = self._executor.get_sampler()
+                    if isinstance(sampler, BaseSamplerV2):
+                        raise ValueError(
+                            "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
+                            "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
+                        )                  
                     fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
                     if self._parameter_vector is None:
                         self._quantum_kernel = FidelityQuantumKernel(
