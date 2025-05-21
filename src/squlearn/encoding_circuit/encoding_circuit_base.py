@@ -4,7 +4,7 @@ import re
 import warnings
 
 import numpy as np
-from typing import Union
+from typing import Tuple, Union
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
@@ -319,7 +319,13 @@ class EncodingCircuitBase(ABC):
     def __add__(self, x):
         return self.compose(x, concatenate_features=False, concatenate_parameters=True)
 
-    def compose(self, x, concatenate_features=True, concatenate_parameters=False):
+    def compose(
+        self,
+        x,
+        concatenate_features=False,
+        concatenate_parameters=False,
+        num_circuit_features: Tuple[int, int] = (None, None),
+    ):
         """
         Composition of encoding circuits with options for handling features and parameters
 
@@ -330,6 +336,12 @@ class EncodingCircuitBase(ABC):
         Args:
             self (EncodingCircuitBase): right / first encoding circuit
             x (EncodingCircuitBase): left / second encoding circuit
+            concatenate_features (bool): If True, the features of both encoding circuits are concatenated
+                (default: False). If False, the features of both encoding circuits are taken
+            concatenate_parameters (bool): If True, the parameters of both encoding circuits are concatenated
+                (default: False). If False, the parameters of both encoding circuits are taken
+            num_circuit_features (Tuple[int, int]): Tuple of the number of features for both encoding circuits.
+                This has to be provided if concatenate_features is True otherwise an error is raised.
 
         Returns:
             Returns the composed encoding circuit as special class ComposedEncodingCircuit
@@ -337,6 +349,13 @@ class EncodingCircuitBase(ABC):
 
         if not isinstance(x, EncodingCircuitBase):
             raise ValueError("Only the addition with other encoding circuits is allowed!")
+
+        if concatenate_features and num_circuit_features is None:
+            raise ValueError(
+                "If concatenate_features is True, num_circuit_features has to be provided!"
+            )
+        else:
+            (ec1_num_features, ec2_num_features) = num_circuit_features
 
         class ComposedEncodingCircuit(EncodingCircuitBase):
             """
@@ -400,9 +419,10 @@ class EncodingCircuitBase(ABC):
             def num_features(self) -> int:
                 """The dimension of the features in the encoding circuit."""
                 if concatenate_features:
-                    return self.ec1.num_features + self.ec2.num_features
+                    return ec1_num_features + ec2_num_features
                 else:
-                    return max(self.ec1.num_features, self.ec2.num_features)
+                    # return max(ec1_num_features, ec2_num_features)
+                    self._num_features
 
             @property
             def parameter_bounds(self) -> np.ndarray:
@@ -582,20 +602,24 @@ class EncodingCircuitBase(ABC):
                 # build the layered_pqc to apply all stored operations if available.
                 # This is only available for LayeredEncodingCircuits and has to be called before get_circuit
                 if hasattr(self.ec1, "_build_layered_pqc"):
-                    self.ec1._build_layered_pqc(num_features)
+                    self.ec1._build_layered_pqc(
+                        num_features if ec1_num_features is None else ec1_num_features
+                    )
 
                 if hasattr(self.ec2, "_build_layered_pqc"):
-                    self.ec2._build_layered_pqc(num_features)
+                    self.ec2._build_layered_pqc(
+                        num_features if ec2_num_features is None else ec2_num_features
+                    )
 
                 if concatenate_features:
                     features_c1, features_c2 = (
-                        features[: self.ec1.num_features],
-                        features[self.ec1.num_features :],
+                        features[:ec1_num_features],
+                        features[ec1_num_features:],
                     )
                 else:
                     features_c1, features_c2 = (
-                        features[: self.ec1.num_features],
-                        features[: self.ec2.num_features],
+                        features,
+                        features,
                     )
 
                 if concatenate_parameters:

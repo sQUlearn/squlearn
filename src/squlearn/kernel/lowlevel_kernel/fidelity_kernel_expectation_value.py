@@ -321,12 +321,19 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                 for i in range(2**self.encoding_circuit.num_qubits)
             ]
         )
+
+        num_features = x.shape[1]
+
         # _qnn that implements a circuit U(y)^\dagger U(x) |0>
         # and then expectation value of P0=|0><0|^\otimes n, such that tr(\rho(x), \rho(y))
         # is obtained.
         # we use squlearn's circuit compose and inverse
         self._qnn = LowLevelQNN(
-            (self.encoding_circuit).compose(self.encoding_circuit.inverse()),
+            (self.encoding_circuit).compose(
+                self.encoding_circuit.inverse(),
+                concatenate_features=True,
+                num_circuit_features=(num_features, num_features),
+            ),
             P0_operator(self.encoding_circuit.num_qubits),
             executor=self._executor,
         )
