@@ -370,7 +370,7 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
    backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
    executor = Executor(backends, shots=10000)
    qnn = QNNRegressor(
-       ChebyshevPQC(2, 1),
+       ChebyshevPQC(2),
        SummedPaulis(2),
        executor,
        SquaredLoss(),
@@ -400,7 +400,7 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
    executor = Executor(service, auto_backend_mode="speed")
 
    # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
-   qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
+   qkrr = QKRR(FidelityKernel(ChebyshevRx(4),executor))
 
    # Backend is automatically selected based on the smallest queue
    # All the following functions will be executed on the selected backend
