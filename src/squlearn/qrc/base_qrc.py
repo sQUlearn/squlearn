@@ -7,6 +7,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -89,16 +91,6 @@ class BaseQRC(BaseEstimator, ABC):
         self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
 
-        initialize_parameters = (
-            self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-        )
-        initialize_parameters_obs = (
-            self.param_op_ini is None
-            or len(self.param_op_ini) != self._qnn.num_parameters_observable
-        )
-
-        self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
-
     @property
     def used_operators(self) -> List[ObservableBase]:
         """Returns the operators used in the QNN model."""
@@ -116,6 +108,17 @@ class BaseQRC(BaseEstimator, ABC):
             X: Input data
             y: Labels
         """
+        num_features = extract_num_features(X)
+        initialize_parameters = (
+            self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+        )
+        initialize_parameters_obs = (
+            self.param_op_ini is None
+            or len(self.param_op_ini) != self._qnn.num_parameters_observable
+        )
+
+        self._initialize_parameters(num_features, initialize_parameters, initialize_parameters_obs)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
         X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
         self._ml_model.fit(X_qnn, y)
@@ -168,18 +171,22 @@ class BaseQRC(BaseEstimator, ABC):
             self.num_operators = len(self._operators)
 
     def _initialize_parameters(
-        self, parameters: bool = True, parameters_optimizers: bool = True
+        self,
+        num_features: int,
+        parameters: bool = True,
+        parameters_optimizers: bool = True,
     ) -> None:
         """
         Initialize the parameters of the QNN model.
 
         Args:
+            num_features (int): The number of features in the input data.
             parameters (bool): If True, initialize the parameters of the encoding circuit.
             parameters_optimizers (bool): If True, initialize the parameters of the operators
         """
         if parameters:
             self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                seed=self.parameter_seed
+                seed=self.parameter_seed, num_features=num_features
             )
 
         if parameters_optimizers:
@@ -272,19 +279,6 @@ class BaseQRC(BaseEstimator, ABC):
 
         if initialize_lowlevel_qnn:
             self._initialize_lowlevel_qnn()
-            # Reinitialize parameters if the number of parameters has changed
-            initialize_parameters = (
-                self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-            )
-            initialize_parameters_obs = (
-                self.param_op_ini is None
-                or len(self.param_op_ini) != self._qnn.num_parameters_observable
-            )
-
-            self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
-
-        if "parameter_seed" in params:
-            self._initialize_parameters()
 
         return self
 

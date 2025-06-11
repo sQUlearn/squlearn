@@ -96,7 +96,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             X, y, test_size=0.33, random_state=42
         )
         reg = QNNRegressor(
-            ChebyshevRx(4, 1, 2),
+            ChebyshevRx(4, 1),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
             Executor(),
             SquaredLoss(),
@@ -138,14 +138,13 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             num_qubits=6,
             encoding_style="chebyshev_tower",
             variational_arrangement="HEA",
-            num_features=1,
             num_encoding_layers=1,
             num_variational_layers=5,
         )
         observable = SummedPaulis(6, include_identity=False)
 
         param_observable = observable.generate_initial_parameters(seed=1)
-        param_initial = circuit.generate_initial_parameters(seed=1)
+        param_initial = circuit.generate_initial_parameters(seed=1, num_features=1)
 
         ode_regressor = QNNRegressor(
             circuit,

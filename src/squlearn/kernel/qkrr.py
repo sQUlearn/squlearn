@@ -8,6 +8,8 @@ from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -17,7 +19,6 @@ else:
 
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
-from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKRR(BaseEstimator, RegressorMixin):
@@ -78,7 +79,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
         from squlearn.kernel import QKRR
 
-        enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+        enc_circ = ChebyshevPQC(num_qubits=4, num_layers=2)
         q_kernel_pqk = ProjectedQuantumKernel(
             encoding_circuit=enc_circ,
             executor=Executor(),
@@ -107,11 +108,7 @@ class QKRR(BaseEstimator, RegressorMixin):
         self.k_testtrain = None
         self.k_train = None
         self.dual_coeff_ = None
-
-        # Apply kwargs to set_params
-        update_params = self.get_params().keys() & kwargs.keys()
-        if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
+        self._kernel_params = kwargs
 
     def fit(self, X, y):
         """
@@ -132,6 +129,15 @@ class QKRR(BaseEstimator, RegressorMixin):
         Return:
             Returns an instance of self.
         """
+        num_features = extract_num_features(X)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+        # Apply kernel_params (kwargs) to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
+        if update_params:
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})
 
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True

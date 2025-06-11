@@ -1,16 +1,18 @@
-"""QNN Base Implemenation"""
+"""QNN Base Implemenation."""
 
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
+import warnings
 from packaging import version
 from typing import Callable, Union
-from warnings import warn
 
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
+
+from squlearn.util.data_preprocessing import extract_num_features
 
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
@@ -91,14 +93,14 @@ class BaseQNN(BaseEstimator, ABC):
         self.variance = variance
         self.shot_control = shot_control
         self.parameter_seed = parameter_seed
+        self._qnn_params = kwargs
 
-        if param_ini is None:
-            self.param_ini = encoding_circuit.generate_initial_parameters(seed=parameter_seed)
-            if pretrained:
-                raise ValueError("If pretrained is True, param_ini must be provided!")
-        else:
-            self.param_ini = param_ini
-        self._param = self.param_ini.copy()
+        self.param_ini = param_ini
+
+        if pretrained and param_ini is None:
+            raise ValueError("If pretrained is True, param_ini must be provided!")
+
+        self._param = param_ini.copy() if param_ini is not None else None
 
         if param_op_ini is None:
             if pretrained:
@@ -120,7 +122,7 @@ class BaseQNN(BaseEstimator, ABC):
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
         ):
-            warn(
+            warnings.warn(
                 f"{optimizer.__class__.__name__} is not of type SGDMixin, thus batch_size, epochs"
                 " and shuffle will be ignored."
             )
@@ -210,14 +212,20 @@ class BaseQNN(BaseEstimator, ABC):
                 Labels
             weights: Weights for each data point
         """
+        self.encoding_circuit._check_feature_consistency(X)
+        num_features = extract_num_features(X)
+
+        self.param_ini = self.encoding_circuit.generate_initial_parameters(
+            seed=self.parameter_seed, num_features=num_features
+        )
+
         self._param = self.param_ini.copy()
         self._param_op = self.param_op_ini.copy()
         self._is_fitted = False
         self._fit(X, y, weights)
 
     def get_params(self, deep: bool = True) -> dict:
-        """
-        Returns a dictionary of parameters for the current object.
+        """Returns a dictionary of parameters for the current object.
 
         Parameters:
             deep: If True, includes the parameters from the base class.
@@ -233,8 +241,7 @@ class BaseQNN(BaseEstimator, ABC):
         return params
 
     def set_params(self: BaseQNN, **params) -> BaseQNN:
-        """
-        Sets the hyper-parameters of the BaseQNN.
+        """Sets the hyper-parameters of the BaseQNN.
 
         Args:
             params: Hyper-parameters of the BaseQNN.
@@ -301,11 +308,6 @@ class BaseQNN(BaseEstimator, ABC):
             initialize_qnn = True
 
         if initialize_qnn:
-            # If the number of parameters has changed, reinitialize the parameters
-            if self.encoding_circuit.num_parameters != len(self.param_ini):
-                self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                    seed=self.parameter_seed
-                )
             if isinstance(self.operator, list):
                 num_op_parameters = sum(operator.num_parameters for operator in self.operator)
                 if num_op_parameters != len(self.param_op_ini):
@@ -339,7 +341,7 @@ class BaseQNN(BaseEstimator, ABC):
         """
         raise NotImplementedError()
 
-    def _initialize_lowlevel_qnn(self):
+    def _initialize_lowlevel_qnn(self) -> None:
         self._qnn = LowLevelQNN(
             self.encoding_circuit,
             self.operator,

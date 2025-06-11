@@ -492,10 +492,6 @@ class Executor:
             self._logger = logging.getLogger("executor")
             self._logger.setLevel(logging.INFO)
 
-        if execution is None and backend is not None:
-            # Only backend is given
-            execution = backend
-
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
@@ -2430,6 +2426,12 @@ class Executor:
         from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
+        if isinstance(circuit, EncodingCircuitBase) and circuit.num_encoding_slots == np.inf:
+            raise RuntimeError(
+                f"""Automatic backend selection is not supported for {circuit.__name__}.\n 
+                This circuit has an infinite number of encoding slots, which is not supported by the automatic backend selection."""
+            )
+
         min_num_qubits = options.get("min_num_qubits", None)
         max_num_qubits = options.get("max_num_qubits", None)
         cost_function = options.get("cost_function", None)
@@ -2459,7 +2461,7 @@ class Executor:
                 real_circuit = circuit
 
             elif isinstance(circuit, EncodingCircuitBase):
-                x = ParameterVector("x", circuit.num_features)
+                x = ParameterVector("x", circuit.num_encoding_slots)
                 p = ParameterVector("p", circuit.num_parameters)
                 real_circuit = circuit.get_circuit(x, p)
             else:
@@ -2498,6 +2500,10 @@ class Executor:
                     return transpiled_circuit
 
                 return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+                # need this call to ensure the backend is set correctly
+                return_circ._setup_transpiled_circuit_and_qubit_mapping(
+                    num_features=circuit.num_encoding_slots
+                )
 
             else:
                 raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")

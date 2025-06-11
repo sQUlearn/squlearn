@@ -85,6 +85,7 @@ class TestFidelityKernel:
                 "p"
             )  # For 2 features, the FQK analytical kernel is:  Rx(x0)@Ry(p0) x Rx(x1)@Ry(p1)
         encoding_circuit.Rx("x")
+        encoding_circuit._build_layered_pqc(num_features)
 
         kernel = FidelityKernel(
             encoding_circuit,
@@ -94,6 +95,7 @@ class TestFidelityKernel:
             initial_parameters=initial_parameters,
             evaluate_duplicates=evaluate_duplicates,
         )
+        kernel._initialize_kernel(num_features)
 
         return kernel
 
