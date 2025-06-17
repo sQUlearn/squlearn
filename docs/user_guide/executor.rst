@@ -392,7 +392,7 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
    from squlearn import Executor
    from qiskit_ibm_runtime import QiskitRuntimeService
    from squlearn.encoding_circuit import ChebyshevRx
-   from squlearn.kernel import FidelityKernel, QKRR
+   from squlearn.kernel.lowlevel_kernel import FidelityKernel, QKRR
 
    # Executor is initialized with a service, and considers all available backends
    # (except simulators)
