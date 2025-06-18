@@ -2130,7 +2130,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     #    }
     #    grid_search = GridSearchCV(qkrr, param_grid, cv=2)
     #    grid_search.fit(X, y)
-    #    print("\\nBest solution: ", grid_search.best_params_)
+    #    print("\nBest solution: ", grid_search.best_params​_)
 
 
     Args:
