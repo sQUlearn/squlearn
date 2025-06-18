@@ -37,7 +37,8 @@ class LowLevelQNN:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
-                warn("Primitive argument is not supported for PennyLane. Ignoring...")
+                if kwargs["primitive"] is not None: 
+                    warn("Primitive argument is not supported for PennyLane. Ignoring...")
                 kwargs.pop("primitive")
             return LowLevelQNNPennyLane(
                 parameterized_quantum_circuit, observable, executor, *args, **kwargs
