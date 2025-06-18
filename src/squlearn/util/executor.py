@@ -570,7 +570,7 @@ class Executor:
         elif isinstance(execution, Session):
             # Execution is a active? session
             self._session = execution
-            self._backend = self._session.service.get_backend(self._session.backend())
+            self._backend = self._session.service.backend(self._session.backend())
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
