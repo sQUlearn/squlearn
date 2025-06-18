@@ -96,8 +96,8 @@ is done in sQUlearn by the :class:`EncodingCircuit` class. For details we refer 
 
     from squlearn.encoding_circuit import ChebyshevPQC
 
-    pqc = ChebyshevPQC(num_qubits=8, num_features=2, num_layers=2)
-    pqc.draw("mpl")
+    pqc = ChebyshevPQC(num_qubits=8, num_layers=2)
+    pqc.draw("mpl", num_features=2)
 
 Here we have chosen the :class:`~squlearn.encoding_circuit.ChebyshevPQC` as our encoding circuit, but sQUlearn provides a list of several alternative choices in :ref:`quantum_encoding_circuits`.
 The parameters are all randomly chosen. Next we also initialize our executor and QRCClassifier:
@@ -183,8 +183,8 @@ This time, we choose the :class:`~squlearn.encoding_circuit.HubregtsenEncodingCi
 
     from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 
-    pqc = HubregtsenEncodingCircuit(num_qubits=10, num_features=1, num_layers=2)
-    pqc.draw("mpl")
+    pqc = HubregtsenEncodingCircuit(num_qubits=10, num_layers=2)
+    pqc.draw("mpl", num_features=1)
 
 
 The :class:`QRCRegressor` similar to the classifier example, takes our prepared :class:`EncodingCircuit` and a machine learning method 

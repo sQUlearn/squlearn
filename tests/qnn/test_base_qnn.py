@@ -1,5 +1,6 @@
 """Tests for BaseQNN"""
 
+from unittest import mock
 import pytest
 
 import numpy as np
@@ -27,22 +28,24 @@ class TestBaseQNN:
         """BaseQNN module with single operator."""
         np.random.seed(42)
         executor = Executor()
-        pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+        pqc = ChebyshevPQC(num_qubits=4, num_layers=2)
         operator = IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S")
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock = MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        return qnn_mock
 
     @pytest.fixture(scope="module")
     def qnn_multi_op(self) -> MockBaseQNN:
         """BaseQNN module with multiple operators."""
         np.random.seed(42)
         executor = Executor()
-        pqc = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+        pqc = ChebyshevPQC(num_qubits=4, num_layers=2)
         operator = [IsingHamiltonian(num_qubits=4, I="S", Z="S", ZZ="S") for _ in range(5)]
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        qnn_mock = MockBaseQNN(pqc, operator, executor, loss, optimizer)
+        return qnn_mock
 
     def test_set_params_invalid_param(self, qnn_single_op: MockBaseQNN):
         """

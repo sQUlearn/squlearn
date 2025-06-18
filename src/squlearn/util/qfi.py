@@ -7,7 +7,7 @@ import pennylane.numpy as pnp
 
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from .executor import Executor, BaseEstimatorV2
-from .data_preprocessing import adjust_features, adjust_parameters
+from .data_preprocessing import adjust_features, adjust_parameters, extract_num_features
 from .pennylane import PennyLaneCircuit
 
 
@@ -92,12 +92,14 @@ def _get_quantum_fisher_qiskit(
     # Get Qiskit QFI primitive
     qfi = QFI(LinCombQGT(estimator))
 
+    num_features = extract_num_features(x)
+
     p_ = ParameterVector("p", encoding_circuit.num_parameters)
-    x_ = ParameterVector("x", encoding_circuit.num_features)
+    x_ = ParameterVector("x", num_features)
     circuit = encoding_circuit.get_circuit(x_, p_)
 
     # Adjust input
-    x_list, multi_x = adjust_features(x, encoding_circuit.num_features)
+    x_list, multi_x = adjust_features(x, num_features)
     p_list, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
 
     circ_list = []
@@ -176,13 +178,13 @@ def _get_quantum_fisher_pennylane(
     Return:
         Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
-
+    num_features = extract_num_features(x)
     parameter_vector = ParameterVector("p", encoding_circuit.num_parameters)
-    feature_vector = ParameterVector("x", encoding_circuit.num_features)
+    feature_vector = ParameterVector("x", num_features)
     circuit = encoding_circuit.get_circuit(feature_vector, parameter_vector)
 
     # Adjust input
-    x_adjusted, multi_x = adjust_features(x, encoding_circuit.num_features)
+    x_adjusted, multi_x = adjust_features(x, num_features)
     p_adjusted, multi_p = adjust_parameters(p, encoding_circuit.num_parameters)
 
     fisher_list = []

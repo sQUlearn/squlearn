@@ -24,6 +24,7 @@ class FidelityKernelPennyLane:
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
         executor (Executor): The executor for the quantum circuit.
+        num_features (int): The number of features in the input data.
         evaluate_duplicates (str): The evaluation mode for duplicates. Options are:
             - "all": Evaluate all duplicates.
             - "off_diagonal": Evaluate only off-diagonal duplicates.
@@ -35,6 +36,7 @@ class FidelityKernelPennyLane:
         self,
         encoding_circuit: EncodingCircuitBase,
         executor: Executor,
+        num_features: int,
         evaluate_duplicates: str = "off_diagonal",
         cache_size=None,
     ) -> None:
@@ -43,6 +45,7 @@ class FidelityKernelPennyLane:
         self._executor = executor
         self._evaluate_duplicates = evaluate_duplicates
         self._cache_size = cache_size
+        self._num_features = num_features
         self._parameters = None
 
         if self._executor.quantum_framework != "pennylane":
@@ -53,7 +56,7 @@ class FidelityKernelPennyLane:
             # Mode 1 for statevector: calculate the statevector of the quantum circuit
             # and use it to calculate the fidelity as the overlap of the two states.
 
-            x = ParameterVector("x", self.num_features)
+            x = ParameterVector("x", self._num_features)
             if self.num_parameters > 0:
                 self._parameter_vector = ParameterVector("p", self.num_parameters)
             else:
@@ -77,8 +80,8 @@ class FidelityKernelPennyLane:
         else:
 
             # Mode 2 for qasm: calculate the |0> probabilities of the quantum circuit U(x)U(x)'
-            x1 = ParameterVector("x1", self.num_features)
-            x2 = ParameterVector("x2", self.num_features)
+            x1 = ParameterVector("x1", self._num_features)
+            x2 = ParameterVector("x2", self._num_features)
             if self.num_parameters > 0:
                 self._parameter_vector = ParameterVector("p", self.num_parameters)
             else:
@@ -97,11 +100,6 @@ class FidelityKernelPennyLane:
     def num_parameters(self) -> int:
         """Returns the number of trainable parameters."""
         return self._encoding_circuit.num_parameters
-
-    @property
-    def num_features(self) -> int:
-        """Returns the number of features."""
-        return self._encoding_circuit.num_features
 
     def assign_training_parameters(self, parameters: np.ndarray) -> None:
         """Assigns trainable parameters to the encoding circuit.
@@ -258,9 +256,9 @@ class FidelityKernelPennyLane:
             return overlap
 
         # Convert the input data to the correct format for the lrucache
-        x_inp, _ = adjust_features(x, self.num_features)
+        x_inp, _ = adjust_features(x, self._num_features)
         x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
-        y_inp, _ = adjust_features(y, self.num_features)
+        y_inp, _ = adjust_features(y, self._num_features)
         y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
 
         if self._parameter_vector is not None:

@@ -158,7 +158,7 @@ In sQUlearn a FQK (instance) can be defined as shown by the following example:
     from squlearn.util import Executor
     from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.kernel import FidelityKernel
-    enc_circ = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+    enc_circ = ChebyshevPQC(num_qubits=4, num_layers=2)
     fqk_instance = FidelityKernel(
         encoding_circuit=enc_circ,
         executor=Executor()
@@ -211,7 +211,7 @@ the following example:
     from squlearn.util import Executor
     from squlearn.encoding_circuit import ChebyshevPQC
     from squlearn.kernel import ProjectedQuantumKernel
-    enc_circ = ChebyshevPQC(num_qubits=4, num_features= 1, num_layers=2)
+    enc_circ = ChebyshevPQC(num_qubits=4, num_layers=2)
     pqk_instance = ProjectedQuantumKernel(
         encoding_circuit=enc_circ,
         executor=Executor(),
@@ -255,7 +255,7 @@ training and test data and shows how to optimize kernels.
         from squlearn.kernel.loss import TargetAlignment
 
         # set up the encoding circuit
-        encoding_circuit = ChebyshevPQC(num_qubits=4, num_features=1, num_layers=2)
+        encoding_circuit = ChebyshevPQC(num_qubits=4, num_layers=2)
 
         # set up the quantum kernel
         pqk_instance = ProjectedQuantumKernel(encoding_circuit, Executor())
