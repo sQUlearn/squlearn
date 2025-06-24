@@ -36,6 +36,12 @@ class QGPC(GaussianProcessClassifier):
     --------
         squlearn.kernel.QSVC : Quantum Support Vector classification.
 
+    References
+    ----------
+    .. [RW2006] `Carl E. Rasmussen and Christopher K.I. Williams,
+       "Gaussian Processes for Machine Learning",
+       MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
+
     **Example**
 
     .. code-block::
