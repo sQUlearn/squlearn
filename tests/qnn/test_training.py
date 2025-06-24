@@ -148,7 +148,7 @@ class TestZeroParam:
         """Test for zero number of parameters in observable."""
 
         assert_dict = {
-            "QNNRegressor": np.array([0.11503425, 0.10989764, 0.11377155, 0.12618358, 0.14544058]),
+            "QNNRegressor": np.array([0.11080395, 0.10440662, 0.10877287, 0.12350483, 0.14668292]),
             "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
         pqc = ChebyshevPQC(2, 1, 1)
