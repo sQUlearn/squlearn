@@ -12,9 +12,11 @@ jobs:
         QISKIT_SETTINGS: ${{github.workspace}}/docs/qiskit_settings.conf
       steps:
           - name: Checkout Source Code
-            uses: actions/checkout@v2
+            uses: actions/checkout@v4
+            with:
+              fetch-depth: 0
           - name: Checkout GH Pages
-            uses: actions/checkout@v2
+            uses: actions/checkout@v4
             with:
               repository: sQUlearn/squlearn.github.io
               fetch-depth: 0
