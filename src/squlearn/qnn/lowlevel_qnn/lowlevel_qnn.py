@@ -37,7 +37,7 @@ class LowLevelQNN:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
-                if kwargs["primitive"] is not None: 
+                if kwargs["primitive"] is not None:
                     warn("Primitive argument is not supported for PennyLane. Ignoring...")
                 kwargs.pop("primitive")
             return LowLevelQNNPennyLane(
