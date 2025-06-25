@@ -119,3 +119,4 @@ suppress_warnings = ["myst.header", "config.cache"]
 # base URL for sphinx_sitemap
 html_baseurl = "https://squlearn.github.io/"
 sitemap_url_scheme = "{link}"
+sitemap_show_lastmod = False
