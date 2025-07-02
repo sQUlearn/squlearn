@@ -2,11 +2,13 @@
 
 from sklearn.gaussian_process import GaussianProcessClassifier
 
+from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.kernel_util import kernel_wrapper
 
 
-class QGPC(GaussianProcessClassifier):
+class QGPC(GaussianProcessClassifier, SerializableModelMixin):
     """
     Quantum Gaussian process classification (QGPC), that extends the scikit-learn
     `sklearn.gaussian_process.GaussianProcessClassifier

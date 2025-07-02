@@ -12,6 +12,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
+from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -31,7 +33,7 @@ from .lowlevel_qnn import LowLevelQNN
 from .util.training import ShotControlBase
 
 
-class BaseQNN(BaseEstimator, ABC):
+class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
     """Base Class for Quantum Neural Networks.
 
     Args:

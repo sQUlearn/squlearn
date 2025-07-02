@@ -7,6 +7,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
+from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -25,7 +27,7 @@ from ..qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 from ..qnn.lowlevel_qnn import LowLevelQNN
 
 
-class BaseQRC(BaseEstimator, ABC):
+class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
     """Base class for Quantum Reservoir Computing (QRC) models.
 
     Args:

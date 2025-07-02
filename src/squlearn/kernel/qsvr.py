@@ -3,10 +3,12 @@
 from sklearn.svm import SVR
 from typing import Union, Optional
 
+from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
-class QSVR(SVR):
+class QSVR(SVR, SerializableModelMixin):
     """
     Quantum Support Vector Regression
 
