@@ -1,5 +1,6 @@
 """Tests for QSVR"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
@@ -26,7 +27,7 @@ class TestQSVR:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvr_fidelity(self) -> QSVR:
         """QSVR module with FidelityKernel."""
         np.random.seed(42)
@@ -40,7 +41,7 @@ class TestQSVR:
         )
         return QSVR(kernel, C=1, epsilon=0.1)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvr_pqk(self) -> QSVR:
         """QSVR module wit ProjectedQuantumKernel."""
         np.random.seed(42)
@@ -197,3 +198,22 @@ class TestQSVR:
         qsvr_instance.predict(X)
 
         assert qsvr_instance.quantum_kernel._regularize_matrix.call_count == 2
+
+    @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
+    def test_serialization(self, qsvr, request, data):
+        """Tests serialization of QSVR."""
+        instance = request.getfixturevalue(qsvr)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QSVR.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QSVR)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

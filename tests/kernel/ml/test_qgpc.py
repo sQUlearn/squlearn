@@ -1,5 +1,6 @@
 """Tests for QGPC"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
@@ -26,7 +27,7 @@ class TestQGPC:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qgpc_fidelity(self) -> QGPC:
         """QGPC module with FidelityKernel."""
         np.random.seed(42)
@@ -40,7 +41,7 @@ class TestQGPC:
         )
         return QGPC(quantum_kernel=kernel)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qgpc_pqk(self) -> QGPC:
         """QGPC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
@@ -196,3 +197,22 @@ class TestQGPC:
         assert qgpc_instance.get_params()["max_iter_predict"] == 100
         qgpc_instance.set_params(max_iter_predict=50)
         assert qgpc_instance.get_params()["max_iter_predict"] == 50
+
+    @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
+    def test_serialization(self, qgpc, request, data):
+        """Tests concerning the serialization of the QGPC."""
+        instance = request.getfixturevalue(qgpc)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QGPC.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QGPC)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

@@ -1,5 +1,6 @@
 """Tests for QNNClassifier"""
 
+import io
 import pytest
 
 import numpy as np
@@ -201,3 +202,20 @@ class TestQNNClassifier:
         assert qnn_classifier._is_fitted
         assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
         assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
+
+    def test_serialization(self, qnn_classifier, request, data):
+        """Tests concerning the serialization of the QNNClassifier."""
+        X, y = data
+        qnn_classifier.fit(X, y)
+
+        buffer = io.BytesIO()
+        qnn_classifier.dump(buffer)
+
+        predict_before = qnn_classifier.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QNNClassifier.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QNNClassifier)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

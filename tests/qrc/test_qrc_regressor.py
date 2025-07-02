@@ -1,5 +1,6 @@
 """Tests for QRCRegressor"""
 
+import io
 import pytest
 
 import numpy as np
@@ -60,3 +61,29 @@ class TestQRCRegressor:
         }
 
         assert np.allclose(values, referece_values[ml_model], atol=1e-7)
+
+    @pytest.mark.parametrize(
+        "ml_model",
+        [
+            "linear",
+            "mlp",
+            "kernel",
+        ],
+    )
+    def test_serialization(self, data, ml_model):
+        """Tests concerning the serialization of the QRCRegressor."""
+        X, y = data
+        qrc_regressor = self.qrc_regressor(ml_model)
+        qrc_regressor.fit(X, y)
+
+        buffer = io.BytesIO()
+        qrc_regressor.dump(buffer)
+
+        predict_before = qrc_regressor.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QRCRegressor.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QRCRegressor)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)
