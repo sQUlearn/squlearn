@@ -21,7 +21,7 @@ jobs:
         - name: Install dependencies
           run: pip install flit
 
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v4
         
         - name: Build
           run: flit build
