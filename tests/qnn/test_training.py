@@ -2,6 +2,8 @@
 
 import numpy as np
 import pytest
+from packaging import version
+from scipy import __version__ as scipy_version
 
 from squlearn import Executor
 from squlearn.observables import SummedPaulis, SinglePauli
@@ -147,8 +149,19 @@ class TestZeroParam:
     def test_zero_param_ob(self, test_case):
         """Test for zero number of parameters in observable."""
 
+        # scipy changed their slsqp implementation in 1.16.0 and we don't want to limit the user to
+        # a specific scipy
+        if version.parse(scipy_version) < version.parse("1.16.0"):
+            regressor_result = np.array(
+                [0.11503425, 0.10989764, 0.11377155, 0.12618358, 0.14544058]
+            )
+        else:
+            regressor_result = np.array(
+                [0.11080395, 0.10440662, 0.10877287, 0.12350483, 0.14668292]
+            )
+
         assert_dict = {
-            "QNNRegressor": np.array([0.11080395, 0.10440662, 0.10877287, 0.12350483, 0.14668292]),
+            "QNNRegressor": regressor_result,
             "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
         pqc = ChebyshevPQC(2, 1, 1)
