@@ -355,7 +355,6 @@ class BaseQNN(BaseEstimator, ABC):
             y,
             accept_sparse=["csr", "csc"],
             multi_output=True,
-            y_numeric=True,
             reset=reset,
         )
         if y.ndim == 2 and y.shape[1] == 1:
