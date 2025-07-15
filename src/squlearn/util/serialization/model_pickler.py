@@ -1,6 +1,8 @@
 import dill
 from squlearn.util.executor import Executor
 
+EXECUTOR_ID = "squlearn.util.executor"
+
 
 class ExecutorPickler(dill.Pickler):
     """
@@ -20,7 +22,7 @@ class ExecutorPickler(dill.Pickler):
         """
 
         if isinstance(obj, Executor):
-            return ("EXECUTOR", None)
+            return (EXECUTOR_ID, None)
         return None
 
 
@@ -42,6 +44,6 @@ class ExecutorUnpickler(dill.Unpickler):
         """
 
         type_tag, _ = pid
-        if type_tag == "EXECUTOR":
+        if type_tag == EXECUTOR_ID:
             return self._executor
         return super().persistent_load(pid)
