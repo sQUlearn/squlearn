@@ -75,3 +75,12 @@ def test_multiple_executor_references(executor_obj):
     loaded = holder.load(buffer, executor_obj)
     assert loaded.level1.executor is executor_obj
     assert loaded.level2.executor is executor_obj
+
+
+def test_invalid_path_or_buf():
+    with pytest.raises(TypeError):
+        SerializableModelMixin.load(123, Executor("pennylane"))  # Invalid type for source
+    with pytest.raises(TypeError):
+        SerializableModelMixin.dump(123)  # Invalid type for target
+    with pytest.raises(TypeError):
+        SerializableModelMixin.dump(None)  # None is not a valid path or buffer
