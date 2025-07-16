@@ -30,7 +30,7 @@ class TestQNNRegressor:
         """QNNRegressor module."""
         np.random.seed(42)
         executor = Executor()
-        pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
+        pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
@@ -42,7 +42,7 @@ class TestQNNRegressor:
     def qnn_regressor_2out(self) -> QNNRegressor:
         """QNNRegressor module."""
         executor = Executor()
-        pqc = ChebyshevRx(num_qubits=2, num_features=1, num_layers=1)
+        pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})

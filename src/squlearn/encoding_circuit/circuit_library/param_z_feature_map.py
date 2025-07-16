@@ -3,6 +3,8 @@ from typing import Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+
+from squlearn.util.data_preprocessing import extract_num_features
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
@@ -17,20 +19,24 @@ class ParamZFeatureMap(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import ParamZFeatureMap
-        pqc = ParamZFeatureMap(4, 2, num_layers=2, entangling=True)
-        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc = ParamZFeatureMap(num_qubits=4, num_layers=2, entangling=True)
+        plt = pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=2)
         plt.tight_layout()
 
     Args:
         num_qubits (int): Number of qubits
-        num_features (int): Dimension of the feature vector
         num_layers (int): Number of layers of the encoding circuit
+        num_features (int): Dimension of the feature vector (default: None)
         entangling (bool): If true, entangling gates are added between the layers
 
     """
 
     def __init__(
-        self, num_qubits: int, num_features: int, num_layers: int = 2, entangling: bool = False
+        self,
+        num_qubits: int,
+        num_layers: int = 2,
+        num_features: int = None,
+        entangling: bool = False,
     ) -> None:
         super().__init__(num_qubits, num_features)
         self._num_layers = num_layers
@@ -39,7 +45,12 @@ class ParamZFeatureMap(EncodingCircuitBase):
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the encoding circuit."""
-        return max(self._num_qubits, self._num_features) * self._num_layers
+        return self._num_qubits * self._num_layers
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the ParamZFeatureMap circuit."""
+        return self._num_qubits * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -80,17 +91,19 @@ class ParamZFeatureMap(EncodingCircuitBase):
             The circuit of the parameterized Z feature map in the form of a QuantumCircuit
         """
 
-        num_features = len(features)
-        num_param = len(parameters)
+        num_features = extract_num_features(features)
+        num_params = len(parameters)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         circuit = QuantumCircuit(self._num_qubits)
         index_offset = 0
         for _ in range(self._num_layers):
-            for i in range(max(self._num_qubits, self._num_features)):
+            for i in range(self._num_qubits):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(
-                    parameters[index_offset % num_param] * features[i % num_features],
+                    parameters[index_offset % num_params] * features[i % num_features],
                     i % self._num_qubits,
                 )
                 index_offset += 1

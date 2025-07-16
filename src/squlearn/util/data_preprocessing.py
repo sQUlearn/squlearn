@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple, Union
+from qiskit.circuit import ParameterVector
 
 
 def adjust_features(x: Union[np.ndarray, float], x_length: int) -> Tuple[np.ndarray, bool]:
@@ -148,3 +149,18 @@ def to_tuple(x: Union[float, np.ndarray, list, tuple], flatten: bool = True) -> 
             return array_to_nested_tuple(x)
         else:
             return tuple([x])
+
+
+def extract_num_features(X: Union[np.ndarray, ParameterVector, list]) -> int:
+    """Extract the number of features from the input array."""
+    if isinstance(X, list):
+        X = np.array(X)
+    if isinstance(X, np.ndarray):
+        if X.ndim == 1:
+            return X.shape[0]
+        elif X.ndim >= 2:
+            return X.shape[1]
+    if isinstance(X, ParameterVector):
+        return len(X)
+
+    raise TypeError("Unsupported type for X")
