@@ -12,8 +12,6 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
-from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
-
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -26,6 +24,7 @@ from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
+from ..util.serialization import SerializableModelMixin
 
 from .loss.qnn_loss_base import QNNLossBase
 

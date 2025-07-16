@@ -1,8 +1,8 @@
 from contextlib import contextmanager
 from io import IOBase
 from typing import IO, Type, TypeVar, Union
-from squlearn.util.serialization.model_pickler import ExecutorPickler, ExecutorUnpickler
-from squlearn.util.executor import Executor
+from .model_pickler import ExecutorPickler, ExecutorUnpickler
+from ..executor import Executor
 
 T = TypeVar("T", bound="SerializableModelMixin")
 

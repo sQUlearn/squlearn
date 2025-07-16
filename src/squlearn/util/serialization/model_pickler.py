@@ -1,5 +1,5 @@
 import dill
-from squlearn.util.executor import Executor
+from ..executor import Executor
 
 EXECUTOR_ID = "squlearn.util.executor"
 

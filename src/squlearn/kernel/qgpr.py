@@ -11,8 +11,6 @@ from sklearn.preprocessing._data import _handle_zeros_in_scale
 
 from sklearn import __version__
 
-from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
-
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -23,6 +21,7 @@ else:
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.regularization import regularize_full_kernel
+from ..util.serialization import SerializableModelMixin
 
 
 class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):

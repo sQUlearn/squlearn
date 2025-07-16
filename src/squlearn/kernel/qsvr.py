@@ -3,9 +3,8 @@
 from sklearn.svm import SVR
 from typing import Union, Optional
 
-from squlearn.util.serialization.serializable_model_mixin import SerializableModelMixin
-
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from ..util.serialization import SerializableModelMixin
 
 
 class QSVR(SVR, SerializableModelMixin):
