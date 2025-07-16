@@ -35,8 +35,8 @@ def open_maybe(path_or_buf: Union[str, IO[bytes]], mode="rb"):
 
 class SerializableModelMixin:
     """A mixin class that provides serialization and deserialization capabilities for model objects.
-    This class uses :ref:`ExecutorPickler` and :ref:`ExecutorUnpickler` to handle the serialization of model objects
-    while ensuring that the :ref:`Executor` instance is properly injected during deserialization.
+    This class uses `ExecutorPickler` and `ExecutorUnpickler` to handle the serialization of model objects
+    while ensuring that the `Executor` instance is properly injected during deserialization.
     """
 
     def dump(self, target: Union[str, IO[bytes]]) -> None:
@@ -52,12 +52,12 @@ class SerializableModelMixin:
     @classmethod
     def load(cls: Type[T], source: Union[str, IO[bytes]], executor: Executor) -> T:
         """
-        Deserializes the model object from a file or file-like object, injecting the provided :ref:`Executor`.
+        Deserializes the model object from a file or file-like object, injecting the provided `Executor`.
         Args:
             source (Union[str, IO[bytes]]): The source file path or file-like object from which the model will be deserialized.
-            executor (Executor): The :ref:`Executor` instance to be injected into the deserialized model.
+            executor (Executor): The `Executor` instance to be injected into the deserialized model.
         Returns:
-            The deserialized model object with the injected :ref:`Executor`.
+            The deserialized model object with the injected `Executor`.
         """
 
         with open_maybe(source, "rb") as f:

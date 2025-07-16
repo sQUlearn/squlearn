@@ -6,9 +6,9 @@ EXECUTOR_ID = "squlearn.util.executor"
 
 class ExecutorPickler(dill.Pickler):
     """
-    Custom Pickler to handle the :ref:`Executor` object.
-    When an :ref:`Executor` is encountered, it will not be serialized directly.
-    Instead, it will return a marker that can be used to reconstruct the :ref:`Executor` later.
+    Custom Pickler to handle the `Executor` object.
+    When an `Executor` is encountered, it will not be serialized directly.
+    Instead, it will return a marker that can be used to reconstruct the `Executor` later.
     """
 
     def __init__(self, file):
@@ -17,7 +17,7 @@ class ExecutorPickler(dill.Pickler):
     def persistent_id(self, obj):
         """
         This method is called when an object is being serialized.
-        If the object is an instance of :ref:`Executor`, it returns a marker that can be used to reconstruct the :ref:`Executor` later.
+        If the object is an instance of `Executor`, it returns a marker that can be used to reconstruct the `Executor` later.
         Otherwise, it returns None, allowing the default serialization behavior to take place.
         """
 
@@ -28,8 +28,8 @@ class ExecutorPickler(dill.Pickler):
 
 class ExecutorUnpickler(dill.Unpickler):
     """
-    Custom Unpickler to handle the :ref:`Executor` object.
-    When a marker for an :ref:`Executor` is encountered, it will return the :ref:`Executor` instance that was provided during initialization.
+    Custom Unpickler to handle the `Executor` object.
+    When a marker for an `Executor` is encountered, it will return the `Executor` instance that was provided during initialization.
     """
 
     def __init__(self, file, executor: Executor):
@@ -39,7 +39,7 @@ class ExecutorUnpickler(dill.Unpickler):
     def persistent_load(self, pid):
         """
         This method is called when an object is being deserialized.
-        If the persistent ID indicates that it is an :ref:`Executor`, it returns the :ref:`Executor` instance.
+        If the persistent ID indicates that it is an `Executor`, it returns the `Executor` instance.
         Otherwise, it calls the superclass method to handle the default deserialization behavior.
         """
 
