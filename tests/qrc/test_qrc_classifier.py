@@ -1,12 +1,13 @@
 """Tests for QRCClassifier"""
 
+import io
 import pytest
 
 import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.preprocessing import MinMaxScaler
 
-from squlearn import Executor
+from squlearn import Executor, qrc
 from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.qrc.qrc_classifier import QRCClassifier
 
@@ -53,3 +54,29 @@ class TestQRCClassifier:
             "kernel": np.array([0, 1, 0, 0, 0, 1]),
         }
         assert np.allclose(values, referece_values[ml_model], atol=1e-7)
+
+    @pytest.mark.parametrize(
+        "ml_model",
+        [
+            "linear",
+            "mlp",
+            "kernel",
+        ],
+    )
+    def test_serialization(self, data, ml_model):
+        """Tests concerning the serialization of the QRCClassifier."""
+        X, y = data
+        qrc_classifier = self.qrc_classifier(ml_model)
+        qrc_classifier.fit(X, y)
+
+        buffer = io.BytesIO()
+        qrc_classifier.dump(buffer)
+
+        predict_before = qrc_classifier.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QRCClassifier.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QRCClassifier)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

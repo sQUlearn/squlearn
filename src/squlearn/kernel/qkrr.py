@@ -17,10 +17,10 @@ else:
 
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
-from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
+from ..util.serialization import SerializableModelMixin
 
 
-class QKRR(BaseEstimator, RegressorMixin):
+class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
     r"""
     Quantum Kernel Ridge Regression.
 

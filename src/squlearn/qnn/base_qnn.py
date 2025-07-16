@@ -24,6 +24,7 @@ from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
+from ..util.serialization import SerializableModelMixin
 
 from .loss.qnn_loss_base import QNNLossBase
 
@@ -31,7 +32,7 @@ from .lowlevel_qnn import LowLevelQNN
 from .util.training import ShotControlBase
 
 
-class BaseQNN(BaseEstimator, ABC):
+class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
     """Base Class for Quantum Neural Networks.
 
     Args:

@@ -1,5 +1,6 @@
 """Tests for QNNRegressor"""
 
+import io
 import pytest
 
 import numpy as np
@@ -204,3 +205,21 @@ class TestQNNRegressor:
         assert qnn_regressor._is_fitted
         assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
         assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)
+
+    def test_serialization(self, qnn_regressor, request, data):
+        """Tests concerning the serialization of the QNNRegressor."""
+
+        X, y = data
+        qnn_regressor.fit(X, y)
+
+        buffer = io.BytesIO()
+        qnn_regressor.dump(buffer)
+
+        predict_before = qnn_regressor.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QNNRegressor.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QNNRegressor)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

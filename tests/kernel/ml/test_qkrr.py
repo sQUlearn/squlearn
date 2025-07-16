@@ -1,11 +1,11 @@
 """Tests for QKRR"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
 
 from sklearn.datasets import make_regression
-from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
@@ -26,7 +26,7 @@ class TestQKRR:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qkrr_fidelity(self) -> QKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)  # why?
@@ -42,7 +42,7 @@ class TestQKRR:
         )
         return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qkrr_pqk(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)  # why?
@@ -178,3 +178,22 @@ class TestQKRR:
         qkrr_instance.predict(X)
 
         assert qkrr_instance._quantum_kernel._regularize_matrix.call_count == 2
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_serialization(self, qkrr, request, data):
+        """Tests serialization of QKRR."""
+        instance = request.getfixturevalue(qkrr)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QKRR.load(buffer, Executor())
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QKRR)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)

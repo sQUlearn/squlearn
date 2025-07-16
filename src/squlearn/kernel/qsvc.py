@@ -4,9 +4,10 @@ from sklearn.svm import SVC
 from typing import Union, Optional
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from ..util.serialization import SerializableModelMixin
 
 
-class QSVC(SVC):
+class QSVC(SVC, SerializableModelMixin):
     """
     Quantum Support Vector Classification
 
