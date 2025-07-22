@@ -74,7 +74,9 @@ class KernelOptimizer(KernelMatrixBase):
 
         if self._initial_parameters is None:
             if self._quantum_kernel.parameters is None:
-                self._generate_initial_parameters(num_features=num_features)
+                self._parameters = self._encoding_circuit.generate_initial_parameters(
+                    seed=self._parameter_seed, num_features=num_features
+                )
             self._initial_parameters = self._quantum_kernel.parameters
 
         # Perform kernel optimization

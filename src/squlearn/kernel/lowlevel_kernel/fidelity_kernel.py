@@ -196,9 +196,6 @@ class FidelityKernel(KernelMatrixBase):
         """
         num_features = extract_num_features(x)
 
-        if self._parameters is None:
-            self._generate_initial_parameters(num_features=num_features)
-
         if y is None:
             y = x
 
