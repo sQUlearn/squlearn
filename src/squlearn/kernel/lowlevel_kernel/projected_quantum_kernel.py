@@ -903,14 +903,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                         "Unknown type of measurement: {}".format(type(self._measurement_input))
                     )
 
-            # Check if the number of parameters is correct
-            if self._parameters is not None:
-                if len(self._parameters) != self.num_parameters:
-                    raise ValueError(
-                        "Number of initial parameters is wrong, expected number: {}".format(
-                            self.num_parameters
-                        )
-                    )
+            self.__check_num_params()
             self._is_initialized = True
 
     def __check_num_params(self):
