@@ -56,7 +56,7 @@ class TestQGPC:
         """QGPC module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor()
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=None, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit,
             executor=executor,
@@ -70,7 +70,7 @@ class TestQGPC:
         """QGPC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor()
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=None, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )

@@ -55,7 +55,7 @@ class TestQKRR:
         """QKRR module with FidelityKernel."""
         np.random.seed(42)
         executor = Executor()
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit=encoding_circuit,
             executor=executor,
@@ -69,7 +69,7 @@ class TestQKRR:
         """QKRR module with ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor()
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )

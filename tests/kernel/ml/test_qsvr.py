@@ -57,7 +57,7 @@ class TestQSVR:
         np.random.seed(42)
         executor = Executor()
         encoding_circuit = MultiControlEncodingCircuit(
-            num_qubits=3, num_layers=2, num_features=None
+            num_qubits=3, num_layers=2
         )
         kernel = FidelityKernel(
             encoding_circuit,
@@ -73,7 +73,7 @@ class TestQSVR:
         np.random.seed(42)
         executor = Executor()
         encoding_circuit = MultiControlEncodingCircuit(
-            num_qubits=3, num_layers=2, num_features=None
+            num_qubits=3, num_layers=2
         )
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
