@@ -73,15 +73,10 @@ class QGPC(GaussianProcessClassifier):
         self._kernel_params = kwargs
 
         # determine the parameters that are relevant for the superclass
-        valid_superclass_params = self._get_param_names()
-        superclass_params = {
-            param_name: param_value
-            for param_name, param_value in self._kernel_params.items()
-            if param_name in valid_superclass_params
-        }
+        superclass_params = set(self._get_param_names()) & self._kernel_params.keys()
 
         # call the constructor of the superclass only with the relevant parameters
-        super().__init__(**superclass_params)
+        super().__init__(**{key: self._kernel_params[key] for key in superclass_params})
 
     @classmethod
     def _get_param_names(cls):

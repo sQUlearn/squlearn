@@ -83,12 +83,7 @@ class QSVR(SVR):
         self._kernel_params = kwargs
 
         # filter parameters to pass to the superclass (SVC)
-        valid_superclass_params = self._get_param_names()
-        superclass_params = {
-            param_name: param_value
-            for param_name, param_value in self._kernel_params.items()
-            if param_name in valid_superclass_params
-        }
+        superclass_params = set(self._get_param_names()) & self._kernel_params.keys()
 
         # determine the kernel parameter passed to the SVC:
         # if quantum_kernel is a KernelMatrixBase, use its evaluate method, otherwise use 'precomputed'
@@ -98,7 +93,9 @@ class QSVR(SVR):
             kernel_argument = "precomputed"
 
         # call the constructor of the superclass with the filtered parameters and the appropriate kernel
-        super().__init__(kernel=kernel_argument, **superclass_params)
+        super().__init__(
+            kernel=kernel_argument, **{key: self._kernel_params[key] for key in superclass_params}
+        )
 
     @classmethod
     def _get_param_names(cls):
