@@ -111,7 +111,7 @@ intersphinx_mapping = {
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "sklearn": ("https://scikit-learn.org/1.4/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 
 suppress_warnings = ["myst.header", "config.cache"]
@@ -119,3 +119,4 @@ suppress_warnings = ["myst.header", "config.cache"]
 # base URL for sphinx_sitemap
 html_baseurl = "https://squlearn.github.io/"
 sitemap_url_scheme = "{link}"
+sitemap_show_lastmod = False
