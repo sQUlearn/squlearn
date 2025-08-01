@@ -12,7 +12,8 @@ from ...util.executor import Executor
 # from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
 # from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
 from ...util.data_preprocessing import to_tuple, adjust_features
-from ...util.qulacs.qulacs_circuit import QulacsCircuit, evaluate_circuit_statevec
+from ...util.qulacs.qulacs_circuit import QulacsCircuit
+from ...util.qulacs.qulacs_execution import qulacs_evaluate_statevector
 
 from functools import lru_cache
 
@@ -67,7 +68,12 @@ class FidelityKernelQulacs:
             @lru_cache(maxsize=self._cache_size)
             def qulacs_circuit_executor(*args):
                 args_numpy = [np.array(arg) for arg in args]
-                return evaluate_circuit_statevec(self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
+                if  len(args_numpy) == 0:
+                    return qulacs_evaluate_statevector(self._qulacs_circuit)
+                elif len(args_numpy) == 1:
+                    return qulacs_evaluate_statevector(self._qulacs_circuit, x=args_numpy[0])
+                elif len(args_numpy) == 2:
+                    return qulacs_evaluate_statevector(self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
 
             self._qulacs_circuit_cached = qulacs_circuit_executor
 

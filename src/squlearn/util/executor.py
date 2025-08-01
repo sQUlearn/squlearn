@@ -410,7 +410,7 @@ class Executor:
             BaseEstimatorV2,
             BaseSamplerV2,
             PennylaneDevice,
-        ] = "pennylane",
+        ] = "qulacs",
         options_estimator: Union[Any, None] = None,
         options_sampler: Union[Any, None] = None,
         log_file: str = "",
@@ -2127,8 +2127,8 @@ class Executor:
         if self.quantum_framework == "qulacs":
 
             if num_shots != 0:
-                raise ValueError("Qulacs does not support shot-based sampling!"
-                                 "It only supports statevector simulation.")
+                raise RuntimeError("Qulacs does not support shot-based sampling;"
+                                   " it only supports statevector simulation.")
 
         elif self.quantum_framework == "pennylane":
 

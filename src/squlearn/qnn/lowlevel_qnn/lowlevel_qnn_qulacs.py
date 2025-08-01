@@ -13,8 +13,8 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
 from ...util import Executor
 from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
-from ...util.qulacs import QulacsCircuit, evaluate_circuit
-from ...util.qulacs.qulacs_circuit import evaluate_circuit_gradient, evaluate_operator_gradient
+from ...util.qulacs import QulacsCircuit
+from ...util.qulacs.qulacs_execution import qulacs_evaluate, qulacs_gradient, qulacs_operator_gradient
 from ...util.decompose_to_std import decompose_to_std
 
 
@@ -334,7 +334,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                 todo_class = get_evaluation_class(todo, self._not_implemented)
             except RuntimeError as e:
                 raise RuntimeError(
-                    "High order derivatives are not supported with qulacs, please use pennylane"
+                    "High-order derivatives are not supported with Qulacs. "
+                    "Please use PennyLane instead."
                 )
 
             if todo_class.key in value_dict:
@@ -366,7 +367,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # Evaluation of the QNN
 
                     output = [
-                        evaluate_circuit(
+                        qulacs_evaluate(
                             qulacs_circuit, param=param_inp_, x=x_inp_, param_obs=param_obs_inp_
                         )
                         for x_inp_ in x_inp
@@ -383,19 +384,19 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                             derivative_object = self._x
                         else:
                             derivative_object = todo_class.key
-                        gradient_func = evaluate_circuit_gradient
+                        gradient_func = qulacs_gradient
                     elif todo_class.argnum[0] == 0:
                         if isinstance(todo_class.key, str):
                             derivative_object = self._param
                         else:
                             derivative_object = todo_class.key
-                        gradient_func = evaluate_circuit_gradient
+                        gradient_func = qulacs_gradient
                     elif todo_class.argnum[0] == 2:
                         if isinstance(todo_class.key, str):
                             derivative_object = self._param_obs
                         else:
                             derivative_object = todo_class.key
-                        gradient_func = evaluate_operator_gradient
+                        gradient_func = qulacs_operator_gradient
                     else:
                         raise RuntimeError("Unknown argument number:", todo_class.argnum[0])
 
