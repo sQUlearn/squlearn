@@ -410,7 +410,7 @@ class Executor:
             BaseEstimatorV2,
             BaseSamplerV2,
             PennylaneDevice,
-        ] = "qulacs",
+        ] = "pennylane",
         options_estimator: Union[Any, None] = None,
         options_sampler: Union[Any, None] = None,
         log_file: str = "",
