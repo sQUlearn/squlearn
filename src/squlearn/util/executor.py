@@ -2126,7 +2126,9 @@ class Executor:
 
         if self.quantum_framework == "qulacs":
 
-            pass  # TODO
+            if num_shots != 0:
+                raise ValueError("Qulacs does not support shot-based sampling!"
+                                 "It only supports statevector simulation.")
 
         elif self.quantum_framework == "pennylane":
 
