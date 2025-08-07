@@ -75,7 +75,8 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sQUlearn/squlearn"
+github = "https://github.com/sQUlearn/squlearn"
+documentation = "https://squlearn.github.io"
 
 [tool.black]
 line-length=99
