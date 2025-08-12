@@ -743,14 +743,14 @@ class Executor:
                 )
             if self.qpu_parallelization:
                 raise ValueError("QPU parallelization is not supported for PennyLane devices!")
-
             self._remote_backend = not any(
-                substring in str(self._pennylane_device)
+                substring in self._pennylane_device.name.lower()
                 for substring in [
                     "default.qubit",
                     "default.mixed",
                     "default.clifford",
-                    "Lightning Qubit",
+                    "lightning.qubit",
+                    "lightning.gpu"
                 ]
             )
         else:
@@ -2566,7 +2566,12 @@ class Executor:
         elif self.quantum_framework == "pennylane":
             return any(
                 name in self._pennylane_device.name.lower()
-                for name in ["default.qubit", "default.clifford", "lightning.qubit"]
+                for name in [
+                    "default.qubit",
+                    "default.mixed",
+                    "default.clifford",
+                    "lightning.qubit",
+                    "lightning.gpu"]
             )
         else:
             raise RuntimeError("Unknown quantum framework!")
