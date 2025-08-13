@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from typing import Tuple, Union
 
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Parameter
 from qiskit.circuit import QuantumCircuit
 
 from squlearn.util.data_preprocessing import extract_num_features
@@ -137,12 +137,26 @@ class EncodingCircuitBase(ABC):
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
 
-        if self.num_features is None and num_features is None:
-            raise ValueError("Number of features has to be provided!")
-        elif self.num_features is not None and num_features is None:
-            num_features = self.num_features
+        if (
+            self.num_features is None
+            and num_features is None
+            and self.num_encoding_slots is not np.inf
+        ):
+            feature_vec = ParameterVector(feature_label, self.num_encoding_slots)
 
-        feature_vec = ParameterVector(feature_label, num_features)
+        elif self.num_features is not None and num_features is None:
+            feature_vec = ParameterVector(feature_label, self.num_features)
+        else:
+            feature_vec = [Parameter(feature_label)]
+
+        # ensure random configuration is available
+        if hasattr(self, "_is_config_available") and not self._is_config_available:
+            self._gen_random_config(num_features=num_features, seed=self.get_params()["seed"])
+
+        # ensure that the LayeredEncodingCircuit is built before drawing
+        if hasattr(self, "_build_layered_pqc"):
+            self._build_layered_pqc(num_features)
+
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
@@ -214,7 +228,7 @@ class EncodingCircuitBase(ABC):
         """
         actual_num_features = extract_num_features(x)
 
-        if actual_num_features != self.num_features and self.num_features is not None:
+        if self.num_features is not None and actual_num_features != self.num_features:
             raise ValueError(
                 f"Number of features in the input data ({actual_num_features}) "
                 f"does not match the number of features in the encoding circuit ({self.num_features})."

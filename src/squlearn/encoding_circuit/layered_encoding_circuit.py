@@ -2259,30 +2259,6 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         return layered_pqc
 
-    def draw(
-        self,
-        output=None,
-        num_features=None,
-        feature_label="x",
-        parameter_label="p",
-        decompose=False,
-        **kwargs,
-    ):
-        if self._num_features is None and num_features is None:
-            raise ValueError("Number of features has to be provided!")
-        elif self._num_features is not None and num_features is None:
-            num_features = self._num_features
-
-        layered_pqc = self._build_layered_pqc(num_features)
-
-        feature_vec = ParameterVector(feature_label, num_features)
-        parameters_vec = ParameterVector(parameter_label, self.num_parameters)
-
-        circ = layered_pqc.get_circuit(feature_vec, parameters_vec)
-        if decompose:
-            circ = circ.decompose()
-        return circ.draw(output, **kwargs)
-
     @classmethod
     def from_string(
         cls,

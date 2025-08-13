@@ -174,6 +174,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         self.seed = seed
         self.available_feature_gates = None
         self._num_parameters = None
+        self._is_config_available = False
 
     def get_circuit(
         self,
@@ -342,6 +343,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         )
 
         self.available_feature_gates = num_feature_gates
+        self._is_config_available = True
 
     @property
     def num_parameters(self) -> int:
@@ -411,4 +413,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                 setattr(self, key, value)
             except:
                 setattr(self, "_" + key, value)
+
+        # Reset the random configuration
+        self._is_config_available = False
         return self
