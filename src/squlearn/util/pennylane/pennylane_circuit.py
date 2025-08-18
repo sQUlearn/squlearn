@@ -11,7 +11,7 @@ from qiskit.quantum_info import SparsePauliOp
 import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
-from pennylane.operation import Observable as PennyLaneObservable
+from pennylane.operation import Operator
 
 from .pennylane_gates import qiskit_pennylane_gate_dict
 from ..decompose_to_std import decompose_to_std
@@ -129,8 +129,8 @@ class PennyLaneCircuit:
             SparsePauliOp,
             List[SparsePauliOp],
             str,
-            PennyLaneObservable,
-            List[PennyLaneObservable],
+            Operator,
+            List[Operator],
         ] = None,
     ) -> None:
 
