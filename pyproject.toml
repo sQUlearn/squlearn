@@ -73,10 +73,12 @@ docs = [
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme<3.0.0",
     "sphinx-sitemap",
+    "scikit-learn!=1.7.1",
 ]
 
 [project.urls]
-Homepage = "https://github.com/sQUlearn/squlearn"
+github = "https://github.com/sQUlearn/squlearn"
+documentation = "https://squlearn.github.io"
 
 [tool.black]
 line-length=99
