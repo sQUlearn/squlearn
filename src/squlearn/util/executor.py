@@ -754,7 +754,7 @@ class Executor:
                     "default.mixed",
                     "default.clifford",
                     "lightning.qubit",
-                    "lightning.gpu"
+                    "lightning.gpu",
                 ]
             )
         else:
@@ -2565,7 +2565,8 @@ class Executor:
                     "default.mixed",
                     "default.clifford",
                     "lightning.qubit",
-                    "lightning.gpu"]
+                    "lightning.gpu",
+                ]
             )
         else:
             raise RuntimeError("Unknown quantum framework!")
