@@ -66,19 +66,27 @@ class FidelityKernelQulacs:
             @lru_cache(maxsize=self._cache_size)
             def qulacs_circuit_executor(*args):
                 args_numpy = [np.array(arg) for arg in args]
-                if  len(args_numpy) == 0:
-                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit)
+                if len(args_numpy) == 0:
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector, self._qulacs_circuit
+                    )
                 elif len(args_numpy) == 1:
-                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit, x=args_numpy[0])
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector, self._qulacs_circuit, x=args_numpy[0]
+                    )
                 elif len(args_numpy) == 2:
-                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector,
+                        self._qulacs_circuit,
+                        p=args_numpy[0],
+                        x=args_numpy[1],
+                    )
 
             self._qulacs_circuit_cached = qulacs_circuit_executor
 
         else:
 
             raise NotImplementedError("FidelityKernelQulacs is not implemented for shots")
-
 
     @property
     def num_parameters(self) -> int:

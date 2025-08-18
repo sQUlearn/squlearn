@@ -14,7 +14,11 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 from ...util.qulacs import QulacsCircuit
-from ...util.qulacs.qulacs_execution import qulacs_evaluate, qulacs_gradient, qulacs_operator_gradient
+from ...util.qulacs.qulacs_execution import (
+    qulacs_evaluate,
+    qulacs_gradient,
+    qulacs_operator_gradient,
+)
 from ...util.decompose_to_std import decompose_to_std
 
 
@@ -365,8 +369,12 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # Evaluation of the QNN
 
                     output = [
-                        self._executor.qulacs_execute(qulacs_evaluate,
-                            qulacs_circuit, param=param_inp_, x=x_inp_, param_obs=param_obs_inp_
+                        self._executor.qulacs_execute(
+                            qulacs_evaluate,
+                            qulacs_circuit,
+                            param=param_inp_,
+                            x=x_inp_,
+                            param_obs=param_obs_inp_,
                         )
                         for x_inp_ in x_inp
                         for param_inp_ in param_inp

@@ -175,6 +175,7 @@ from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
 from .pennylane import PennyLaneCircuit
 from .qulacs import QulacsCircuit
 
+
 class Executor:
     r"""
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -829,7 +830,9 @@ class Executor:
                 func_name = qulacs_execution.__name__
             else:
                 raise ValueError("Unknown function specified as qulacs execution")
-            hash_value = self._cache.hash_variable(["qulacs",func_name,qulacs_circuit.hash, kwargs])
+            hash_value = self._cache.hash_variable(
+                ["qulacs", func_name, qulacs_circuit.hash, kwargs]
+            )
 
             # Check if the result is already cached
             result = self._cache.get_file(hash_value)
@@ -838,9 +841,7 @@ class Executor:
         if result is None:
             if self._caching:
                 self._logger.info(
-                    f"Execution of qulacs circuit with hash value: {{}}".format(
-                        hash_value
-                    )
+                    f"Execution of qulacs circuit with hash value: {{}}".format(hash_value)
                 )
             else:
                 self._logger.info(f"Execution of qulacs circuit")
@@ -848,16 +849,13 @@ class Executor:
             cached = False
             self._logger.info(f"Execution of qulacs successful")
         elif self._caching:
-            self._logger.info(
-                f"Cached result found with hash value: {{}}".format(hash_value)
-            )
+            self._logger.info(f"Cached result found with hash value: {{}}".format(hash_value))
 
         # Store the result in the cache if caching is enabled and not already cached
         if self._caching and not cached:
             self._cache.store_file(hash_value, copy.copy(result))
 
         return result
-
 
     def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
         """
@@ -2196,8 +2194,10 @@ class Executor:
         if self.quantum_framework == "qulacs":
 
             if num_shots != 0:
-                raise RuntimeError("Qulacs does not support shot-based sampling;"
-                                   " it only supports statevector simulation.")
+                raise RuntimeError(
+                    "Qulacs does not support shot-based sampling;"
+                    " it only supports statevector simulation."
+                )
 
         elif self.quantum_framework == "pennylane":
 
