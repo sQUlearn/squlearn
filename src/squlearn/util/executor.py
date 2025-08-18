@@ -17,10 +17,10 @@ import numpy as np
 from packaging import version
 
 import pennylane as qml
+from pennylane import __version__ as pennylane_version
 from pennylane.devices import Device as PennylaneDevice
-from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import (
     Estimator as PrimitiveEstimatorV1,
@@ -37,7 +37,7 @@ from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
-if version.parse(qml.__version__) < version.parse("0.39.0"):
+if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
 else:
     from pennylane.devices import QubitDevice
@@ -172,6 +172,7 @@ else:
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
+from .pennylane import PennyLaneCircuit
 
 
 class Executor:
@@ -754,7 +755,7 @@ class Executor:
                     "default.mixed",
                     "default.clifford",
                     "lightning.qubit",
-                    "lightning.gpu"
+                    "lightning.gpu",
                 ]
             )
         else:
@@ -817,6 +818,14 @@ class Executor:
             hash_value = [hash(pennylane_circuit), args]
 
         # Helper function for execution
+        if isinstance(pennylane_circuit, PennyLaneCircuit):
+            pennylane_circuit = pennylane_circuit.pennylane_circuit
+            pennylane_circuit = qml.QNode(pennylane_circuit, self.backend, diff_method="best")
+        if isinstance(pennylane_circuit, qml.QNode) and version.parse(
+            pennylane_version
+        ) >= version.parse("0.42.0"):
+            pennylane_circuit = qml.set_shots(pennylane_circuit, shots=self.shots)
+
         def execute_circuit():
             return pennylane_circuit(*args, **kwargs)
 
@@ -852,14 +861,21 @@ class Executor:
         hash_value = ""
         batched_tapes = []
         for i, arg_tuple in enumerate(arg_tuples):
-            pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
+            circuit = pennylane_circuit[i]
+            if isinstance(circuit, PennyLaneCircuit):
+                circuit = circuit.pennylane_circuit
 
-            if hasattr(pennylane_circuit[i].pennylane_circuit, "hash"):
-                hash_value += str(pennylane_circuit[i].pennylane_circuit.hash)
+            circuit = qml.QNode(circuit, self.backend, diff_method="best")
+            if version.parse(pennylane_version) >= version.parse("0.42.0"):
+                circuit = qml.set_shots(circuit, shots=self.shots)
+            circuit.construct(arg_tuple, kwargs)
+
+            if hasattr(circuit, "hash"):
+                hash_value += str(circuit.hash)
             else:
-                hash_value += str(hash(pennylane_circuit[i].pennylane_circuit))
+                hash_value += str(hash(circuit))
 
-            batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
+            batched_tapes.append(circuit._tape)
 
         hash_value = [hash_value, arg_tuples]
 
@@ -2117,7 +2133,10 @@ class Executor:
 
         if self.quantum_framework == "pennylane":
 
-            if self._pennylane_device is not None:
+            if (
+                version.parse(pennylane_version) < version.parse("0.42.0")
+                and self._pennylane_device is not None
+            ):
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
                     if num_shots == 0:
                         self._pennylane_device._shots = qml.measurements.Shots(None)
@@ -2210,7 +2229,10 @@ class Executor:
 
         if self.quantum_framework == "pennylane":
 
-            if self._pennylane_device is not None:
+            if (
+                version.parse(pennylane_version) < version.parse("0.42.0")
+                and self._pennylane_device is not None
+            ):
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
                     shots = self._pennylane_device.shots.total_shots
                 elif (
@@ -2218,8 +2240,6 @@ class Executor:
                     or self._pennylane_device.shots is None
                 ):
                     shots = self._pennylane_device.shots
-            else:
-                return None  # No shots available
 
         elif self.quantum_framework == "qiskit":
 
@@ -2565,7 +2585,8 @@ class Executor:
                     "default.mixed",
                     "default.clifford",
                     "lightning.qubit",
-                    "lightning.gpu"]
+                    "lightning.gpu",
+                ]
             )
         else:
             raise RuntimeError("Unknown quantum framework!")
