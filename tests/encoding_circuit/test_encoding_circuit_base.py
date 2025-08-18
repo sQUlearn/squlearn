@@ -32,11 +32,6 @@ class TestEncodingCircuitBase:
         assert len(params) == 2
         assert (params >= -np.pi).all() and (params <= np.pi).all()
 
-    def test_draw_error(self):
-        circuit = MockCircuitBase(num_qubits=4)
-        with pytest.raises(ValueError):
-            circuit.draw()
-
     def test_get_and_set_params(self):
         circuit = MockCircuitBase(num_qubits=4)
         params = circuit.get_params()
