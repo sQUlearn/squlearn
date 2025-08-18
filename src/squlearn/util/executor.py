@@ -173,7 +173,7 @@ from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSam
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
 from .pennylane import PennyLaneCircuit
-
+from .qulacs import QulacsCircuit
 
 class Executor:
     r"""
@@ -805,6 +805,59 @@ class Executor:
     def quantum_framework(self) -> str:
         """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
+
+    def qulacs_execute(self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs):
+        """
+        Function for executing of Qulacs circuits with the Executor with caching and restarts
+        Args:
+            qulacs_circuit (callable): The Qulacs circuit function
+            *args: Arguments for the circuit
+            **kwargs: Keyword arguments for the circuit
+
+        Returns:
+            The result of the circuit
+        """
+
+        result = None
+        cached = True
+        hash_value = None
+        # Check if the result of the qulacs execution is already cached
+        if self._caching:
+
+            # Get hash value of the circuit
+            if hasattr(qulacs_execution, "__name__"):
+                func_name = qulacs_execution.__name__
+            else:
+                raise ValueError("Unknown function specified as qulacs execution")
+            hash_value = self._cache.hash_variable(["qulacs",func_name,qulacs_circuit.hash, kwargs])
+
+            # Check if the result is already cached
+            result = self._cache.get_file(hash_value)
+
+        # If the result is not cached, execute the circuit
+        if result is None:
+            if self._caching:
+                self._logger.info(
+                    f"Execution of qulacs circuit with hash value: {{}}".format(
+                        hash_value
+                    )
+                )
+            else:
+                self._logger.info(f"Execution of qulacs circuit")
+            result = qulacs_execution(qulacs_circuit, **kwargs)
+            cached = False
+            self._logger.info(f"Execution of qulacs successful")
+        elif self._caching:
+            self._logger.info(
+                f"Cached result found with hash value: {{}}".format(hash_value)
+            )
+
+        # Store the result in the cache if caching is enabled and not already cached
+        if self._caching and not cached:
+            self._cache.store_file(hash_value, copy.copy(result))
+
+        return result
+
 
     def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
         """

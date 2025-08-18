@@ -24,7 +24,6 @@ from qulacs import Observable, GradCalculator, GeneralQuantumOperator, PauliOper
 # from qulacs.operation import Observable as QulacsObservable
 
 from .qulacs_gates import qiskit_qulacs_gate_dict, qiskit_qulacs_param_gate_dict
-from ..executor import Executor
 from ..decompose_to_std import decompose_to_std
 
 
@@ -36,7 +35,6 @@ class QulacsCircuit:
         circuit (QiskitQuantumCircuit): Qiskit circuit to convert to Qulacs
         observable (Union[None, SparsePauliOp, List[SparsePauliOp], str]): Observable to be measured
                                                                            Can be also a string like ``"probs"`` or ``"state"``
-        executor (Executor): Executor object to handle the Qulacs circuit. Has to be initialized with a Qulacs device.
 
     Attributes:
     -----------
@@ -62,16 +60,8 @@ class QulacsCircuit:
             SparsePauliOp,
             List[SparsePauliOp],
             str,
-            # QulacsObservable, TODO?
-            # List[QulacsObservable], TODO?
         ] = None,
-        executor: Executor = None,
     ) -> None:
-
-        self._executor = executor
-        if self._executor is None:
-            pass
-            # self._executor = Executor("qulacs") #  TODO implement
 
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
@@ -79,13 +69,8 @@ class QulacsCircuit:
             basis_gates=qiskit_qulacs_gate_dict.keys(),
             optimization_level=0,
         )
-
-        # print("self._qiskit_circuit",self._qiskit_circuit)
-
-        # self._qiskit_circuit = decompose_to_std(circuit)
-        # self._qiskit_circuit = circuit
-
         self._qiskit_observable = observable
+        self._hash = str(self._qiskit_circuit) + str(self._qiskit_observable)
         self._num_qubits = self._qiskit_circuit.num_qubits
 
         self._is_qiskit_observable = False
@@ -165,7 +150,7 @@ class QulacsCircuit:
     @property
     def hash(self) -> str:
         """Hashable object of the circuit and observable for caching"""
-        return str(self._qiskit_circuit) + str(self._qiskit_observable)
+        return self._hash
 
     def draw(self, engine: str = "qulacs", **kwargs):
         """Draw the circuit with the specified engine

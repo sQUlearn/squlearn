@@ -125,12 +125,10 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             raise ValueError("Observable must be of type ObservableBase or list")
 
         # PennyLane Circuit function of the QNN
-        self._qulacs_circuit = QulacsCircuit(
-            self._qiskit_circuit, self._qiskit_observable, self._executor
-        )
+        self._qulacs_circuit = QulacsCircuit(self._qiskit_circuit, self._qiskit_observable)
         # PennyLane Circuit function with a squared observable
         self._qulacs_circuit_squared = QulacsCircuit(
-            self._qiskit_circuit, self._qiskit_observable_squared, self._executor
+            self._qiskit_circuit, self._qiskit_observable_squared
         )
 
     def set_params(self, **params) -> None:
@@ -367,7 +365,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                     # Evaluation of the QNN
 
                     output = [
-                        qulacs_evaluate(
+                        self._executor.qulacs_execute(qulacs_evaluate,
                             qulacs_circuit, param=param_inp_, x=x_inp_, param_obs=param_obs_inp_
                         )
                         for x_inp_ in x_inp
@@ -409,9 +407,10 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                             )
 
                     output = [
-                        gradient_func(
+                        self._executor.qulacs_execute(
+                            gradient_func,
                             qulacs_circuit,
-                            derivative_object,
+                            parameters=derivative_object,
                             param=param_inp_,
                             x=x_inp_,
                             param_obs=param_obs_inp_,

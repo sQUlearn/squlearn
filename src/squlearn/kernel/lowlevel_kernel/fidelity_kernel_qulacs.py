@@ -61,19 +61,17 @@ class FidelityKernelQulacs:
                 self._parameter_vector = None
 
             enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-            self._qulacs_circuit = QulacsCircuit(
-                enc_circ, None, self._executor
-            )  # , "state", self._executor)
+            self._qulacs_circuit = QulacsCircuit(enc_circ, None)
 
             @lru_cache(maxsize=self._cache_size)
             def qulacs_circuit_executor(*args):
                 args_numpy = [np.array(arg) for arg in args]
                 if  len(args_numpy) == 0:
-                    return qulacs_evaluate_statevector(self._qulacs_circuit)
+                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit)
                 elif len(args_numpy) == 1:
-                    return qulacs_evaluate_statevector(self._qulacs_circuit, x=args_numpy[0])
+                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit, x=args_numpy[0])
                 elif len(args_numpy) == 2:
-                    return qulacs_evaluate_statevector(self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
+                    return self._executor.qulacs_execute(qulacs_evaluate_statevector,self._qulacs_circuit, p=args_numpy[0], x=args_numpy[1])
 
             self._qulacs_circuit_cached = qulacs_circuit_executor
 
@@ -81,22 +79,6 @@ class FidelityKernelQulacs:
 
             raise NotImplementedError("FidelityKernelQulacs is not implemented for shots")
 
-            # Mode 2 for qasm: calculate the |0> probabilities of the quantum circuit U(x)U(x)'
-
-            # not clear if needed
-
-            x1 = ParameterVector("x1", self.num_features)
-            x2 = ParameterVector("x2", self.num_features)
-            if self.num_parameters > 0:
-                self._parameter_vector = ParameterVector("p", self.num_parameters)
-            else:
-                self._parameter_vector = None
-
-            enc_circ1 = self._encoding_circuit.get_circuit(x1, self._parameter_vector)
-            enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
-
-            circuit = enc_circ1.compose(enc_circ2.inverse())
-            self._qulacs_circuit = QulacsCircuit(circuit, None, self._executor)
 
     @property
     def num_parameters(self) -> int:
