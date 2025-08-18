@@ -75,7 +75,7 @@ class TestExecutor:
         qc = QuantumCircuit(2)
         qc.x([0, 1])
         return qc
-    
+
     @pytest.fixture(scope="module")
     def parameterized_circuit(self):
         x = ParameterVector("x", 2)
@@ -277,7 +277,9 @@ class TestExecutor:
         executor = request.getfixturevalue(executor_str)
         circuit = [PennyLaneCircuit(parameterized_circuit, "probs")] * 4
 
-        res = executor.pennylane_execute_batched(circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)])
+        res = executor.pennylane_execute_batched(
+            circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
+        )
         assert np.allclose(assert_dict[executor_str], res)
 
     @pytest.mark.parametrize(
@@ -288,7 +290,9 @@ class TestExecutor:
             "ExecutorPennyLaneDevice",
         ],
     )
-    def test_pennylane_observable_batched(self, executor_str, request, parameterized_circuit, observable):
+    def test_pennylane_observable_batched(
+        self, executor_str, request, parameterized_circuit, observable
+    ):
         """Tests the batched PennyLane execution of a circuit with an observable return type."""
 
         assert_dict = {
@@ -300,5 +304,7 @@ class TestExecutor:
         executor = request.getfixturevalue(executor_str)
         circuit = [PennyLaneCircuit(parameterized_circuit, observable)] * 4
 
-        res = executor.pennylane_execute_batched(circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)])
+        res = executor.pennylane_execute_batched(
+            circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
+        )
         assert np.allclose(assert_dict[executor_str], res)
