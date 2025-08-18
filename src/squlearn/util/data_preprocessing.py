@@ -51,7 +51,6 @@ def _adjust_input(
         Adjusted input array and a boolean flag for multiple inputs.
     """
     multiple_inputs = False
-    error = False
     shape = np.shape(x)
 
     if shape == () and x_length == 1:
@@ -59,7 +58,7 @@ def _adjust_input(
         xx = np.array([[x]])
     elif sum(shape) == 0 and x_length > 0:
         # Empty array although x_length not zero
-        error = True
+        raise ValueError(f"Received an empty input, but expected {x_length} features.")
     elif len(shape) == 1:
         if x_length == 1:
             xx = np.array([np.array([xx]) for xx in x])
@@ -72,18 +71,22 @@ def _adjust_input(
             if len(x) == x_length:
                 xx = np.array([x])
             else:
-                error = True
+                raise ValueError(
+                    f"1D input has length {len(x)}, but expected {x_length} features."
+                )
     elif len(shape) == 2:
         if shape[1] == x_length:
             xx = x
             multiple_inputs = True
         else:
-            error = True
+            raise ValueError(
+                f"2D input has shape {shape}, but second dimension must match expected feature dimension {x_length}."
+            )
     else:
-        error = True
-
-    if error:
-        raise ValueError("Wrong format of an input variable.")
+        raise ValueError(
+            f"Unsupported input shape {shape}. Expected scalar, 1D array of length {x_length}, "
+            f"or 2D array with shape (n_samples, {x_length})."
+        )
 
     return convert_to_float64(xx), multiple_inputs
 
