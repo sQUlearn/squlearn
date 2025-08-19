@@ -12,9 +12,11 @@ def qulacs_evaluate(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
     """
     Function to evaluate the Qulacs circuit with the given parameters.
 
+    Computes the expectation values of the observables defined in the circuit data structure.
+
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Result of the evaluation
@@ -46,7 +48,7 @@ def qulacs_evaluate_statevector(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
 
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Statevector solution of the circuit
@@ -61,13 +63,13 @@ def qulacs_evaluate_statevector(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
     return state.get_vector()
 
 
-def qulacs_evaluate_propabilities(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
+def qulacs_evaluate_probabilities(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
     """
-    Function to evaluate the probabilites of the Qulacs circuit with the given parameters.
+    Function to evaluate the probabilities of the Qulacs circuit with the given parameters.
 
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Probabilites of the circuit
@@ -91,9 +93,14 @@ def qulacs_gradient(
     """
     Function to evaluate the Qulacs circuit with the given parameters.
 
+    Computes the gradient of the expectation values of the observables defined in the
+    circuit data structure.
+
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        parameters (Union[None, ParameterVectorElement, List[ParameterVectorElement]]): Parameters
+            that are differentiated in the circuit. If None, no differentiation is performed.
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Result of the evaluation
@@ -139,20 +146,24 @@ def qulacs_operator_gradient(
     """
     Function to evaluate the Qulacs circuit with the given parameters.
 
+    Computes the gradient of the expectation values of the observables defined in the
+    circuit data structure.
+
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        parameters (Union[None, ParameterVectorElement, List[ParameterVectorElement]]): Parameters
+            that are differentiated in the observable. If None, no differentiation is performed.
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Result of the evaluation
     """
 
     obs_param_list = [kwargs[param] for param in circuit.observable_parameter_names]
-    outer_jacobian_new = circuit.get_gradient_outer_jacobian_observables_new(parameters)(
+    outer_jacobian = circuit.get_gradient_outer_jacobian_observables(parameters)(
         *obs_param_list
     )
 
-    # TODO check if this is desired functionality
     circ = circuit.get_circuit_func()(
         *[kwargs[param] for param in circuit.circuit_parameter_names]
     )
@@ -161,7 +172,7 @@ def qulacs_operator_gradient(
     operators = circuit.get_operators_for_gradient(parameters)()
 
     param_obs_values = [
-        outer_jacobian_new[i].T
+        outer_jacobian[i].T
         @ np.array(
             [o if isinstance(o, float) else o.get_expectation_value(state) for o in operator]
         )
@@ -180,9 +191,12 @@ def qulacs_evaluate_causalcone(circuit: QulacsCircuit, **kwargs) -> np.ndarray:
     """
     Function to evaluate the Qulacs circuit with the given parameters.
 
+    Function to evaluate the expectation values of the observables defined in the
+    circuit data structure using the Causal Cone Simulator.
+
     Args:
         circuit (QulacsCircuit): Qulacs circuit to evaluate
-        parameters (List[float]): List of parameters to evaluate the circuit
+        kwargs: Parameters to evaluate the circuit given as keyword arguments
 
     Returns:
         np.ndarray: Result of the evaluation

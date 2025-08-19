@@ -4,9 +4,9 @@ from .qulacs_execution import (
     qulacs_gradient,
     qulacs_operator_gradient,
     qulacs_evaluate_statevector,
+    qulacs_evaluate_probabilities,
 )
 
-from .qulacs_gates import qiskit_qulacs_gate_dict, qiskit_qulacs_param_gate_dict
 
 __all__ = [
     "QulacsCircuit",
@@ -14,4 +14,5 @@ __all__ = [
     "qulacs_gradient",
     "qulacs_operator_gradient",
     "qulacs_evaluate_statevector",
+    "qulacs_evaluate_probabilities",
 ]
