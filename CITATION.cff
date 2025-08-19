@@ -8,8 +8,7 @@ license: Apache-2.0
 repository-code: https://github.com/sQUlearn/squlearn
 preferred-citation:
   type: article
-  status: preprint
-  title: "sQUlearn - A Python Library for Quantum Machine Learning"
+  title: "sQUlearn: A Python Library for Quantum Machine Learning"
   authors:
     - family-names: Kreplin
       given-names: David A.
@@ -35,7 +34,12 @@ preferred-citation:
       given-names: Marco
       orcid: https://orcid.org/0000-0002-1276-5655
       affiliation: Fraunhofer Institute for Manufacturing Engineering and Automation IPA
-  year: 2023
-  month: 11
-  doi: 10.48550/arXiv.2311.08990 
-  url: https://arxiv.org/abs/2311.08990
+  journal: "IEEE Software"
+  start: 65
+  end: 72
+  issue: 5
+  volume: 42
+  year: 2025
+  month: 1
+  doi: 10.1109/MS.2025.3527736
+  url: https://ieeexplore.ieee.org/document/10841386
