@@ -304,7 +304,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             compare_list.append("x")
         if self.num_parameters_observable > 0:
             compare_list.append("param_obs")
-        if self._qulacs_circuit.circuit_arguments != compare_list:
+        if self._qulacs_circuit.argument_names != compare_list:
             raise NotImplementedError("Wrong order of circuit arguments!")
 
         # return dictionary for input data, it will be empty

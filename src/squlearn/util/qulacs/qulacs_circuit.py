@@ -28,12 +28,10 @@ class QulacsCircuit:
     -----------
 
     Attributes:
-        qulacs_circuit (qml.qnode): Qulacs circuit that can be called with parameters
+        num_qubits (int): Number of qubits in the circuit
         circuit_parameter_names (list): List of circuit parameter names
         observable_parameter_names (list): List of observable parameter names
-        circuit_parameter_dimensions (dict): Dictionary with the dimension of each circuit parameter
-        observable_parameter_dimension (dict): Dictionary with the dimension of each observable parameter
-        circuit_arguments (list): List of all circuit and observable parameters names
+        argument_names (list): List of all circuit and observable parameters names
         hash (str): Hashable object of the circuit and observable for caching
 
     Methods:
@@ -58,7 +56,7 @@ class QulacsCircuit:
             optimization_level=0,
         )
         self._qiskit_observable = observable
-        self._hash = str(self._qiskit_circuit) + str(self._qiskit_observable)
+        self._cache_key = str(self._qiskit_circuit) + str(self._qiskit_observable)
         self._num_qubits = self._qiskit_circuit.num_qubits
 
         self._is_qiskit_observable = False
@@ -72,12 +70,13 @@ class QulacsCircuit:
 
         # Build qulacs circuit from the qiskit circuit
         self._build_circuit_instructions(self._qiskit_circuit)
-        self._rebuild_circuit_func = True
-        self._circuit_func = None
 
         # Build observable instructions
         if self._is_qiskit_observable:
             self.build_observable_instructions(self._qiskit_observable)
+
+        self._rebuild_circuit_func = True
+        self._circuit_func = None
 
         self._circuit_func_cache = {}
         self._outer_jacobi_circuit_cache = {}
@@ -87,11 +86,6 @@ class QulacsCircuit:
     def num_qubits(self) -> int:
         """Number of qubits of the circuit"""
         return self._num_qubits
-
-    @property
-    def qulacs_circuit(self) -> callable:
-        """Qulacs circuit that can be called with parameters"""
-        return self._qulacs_circuit
 
     @property
     def circuit_parameter_names(self) -> list:
@@ -104,69 +98,45 @@ class QulacsCircuit:
         return self._observable_param_names
 
     @property
-    def circuit_arguments(self) -> list:
+    def argument_names(self) -> list:
         """List of all circuit and observable parameters names"""
         return self._circuit_param_names + self._observable_param_names
 
     @property
     def hash(self) -> str:
         """Hashable object of the circuit and observable for caching"""
-        return self._hash
-
-    def draw(self, engine: str = "qulacs", **kwargs):
-        """Draw the circuit with the specified engine
-
-        Args:
-            engine (str): Engine to draw the circuit. Can be either ``"qulacs"`` or ``"qiskit"``
-            **kwargs: Additional arguments for the drawing engine (only for qiskit)
-
-        Returns:
-            matplotlib Figure object of the circuit visualization
-        """
-
-        # Use Qiskit for drawing the circuit
-
-        raise NotImplementedError("Circuit engine not implemented")
-
-    def get_qulacs_circuit(self) -> callable:
-        """Builds and returns the Qulacs circuit as callable function"""
-        self._qulacs_circuit = self.build_qulacs_circuit()
-        return self._qulacs_circuit
-
-    def __call__(self, *args, **kwargs):
-        return self._qulacs_circuit(*args, **kwargs)
+        return self._cache_key
 
     def _add_parameter_expression(
         self, angle: Union[ParameterVectorElement, ParameterExpression, float]
-    ):
+    ) -> tuple:
         """
-        Adds a parameter expression to the circuit and do the pre-processing.
+        Adds a parameter expression (angle) and generate the functions for the gradient calculation
 
         Args:
             angle (ParameterVectorElement or ParameterExpression or float): angle of rotation
 
         Returns:
-            int: index of the parameter in the parameter vector
-            callable: function to calculate the parameter expression
-            callable: function to calculate the gradient of the parameter expression
-
+            tuple: A tuple containing the function to evaluate the angle, the function to
+                evaluate the gradient, the used parameters, and a boolean indicating if the
+                angle is parameterized at all.
         """
 
-        # In case angle is a float or something similar, we do not need to add a parameter
         func_list_element = None
         func_grad_list_element = None
-        parameterized = False
         used_parameters = None
+        parameterized = False
 
-        # Change sign because of the way Qulacs defines the rotation gates
+        # Important: change the sign because of the way Qulacs defines the rotation gates
         angle = -angle
 
         if isinstance(angle, float):
-            # Single float value
+            # Single float value, not parameterized
             func_list_element = angle
             func_grad_list_element = None
+
         elif isinstance(angle, ParameterVectorElement):
-            # Single parameter vector element
+            # Single parameter vector element, no expression
             parameterized = True
             func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = [lambda x: 1.0]
@@ -179,10 +149,11 @@ class QulacsCircuit:
             func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = []
             used_parameters = []
+            # loop over the parameters in the expression
             for param_element in angle._parameter_symbols.keys():
                 self._circuit_free_parameters.add(param_element)
                 used_parameters.append(param_element)
-                # information about the gradient of the parameter expression
+                # get the gradient of the parameter expression wrt the parameter
                 param_grad = angle.gradient(param_element)
                 if isinstance(param_grad, float):
                     # create a call by value labmda function
@@ -191,6 +162,8 @@ class QulacsCircuit:
                     func_grad_list_element.append(
                         lambdify(self._circuit_symbols_tuple, sympify(param_grad._symbol_expr))
                     )
+        else:
+            raise ValueError("Unsupported angle type")
 
         return func_list_element, func_grad_list_element, used_parameters, parameterized
 
@@ -371,13 +344,13 @@ class QulacsCircuit:
                     f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's Qulacs backend."
                 )
 
-            paramterized_gate = len(op.operation.params) >= 1
-            single_qubit_date = len(op.qubits) == 1
+            parameterized_gate = len(op.operation.params) >= 1
+            is_single_qubit = len(op.qubits) == 1
 
             wires = [circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)]
 
-            if single_qubit_date:
-                if not paramterized_gate:
+            if is_single_qubit:
+                if not parameterized_gate:
                     self._add_single_qubit_gate(op.operation.name, wires)
                 else:
                     self._add_parameterized_single_qubit_gate(
@@ -388,7 +361,7 @@ class QulacsCircuit:
                     raise NotImplementedError(
                         "Only two qubit gates are supported in sQUlearn's Qulacs backend."
                     )
-                if not paramterized_gate:
+                if not parameterized_gate:
                     self._add_two_qubit_gate(op.operation.name, wires[0], wires[1])
                 else:
                     self._add_parameterized_two_qubit_gate(
@@ -661,12 +634,12 @@ class QulacsCircuit:
         gradient_parameters = list(gradient_parameters) if gradient_parameters is not None else []
         gradient_param_dict = {p: i for i, p in enumerate(gradient_parameters)}
 
-        # cache_value = "no_gradient"
-        # if len(gradient_parameters)>0:
-        #     cache_value = tuple(gradient_parameters)
+        cache_value = "no_gradient"
+        if len(gradient_parameters)>0:
+            cache_value = tuple(gradient_parameters)
 
-        # if cache_value in self._outer_jacobi_obs_cache:
-        #     return self._outer_jacobi_obs_cache[cache_value]
+        if cache_value in self._outer_jacobi_observable_cache:
+            return self._outer_jacobi_observable_cache[cache_value]
 
         def outer_jacobian(*args):
 
@@ -698,7 +671,7 @@ class QulacsCircuit:
                 outer_jacobians.append(outer_jacobian)
             return outer_jacobians
 
-        # self._outer_jacobi_obs_cache[cache_value] = outer_jacobian
+        self._outer_jacobi_observable_cache[cache_value] = outer_jacobian
 
         return outer_jacobian
 
