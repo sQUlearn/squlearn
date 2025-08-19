@@ -152,37 +152,41 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 f_max = np.max(f, axis=-1)
                 if f_max.size != f.shape[0]:
                     raise ValueError("f_max should have the same shape as f.shape[0]")
-                updated_results["f"] = softmax(f)
+                updated_results["f"] = softmax(f, axis=1)
             else:
                 updated_results["f"] = expit(f)
 
             if "dfdp" in updated_results:
-                dfdp = updated_results["dfdp"]
+                dfdp = updated_results["dfdp"].copy()
                 if not isinstance(dfdp, np.ndarray) or not dfdp.size:
                     raise ValueError("dfdp should be a non-empty numpy array")
 
                 if len(dfdp.shape) > 2:
                     if not "f" in updated_results:
                         raise KeyError("'f' is needed for softmax gradient calculation")
-                    updated_results["dfdp"] *= (softmax(f) * (1 - softmax(f)))[:, :, np.newaxis]
+                    updated_results["dfdp"] = (
+                        dfdp * (softmax(f, axis=1) * (1 - softmax(f, axis=1)))[:, :, np.newaxis]
+                    )
                 else:
                     if not "f" in updated_results:
                         raise KeyError("'f' is needed for sigmoid gradient calculation")
-                    updated_results["dfdp"] *= (expit(f)*(1-expit(f)))[:, np.newaxis]
-            
+                    updated_results["dfdp"] = dfdp * (expit(f) * (1 - expit(f)))[:, np.newaxis]
+
             if "dfdop" in updated_results:
-                dfopt = updated_results["dfdop"]
-                if not isinstance(dfopt, np.ndarray) or not dfopt.size:
+                dfdop = updated_results["dfdop"].copy()
+                if not isinstance(dfdop, np.ndarray) or not dfdop.size:
                     raise ValueError("dfdop should be a non-empty numpy array")
 
-                if len(dfopt.shape) > 2:
+                if len(dfdop.shape) > 2:
                     if not "f" in updated_results:
                         raise KeyError("'f' is needed for softmax gradient calculation")
-                    updated_results["dfdop"] *= (softmax(f) * (1 - softmax(f)))[:, :, np.newaxis]
+                    updated_results["dfdop"] = (
+                        dfdop * (softmax(f, axis=1) * (1 - softmax(f, axis=1)))[:, :, np.newaxis]
+                    )
                 else:
                     if not "f" in updated_results:
                         raise KeyError("'f' is needed for sigmoid gradient calculation")
-                    updated_results["dfdop"] *= (expit(f)*(1-expit(f)))[:, np.newaxis]
+                    updated_results["dfdop"] = dfdop * (expit(f) * (1 - expit(f)))[:, np.newaxis]
 
             return updated_results
 
