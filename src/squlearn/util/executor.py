@@ -603,8 +603,6 @@ class Executor:
                 # TODO: check if this is duplicate
                 if not shots:
                     shots = self._estimator.options["execution"]["shots"]
-            else:
-                raise ValueError("Unknown estimator type: " + str(execution))
 
             # Set options for the estimator
             if self._options_estimator is not None:
@@ -632,8 +630,6 @@ class Executor:
                 # TODO: check if this is duplicate
                 if not shots:
                     shots = self._sampler.options["execution"]["shots"]
-            else:
-                raise ValueError("Unknown sampler type: " + str(execution))
 
             # Set options for the sampler
             if self._options_sampler is not None:
@@ -674,8 +670,6 @@ class Executor:
                     self._estimator.options.update(
                         simulator={"seed_simulator": self._set_seed_for_primitive}
                     )
-            else:
-                self._estimator = execution
 
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
@@ -705,8 +699,6 @@ class Executor:
                     self._sampler.options.update(
                         simulator={"seed_simulator": self._set_seed_for_primitive}
                     )
-            else:
-                raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
