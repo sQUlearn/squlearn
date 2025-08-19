@@ -169,7 +169,7 @@ class TestFidelityKernel:
         x_train = np.random.rand(10, 2)
         p_num = -0.63
 
-        # Check if FidelityKernelExpectationValue and FidelityKernelPennylane give the same results for no duplicates
+        # Check if FidelityKernelExpectationValue and FidelityKernelStatevector give the same results for no duplicates
         kernel_without_duplicates_and_expectation_value = self.create_fidelity_kernel(
             2, [p_num, p_num], Executor("pennylane"), True, "none"
         )

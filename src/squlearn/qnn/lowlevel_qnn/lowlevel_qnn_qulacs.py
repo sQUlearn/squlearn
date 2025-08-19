@@ -1,6 +1,5 @@
 from typing import Union, List
 import numpy as np
-import copy
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parametervector import ParameterVectorElement
@@ -66,8 +65,10 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         self.caching = caching
         self.result_container = {}
 
+        # Initialize the Qulacs circuit
         self._initialize_qulacs_circuit()
 
+        # Define the not implemented derivatives that are not supported by Qulacs
         self._not_implemented = [
             "dfdxdx",
             "laplace",
@@ -128,9 +129,9 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         else:
             raise ValueError("Observable must be of type ObservableBase or list")
 
-        # PennyLane Circuit function of the QNN
+        # Qulacs Circuit data structure of the QNN
         self._qulacs_circuit = QulacsCircuit(self._qiskit_circuit, self._qiskit_observable)
-        # PennyLane Circuit function with a squared observable
+        # Qulacs Circuit data structure with a squared observable
         self._qulacs_circuit_squared = QulacsCircuit(
             self._qiskit_circuit, self._qiskit_observable_squared
         )
@@ -257,8 +258,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         param_obs: Union[float, np.ndarray],
         *values: Union[
             str,
-            # DirectEvaluation,
-            # PostProcessingEvaluation,
+            DirectEvaluation,
+            PostProcessingEvaluation,
             ParameterVector,
             ParameterVectorElement,
             tuple,
@@ -366,7 +367,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
 
                 if todo_class.order == 0:
 
-                    # Evaluation of the QNN
+                    # Plain evaluation of the QNN
 
                     output = [
                         self._executor.qulacs_execute(
@@ -384,6 +385,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                 elif todo_class.order == 1:
 
                     # Evaluation of the first-order derivative of the QNN
+
                     derivative_object = None
                     if todo_class.argnum[0] == 1:
                         if isinstance(todo_class.key, str):
@@ -411,7 +413,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                             derivative_object = derivative_object[0]
                         else:
                             raise RuntimeError(
-                                "Higher order derivatives are not supported with qulacs, please use pennylane"
+                                "Higher order derivatives are not supported with qulacs, "
+                                "please use pennylane"
                             )
 
                     output = [
@@ -430,7 +433,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
 
                 else:
                     raise RuntimeError(
-                        "Higher order derivatives are not supported with qulacs, please use pennylane"
+                        "Higher order derivatives are not supported with qulacs, "
+                        "please use pennylane"
                     )
                 output = np.array(output)
 

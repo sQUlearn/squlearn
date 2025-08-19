@@ -412,7 +412,7 @@ class Executor:
             BaseEstimatorV2,
             BaseSamplerV2,
             PennylaneDevice,
-        ] = "qulacs",
+        ] = "pennylane",
         options_estimator: Union[Any, None] = None,
         options_sampler: Union[Any, None] = None,
         log_file: str = "",
@@ -526,8 +526,6 @@ class Executor:
                     shots = self._pennylane_device.shots.total_shots
             elif execution in ["qulacs"]:
                 self._quantum_framework = "qulacs"
-                # if shots is None:
-                #    shots = 0
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
@@ -807,21 +805,24 @@ class Executor:
         """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
 
-    def qulacs_execute(self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs):
+    def qulacs_execute(self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs) -> np.ndarray:
         """
-        Function for executing of Qulacs circuits with the Executor with caching and restarts
+        Function for executing of Qulacs circuits with the Executor with caching
+
         Args:
-            qulacs_circuit (callable): The Qulacs circuit function
-            *args: Arguments for the circuit
-            **kwargs: Keyword arguments for the circuit
+            qulacs_execution (callable): The Qulacs execution function from qulacs_execution
+            qulacs_circuit (QulacsCircuit): The Qulacs circuit data structure
+            **kwargs: Parameter values of the qulacs circuit and observable, name must match
+                the parameter names in the circuit and observable
 
         Returns:
-            The result of the circuit
+            Numpy array: The result of the circuit execution
         """
 
         result = None
         cached = True
         hash_value = None
+
         # Check if the result of the qulacs execution is already cached
         if self._caching:
 

@@ -1,26 +1,29 @@
 """Fidelity Quantum Kernel class"""
 
 from typing import Union
+from functools import lru_cache
 import numpy as np
 
 from qiskit.circuit import ParameterVector
+from qiskit.compiler import transpile
 from qiskit_algorithms.utils import algorithm_globals
 
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
 
-# from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
-# from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
-from ...util.data_preprocessing import to_tuple, adjust_features
+from ...util.pennylane.pennylane_gates import qiskit_pennylane_gate_dict
+from ...util.pennylane.pennylane_circuit import PennyLaneCircuit
+
 from ...util.qulacs.qulacs_circuit import QulacsCircuit
 from ...util.qulacs.qulacs_execution import qulacs_evaluate_statevector
 
-from functools import lru_cache
+from ...util.data_preprocessing import to_tuple, adjust_features
 
 
-class FidelityKernelQulacs:
+
+class FidelityKernelStatevector:
     """
-    Fidelity Quantum Kernel implementation based on Qulacs.
+    Fidelity Quantum Kernel implementation based on PennyLane.
 
     Args:
         encoding_circuit (EncodingCircuitBase): The encoding circuit.
@@ -46,8 +49,9 @@ class FidelityKernelQulacs:
         self._cache_size = cache_size
         self._parameters = None
 
-        if self._executor.quantum_framework != "qulacs":
-            raise RuntimeError("FidelityKernelQulacs is only supported for Qulacs.")
+        if self._executor.quantum_framework not in ["pennylane", "qulacs"]:
+            raise NotImplementedError("FidelityKernelStatevector is not supported for this quantum framework:",
+                                      self._executor.quantum_framework)
 
         if self._executor.is_statevector:
 
@@ -61,32 +65,86 @@ class FidelityKernelQulacs:
                 self._parameter_vector = None
 
             enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-            self._qulacs_circuit = QulacsCircuit(enc_circ, None)
 
-            @lru_cache(maxsize=self._cache_size)
-            def qulacs_circuit_executor(*args):
-                args_numpy = [np.array(arg) for arg in args]
-                if len(args_numpy) == 0:
-                    return self._executor.qulacs_execute(
-                        qulacs_evaluate_statevector, self._qulacs_circuit
-                    )
-                elif len(args_numpy) == 1:
-                    return self._executor.qulacs_execute(
-                        qulacs_evaluate_statevector, self._qulacs_circuit, x=args_numpy[0]
-                    )
-                elif len(args_numpy) == 2:
-                    return self._executor.qulacs_execute(
-                        qulacs_evaluate_statevector,
-                        self._qulacs_circuit,
-                        p=args_numpy[0],
-                        x=args_numpy[1],
+            if self._executor.quantum_framework == "pennylane":
+                circuit = transpile(
+                    enc_circ, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
+                )
+                self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
+
+                @lru_cache(maxsize=self._cache_size)
+                def pennylane_circuit_executor(*args, **kwargs):
+                    args_numpy = [np.array(arg) for arg in args]
+                    return self._executor.pennylane_execute(
+                        self._pennylane_circuit, *args_numpy, **kwargs
                     )
 
-            self._qulacs_circuit_cached = qulacs_circuit_executor
+                self._cached_execution = pennylane_circuit_executor
+
+            elif self._executor.quantum_framework == "qulacs":
+
+                enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
+                self._qulacs_circuit = QulacsCircuit(enc_circ, None)
+
+                @lru_cache(maxsize=self._cache_size)
+                def qulacs_circuit_executor(*args):
+                    args_numpy = [np.array(arg) for arg in args]
+                    if len(args_numpy) == 0:
+                        return self._executor.qulacs_execute(
+                            qulacs_evaluate_statevector, self._qulacs_circuit
+                        )
+                    elif len(args_numpy) == 1:
+                        return self._executor.qulacs_execute(
+                            qulacs_evaluate_statevector, self._qulacs_circuit, x=args_numpy[0]
+                        )
+                    elif len(args_numpy) == 2:
+                        return self._executor.qulacs_execute(
+                            qulacs_evaluate_statevector,
+                            self._qulacs_circuit,
+                            p=args_numpy[0],
+                            x=args_numpy[1],
+                        )
+
+                self._cached_execution = qulacs_circuit_executor
+
+            else:
+                raise RuntimeError(
+                    "Quantum framework not supported for FidelityKernelStatevector: "
+                    f"{self._executor.quantum_framework}"
+                )
 
         else:
 
-            raise NotImplementedError("FidelityKernelQulacs is not implemented for shots")
+
+            # Mode 2 for shot based: calculate the |0> probabilities
+            # of the quantum circuit U(x)U(x)'
+
+            if self._executor.quantum_framework != "pennylane":
+                x1 = ParameterVector("x1", self.num_features)
+                x2 = ParameterVector("x2", self.num_features)
+                if self.num_parameters > 0:
+                    self._parameter_vector = ParameterVector("p", self.num_parameters)
+                else:
+                    self._parameter_vector = None
+
+                enc_circ1 = self._encoding_circuit.get_circuit(x1, self._parameter_vector)
+                enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
+
+                circuit = enc_circ1.compose(enc_circ2.inverse())
+                circuit = transpile(
+                    circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
+                )
+                self._pennylane_circuit = PennyLaneCircuit(circuit, "probs")
+            elif self._executor.quantum_framework == "qulacs":
+                raise NotImplementedError(
+                    "Shot based fidelity kernel is not implemented for Qulacs yet."
+                )
+            else:
+                raise RuntimeError(
+                    "Quantum framework not supported for FidelityKernelStatevector: "
+                    f"{self._executor.quantum_framework}"
+                )
+
 
     @property
     def num_parameters(self) -> int:
@@ -132,12 +190,12 @@ class FidelityKernelQulacs:
         if self._executor.is_statevector:
             kernel_matrix = self.evaluate_kernel_sv(x, y)
         else:
-            kernel_matrix = self.evaluate_kernel(x, y)
+            kernel_matrix = self.evaluate_kernel_shots(x, y)
 
         return kernel_matrix
 
-    def evaluate_kernel(self, x, y):
-        """Function to evaluate the kernel matrix using Qulacs based on fidelity test.
+    def evaluate_kernel_shots(self, x, y):
+        """Function to evaluate the kernel matrix using PennyLane based on fidelity test.
 
         Args:
             x (np.ndarray): Vector of data for which the kernel matrix is evaluated
@@ -147,6 +205,12 @@ class FidelityKernelQulacs:
         Returns:
             np.ndarray: Quantum kernel matrix as 2D numpy array.
         """
+
+        if self._executor.quantum_framework != "pennylane":
+            raise RuntimeError(
+                "Quantum framework not supported for FidelityKernelStatevector: "
+                f"{self._executor.quantum_framework}"
+            )
 
         def not_needed(i: int, j: int, x_i: np.ndarray, y_j: np.ndarray, symmetric: bool) -> bool:
             """Verifies if the kernel entry is trivial (to be set to `1.0`) or not.
@@ -209,7 +273,7 @@ class FidelityKernelQulacs:
         else:
             arguments = [(x1, x2) for x1, x2 in zip(y_list, x_list)]
 
-        circuits = [self._qulacs_circuit] * len(arguments)
+        circuits = [self._pennylane_circuit] * len(arguments)
         all_probs = self._executor.pennylane_execute_batched(circuits, arguments)
         kernel_entries = [prob[0] for prob in all_probs]  # Get the count of the zero state
 
@@ -226,7 +290,7 @@ class FidelityKernelQulacs:
 
     def evaluate_kernel_sv(self, x, y):
         """
-        Function to evaluate the kernel matrix with statevector simulator using Qulacs.
+        Function to evaluate the kernel matrix with statevector simulator using PennyLane.
 
         Evaluates the kernel matrix using the statevectors, overlap is then
         classically calculated.
@@ -254,27 +318,41 @@ class FidelityKernelQulacs:
 
         # Convert the input data to the correct format for the lrucache
         x_inp, _ = adjust_features(x, self.num_features)
-        #        x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
+        x_inpT = to_tuple(np.transpose(x_inp), flatten=False)
         y_inp, _ = adjust_features(y, self.num_features)
-        #        y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
+        y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
 
-        #        print("x_inp", x_inp)
-        #        print("x_inpT", x_inpT)
 
-        if self._parameter_vector is not None:
-            if self._parameters is None:
-                raise ValueError(
-                    "Parameters have to been set with assign_parameters or as initial parameters!"
+        if self._executor.quantum_framework == "pennylane":
+
+            if self._parameter_vector is not None:
+                if self._parameters is None:
+                    raise ValueError(
+                        "Parameters have to been set with assign_parameters or as initial parameters!"
+                    )
+                x_sv = np.array(self._cached_execution(tuple(self._parameters), x_inpT))
+                y_sv = np.array(self._cached_execution(tuple(self._parameters), y_inpT))
+            else:
+                x_sv = np.array(self._cached_execution(x_inpT))
+                y_sv = np.array(self._cached_execution(y_inpT))
+
+        elif self._executor.quantum_framework == "qulacs":
+
+            if self._parameter_vector is not None:
+                if self._parameters is None:
+                    raise ValueError(
+                        "Parameters have to been set with assign_parameters or as initial parameters!"
+                    )
+                x_sv = np.array(
+                    [self._cached_execution(tuple(self._parameters), tuple(x_)) for x_ in x_inp]
                 )
-            x_sv = np.array(
-                [self._qulacs_circuit_cached(tuple(self._parameters), tuple(x_)) for x_ in x_inp]
-            )
-            y_sv = np.array(
-                [self._qulacs_circuit_cached(tuple(self._parameters), tuple(y_)) for y_ in y_inp]
-            )
-        else:
-            x_sv = np.array([self._qulacs_circuit_cached(tuple(x_)) for x_ in x_inp])
-            y_sv = np.array([self._qulacs_circuit_cached(tuple(y_)) for y_ in y_inp])
+                y_sv = np.array(
+                    [self._cached_execution(tuple(self._parameters), tuple(y_)) for y_ in y_inp]
+                )
+            else:
+                x_sv = np.array([self._cached_execution(tuple(x_)) for x_ in x_inp])
+                y_sv = np.array([self._cached_execution(tuple(y_)) for y_ in y_inp])
+
 
         if len(x_sv.shape) == 1:
             x_sv = np.array([x_sv])
