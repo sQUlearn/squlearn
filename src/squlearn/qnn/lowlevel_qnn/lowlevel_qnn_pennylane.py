@@ -160,12 +160,10 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             raise ValueError("Observable must be of type ObservableBase or list")
 
         # PennyLane Circuit function of the QNN
-        self._pennylane_circuit = PennyLaneCircuit(
-            self._qiskit_circuit, self._qiskit_observable, self._executor
-        )
+        self._pennylane_circuit = PennyLaneCircuit(self._qiskit_circuit, self._qiskit_observable)
         # PennyLane Circuit function with a squared observable
         self._pennylane_circuit_squared = PennyLaneCircuit(
-            self._qiskit_circuit, self._qiskit_observable_squared, self._executor
+            self._qiskit_circuit, self._qiskit_observable_squared
         )
 
     def set_params(self, **params) -> None:
@@ -483,18 +481,17 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         """
         if todo_class.squared:
             hash_func = self._pennylane_circuit_squared.hash
-            if todo_class.order <= 1:
-                func = self._pennylane_circuit_squared
-            else:
-                func = self._pennylane_circuit_squared.build_pennylane_circuit(
-                    max_diff=todo_class.order
-                )
+            func = self._pennylane_circuit_squared
         else:
             hash_func = self._pennylane_circuit.hash
-            if todo_class.order <= 1:
-                func = self._pennylane_circuit
-            else:
-                func = self._pennylane_circuit.build_pennylane_circuit(max_diff=todo_class.order)
+            func = self._pennylane_circuit
+
+        func = qml.QNode(
+            func.pennylane_circuit,
+            self._executor.backend,
+            diff_method="best",
+            max_diff=todo_class.order,
+        )
 
         # Convert input to PennyLane arrays and requested gradients
         param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
@@ -567,18 +564,17 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         """
         if todo_class.squared:
             hash_func = self._pennylane_circuit_squared.hash
-            if todo_class.order <= 1:
-                func = self._pennylane_circuit_squared
-            else:
-                func = self._pennylane_circuit_squared.build_pennylane_circuit(
-                    max_diff=todo_class.order
-                )
+            func = self._pennylane_circuit_squared
         else:
             hash_func = self._pennylane_circuit.hash
-            if todo_class.order <= 1:
-                func = self._pennylane_circuit
-            else:
-                func = self._pennylane_circuit.build_pennylane_circuit(max_diff=todo_class.order)
+            func = self._pennylane_circuit
+
+        func = qml.QNode(
+            func.pennylane_circuit,
+            self._executor.backend,
+            diff_method="best",
+            max_diff=todo_class.order,
+        )
 
         # Convert input to PennyLane arrays and requested gradients
         param_ = pnp.array(param, requires_grad=todo_class.return_grad_param)
