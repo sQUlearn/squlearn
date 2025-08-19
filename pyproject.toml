@@ -72,6 +72,7 @@ docs = [
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme<3.0.0",
     "sphinx-sitemap",
+    "scikit-learn!=1.7.1",
 ]
 
 [project.urls]
