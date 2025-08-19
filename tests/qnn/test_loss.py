@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 
-from squlearn.qnn import LogLoss
+from squlearn.qnn import CrossEntropyLoss
 
 
-class TestLogLoss:
+class TestCrossEntropyLoss:
 
     @pytest.mark.parametrize(
         "value_dict, ground_truth, loss_value",
@@ -27,8 +27,10 @@ class TestLogLoss:
         ],
     )
     def test_value(self, value_dict, ground_truth, loss_value):
-        log_loss = LogLoss(1e-8)
-        assert np.isclose(log_loss.value(value_dict, ground_truth=ground_truth), loss_value)
+        cross_entropy_loss = CrossEntropyLoss(1e-8)
+        assert np.isclose(
+            cross_entropy_loss.value(value_dict, ground_truth=ground_truth), loss_value
+        )
 
     @pytest.mark.parametrize(
         "value_dict, ground_truth, multiple_output, gradient_value",
@@ -60,10 +62,10 @@ class TestLogLoss:
         ],
     )
     def test_gradient(self, value_dict, ground_truth, multiple_output, gradient_value):
-        log_loss = LogLoss(1e-8)
-        log_loss.set_opt_param_op(False)
+        cross_entropy_loss = CrossEntropyLoss(1e-8)
+        cross_entropy_loss.set_opt_param_op(False)
         assert np.allclose(
-            log_loss.gradient(
+            cross_entropy_loss.gradient(
                 value_dict, multiple_output=multiple_output, ground_truth=ground_truth
             ),
             gradient_value,

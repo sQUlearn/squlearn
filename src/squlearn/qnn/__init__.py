@@ -2,7 +2,7 @@
 
 from .loss import (
     ConstantLoss,
-    LogLoss,
+    CrossEntropyLoss,
     ODELoss,
     ParameterRegularizationLoss,
     SquaredLoss,
@@ -13,7 +13,7 @@ from .qnnr import QNNRegressor
 
 __all__ = [
     "ConstantLoss",
-    "LogLoss",
+    "CrossEntropyLoss",
     "ODELoss",
     "ParameterRegularizationLoss",
     "SquaredLoss",

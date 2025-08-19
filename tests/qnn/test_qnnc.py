@@ -10,7 +10,7 @@ from squlearn import Executor
 from squlearn.observables import SummedPaulis
 from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP, Adam
-from squlearn.qnn import LogLoss, QNNClassifier
+from squlearn.qnn import CrossEntropyLoss, QNNClassifier
 
 
 class TestQNNClassifier:
@@ -32,7 +32,7 @@ class TestQNNClassifier:
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
-        loss = LogLoss()
+        loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = np.random.rand(pqc.num_parameters)
         param_op_ini = np.random.rand(operator.num_parameters)
@@ -44,7 +44,7 @@ class TestQNNClassifier:
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
-        loss = LogLoss()
+        loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         return QNNClassifier(pqc, operator, executor, loss, optimizer, parameter_seed=1)
 

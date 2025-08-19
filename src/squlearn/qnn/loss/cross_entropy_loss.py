@@ -7,8 +7,8 @@ import numpy as np
 from .qnn_loss_base import QNNLossBase
 
 
-class LogLoss(QNNLossBase):
-    """Log loss for classification.
+class CrossEntropyLoss(QNNLossBase):
+    """Cross entropy loss for classification.
 
     Args:
         eps (float): Small value to avoid :math:`\log(0)`
@@ -49,7 +49,7 @@ class LogLoss(QNNLossBase):
             Loss value
         """
         if "ground_truth" not in kwargs:
-            raise AttributeError("LogLoss requires ground_truth.")
+            raise AttributeError("CrossEntropyLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
         weights = kwargs.get("weights", np.ones_like(ground_truth))
@@ -88,7 +88,7 @@ class LogLoss(QNNLossBase):
             Gradient values
         """
         if "ground_truth" not in kwargs:
-            raise AttributeError("LogLoss requires ground_truth.")
+            raise AttributeError("CrossEntropyLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
         weights = kwargs.get("weights", np.ones(ground_truth.shape[0]))
