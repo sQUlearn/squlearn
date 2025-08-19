@@ -5,6 +5,7 @@ from typing import Callable, Union
 import sys
 
 import numpy as np
+from scipy.special import expit, softmax
 from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import __version__
@@ -135,18 +136,57 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         **kwargs,
     ) -> None:
 
-        def softmax(result_dict: dict):
+        def _post_processing(result_dict: dict):
+            if not isinstance(result_dict, dict):
+                raise TypeError("result_dict should be a dictionary")
+
             updated_results = result_dict.copy()
-            if "f" in updated_results:
-                if len(updated_results["f"].shape) > 1:
-                    updated_results["f"] = np.exp(updated_results["f"]) / np.sum(
-                        np.exp(updated_results["f"]), axis=1
-                    ).reshape(-1, 1)
+            if "f" not in updated_results:
+                raise KeyError("'f' is a required key in the result dictionary")
+
+            f = updated_results["f"].copy()
+            if not isinstance(f, np.ndarray) or not f.size:
+                raise ValueError("f should be a non-empty numpy array")
+
+            if len(f.shape) > 1:
+                f_max = np.max(f, axis=-1)
+                if f_max.size != f.shape[0]:
+                    raise ValueError("f_max should have the same shape as f.shape[0]")
+                updated_results["f"] = softmax(f)
+            else:
+                updated_results["f"] = expit(f)
+
+            if "dfdp" in updated_results:
+                dfdp = updated_results["dfdp"]
+                if not isinstance(dfdp, np.ndarray) or not dfdp.size:
+                    raise ValueError("dfdp should be a non-empty numpy array")
+
+                if len(dfdp.shape) > 2:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for softmax gradient calculation")
+                    updated_results["dfdp"] *= (softmax(f) * (1 - softmax(f)))[:, :, np.newaxis]
                 else:
-                    updated_results["f"] = 1 / (1 + np.exp(-updated_results["f"]))
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for sigmoid gradient calculation")
+                    updated_results["dfdp"] *= (expit(f)*(1-expit(f)))[:, np.newaxis]
+            
+            if "dfdop" in updated_results:
+                dfopt = updated_results["dfdop"]
+                if not isinstance(dfopt, np.ndarray) or not dfopt.size:
+                    raise ValueError("dfdop should be a non-empty numpy array")
+
+                if len(dfopt.shape) > 2:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for softmax gradient calculation")
+                    updated_results["dfdop"] *= (softmax(f) * (1 - softmax(f)))[:, :, np.newaxis]
+                else:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for sigmoid gradient calculation")
+                    updated_results["dfdop"] *= (expit(f)*(1-expit(f)))[:, np.newaxis]
+
             return updated_results
 
-        self._post_processing = softmax
+        self._post_processing = _post_processing
         super().__init__(
             encoding_circuit,
             operator,
