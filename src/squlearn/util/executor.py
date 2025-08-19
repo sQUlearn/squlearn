@@ -805,7 +805,9 @@ class Executor:
         """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
 
-    def qulacs_execute(self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs) -> np.ndarray:
+    def qulacs_execute(
+        self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs
+    ) -> np.ndarray:
         """
         Function for executing of Qulacs circuits with the Executor with caching
 

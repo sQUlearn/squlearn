@@ -20,7 +20,6 @@ from ...util.qulacs.qulacs_execution import qulacs_evaluate_statevector
 from ...util.data_preprocessing import to_tuple, adjust_features
 
 
-
 class FidelityKernelStatevector:
     """
     Fidelity Quantum Kernel implementation based on PennyLane.
@@ -50,8 +49,10 @@ class FidelityKernelStatevector:
         self._parameters = None
 
         if self._executor.quantum_framework not in ["pennylane", "qulacs"]:
-            raise NotImplementedError("FidelityKernelStatevector is not supported for this quantum framework:",
-                                      self._executor.quantum_framework)
+            raise NotImplementedError(
+                "FidelityKernelStatevector is not supported for this quantum framework:",
+                self._executor.quantum_framework,
+            )
 
         if self._executor.is_statevector:
 
@@ -115,7 +116,6 @@ class FidelityKernelStatevector:
 
         else:
 
-
             # Mode 2 for shot based: calculate the |0> probabilities
             # of the quantum circuit U(x)U(x)'
 
@@ -144,7 +144,6 @@ class FidelityKernelStatevector:
                     "Quantum framework not supported for FidelityKernelStatevector: "
                     f"{self._executor.quantum_framework}"
                 )
-
 
     @property
     def num_parameters(self) -> int:
@@ -322,7 +321,6 @@ class FidelityKernelStatevector:
         y_inp, _ = adjust_features(y, self.num_features)
         y_inpT = to_tuple(np.transpose(y_inp), flatten=False)
 
-
         if self._executor.quantum_framework == "pennylane":
 
             if self._parameter_vector is not None:
@@ -352,7 +350,6 @@ class FidelityKernelStatevector:
             else:
                 x_sv = np.array([self._cached_execution(tuple(x_)) for x_ in x_inp])
                 y_sv = np.array([self._cached_execution(tuple(y_)) for y_ in y_inp])
-
 
         if len(x_sv.shape) == 1:
             x_sv = np.array([x_sv])
