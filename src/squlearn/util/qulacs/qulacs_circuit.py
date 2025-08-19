@@ -114,7 +114,7 @@ class QulacsCircuit:
         Adds a parameter expression (angle) and generate the functions for the gradient calculation
 
         Args:
-            angle (ParameterVectorElement or ParameterExpression or float): angle of rotation
+            angle (Union[ParameterVectorElement, ParameterExpression, float]): angle of rotation
 
         Returns:
             tuple: A tuple containing the function to evaluate the angle, the function to
@@ -124,7 +124,7 @@ class QulacsCircuit:
 
         func_list_element = None
         func_grad_list_element = None
-        used_parameters = None
+        used_parameters = []
         parameterized = False
 
         # Important: change the sign because of the way Qulacs defines the rotation gates
@@ -148,7 +148,6 @@ class QulacsCircuit:
             parameterized = True
             func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = []
-            used_parameters = []
             # loop over the parameters in the expression
             for param_element in angle._parameter_symbols.keys():
                 self._circuit_free_parameters.add(param_element)
@@ -169,7 +168,9 @@ class QulacsCircuit:
 
     def _add_single_qubit_gate(self, gate_name: str, qubits: Union[int, Iterable[int]]):
         """
-        Adds a single qubit gate to the circuit.
+        Adds a single qubit, non-parameterized gate to the circuit.
+
+        Adds gates to multiple qubits if qubits is an iterable.
 
         Args:
             gate_name (str): Name of the gate
@@ -177,9 +178,9 @@ class QulacsCircuit:
         """
         qubits = [qubits] if isinstance(qubits, int) else qubits
         for q in qubits:
-            self._circuit_gate_list.append(gate_name)
             if q >= self.num_qubits:
                 raise ValueError(f"Qubit index {q} is out of range")
+            self._circuit_gate_list.append(gate_name)
             self._circuit_qubit_list.append([q])
             self._circuit_param_func_list.append(None)
             self._circuit_param_func_grad_list.append(None)
@@ -191,7 +192,9 @@ class QulacsCircuit:
         self, gate_name: str, qubit1: Union[int, Iterable[int]], qubit2: Union[int, Iterable[int]]
     ) -> None:
         """
-        Adds a two qubit gate to the circuit.
+        Adds a two qubit, non-parameterized gate to the circuit.
+
+        Adds gates to multiple qubits if qubit1 and qubit2 are both iterables.
 
         Args:
             gate_name (str): Name of the gate
@@ -219,13 +222,17 @@ class QulacsCircuit:
         angle: Union[ParameterVectorElement, ParameterExpression, float],
     ):
         """
-        Adds a single qubit parameterized gate to the circuit.
+        Adds a single qubit, parameterized gate to the circuit.
+
+        Adds gates to multiple qubits if qubits is an iterable.
 
         Args:
             gate_name (str): Name of the gate
-            qubits (int or Iterable[int]): qubit indices
-            angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
+            qubits (Union[int, Iterable[int]]): qubit indices
+            angle (Union[ParameterVectorElement, ParameterExpression, float]): angle of rotation
         """
+
+        # pre-process the angle in case it is a parameter expression
         func_list_element, func_grad_list_element, used_parameters, parameterized = (
             self._add_parameter_expression(angle)
         )
@@ -234,17 +241,11 @@ class QulacsCircuit:
         for q in qubits:
             if q >= self.num_qubits:
                 raise ValueError(f"Qubit index {q} is out of range")
-            if parameterized:
-                self._circuit_gate_list.append(gate_name)
-            else:
-                self._circuit_gate_list.append(gate_name)
+            self._circuit_gate_list.append(gate_name)
             self._circuit_qubit_list.append([q])
             self._circuit_param_func_list.append(func_list_element)
             self._circuit_param_func_grad_list.append(func_grad_list_element)
-            if used_parameters is None:
-                self._circuit_used_parameters.append([])
-            else:
-                self._circuit_used_parameters.append(used_parameters)
+            self._circuit_used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -258,10 +259,13 @@ class QulacsCircuit:
         """
         Adds a single qubit parameterized gate to the circuit.
 
+        Adds gates to multiple qubits if qubit1 and qubit2 are both iterables.
+
         Args:
             gate_name (str): Name of the gate
-            qubits (int or Iterable[int]): qubit indices
-            angle (ParameterVectorElement or float): angle of rotation, ca be a parameter
+            qubit1 (Union[int, Iterable[int]]): qubit indices of the first qubit (e.g. control
+            qubit2 (Union[int, Iterable[int]]): qubit indices of the second qubit (e.g. target)
+            angle (Union[ParameterVectorElement, ParameterExpression, float]): angle of rotation
         """
         func_list_element, func_grad_list_element, used_parameters, parameterized = (
             self._add_parameter_expression(angle)
@@ -273,17 +277,11 @@ class QulacsCircuit:
         for control, target in zip(qubit1, qubit2):
             if control >= self.num_qubits or target >= self.num_qubits:
                 raise ValueError(f"Qubit index is out of range")
-            if parameterized:
-                self._circuit_gate_list.append(gate_name)
-            else:
-                self._circuit_gate_list.append(gate_name)
+            self._circuit_gate_list.append(gate_name)
             self._circuit_qubit_list.append([control, target])
             self._circuit_param_func_list.append(func_list_element)
             self._circuit_param_func_grad_list.append(func_grad_list_element)
-            if used_parameters is None:
-                self._circuit_used_parameters.append([])
-            else:
-                self._circuit_used_parameters.append(used_parameters)
+            self._circuit_used_parameters.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
