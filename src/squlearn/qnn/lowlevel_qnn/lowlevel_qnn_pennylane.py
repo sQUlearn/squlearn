@@ -463,9 +463,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         self._qiskit_circuit = decompose_to_std(self._pqc.get_circuit(self._x, self._param))
 
         # PennyLane Circuit function of the QNN
-        self._pennylane_circuit = PennyLaneCircuit(
-            self._qiskit_circuit, self._qiskit_observable
-        )
+        self._pennylane_circuit = PennyLaneCircuit(self._qiskit_circuit, self._qiskit_observable)
         # PennyLane Circuit function with a squared observable
         self._pennylane_circuit_squared = PennyLaneCircuit(
             self._qiskit_circuit, self._qiskit_observable_squared
