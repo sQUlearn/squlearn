@@ -15,6 +15,8 @@ from squlearn.qnn.base_qnn import BaseQNN
 class MockBaseQNN(BaseQNN):
     """Mock class for BaseQNN."""
 
+    _post_processing = None
+
     def _fit(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray = None) -> None:
         pass
 

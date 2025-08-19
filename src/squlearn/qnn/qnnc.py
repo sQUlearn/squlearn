@@ -156,10 +156,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             else:
                 updated_results["f"] = expit(f)
 
-            if "dfdp" in updated_results:
+            if "dfdp" in updated_results and (
+                isinstance(updated_results["dfdp"], np.ndarray) and updated_results["dfdp"].size
+            ):
                 dfdp = updated_results["dfdp"].copy()
-                if not isinstance(dfdp, np.ndarray) or not dfdp.size:
-                    raise ValueError("dfdp should be a non-empty numpy array")
 
                 if len(dfdp.shape) > 2:
                     if not "f" in updated_results:
@@ -172,10 +172,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                         raise KeyError("'f' is needed for sigmoid gradient calculation")
                     updated_results["dfdp"] = dfdp * (expit(f) * (1 - expit(f)))[:, np.newaxis]
 
-            if "dfdop" in updated_results:
+            if "dfdop" in updated_results and (
+                isinstance(updated_results["dfdop"], np.ndarray) and updated_results["dfdop"].size
+            ):
                 dfdop = updated_results["dfdop"].copy()
-                if not isinstance(dfdop, np.ndarray) or not dfdop.size:
-                    raise ValueError("dfdop should be a non-empty numpy array")
 
                 if len(dfdop.shape) > 2:
                     if not "f" in updated_results:
