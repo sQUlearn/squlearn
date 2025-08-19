@@ -112,7 +112,7 @@ def qulacs_gradient(
         *[kwargs[param] for param in circuit.circuit_parameter_names]
     )
 
-    outer_jacobian = circuit.get_gradient_outer_jacobian(parameters)(
+    outer_jacobian = circuit.get_outer_jacobian_circuit(parameters)(
         *[kwargs[param] for param in circuit.circuit_parameter_names]
     )
     operators = circuit.get_observable_func()(*obs_param_list)
@@ -160,16 +160,14 @@ def qulacs_operator_gradient(
     """
 
     obs_param_list = [kwargs[param] for param in circuit.observable_parameter_names]
-    outer_jacobian = circuit.get_gradient_outer_jacobian_observables(parameters)(
-        *obs_param_list
-    )
+    outer_jacobian = circuit.get_outer_jacobian_observables(parameters)(*obs_param_list)
 
     circ = circuit.get_circuit_func()(
         *[kwargs[param] for param in circuit.circuit_parameter_names]
     )
     state = QuantumState(circuit.num_qubits)
     circ.update_quantum_state(state)
-    operators = circuit.get_operators_for_gradient(parameters)()
+    operators = circuit.get_observables_for_gradient(parameters)()
 
     param_obs_values = [
         outer_jacobian[i].T
