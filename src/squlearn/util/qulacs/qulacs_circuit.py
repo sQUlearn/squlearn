@@ -125,7 +125,6 @@ class QulacsCircuit:
         func_list_element = None
         func_grad_list_element = None
         used_parameters = []
-        parameterized = False
 
         # Important: change the sign because of the way Qulacs defines the rotation gates
         angle = -angle
@@ -137,20 +136,16 @@ class QulacsCircuit:
 
         elif isinstance(angle, ParameterVectorElement):
             # Single parameter vector element, no expression
-            parameterized = True
             func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = [lambda x: 1.0]
-            self._circuit_free_parameters.add(angle)
             used_parameters = [angle]
 
         elif isinstance(angle, ParameterExpression):
             # Parameter is in a expression (equation)
-            parameterized = True
             func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
             func_grad_list_element = []
             # loop over the parameters in the expression
             for param_element in angle._parameter_symbols.keys():
-                self._circuit_free_parameters.add(param_element)
                 used_parameters.append(param_element)
                 # get the gradient of the parameter expression wrt the parameter
                 param_grad = angle.gradient(param_element)
@@ -164,7 +159,7 @@ class QulacsCircuit:
         else:
             raise ValueError("Unsupported angle type")
 
-        return func_list_element, func_grad_list_element, used_parameters, parameterized
+        return func_list_element, func_grad_list_element, used_parameters
 
     def _add_single_qubit_gate(self, gate_name: str, qubits: Union[int, Iterable[int]]):
         """
@@ -184,7 +179,7 @@ class QulacsCircuit:
             self._circuit_qubit_list.append([q])
             self._circuit_param_func_list.append(None)
             self._circuit_param_func_grad_list.append(None)
-            self._circuit_used_parameters.append([])
+            self._circuit_param_list.append([])
 
         self._rebuild_circuit_func = True
 
@@ -211,7 +206,7 @@ class QulacsCircuit:
             self._circuit_qubit_list.append([control, target])
             self._circuit_param_func_list.append(None)
             self._circuit_param_func_grad_list.append(None)
-            self._circuit_used_parameters.append([])
+            self._circuit_param_list.append([])
 
         self._rebuild_circuit_func = True
 
@@ -233,7 +228,7 @@ class QulacsCircuit:
         """
 
         # pre-process the angle in case it is a parameter expression
-        func_list_element, func_grad_list_element, used_parameters, parameterized = (
+        func_list_element, func_grad_list_element, used_parameters = (
             self._add_parameter_expression(angle)
         )
 
@@ -245,7 +240,7 @@ class QulacsCircuit:
             self._circuit_qubit_list.append([q])
             self._circuit_param_func_list.append(func_list_element)
             self._circuit_param_func_grad_list.append(func_grad_list_element)
-            self._circuit_used_parameters.append(used_parameters)
+            self._circuit_param_list.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -267,7 +262,7 @@ class QulacsCircuit:
             qubit2 (Union[int, Iterable[int]]): qubit indices of the second qubit (e.g. target)
             angle (Union[ParameterVectorElement, ParameterExpression, float]): angle of rotation
         """
-        func_list_element, func_grad_list_element, used_parameters, parameterized = (
+        func_list_element, func_grad_list_element, used_parameters = (
             self._add_parameter_expression(angle)
         )
 
@@ -281,7 +276,7 @@ class QulacsCircuit:
             self._circuit_qubit_list.append([control, target])
             self._circuit_param_func_list.append(func_list_element)
             self._circuit_param_func_grad_list.append(func_grad_list_element)
-            self._circuit_used_parameters.append(used_parameters)
+            self._circuit_param_list.append(used_parameters)
 
         self._rebuild_circuit_func = True
 
@@ -295,21 +290,25 @@ class QulacsCircuit:
         Args:
             circuit (QiskitQuantumCircuit): Qiskit circuit to convert to Qulacs
 
-        Returns:
-            Tuple with lists of Qulacs gates, Qulacs gate parameter functions,
-            Qulacs gate wires, Qulacs gate parameters and Qulacs gate parameter dimensions
         """
-
+        # Data structures to store the circuit information
+        # ------------------------------------------------
+        # Gate names that correspond to qulacs_gates.py
         self._circuit_gate_list = []
-        self._param_list = []
+        # Qubit indices for each gate
         self._circuit_qubit_list = []
+        # List of used parameters for each gate
+        self._circuit_param_list = []
+        # Functions to evaluate the angles for each gate
         self._circuit_param_func_list = []
+        # Functions to evaluate the gradients of the angle for each gate
         self._circuit_param_func_grad_list = []
-        self._circuit_free_parameters = set()
+        # List of parameter names used in the circuit
         self._circuit_param_names = []
+        # Tuple of parameter vector elements used in the circuit for symbolice valuation
         self._circuit_symbols_tuple = []
-        self._circuit_used_parameters = []
 
+        # Create the circuit parameter names and symbols tuple from all parameters of the circuit
         for param in circuit.parameters:
             if param.vector.name not in self._circuit_param_names:
                 self._circuit_param_names.append(param.vector.name)
@@ -317,6 +316,7 @@ class QulacsCircuit:
                     sympify(p._symbol_expr) for p in param.vector.params
                 ]
 
+        # Sort the symbols tuple by variable name and index
         def sort_key(item):
             item_string = repr(item)
             variable_name = item_string.split("[")[0]
@@ -325,45 +325,49 @@ class QulacsCircuit:
 
         self._circuit_symbols_tuple = tuple(sorted(self._circuit_symbols_tuple, key=sort_key))
 
+        # Loop over the circuit data and convert the gates to the qulacs circuit format
         for op in circuit.data:
 
-            # catch conditions of the gate
-            # only c_if is supported, the other cases have been caught before
+            # mid-circuit measurements and conditions are not supported!
             if op.operation.condition is not None or op.operation.name == "measure":
                 raise NotImplementedError(
                     "Conditions are not supported in sQUlearn's Qulacs backend."
                 )
 
+            # Catch unsupported gates (should not happen due to transpilation)
             if (
                 op.operation.name not in qiskit_qulacs_gate_dict
                 and op.operation.name not in qiskit_qulacs_param_gate_dict
             ):
                 raise NotImplementedError(
-                    f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's Qulacs backend."
+                    f"Gate {op.operation.name} is unfortunatly not supported in "
+                    "sQUlearn's Qulacs backend."
                 )
 
-            parameterized_gate = len(op.operation.params) >= 1
+            # Get the qubit indices for the operation
+            qubits_indices = [circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)]
+
+            # Check if the operation is parameterized and single or two qubit
+            is_parameterized = len(op.operation.params) >= 1
             is_single_qubit = len(op.qubits) == 1
 
-            wires = [circuit.find_bit(op.qubits[i]).index for i in range(op.operation.num_qubits)]
-
             if is_single_qubit:
-                if not parameterized_gate:
-                    self._add_single_qubit_gate(op.operation.name, wires)
+                if not is_parameterized:
+                    self._add_single_qubit_gate(op.operation.name, qubits_indices)
                 else:
                     self._add_parameterized_single_qubit_gate(
-                        op.operation.name, wires, op.operation.params[0]
+                        op.operation.name, qubits_indices, op.operation.params[0]
                     )
             else:
                 if len(op.qubits) > 2:
                     raise NotImplementedError(
                         "Only two qubit gates are supported in sQUlearn's Qulacs backend."
                     )
-                if not parameterized_gate:
-                    self._add_two_qubit_gate(op.operation.name, wires[0], wires[1])
+                if not is_parameterized:
+                    self._add_two_qubit_gate(op.operation.name, qubits_indices[0], qubits_indices[1])
                 else:
                     self._add_parameterized_two_qubit_gate(
-                        op.operation.name, wires[0], wires[1], op.operation.params[0]
+                        op.operation.name, qubits_indices[0], qubits_indices[1], op.operation.params[0]
                     )
 
     def build_observable_instructions(
@@ -446,7 +450,6 @@ class QulacsCircuit:
                         lambdify(self._symbol_tuple_obs, sympify(c._symbol_expr))
                     )
                     new_operators_coeff_grad.append([lambda *arg: 1.0])
-                    self._circuit_free_parameters.add(c)
                     new_operators_used_parameters.append([c])
 
                 elif isinstance(c, ParameterExpression):
@@ -457,7 +460,6 @@ class QulacsCircuit:
                     func_grad_list_element = []
                     used_parameters_obs_element = []
                     for param_element in c._parameter_symbols.keys():
-                        self._circuit_free_parameters.add(param_element)
                         used_parameters_obs_element.append(param_element)
                         # information about the gradient of the parameter expression
                         # the 1j fixes a bug in qiskit
@@ -513,7 +515,7 @@ class QulacsCircuit:
 
         is_parameterized = len(gradient_param)
         parameterized_operations = [
-            any(param in gradient_param for param in self._circuit_used_parameters[i])
+            any(param in gradient_param for param in self._circuit_param_list[i])
             for i, _ in enumerate(self._circuit_gate_list)
         ]
 
@@ -593,13 +595,13 @@ class QulacsCircuit:
             relevant_operations = [
                 i
                 for i in range(len(self._circuit_gate_list))
-                if any(param in gradient_parameters for param in self._circuit_used_parameters[i])
+                if any(param in gradient_parameters for param in self._circuit_param_list[i])
             ]
 
             outer_jacobian = np.zeros((len(relevant_operations), len(gradient_parameters)))
 
             for i, operation in enumerate(relevant_operations):
-                for j, param in enumerate(self._circuit_used_parameters[operation]):
+                for j, param in enumerate(self._circuit_param_list[operation]):
                     if param in gradient_parameters:
                         outer_jacobian[i, gradient_param_dict[param]] = self._circuit_param_func_grad_list[
                             operation
