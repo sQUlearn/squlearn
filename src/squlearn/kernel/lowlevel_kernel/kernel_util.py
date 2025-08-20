@@ -30,6 +30,7 @@ class CustomKernel(Kernel):
     def is_stationary(self):
         return self.kernel_matrix.is_stationary()
 
+
 def kernel_wrapper(kernel_matrix: KernelMatrixBase):
     """
     Wrapper for sQUlearn's KernelMatrixBase to scikit-learn kernel objects.
