@@ -54,7 +54,7 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=1000)
-        _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
+        _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == true_backend
 
         sampler = executor.get_sampler()
@@ -108,7 +108,7 @@ class TestBackendAutoSelection:
         obs = SparsePauliOp("ZZ")
         backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
         executor = Executor(backends, seed=0, shots=10000, qpu_parallelization=2)
-        _, _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
+        _ = executor.select_backend(qc, mode=mode, use_hqaa=use_hqaa)
         assert str(executor.backend_name) == true_backend
         sampler = executor.get_sampler()
 

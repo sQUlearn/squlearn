@@ -217,15 +217,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
-
-        if not self._is_fitted and not self.pretrained:
-            raise RuntimeError("The model is not fitted.")
-
-        if self.shot_control is not None:
-            self.shot_control.reset_shots()
-
-        return self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        return self._predict(X)
 
     def partial_fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a model to data.

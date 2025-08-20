@@ -97,29 +97,13 @@ class BaseQNN(BaseEstimator, ABC):
         self._qnn = None
         self._is_lowlevel_qnn_initialized = False
 
+        if pretrained and (param_ini is None or param_op_ini is None):
+            raise ValueError("If pretrained is True, param_ini and param_op_ini must be provided!")
+
         self.param_ini = param_ini
-
-        if pretrained and param_ini is None:
-            raise ValueError("If pretrained is True, param_ini must be provided!")
-
-        self._param = param_ini.copy() if param_ini is not None else None
-
-        if param_op_ini is None:
-            if pretrained:
-                raise ValueError("If pretrained is True, param_op_ini must be provided!")
-
-            if isinstance(operator, list):
-                self.param_op_ini = np.concatenate(
-                    [
-                        operator.generate_initial_parameters(seed=parameter_seed + i + 1)
-                        for i, operator in enumerate(operator)
-                    ]
-                )
-            else:
-                self.param_op_ini = operator.generate_initial_parameters(seed=parameter_seed + 1)
-        else:
-            self.param_op_ini = param_op_ini
-        self._param_op = self.param_op_ini.copy()
+        self.param_op_ini = param_op_ini
+        self._param = None
+        self._param_op = None
 
         if not isinstance(optimizer, SGDMixin) and any(
             param is not None for param in [batch_size, epochs, shuffle]
@@ -214,12 +198,31 @@ class BaseQNN(BaseEstimator, ABC):
         self._is_lowlevel_qnn_initialized = False
         self._initialize_lowlevel_qnn(num_features)
 
-        self.param_ini = self.encoding_circuit.generate_initial_parameters(
-            seed=self.parameter_seed, num_features=num_features
-        )
+        if self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters:
+            self._param = self.encoding_circuit.generate_initial_parameters(
+                seed=self.parameter_seed, num_features=num_features
+            )
+        else:
+            self._param = self.param_ini.copy()
 
-        self._param = self.param_ini.copy()
-        self._param_op = self.param_op_ini.copy()
+        if (
+            self.param_op_ini is None
+            or len(self.param_op_ini) != self._qnn.num_parameters_observable
+        ):
+            if isinstance(self.operator, list):
+                self._param_op = np.concatenate(
+                    [
+                        operator.generate_initial_parameters(seed=self.parameter_seed + i + 1)
+                        for i, operator in enumerate(self.operator)
+                    ]
+                )
+            else:
+                self._param_op = self.operator.generate_initial_parameters(
+                    seed=self.parameter_seed + 1
+                )
+        else:
+            self._param_op = self.param_op_ini.copy()
+
         self._is_fitted = False
         self._fit(X, y, weights)
 
@@ -235,8 +238,18 @@ class BaseQNN(BaseEstimator, ABC):
         # Create a dictionary of all public parameters
         params = super().get_params(deep=False)
 
-        if deep and self._qnn is not None:
-            params.update(self._qnn.get_params(deep=True))
+        if deep:
+            params.update(self.encoding_circuit.get_params(deep=True))
+            if isinstance(self.operator, list):
+                for i, oper in enumerate(self.operator):
+                    oper_dict = oper.get_params(deep=True)
+                    for key, value in oper_dict.items():
+                        if key != "num_qubits":
+                            params["op" + str(i) + "__" + key] = value
+            else:
+                params.update(self.operator.get_params(deep=True))
+            if self._qnn is not None:
+                params.update(self._qnn.get_params(deep=True))
         return params
 
     def set_params(self: BaseQNN, **params) -> BaseQNN:
@@ -298,14 +311,16 @@ class BaseQNN(BaseEstimator, ABC):
         if initialize_qnn:
             if isinstance(self.operator, list):
                 num_op_parameters = sum(operator.num_parameters for operator in self.operator)
-                if num_op_parameters != len(self.param_op_ini):
+                if self.param_op_ini is not None and num_op_parameters != len(self.param_op_ini):
                     self.param_op_ini = np.concatenate(
                         [
                             operator.generate_initial_parameters(seed=self.parameter_seed)
                             for operator in self.operator
                         ]
                     )
-            elif self.operator.num_parameters != len(self.param_op_ini):
+            elif self.param_op_ini is not None and self.operator.num_parameters != len(
+                self.param_op_ini
+            ):
                 self.param_op_ini = self.operator.generate_initial_parameters(
                     seed=self.parameter_seed
                 )
@@ -313,9 +328,34 @@ class BaseQNN(BaseEstimator, ABC):
                 self.optimizer.reset()
 
         self._is_fitted = False
-        self._is_lowlevel_qnn_initialized = initialize_qnn
+        self._is_lowlevel_qnn_initialized = not initialize_qnn
 
         return self
+
+    def _predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict using the QNN.
+
+        Args:
+            X : The input data.
+
+        Returns:
+            np.ndarray : The predicted values.
+        """
+        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
+
+        if not self._is_fitted and not self.pretrained:
+            raise RuntimeError("The model is not fitted.")
+
+        if self._qnn is None and self.pretrained:
+            num_features = extract_num_features(X)
+            self._param = self.param_ini.copy()
+            self._param_op = self.param_op_ini.copy()
+            self._initialize_lowlevel_qnn(num_features)
+
+        if self.shot_control is not None:
+            self.shot_control.reset_shots()
+
+        return self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
 
     @abstractmethod
     def _fit(self, X, y, weights: np.ndarray = None) -> None:

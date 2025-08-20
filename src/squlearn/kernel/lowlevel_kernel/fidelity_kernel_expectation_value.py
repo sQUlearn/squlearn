@@ -336,7 +336,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             ),
             P0_operator(self.encoding_circuit.num_qubits),
             executor=self._executor,
-            num_features=num_features,
+            num_features=2 * num_features,
         )
 
         param = self._parameters
@@ -390,21 +390,21 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     )
                 elif todo == "dKdx" or todo == "dKdy":
                     dKdx = eval_helper(value_dict["x"], "dfdx").reshape(
-                        x.shape[0], y.shape[0], 2 * self.num_features
+                        x.shape[0], y.shape[0], 2 * num_features
                     )  # shape (len(x), len(y), 2*num_features)
                     # For consistency with the PQK derivatives:
                     # we transpose the dKdx matrix to be of shape (2*num_features, len(x), len(y))
                     dKdx = dKdx.transpose(2, 0, 1)
-                    if self.num_features == 1:
+                    if num_features == 1:
                         if todo[2:] == "dx":
                             kernel_matrix = dKdx[0]
                         elif todo[2:] == "dy":
                             kernel_matrix = dKdx[1]
                     else:
                         if todo[2:] == "dx":
-                            kernel_matrix = dKdx[: self.num_features]
+                            kernel_matrix = dKdx[:num_features]
                         elif todo[2:] == "dy":
-                            kernel_matrix = dKdx[self.num_features :]
+                            kernel_matrix = dKdx[num_features:]
                 elif todo == "dKdp":
                     dKdp = eval_helper(value_dict["x"], "dfdp").reshape(
                         x.shape[0], y.shape[0], self.num_parameters
@@ -421,13 +421,13 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     or todo == "jacobian"
                 ):
                     jacobian = eval_helper(value_dict["x"], "dfdxdx").reshape(
-                        x.shape[0], y.shape[0], 2 * self.num_features, 2 * self.num_features
+                        x.shape[0], y.shape[0], 2 * num_features, 2 * num_features
                     )  # shape (len(x), len(y), 2*num_features, 2*num_features)
                     # For consistency with the PQK derivatives:
                     # we transpose the jacobian matrix to be of shape
                     # (2*num_features, 2*num_features, len(x), len(y))
                     jacobian = jacobian.transpose(2, 3, 0, 1)
-                    if self.num_features == 1:
+                    if num_features == 1:
                         if todo[2:] == "dxdx":
                             kernel_matrix = jacobian[0, 0]  # shape (len(x), len(x))
                         elif todo[2:] == "dydy":
@@ -441,19 +441,19 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
                     else:
                         if todo[2:] == "dxdx":
                             kernel_matrix = jacobian[
-                                : self.num_features, : self.num_features
+                                :num_features, :num_features
                             ]  # shape (num_features, num_features, len(x), len(x))
                         elif todo[2:] == "dydy":
                             kernel_matrix = jacobian[
-                                self.num_features :, self.num_features :
+                                num_features:, num_features:
                             ]  # shape (num_features, num_features, len(y), len(y))
                         elif todo[2:] == "dxdy":
                             kernel_matrix = jacobian[
-                                : self.num_features, self.num_features :
+                                :num_features, num_features:
                             ]  # shape (num_features, num_features, len(x), len(y))
                         elif todo[2:] == "dydx":
                             kernel_matrix = jacobian[
-                                self.num_features :, : self.num_features
+                                num_features:, :num_features
                             ]  # shape (num_features, num_features, len(y), len(x))
                         elif todo == "jacobian":
                             kernel_matrix = (

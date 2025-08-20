@@ -2421,11 +2421,13 @@ class Executor:
         """
         self._set_seed_for_primitive = seed
 
-    def select_backend(self, circuit, **options):
+    def select_backend(self, circuit, num_features=None, **options):
         """Selects the best backend for a given circuit and options.
 
         Args:
             circuit: Either a QuantumCircuit or an EncodingCircuitBase
+            num_features: Number of features, if None the TranspileEncodingCircuit won't be
+                returned
             **options: Additional options for backend selection. Possible options:
 
                 * min_num_qubits: Minimum number of qubits in the circuit (default: None)
@@ -2481,7 +2483,10 @@ class Executor:
                 real_circuit = circuit
 
             elif isinstance(circuit, EncodingCircuitBase):
-                x = ParameterVector("x", circuit.num_encoding_slots)
+                num_features_for_transpilation = (
+                    num_features if num_features is not None else circuit.num_encoding_slots
+                )
+                x = ParameterVector("x", num_features_for_transpilation)
                 p = ParameterVector("p", circuit.num_parameters)
                 real_circuit = circuit.get_circuit(x, p)
             else:
@@ -2511,6 +2516,9 @@ class Executor:
                 info = None
                 transpiled_circuit = None
                 backend = None
+                num_features_for_transpilation = (
+                    num_features if num_features is not None else circuit.num_encoding_slots
+                )
 
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
@@ -2519,13 +2527,17 @@ class Executor:
                     )
                     return transpiled_circuit
 
-                return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+                return_circ = TranspiledEncodingCircuit(
+                    circuit, backend, num_features_for_transpilation, helper_function
+                )
 
             else:
                 raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
 
         self.set_backend(backend)
 
+        if isinstance(circuit, EncodingCircuitBase) and num_features is None:
+            return info
         return return_circ, info
 
     def set_backend(self, backend: Backend):

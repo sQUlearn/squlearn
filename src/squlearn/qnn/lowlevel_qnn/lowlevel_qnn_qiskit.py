@@ -327,7 +327,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             # Automatically select backend (also returns a TranspiledEncodingCircuit except
             # for parallel qpu execution)
             parameterized_quantum_circuit, _ = executor.select_backend(
-                parameterized_quantum_circuit
+                parameterized_quantum_circuit, num_features
             )
 
         super().__init__(parameterized_quantum_circuit, operator, executor)

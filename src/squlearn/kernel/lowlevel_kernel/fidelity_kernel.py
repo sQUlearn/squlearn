@@ -367,7 +367,9 @@ class FidelityKernel(KernelMatrixBase):
 
                     # Automatic select backend if not chosen
                     if not self._executor.backend_chosen:
-                        self._enc_circ, _ = self._executor.select_backend(self._enc_circ)
+                        self._enc_circ, _ = self._executor.select_backend(
+                            self._enc_circ, num_features
+                        )
 
                     if self._executor.is_statevector:
                         if self._parameter_vector is None:

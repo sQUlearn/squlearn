@@ -1,5 +1,6 @@
 """Tests for QNNRegressor"""
 
+import random
 import pytest
 
 import numpy as np
@@ -28,25 +29,28 @@ class TestQNNRegressor:
     @pytest.fixture(scope="module")
     def qnn_regressor(self) -> QNNRegressor:
         """QNNRegressor module."""
-        np.random.seed(42)
+        random_device = np.random.default_rng(seed=30)
         executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        param_ini = np.random.rand(pqc.num_parameters)
-        param_op_ini = np.random.rand(operator.num_parameters)
+        param_ini = random_device.random(pqc.num_parameters)
+        param_op_ini = random_device.random(operator.num_parameters)
         return QNNRegressor(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
     @pytest.fixture(scope="module")
     def qnn_regressor_2out(self) -> QNNRegressor:
         """QNNRegressor module."""
+        random_device = np.random.default_rng(seed=30)
         executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = SquaredLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return QNNRegressor(pqc, operator, executor, loss, optimizer, parameter_seed=0)
+        param_ini = random_device.random(pqc.num_parameters)
+        param_op_ini = random_device.random(sum(op.num_parameters for op in operator))
+        return QNNRegressor(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
     def test_predict_unfitted(self, qnn_regressor, data):
         """Tests concerning the unfitted QNNRegressor.
@@ -199,5 +203,5 @@ class TestQNNRegressor:
         qnn_regressor.fit(X, y)
 
         assert qnn_regressor._is_fitted
-        assert not np.allclose(qnn_regressor.param, qnn_regressor.param_ini)
+        assert len(qnn_regressor.param) != len(qnn_regressor.param_ini)
         assert not np.allclose(qnn_regressor.param_op, qnn_regressor.param_op_ini)

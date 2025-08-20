@@ -430,10 +430,15 @@ class EncodingCircuitBase(ABC):
             @property
             def num_features(self) -> int:
                 """The dimension of the features in the encoding circuit."""
+                if ec1_num_features is None and ec2_num_features is None:
+                    return None
+                if ec1_num_features is None:
+                    return ec2_num_features
+                if ec2_num_features is None:
+                    return ec1_num_features
                 if concatenate_features:
                     return ec1_num_features + ec2_num_features
-                else:
-                    return max(ec1_num_features, ec2_num_features)
+                return max(ec1_num_features, ec2_num_features)
 
             @property
             def parameter_bounds(self) -> np.ndarray:

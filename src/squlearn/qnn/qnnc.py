@@ -168,15 +168,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
-
-        if not self._is_fitted and not self.pretrained:
-            raise RuntimeError("The model is not fitted.")
-
-        if self.shot_control is not None:
-            self.shot_control.reset_shots()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -188,11 +180,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The probabilities
         """
-
-        if self.shot_control is not None:
-            self.shot_control.reset()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 

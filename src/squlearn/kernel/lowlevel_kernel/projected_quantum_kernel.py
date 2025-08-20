@@ -446,6 +446,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
 
         self._set_up_measurement_operator()
         self._set_outer_kernel(outer_kernel, **kwargs)
+        self._qnn = None
 
     def __reduce__(self):
         return (
@@ -465,6 +466,8 @@ class ProjectedQuantumKernel(KernelMatrixBase):
     @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the encoding circuit"""
+        if self._qnn is None:
+            return None
         return self._qnn.num_parameters + self._qnn.num_parameters_observable
 
     @property
@@ -677,7 +680,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         params["outer_kernel"] = self._outer_kernel_input
 
         if deep:
-            params.update(self._qnn.get_params())
+            params.update(self._encoding_circuit.get_params())
+            if isinstance(self._measurement_input, list):
+                for m in self._measurement_input:
+                    params.update(m.get_params())
+            elif isinstance(self._measurement_input, ObservableBase):
+                params.update(self._measurement_input.get_params())
+            if self._qnn is not None:
+                params.update(self._qnn.get_params())
         return params
 
     def set_params(self, **params):
@@ -768,14 +778,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             )
 
         # Set Remaining QNN parameters
-        dict_qnn = {}
-        for key, value in params.items():
-            if key in self._qnn.get_params():
-                dict_qnn[key] = value
-        for key in dict_qnn.keys():
-            params.pop(key)
-        if len(dict_qnn) > 0:
-            self._qnn.set_params(**dict_qnn)
+        if self._qnn is not None:
+            dict_qnn = {}
+            for key, value in params.items():
+                if key in self._qnn.get_params():
+                    dict_qnn[key] = value
+            for key in dict_qnn.keys():
+                params.pop(key)
+            if len(dict_qnn) > 0:
+                self._qnn.set_params(**dict_qnn)
 
         # Set outer kernel
         if "outer_kernel" in params:
