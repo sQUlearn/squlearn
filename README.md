@@ -49,7 +49,7 @@ sQUlearn is released under the [Apache License 2.0](https://github.com/sQUlearn/
 ## Cite sQUlearn
 If you use sQUlearn in your work, please cite our paper:
 
-> Kreplin, D. A., Willmann, M., Schnabel, J., Rapp, F., Hagelüken, M., & Roth, M. (2023). sQUlearn - A Python Library for Quantum Machine Learning. [https://doi.org/10.48550/arXiv.2311.08990](https://doi.org/10.48550/arXiv.2311.08990)
+> Kreplin, D. A., Willmann, M., Schnabel, J., Rapp, F., Hagelüken, M., & Roth, M. (2025). sQUlearn: A Python Library for Quantum Machine Learning. *IEEE Software, 42*(5), 65–72. [https://doi.org/10.1109/MS.2025.3527736](https://doi.org/10.1109/MS.2025.3527736)
 
 ## Contact
 This project is maintained by the quantum computing group at the Fraunhofer Institute for Manufacturing Engineering and Automation IPA.

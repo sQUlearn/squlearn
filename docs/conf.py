@@ -107,9 +107,9 @@ latex_elements = {
 # intersphinx
 intersphinx_mapping = {
     "pennylane": ("https://docs.pennylane.ai/en/stable/", None),
-    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit/", None),
+    "qiskit": ("https://quantum.cloud.ibm.com/docs/api/qiskit/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
-    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
 }
