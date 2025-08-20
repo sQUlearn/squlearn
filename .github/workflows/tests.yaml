@@ -28,6 +28,7 @@ jobs:
           pytest tests/
       - name: Install example dependencies
         run: |
+          source venv_minimal/bin/activate
           python3 install_lowest_dependencies.py --examples
       - name: Test examples
         run: |
