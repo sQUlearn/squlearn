@@ -74,9 +74,7 @@ class TestFidelityKernel:
         self, num_features, initial_parameters, executor, use_expectation, evaluate_duplicates
     ):
         executor = executor
-        encoding_circuit = LayeredEncodingCircuit(
-            num_qubits=num_features, num_features=num_features
-        )
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=num_features)
 
         if num_features == 1:
             encoding_circuit.Ry("p")  # For 1 feature, the FQK analytical kernel is:  Rx(x)@Ry(p)
@@ -85,6 +83,7 @@ class TestFidelityKernel:
                 "p"
             )  # For 2 features, the FQK analytical kernel is:  Rx(x0)@Ry(p0) x Rx(x1)@Ry(p1)
         encoding_circuit.Rx("x")
+        encoding_circuit._build_layered_pqc(num_features)
 
         kernel = FidelityKernel(
             encoding_circuit,
@@ -94,6 +93,7 @@ class TestFidelityKernel:
             initial_parameters=initial_parameters,
             evaluate_duplicates=evaluate_duplicates,
         )
+        kernel._initialize_kernel(num_features)
 
         return kernel
 

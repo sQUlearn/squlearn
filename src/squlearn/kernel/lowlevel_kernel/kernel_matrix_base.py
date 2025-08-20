@@ -43,11 +43,6 @@ class KernelMatrixBase(ABC):
         self._regularization = regularization
         self._is_trainable = False
 
-        if self._parameters is None:
-            self._parameters = self._encoding_circuit.generate_initial_parameters(
-                self._parameter_seed
-            )
-
     @property
     def encoding_circuit(self) -> EncodingCircuitBase:
         """
@@ -172,6 +167,13 @@ class KernelMatrixBase(ABC):
         """
         self.assign_parameters(parameters)
         return self.evaluate(x, y)
+
+    def _initialize_kernel(self, num_features: int) -> None:
+        """Fully initializes the kernel"""
+        if self._parameters is None:
+            self._parameters = self._encoding_circuit.generate_initial_parameters(
+                seed=self._parameter_seed, num_features=num_features
+            )
 
     def __add__(self, x):
         """

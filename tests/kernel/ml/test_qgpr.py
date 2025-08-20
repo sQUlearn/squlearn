@@ -45,6 +45,26 @@ class TestQGPR:
             quantum_kernel=kernel, sigma=1.0e-6, normalize_y=False, full_regularization=True
         )
 
+    @pytest.fixture(scope="module")
+    def qgpr_fidelity_without_num_features(self) -> QGPR:
+        """QGPR module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = FidelityKernel(encoding_circuit=encoding_circuit, executor=executor)
+        return QGPR(quantum_kernel=kernel, sigma=1.0e-6)
+
+    @pytest.fixture(scope="module")
+    def qgpr_pqk_without_num_features(self) -> QGPR:
+        """QGPR module with ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = YZ_CX_EncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = ProjectedQuantumKernel(encoding_circuit=encoding_circuit, executor=executor)
+        return QGPR(
+            quantum_kernel=kernel, sigma=1.0e-6, normalize_y=False, full_regularization=True
+        )
+
     def test_that_qgpr_params_are_present(self):
         """Asserts that all classical parameters are present in the QGPR."""
         qgpr_instance = QGPR(quantum_kernel=MagicMock())
@@ -57,6 +77,25 @@ class TestQGPR:
 
     @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
     def test_predict(self, qgpr, request, data):
+        """Tests concerning the predict function of the QGPR.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qgpr_instance = request.getfixturevalue(qgpr)
+
+        X, y = data
+        qgpr_instance.fit(X, y)
+
+        y_pred = qgpr_instance.predict(X)
+        assert y_pred.shape == y.shape
+        assert isinstance(y_pred, np.ndarray)
+
+    @pytest.mark.parametrize(
+        "qgpr", ["qgpr_fidelity_without_num_features", "qgpr_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qgpr, request, data):
         """Tests concerning the predict function of the QGPR.
 
         Tests include
@@ -156,6 +195,7 @@ class TestQGPR:
         qgpr_instance = request.getfixturevalue(qgpr)
         assert qgpr_instance.get_params()["num_layers"] == 2
         qgpr_instance.set_params(num_layers=4)
+
         assert qgpr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
