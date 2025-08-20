@@ -25,7 +25,7 @@ class TestBaseQRC:
     def qrc_class(self) -> MockBaseQRC:
         """BaseQRC module."""
         executor = Executor()
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=4, num_features=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=4)
         return MockBaseQRC(encoding_circuit, executor)
 
     def test_set_params_invalid_param(self, qrc_class: MockBaseQRC):
@@ -53,6 +53,20 @@ class TestBaseQRC:
         """
         qrc_class.set_params(parameter_seed=42)
         assert qrc_class.parameter_seed == 42
+
+    def test_set_params_num_qubits(self, qrc_class: MockBaseQRC):
+        """
+        Test `set_params` with `num_qubits` for QRC base class.
+
+        Args:
+            qrc_class (MockBaseQRC): An instance of the `MockBaseQRC` class.
+
+        Returns:
+            None
+        """
+        qrc_class.set_params(num_qubits=5)
+        assert qrc_class.encoding_circuit.num_qubits == 5
+        assert qrc_class._operators[0].num_qubits == 5
 
     def test_set_params_num_operators(self, qrc_class: MockBaseQRC):
         """

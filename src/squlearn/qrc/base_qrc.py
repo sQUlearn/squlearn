@@ -235,6 +235,12 @@ class BaseQRC(BaseEstimator, ABC):
         params = super().get_params(deep=False)
 
         if deep:
+            params.update(self.encoding_circuit.get_params(deep=True))
+            for i, oper in enumerate(self._operators):
+                oper_dict = oper.get_params(deep=True)
+                for key, value in oper_dict.items():
+                    if key != "num_qubits":
+                        params["op" + str(i) + "__" + key] = value
             if self._qnn is not None:
                 params.update(self._qnn.get_params(deep=True))
             params.update(self._ml_model.get_params(deep=True))
