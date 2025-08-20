@@ -7,6 +7,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import column_or_1d
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -84,21 +86,12 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
         self.param_op_ini = param_op_ini
         self.parameter_seed = parameter_seed
         self.caching = caching
+        self._is_lowlevel_qnn_initialized = False
+        self._qnn = None
 
         self._ml_model = None
         self._initialize_observables()
-        self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
-
-        initialize_parameters = (
-            self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-        )
-        initialize_parameters_obs = (
-            self.param_op_ini is None
-            or len(self.param_op_ini) != self._qnn.num_parameters_observable
-        )
-
-        self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
 
     @property
     def used_operators(self) -> List[ObservableBase]:
@@ -117,6 +110,21 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
             X: Input data
             y: Labels
         """
+        num_features = extract_num_features(X)
+
+        self._is_lowlevel_qnn_initialized = False
+        self._initialize_lowlevel_qnn(num_features)
+
+        initialize_parameters = (
+            self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
+        )
+        initialize_parameters_obs = (
+            self.param_op_ini is None
+            or len(self.param_op_ini) != self._qnn.num_parameters_observable
+        )
+
+        self._initialize_parameters(num_features, initialize_parameters, initialize_parameters_obs)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
         X_qnn = self._qnn.evaluate(X, self.param_ini, self.param_op_ini, "f")["f"]
         self._ml_model.fit(X_qnn, y)
@@ -169,18 +177,22 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
             self.num_operators = len(self._operators)
 
     def _initialize_parameters(
-        self, parameters: bool = True, parameters_optimizers: bool = True
+        self,
+        num_features: int,
+        parameters: bool = True,
+        parameters_optimizers: bool = True,
     ) -> None:
         """
         Initialize the parameters of the QNN model.
 
         Args:
+            num_features (int): The number of features in the input data.
             parameters (bool): If True, initialize the parameters of the encoding circuit.
             parameters_optimizers (bool): If True, initialize the parameters of the operators
         """
         if parameters:
             self.param_ini = self.encoding_circuit.generate_initial_parameters(
-                seed=self.parameter_seed
+                seed=self.parameter_seed, num_features=num_features
             )
 
         if parameters_optimizers:
@@ -191,11 +203,19 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
                 ]
             )
 
-    def _initialize_lowlevel_qnn(self) -> None:
+    def _initialize_lowlevel_qnn(self, num_features: int) -> None:
         """Initialize the low-level QNN object."""
+        if self._is_lowlevel_qnn_initialized:
+            return
+
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self._operators, self.executor, caching=self.caching
+            self.encoding_circuit,
+            self._operators,
+            self.executor,
+            num_features,
+            caching=self.caching,
         )
+        self._is_lowlevel_qnn_initialized = True
 
     @abstractmethod
     def _initialize_ml_model(self) -> None:
@@ -216,7 +236,14 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
         params = super().get_params(deep=False)
 
         if deep:
-            params.update(self._qnn.get_params(deep=True))
+            params.update(self.encoding_circuit.get_params(deep=True))
+            for i, oper in enumerate(self._operators):
+                oper_dict = oper.get_params(deep=True)
+                for key, value in oper_dict.items():
+                    if key != "num_qubits":
+                        params["op" + str(i) + "__" + key] = value
+            if self._qnn is not None:
+                params.update(self._qnn.get_params(deep=True))
             params.update(self._ml_model.get_params(deep=True))
 
         return params
@@ -254,12 +281,6 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
             self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
             initialize_lowlevel_qnn = True
 
-        # Set qnn parameters
-        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys() - ec_params
-        if qnn_params:
-            self._qnn.set_params(**{key: params[key] for key in qnn_params})
-            initialize_lowlevel_qnn = True
-
         if (
             "num_qubits" in params
             or "num_operators" in params
@@ -271,21 +292,7 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
         if "ml_model" in params or "ml_model_options" in params:
             self._initialize_ml_model()
 
-        if initialize_lowlevel_qnn:
-            self._initialize_lowlevel_qnn()
-            # Reinitialize parameters if the number of parameters has changed
-            initialize_parameters = (
-                self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
-            )
-            initialize_parameters_obs = (
-                self.param_op_ini is None
-                or len(self.param_op_ini) != self._qnn.num_parameters_observable
-            )
-
-            self._initialize_parameters(initialize_parameters, initialize_parameters_obs)
-
-        if "parameter_seed" in params:
-            self._initialize_parameters()
+        self._is_lowlevel_qnn_initialized = initialize_lowlevel_qnn
 
         return self
 

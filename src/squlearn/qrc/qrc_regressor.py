@@ -72,7 +72,7 @@ class QRCRegressor(BaseQRC, RegressorMixin):
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.33, random_state=42)
 
-        reg = QRCRegressor(HubregtsenEncodingCircuit(num_qubits=4, num_features=1),
+        reg = QRCRegressor(HubregtsenEncodingCircuit(num_qubits=4),
                             Executor(),
                             ml_model="linear",
                             operators="random_paulis",

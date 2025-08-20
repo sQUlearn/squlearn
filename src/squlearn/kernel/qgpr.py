@@ -11,6 +11,8 @@ from sklearn.preprocessing._data import _handle_zeros_in_scale
 
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -81,7 +83,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         from squlearn.encoding_circuit import HubregtsenEncodingCircuit
         from squlearn.kernel.lowlevel_kernel import FidelityKernel
         from squlearn.kernel import QGPR
-        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_features=num_features, num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=num_qubits, num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpr_ansatz = QGPR(quantum_kernel=q_kernel)
@@ -114,10 +116,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         self._piv = None
         self._alpha = None
 
-        # Apply kwargs to set_params
-        update_params = self.get_params().keys() & kwargs.keys()
-        if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
+        self._kernel_params = kwargs
 
     def fit(self, X, y):
         """Fit Quantum Gaussian process regression model.
@@ -135,6 +134,15 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         Return:
             Returns an instance of self.
         """
+        num_features = extract_num_features(X)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+        # Apply kernel_params (kwargs) to set_params
+        update_params = self.get_params().keys() & self._kernel_params.keys()
+        if update_params:
+            self.set_params(**{key: self._kernel_params[key] for key in update_params})
 
         X, y = validate_data(
             self,
@@ -214,7 +222,6 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
                 Covariance of joint predictive distribution a query points.
                 Only returned when `return_cov` is True.
         """
-
         X = validate_data(self, X, ensure_2d=True, dtype="numeric", reset=False)
 
         if self.K_train is None:

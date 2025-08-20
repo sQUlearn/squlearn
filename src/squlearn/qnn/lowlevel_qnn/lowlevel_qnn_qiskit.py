@@ -12,7 +12,12 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...encoding_circuit.encoding_circuit_derivatives import EncodingCircuitDerivatives
 from ...encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
 
-from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+from ...util.data_preprocessing import (
+    adjust_features,
+    adjust_parameters,
+    extract_num_features,
+    to_tuple,
+)
 from ...util import Executor
 
 from ...util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
@@ -304,23 +309,25 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
+        num_features: int,
         caching=True,
         primitive: Union[str, None] = None,
     ) -> None:
 
+        self._num_features = num_features
         self.caching = caching
 
         if executor.backend_chosen:
             # Skip transpilation for parallel qpu execution
             if not executor.qpu_parallelization:
                 parameterized_quantum_circuit = TranspiledEncodingCircuit(
-                    parameterized_quantum_circuit, executor.backend
+                    parameterized_quantum_circuit, executor.backend, num_features
                 )
         else:
             # Automatically select backend (also returns a TranspiledEncodingCircuit except
             # for parallel qpu execution)
             parameterized_quantum_circuit, _ = executor.select_backend(
-                parameterized_quantum_circuit
+                parameterized_quantum_circuit, num_features
             )
 
         super().__init__(parameterized_quantum_circuit, operator, executor)
@@ -329,8 +336,6 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         # Set-Up Executor
         self._set_primitive(primitive)
-
-        # Initialize derivative classes
         self._initilize_derivative()
 
     def _set_primitive(self, primitive: Union[str, None] = None) -> None:
@@ -438,8 +443,6 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             if len(dict_operator) > 0:
                 self._observable.set_params(**dict_operator)
 
-        self._initilize_derivative()
-
     def _initilize_derivative(self):
         """Initializes the derivative classes"""
 
@@ -453,7 +456,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             num_qubits_operator = self._observable.num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self._observable)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._num_features)
 
         if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -501,7 +504,9 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
     @property
     def num_qubits(self) -> int:
         """Return the number of qubits of the QNN"""
-        return self._num_qubits
+        if hasattr(self, "_num_qubits"):
+            return self._num_qubits
+        return self._pqc.num_virtual_qubits
 
     @property
     def num_features(self) -> int:
@@ -511,7 +516,9 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
     @property
     def num_parameters(self) -> int:
         """Return the number of trainable parameters of the PQC"""
-        return self.pqc_derivatives.num_parameters
+        if hasattr(self, "pqc_derivatives"):
+            return self.pqc_derivatives.num_parameters
+        return 0
 
     @property
     def num_operator(self) -> int:
@@ -520,8 +527,10 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
     @property
     def num_parameters_observable(self) -> int:
-        """Return the number of trainable parameters of the expectation value operator"""
-        return self.operator_derivatives.num_parameters
+        """Return the number of trainable parameters of the expectation value operator."""
+        if hasattr(self, "operator_derivatives"):
+            return self.operator_derivatives.num_parameters
+        return 0
 
     @property
     def multiple_output(self) -> bool:
