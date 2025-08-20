@@ -8,7 +8,7 @@ from .qnn_loss_base import QNNLossBase
 
 
 class CrossEntropyLoss(QNNLossBase):
-    """Cross entropy loss for classification.
+    r"""Cross entropy loss for classification.
 
     Args:
         eps (float): Small value to avoid :math:`\log(0)`
@@ -32,18 +32,20 @@ class CrossEntropyLoss(QNNLossBase):
         return ("f", "dfdp")
 
     def value(self, value_dict: dict, **kwargs) -> float:
-        r"""Calculates the log loss.
+        r"""Calculates the cross entropy loss.
 
-        This function calculates the log loss between the probability values in `value_dict` and
-        binary `ground_truth` as
+        This function calculates the cross entropy loss between the probability values in
+        `value_dict` and binary `ground_truth` as
 
         .. math::
-            - \left(\sum_i w_i \cdot \sum_k y_{i,k} \cdot \log\left(f\left(x_i\right)_k\right)\right)
+            - \left(\sum_i w_i \cdot \sum_k y_{i,k} \cdot \log\left(f\left(x_i\right)_k\right)
+                \right)
 
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
 
         Returns:
             Loss value
@@ -68,10 +70,10 @@ class CrossEntropyLoss(QNNLossBase):
     def gradient(
         self, value_dict: dict, **kwargs
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-        r"""Returns the gradient of the log loss.
+        r"""Returns the gradient of the cross entropy loss.
 
-        This function calculates the gradient of the log loss between the probability values in
-        `value_dict` and binary `ground_truth` as
+        This function calculates the gradient of the cross entropy loss between the probability
+        values in `value_dict` and binary `ground_truth` as
 
         .. math::
             - \left(\sum_i w_i \cdot \left(\frac{y_i}{f\left(x_i\right)}
@@ -81,7 +83,8 @@ class CrossEntropyLoss(QNNLossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the same
+            weights (np.ndarray): Weight for each data point, if None all data points count the
+                same
             multiple_output (bool): True if the QNN has multiple outputs
 
         Returns:
