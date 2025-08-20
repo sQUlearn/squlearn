@@ -118,15 +118,19 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
+        num_features: int,
         caching: bool = True,
     ) -> None:
-
         super().__init__(parameterized_quantum_circuit, observable, executor)
+
+        self._num_features = num_features
 
         # Initialize result cache
         self.caching = caching
         self.result_container = {}
         self._preprocess_observable()
+
+        self._initialize_pennylane_circuit(self._num_features)
 
     def set_params(self, **params) -> None:
         """Sets the hyper-parameters of the QNN
@@ -272,11 +276,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             The keys of the dictionary are given by the entries in the values tuple
 
         """
-        num_features = extract_num_features(x)
-        self._initialize_pennylane_circuit(num_features)
-
         # Pre-process the input data to the format [[x1],[x2]]
-        x_inp, multi_x = adjust_features(x, num_features)
+        x_inp, multi_x = adjust_features(x, self._num_features)
         x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(
@@ -288,7 +289,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         compare_list = []
         if self.num_parameters > 0:
             compare_list.append("param")
-        if num_features > 0:
+        if self._num_features > 0:
             compare_list.append("x")
         if self.num_parameters_observable > 0:
             compare_list.append("param_obs")
@@ -364,7 +365,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
                     output = np.array(output)
 
                     # Capture some strange edge cases
-                    if self._executor.shots is not None and sum(np.shape(x)) == num_features:
+                    if self._executor.shots is not None and sum(np.shape(x)) == self._num_features:
                         output = output.reshape(output.shape + (1,))
                     if len(x) == 0 and self._executor.shots is None:
                         output = output.reshape((1,) + output.shape)

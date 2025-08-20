@@ -24,8 +24,8 @@ class TestSolvemini_batch:
 
     pqc = ChebyshevPQC(num_qubits=4, closed=False)
     cost_op = SummedPaulis(4)
-    qnn = LowLevelQNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
+    qnn = LowLevelQNN(pqc, cost_op, executor, 1)
 
     def test_wrong_optimizer(self):
         """Test for error caused by wrong optimizer type."""
@@ -168,8 +168,8 @@ class TestZeroParam:
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
-        assert qnn.num_parameters_observable == 0
         qnn.fit(x_train, y_train)
+        assert qnn.num_parameters_observable == 0
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
 
     @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
@@ -185,8 +185,8 @@ class TestZeroParam:
         ob = SummedPaulis(2)
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
-        assert qnn.num_parameters == 0
         qnn.fit(x_train, y_train)
+        assert qnn.num_parameters == 0
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
 
     @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
@@ -202,7 +202,7 @@ class TestZeroParam:
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
+        qnn.fit(x_train, y_train)
         assert qnn.num_parameters_observable == 0
         assert qnn.num_parameters == 0
-        qnn.fit(x_train, y_train)
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)

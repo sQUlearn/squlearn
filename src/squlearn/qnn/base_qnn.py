@@ -94,6 +94,8 @@ class BaseQNN(BaseEstimator, ABC):
         self.shot_control = shot_control
         self.parameter_seed = parameter_seed
         self._qnn_params = kwargs
+        self._qnn = None
+        self._is_lowlevel_qnn_initialized = False
 
         self.param_ini = param_ini
 
@@ -163,12 +165,6 @@ class BaseQNN(BaseEstimator, ABC):
             else:
                 raise TypeError(f"Unknown callback type {type(self.callback)}")
 
-        self._initialize_lowlevel_qnn()
-
-        update_params = self.get_params().keys() & kwargs.keys()
-        if update_params:
-            self.set_params(**{key: kwargs[key] for key in update_params})
-
         self._is_fitted = self.pretrained
 
     def __getstate__(self):
@@ -215,6 +211,9 @@ class BaseQNN(BaseEstimator, ABC):
         self.encoding_circuit._check_feature_consistency(X)
         num_features = extract_num_features(X)
 
+        self._is_lowlevel_qnn_initialized = False
+        self._initialize_lowlevel_qnn(num_features)
+
         self.param_ini = self.encoding_circuit.generate_initial_parameters(
             seed=self.parameter_seed, num_features=num_features
         )
@@ -236,7 +235,7 @@ class BaseQNN(BaseEstimator, ABC):
         # Create a dictionary of all public parameters
         params = super().get_params(deep=False)
 
-        if deep:
+        if deep and self._qnn is not None:
             params.update(self._qnn.get_params(deep=True))
         return params
 
@@ -297,17 +296,6 @@ class BaseQNN(BaseEstimator, ABC):
                 initialize_qnn = True
 
         if initialize_qnn:
-            self._initialize_lowlevel_qnn()
-
-        # Set parameters of the QNN
-        qnn_params = (params.keys() & self._qnn.get_params(deep=True).keys()) - (
-            ec_params | op_params
-        )
-        if qnn_params:
-            self._qnn.set_params(**{key: params[key] for key in qnn_params})
-            initialize_qnn = True
-
-        if initialize_qnn:
             if isinstance(self.operator, list):
                 num_op_parameters = sum(operator.num_parameters for operator in self.operator)
                 if num_op_parameters != len(self.param_op_ini):
@@ -325,6 +313,7 @@ class BaseQNN(BaseEstimator, ABC):
                 self.optimizer.reset()
 
         self._is_fitted = False
+        self._is_lowlevel_qnn_initialized = initialize_qnn
 
         return self
 
@@ -341,14 +330,19 @@ class BaseQNN(BaseEstimator, ABC):
         """
         raise NotImplementedError()
 
-    def _initialize_lowlevel_qnn(self) -> None:
+    def _initialize_lowlevel_qnn(self, num_features: int | None = None) -> None:
+        if self._is_lowlevel_qnn_initialized:
+            return
+
         self._qnn = LowLevelQNN(
             self.encoding_circuit,
             self.operator,
             self.executor,
+            num_features,
             caching=self.caching,
             primitive=self.primitive,
         )
+        self._is_lowlevel_qnn_initialized = True
 
     def _validate_input(self, X, y, incremental, reset):
         X, y = validate_data(

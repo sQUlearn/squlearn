@@ -336,6 +336,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             ),
             P0_operator(self.encoding_circuit.num_qubits),
             executor=self._executor,
+            num_features=num_features,
         )
 
         param = self._parameters

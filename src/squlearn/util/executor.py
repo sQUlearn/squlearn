@@ -2520,10 +2520,6 @@ class Executor:
                     return transpiled_circuit
 
                 return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
-                # need this call to ensure the backend is set correctly
-                return_circ._setup_transpiled_circuit_and_qubit_mapping(
-                    num_features=circuit.num_encoding_slots
-                )
 
             else:
                 raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")

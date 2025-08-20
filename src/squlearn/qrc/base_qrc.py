@@ -85,10 +85,11 @@ class BaseQRC(BaseEstimator, ABC):
         self.param_op_ini = param_op_ini
         self.parameter_seed = parameter_seed
         self.caching = caching
+        self._is_lowlevel_qnn_initialized = False
+        self._qnn = None
 
         self._ml_model = None
         self._initialize_observables()
-        self._initialize_lowlevel_qnn()
         self._initialize_ml_model()
 
     @property
@@ -109,6 +110,10 @@ class BaseQRC(BaseEstimator, ABC):
             y: Labels
         """
         num_features = extract_num_features(X)
+
+        self._is_lowlevel_qnn_initialized = False
+        self._initialize_lowlevel_qnn(num_features)
+
         initialize_parameters = (
             self.param_ini is None or len(self.param_ini) != self._qnn.num_parameters
         )
@@ -197,11 +202,19 @@ class BaseQRC(BaseEstimator, ABC):
                 ]
             )
 
-    def _initialize_lowlevel_qnn(self) -> None:
+    def _initialize_lowlevel_qnn(self, num_features: int) -> None:
         """Initialize the low-level QNN object."""
+        if self._is_lowlevel_qnn_initialized:
+            return
+
         self._qnn = LowLevelQNN(
-            self.encoding_circuit, self._operators, self.executor, caching=self.caching
+            self.encoding_circuit,
+            self._operators,
+            self.executor,
+            num_features,
+            caching=self.caching,
         )
+        self._is_lowlevel_qnn_initialized = True
 
     @abstractmethod
     def _initialize_ml_model(self) -> None:
@@ -222,7 +235,8 @@ class BaseQRC(BaseEstimator, ABC):
         params = super().get_params(deep=False)
 
         if deep:
-            params.update(self._qnn.get_params(deep=True))
+            if self._qnn is not None:
+                params.update(self._qnn.get_params(deep=True))
             params.update(self._ml_model.get_params(deep=True))
 
         return params
@@ -260,12 +274,6 @@ class BaseQRC(BaseEstimator, ABC):
             self.encoding_circuit.set_params(**{key: params[key] for key in ec_params})
             initialize_lowlevel_qnn = True
 
-        # Set qnn parameters
-        qnn_params = params.keys() & self._qnn.get_params(deep=True).keys() - ec_params
-        if qnn_params:
-            self._qnn.set_params(**{key: params[key] for key in qnn_params})
-            initialize_lowlevel_qnn = True
-
         if (
             "num_qubits" in params
             or "num_operators" in params
@@ -277,8 +285,7 @@ class BaseQRC(BaseEstimator, ABC):
         if "ml_model" in params or "ml_model_options" in params:
             self._initialize_ml_model()
 
-        if initialize_lowlevel_qnn:
-            self._initialize_lowlevel_qnn()
+        self._is_lowlevel_qnn_initialized = initialize_lowlevel_qnn
 
         return self
 

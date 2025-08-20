@@ -9,6 +9,8 @@ import numpy as np
 from sklearn.base import RegressorMixin
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -218,7 +220,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
 
         if not self._is_fitted and not self.pretrained:
-            warn("The model is not fitted.")
+            raise RuntimeError("The model is not fitted.")
 
         if self.shot_control is not None:
             self.shot_control.reset_shots()
@@ -238,6 +240,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                 Labels
             weights: Weights for each data point
         """
+        num_features = extract_num_features(X)
+        self._initialize_lowlevel_qnn(num_features)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         loss = self.loss

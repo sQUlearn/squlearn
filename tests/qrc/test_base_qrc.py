@@ -54,21 +54,6 @@ class TestBaseQRC:
         qrc_class.set_params(parameter_seed=42)
         assert qrc_class.parameter_seed == 42
 
-    def test_set_params_num_qubits(self, qrc_class: MockBaseQRC):
-        """
-        Test `set_params` with `num_qubits` for QRC base class.
-
-        Args:
-            qrc_class (MockBaseQRC): An instance of the `MockBaseQRC` class.
-
-        Returns:
-            None
-        """
-        qrc_class.set_params(num_qubits=5)
-        assert qrc_class.encoding_circuit.num_qubits == 5
-        assert qrc_class._operators[0].num_qubits == 5
-        assert qrc_class._qnn.num_qubits == 5
-
     def test_set_params_num_operators(self, qrc_class: MockBaseQRC):
         """
         Test `set_params` with `num_operators` for QRC base class

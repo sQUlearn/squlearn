@@ -408,4 +408,4 @@ class FidelityKernel(KernelMatrixBase):
                             )
                 else:
                     raise RuntimeError("Invalid quantum framework!")
-                self._is_initialized = True
+            self._is_initialized = True

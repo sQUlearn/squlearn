@@ -9,6 +9,8 @@ from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -209,6 +211,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 Labels
             weights: Weights for each data point
         """
+
+        num_features = extract_num_features(X)
+        self._initialize_lowlevel_qnn(num_features)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         if not self._is_fitted:

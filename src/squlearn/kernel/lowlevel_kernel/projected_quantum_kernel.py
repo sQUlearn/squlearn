@@ -445,8 +445,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         self._is_initialized = False
 
         self._set_up_measurement_operator()
-        self._set_up_qnn()
-
         self._set_outer_kernel(outer_kernel, **kwargs)
 
     def __reduce__(self):
@@ -719,7 +717,6 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                 self._regularization,
                 self._caching,
             )
-            # self.__init_after_set_params()
             params.pop("num_qubits")
 
         if "measurement" in params:
@@ -840,12 +837,13 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
 
-    def _set_up_qnn(self) -> None:
+    def _set_up_qnn(self, num_features) -> None:
         """Set-up of the QNN"""
         self._qnn = LowLevelQNN(
             self._encoding_circuit,
             self._measurement,
             self._executor,
+            num_features,
             caching=self._caching,
         )
 
@@ -874,8 +872,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         """
         if not self._is_initialized:
             super()._initialize_kernel(num_features=num_features)
-            if isinstance(self._qnn, LowLevelQNNPennyLane):
-                self._qnn._initialize_pennylane_circuit(num_features=num_features)
+            self._set_up_qnn(num_features)
 
             # Generate default parameters of the measurement operators
             if self._initial_parameters is None:

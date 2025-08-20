@@ -433,8 +433,7 @@ class EncodingCircuitBase(ABC):
                 if concatenate_features:
                     return ec1_num_features + ec2_num_features
                 else:
-                    # return max(ec1_num_features, ec2_num_features)
-                    self._num_features
+                    return max(ec1_num_features, ec2_num_features)
 
             @property
             def parameter_bounds(self) -> np.ndarray:

@@ -53,15 +53,12 @@ class TestQNNRegressor:
 
         Tests include
             - whether `_is_fitted` is False
-            - whether a warning is raised
-            - whether the prediction output is correct
+            - whether a RuntimeError is raised
         """
-        X, y = data
+        X, _ = data
         assert not qnn_regressor._is_fitted
-        with pytest.warns(UserWarning, match="The model is not fitted."):
-            y_pred = qnn_regressor.predict(X)
-        assert isinstance(y_pred, np.ndarray)
-        assert y_pred.shape == y.shape
+        with pytest.raises(RuntimeError, match="The model is not fitted."):
+            qnn_regressor.predict(X)
 
     def test_fit(self, qnn_regressor, data):
         """Tests concerning the fit function of the QNNRegressor.

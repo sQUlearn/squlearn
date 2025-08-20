@@ -309,17 +309,19 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         operator: Union[ObservableBase, list],
         executor: Executor,
+        num_features: int,
         caching=True,
         primitive: Union[str, None] = None,
     ) -> None:
 
+        self._num_features = num_features
         self.caching = caching
 
         if executor.backend_chosen:
             # Skip transpilation for parallel qpu execution
             if not executor.qpu_parallelization:
                 parameterized_quantum_circuit = TranspiledEncodingCircuit(
-                    parameterized_quantum_circuit, executor.backend
+                    parameterized_quantum_circuit, executor.backend, num_features
                 )
         else:
             # Automatically select backend (also returns a TranspiledEncodingCircuit except
@@ -334,6 +336,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
 
         # Set-Up Executor
         self._set_primitive(primitive)
+        self._initilize_derivative()
 
     def _set_primitive(self, primitive: Union[str, None] = None) -> None:
         """
@@ -440,7 +443,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             if len(dict_operator) > 0:
                 self._observable.set_params(**dict_operator)
 
-    def _initilize_derivative(self, num_features: int):
+    def _initilize_derivative(self):
         """Initializes the derivative classes"""
 
         num_qubits_operator = 0
@@ -453,7 +456,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             num_qubits_operator = self._observable.num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self._observable)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, num_features)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._num_features)
 
         if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")
@@ -899,16 +902,6 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             The keys of the dictionary are given by the entries in the values tuple
 
         """
-        num_features = extract_num_features(x)
-        transpiled_circuit_is_initialized = getattr(self, "_derivative_is_initialized", False)
-        cached_num_features = getattr(self, "_cached_num_features", None)
-
-        # Initialize the derivative classes
-        if not transpiled_circuit_is_initialized or cached_num_features != num_features:
-            self._cached_num_features = num_features
-            self._pqc._setup_transpiled_circuit_and_qubit_mapping(self._cached_num_features)
-            self._initilize_derivative(num_features=num_features)
-            self._derivative_is_initialized = True
 
         def generate_real_todo_dic(values, value_dict):
             """Converts the input values into a sorted dictionary
