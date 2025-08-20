@@ -51,6 +51,31 @@ class TestQGPC:
         )
         return QGPC(quantum_kernel=kernel)
 
+    @pytest.fixture(scope="module")
+    def qgpc_fidelity_without_num_features(self) -> QGPC:
+        """QGPC module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = FidelityKernel(
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
+        )
+        return QGPC(quantum_kernel=kernel)
+
+    @pytest.fixture(scope="module")
+    def qgpc_pqk_without_num_features(self) -> QGPC:
+        """QGPC module wit ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = ProjectedQuantumKernel(
+            encoding_circuit, executor=executor, regularization="thresholding"
+        )
+        return QGPC(quantum_kernel=kernel)
+
     def test_that_qgpc_params_are_present(self):
         """Asserts that all classical parameters are present in the QGPC."""
         qgpc_instance = QGPC(quantum_kernel=MagicMock())
@@ -79,6 +104,27 @@ class TestQGPC:
 
     @pytest.mark.parametrize("qgpc", ["qgpc_fidelity", "qgpc_pqk"])
     def test_predict(self, qgpc, request, data):
+        """Tests concerning the predict function of the QGPC.
+
+        Tests include
+            - whether the prediction output is correct
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qgpc_instance = request.getfixturevalue(qgpc)
+
+        X, y = data
+        qgpc_instance.fit(X, y)
+
+        y_pred = qgpc_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+        assert np.allclose(y_pred, y)
+
+    @pytest.mark.parametrize(
+        "qgpc", ["qgpc_fidelity_without_num_features", "qgpc_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qgpc, request, data):
         """Tests concerning the predict function of the QGPC.
 
         Tests include
@@ -162,6 +208,7 @@ class TestQGPC:
         qgpc_instance = request.getfixturevalue(qgpc)
         assert qgpc_instance.get_params()["num_layers"] == 2
         qgpc_instance.set_params(num_layers=4)
+
         assert qgpc_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible

@@ -9,6 +9,8 @@ from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -97,7 +99,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             X, y, test_size=0.33, random_state=42
         )
         clf = QNNClassifier(
-            ChebyshevRx(4, 2, 2),
+            ChebyshevRx(4, 2),
             SummedPaulis(4),
             Executor(),
             SquaredLoss(),
@@ -166,15 +168,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
-
-        if not self._is_fitted and not self.pretrained:
-            raise RuntimeError("The model is not fitted.")
-
-        if self.shot_control is not None:
-            self.shot_control.reset_shots()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -186,11 +180,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The probabilities
         """
-
-        if self.shot_control is not None:
-            self.shot_control.reset()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
@@ -209,6 +199,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 Labels
             weights: Weights for each data point
         """
+
+        num_features = extract_num_features(X)
+        self._initialize_lowlevel_qnn(num_features)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         if not self._is_fitted:

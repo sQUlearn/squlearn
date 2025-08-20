@@ -1,24 +1,35 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
-from typing import Union
+from typing import Tuple, Union
 
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Parameter
 from qiskit.circuit import QuantumCircuit
 
+from squlearn.util.data_preprocessing import extract_num_features
 
-class EncodingCircuitBase:
+
+class EncodingCircuitBase(ABC):
     """
     Encoding circuit base class
 
     Args:
         num_qubits (int): Number of Qubits of the encoding circuit
-        num_features (int): Dimension of the feature vector
+        num_features (int): Dimension of the feature vector (default: None).
     """
 
-    def __init__(self, num_qubits: int, num_features: int) -> None:
+    def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
         self._num_features = num_features
+
+        if num_features is not None:
+            warnings.warn(
+                "The parameter 'num_features' is deprecated and will be removed in a future version. "
+                "Please update your code accordingly.",
+                DeprecationWarning,
+            )
 
     @property
     def num_qubits(self) -> int:
@@ -45,17 +56,28 @@ class EncodingCircuitBase:
 
     @property
     def feature_bounds(self) -> np.ndarray:
-        """The bounds of the features of the encoding circuit.
-
-        Default bounds are [-pi,pi] for each feature.
         """
-        return np.array([[-np.pi, np.pi]] * self.num_features)
+        The bounds of the features of the encoding circuit.
 
-    def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+        To get the bounds for a specific number of features, use get_feature_bounds().
+
+        Default bounds are [-pi,pi].
+        """
+        return np.array([-np.pi, np.pi])
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        raise NotImplementedError()
+
+    def generate_initial_parameters(
+        self, num_features: int, seed: Union[int, None] = None
+    ) -> np.ndarray:
         """
         Generates random parameters for the encoding circuit
 
         Args:
+            num_features (int): Number of features of the input data
             seed (Union[int,None]): Seed for the random number generator (default: None)
 
         Return:
@@ -67,15 +89,14 @@ class EncodingCircuitBase:
         bounds = self.parameter_bounds
         return r.uniform(low=bounds[:, 0], high=bounds[:, 1])
 
+    @abstractmethod
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the circuit encoding circuit
-
-        Has to be overwritten, otherwise a NotImplementedError is thrown
+        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -92,25 +113,52 @@ class EncodingCircuitBase:
     def draw(
         self,
         output: str = None,
+        num_features: int = None,
         feature_label: str = "x",
         parameter_label: str = "p",
         decompose: bool = False,
         **kwargs,
     ) -> None:
         """
-        Draws the encoding circuit circuit using the QuantumCircuit.draw() function.
+        Draws the encoding circuit using the QuantumCircuit.draw() function.
 
         Args:
+            num_features (int): Number of features to draw the circuit with (default: None).
+            output (str): Output format of the drawing (default: None).
             feature_label (str): Label for the feature vector (default:"x").
             parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
             kwargs: Additional arguments from Qiskit's QuantumCircuit.draw() function.
 
+        Raises:
+            ValueError: Raised if the number of features is not provided.
+
         Returns:
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
+        if num_features == 0:
+            num_features = None
 
-        feature_vec = ParameterVector(feature_label, self.num_features)
+        if (
+            self.num_features is None
+            and num_features is None
+            and self.num_encoding_slots is not np.inf
+        ):
+            feature_vec = ParameterVector(feature_label, self.num_encoding_slots)
+
+        elif self.num_features is not None and num_features is None:
+            feature_vec = ParameterVector(feature_label, self.num_features)
+        else:
+            feature_vec = [Parameter(feature_label)]
+
+        # ensure random configuration is available
+        if hasattr(self, "_is_config_available") and not self._is_config_available:
+            self._gen_random_config(num_features=num_features, seed=self.get_params()["seed"])
+
+        # ensure that the LayeredEncodingCircuit is built before drawing
+        if hasattr(self, "_build_layered_pqc"):
+            self._build_layered_pqc(num_features)
+
         parameters_vec = ParameterVector(parameter_label, self.num_parameters)
 
         circ = self.get_circuit(feature_vec, parameters_vec)
@@ -135,6 +183,17 @@ class EncodingCircuitBase:
         param["num_features"] = self._num_features
         return param
 
+    def get_feature_bounds(self, num_features: int) -> np.ndarray:
+        """Returns the feature bounds expanded for a given number of features.
+
+        Args:
+            num_features (int): Number of features to expand the bounds for.
+
+        Returns:
+            np.ndarray: Feature bounds expanded for the number of features.
+        """
+        return np.tile(self.feature_bounds, (num_features, 1))
+
     def set_params(self, **params) -> EncodingCircuitBase:
         """
         Sets value of the encoding circuit hyper-parameters.
@@ -155,6 +214,44 @@ class EncodingCircuitBase:
                 setattr(self, "_" + key, value)
 
         return self
+
+    def _check_feature_consistency(self, x) -> None:
+        """
+        Checks if the number of features in the input data matches the expected number of features
+        in the encoding circuit. If they differ, an Error is raised.
+
+        Args:
+            x (np.ndarray): Input data to check, where each row corresponds to a data sample
+                            and each column to a feature.
+
+        Raises:
+            ValueError: Raised if the number of features in the input data does not match the
+                     `num_features` of the encoding circuit.
+        """
+        actual_num_features = extract_num_features(x)
+
+        if self.num_features is not None and actual_num_features != self.num_features:
+            raise ValueError(
+                f"Number of features in the input data ({actual_num_features}) "
+                f"does not match the number of features in the encoding circuit ({self.num_features})."
+            )
+
+    def _check_feature_encoding_slots(
+        self, num_features: int, num_encoding_slots: Union[int, float]
+    ) -> None:
+        """
+        Checks if the number of features fits the available encoding slots.
+
+        Args:
+            num_features (int): The number of the input features.
+            num_encoding_slots (int|float): The number of available encoding slots.
+
+        Raises:
+            EncodingSlotsMismatchError: If the number of features exceeds the number of encoding slots.
+        """
+
+        if not np.isinf(num_encoding_slots) and num_features > num_encoding_slots:
+            raise EncodingSlotsMismatchError(num_encoding_slots, num_features)
 
     def inverse(self):
         """
@@ -181,20 +278,31 @@ class EncodingCircuitBase:
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of the encoding circuit."""
+                """Returns the bounds of the features of the encoding circuit.
+
+                To get the bounds for a specific number of features, use get_feature_bounds().
+                """
                 return self._encoding_circuit.feature_bounds
 
-            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+            @property
+            def num_encoding_slots(self) -> int:
+                """The number of encoding slots of the encoding circuit."""
+                return self._encoding_circuit.num_encoding_slots
+
+            def generate_initial_parameters(
+                self, num_features: int, seed: Union[int, None] = None
+            ) -> np.ndarray:
                 """
                 Generates random parameters for the encoding circuit
 
                 Args:
+                    num_features (int): Number of features of the input data
                     seed (Union[int,None]): Seed for the random number generator
 
                 Return:
                     Returns the randomly generated parameters
                 """
-                return self._encoding_circuit.generate_initial_parameters(seed)
+                return self._encoding_circuit.generate_initial_parameters(num_features, seed)
 
             def get_circuit(
                 self,
@@ -225,7 +333,13 @@ class EncodingCircuitBase:
     def __add__(self, x):
         return self.compose(x, concatenate_features=False, concatenate_parameters=True)
 
-    def compose(self, x, concatenate_features=True, concatenate_parameters=False):
+    def compose(
+        self,
+        x,
+        concatenate_features=False,
+        concatenate_parameters=False,
+        num_circuit_features: Tuple[int, int] = (None, None),
+    ):
         """
         Composition of encoding circuits with options for handling features and parameters
 
@@ -236,6 +350,12 @@ class EncodingCircuitBase:
         Args:
             self (EncodingCircuitBase): right / first encoding circuit
             x (EncodingCircuitBase): left / second encoding circuit
+            concatenate_features (bool): If True, the features of both encoding circuits are concatenated
+                (default: False). If False, the features of both encoding circuits are taken
+            concatenate_parameters (bool): If True, the parameters of both encoding circuits are concatenated
+                (default: False). If False, the parameters of both encoding circuits are taken
+            num_circuit_features (Tuple[int, int]): Tuple of the number of features for both encoding circuits.
+                This has to be provided if concatenate_features is True otherwise an error is raised.
 
         Returns:
             Returns the composed encoding circuit as special class ComposedEncodingCircuit
@@ -243,6 +363,13 @@ class EncodingCircuitBase:
 
         if not isinstance(x, EncodingCircuitBase):
             raise ValueError("Only the addition with other encoding circuits is allowed!")
+
+        if concatenate_features and num_circuit_features is None:
+            raise ValueError(
+                "If concatenate_features is True, num_circuit_features has to be provided!"
+            )
+        else:
+            (ec1_num_features, ec2_num_features) = num_circuit_features
 
         class ComposedEncodingCircuit(EncodingCircuitBase):
             """
@@ -256,7 +383,10 @@ class EncodingCircuitBase:
             """
 
             def __init__(
-                self, num_qubits: int, ec1: EncodingCircuitBase, ec2: EncodingCircuitBase
+                self,
+                num_qubits: int,
+                ec1: EncodingCircuitBase,
+                ec2: EncodingCircuitBase,
             ):
 
                 if ec1.num_qubits != num_qubits:
@@ -264,7 +394,7 @@ class EncodingCircuitBase:
                 if ec2.num_qubits != num_qubits:
                     ec2.set_params(num_qubits=num_qubits)
 
-                super().__init__(ec1.num_qubits, max(ec1.num_features, ec2.num_features))
+                super().__init__(ec1.num_qubits)
 
                 self.ec1 = ec1
                 self.ec2 = ec2
@@ -302,10 +432,15 @@ class EncodingCircuitBase:
             @property
             def num_features(self) -> int:
                 """The dimension of the features in the encoding circuit."""
+                if ec1_num_features is None and ec2_num_features is None:
+                    return None
+                if ec1_num_features is None:
+                    return ec2_num_features
+                if ec2_num_features is None:
+                    return ec1_num_features
                 if concatenate_features:
-                    return self.ec1.num_features + self.ec2.num_features
-                else:
-                    return max(self.ec1.num_features, self.ec2.num_features)
+                    return ec1_num_features + ec2_num_features
+                return max(ec1_num_features, ec2_num_features)
 
             @property
             def parameter_bounds(self) -> np.ndarray:
@@ -357,30 +492,25 @@ class EncodingCircuitBase:
 
             @property
             def feature_bounds(self) -> np.ndarray:
-                """Returns the bounds of the features of composed encoding circuit.
+                """Returns the bounds of the features of composed encoding circuit. To get the bounds for a specific number of features, use get_feature_bounds().
 
                 Is equal to the maximum and minimum of both bounds.
                 """
-
                 feature_bounds1 = self.ec1.feature_bounds
                 feature_bounds2 = self.ec2.feature_bounds
-                feature_bounds_values = np.zeros((self.num_features, 2))
 
-                min_num_feature = min(self.ec1.num_features, self.ec2.num_features)
+                min_bound = np.minimum(feature_bounds1[0], feature_bounds2[0])
+                max_bound = np.maximum(feature_bounds1[1], feature_bounds2[1])
 
-                if self.ec1.num_features == self.num_features:
-                    feature_bounds_values = self.ec1.feature_bounds
+                return np.array([min_bound, max_bound])
 
-                if self.ec2.num_features == self.num_features:
-                    feature_bounds_values = self.ec2.feature_bounds
+            @property
+            def num_encoding_slots(self) -> int:
+                return self.ec1.num_encoding_slots + self.ec2.num_encoding_slots
 
-                for i in range(min_num_feature):
-                    feature_bounds_values[i, 0] = min(feature_bounds1[i, 0], feature_bounds2[i, 0])
-                    feature_bounds_values[i, 1] = max(feature_bounds1[i, 1], feature_bounds2[i, 1])
-
-                return feature_bounds_values
-
-            def generate_initial_parameters(self, seed: Union[int, None] = None) -> np.ndarray:
+            def generate_initial_parameters(
+                self, num_features: int, seed: Union[int, None] = None
+            ) -> np.ndarray:
                 """
                 Generates random parameters for the composed encoding circuit
 
@@ -390,12 +520,11 @@ class EncodingCircuitBase:
                 Return:
                     Returns the randomly generated parameters
                 """
-
                 if concatenate_parameters:
                     return np.concatenate(
                         (
-                            self.ec1.generate_initial_parameters(seed),
-                            self.ec2.generate_initial_parameters(seed),
+                            self.ec1.generate_initial_parameters(num_features, seed),
+                            self.ec2.generate_initial_parameters(num_features, seed),
                         ),
                         axis=0,
                     )
@@ -484,15 +613,31 @@ class EncodingCircuitBase:
                     Returns the circuit of the composed encoding circuits in qiskit QuantumCircuit
                     format
                 """
+                num_features = extract_num_features(features)
+                self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+                self._check_feature_consistency(features)
+
+                # build the layered_pqc to apply all stored operations if available.
+                # This is only available for LayeredEncodingCircuits and has to be called before get_circuit
+                if hasattr(self.ec1, "_build_layered_pqc"):
+                    self.ec1._build_layered_pqc(
+                        num_features if ec1_num_features is None else ec1_num_features
+                    )
+
+                if hasattr(self.ec2, "_build_layered_pqc"):
+                    self.ec2._build_layered_pqc(
+                        num_features if ec2_num_features is None else ec2_num_features
+                    )
+
                 if concatenate_features:
                     features_c1, features_c2 = (
-                        features[: self.ec1.num_features],
-                        features[self.ec1.num_features :],
+                        features[:ec1_num_features],
+                        features[ec1_num_features:],
                     )
                 else:
                     features_c1, features_c2 = (
-                        features[: self.ec1.num_features],
-                        features[: self.ec2.num_features],
+                        features,
+                        features,
                     )
 
                 if concatenate_parameters:
@@ -514,4 +659,34 @@ class EncodingCircuitBase:
 
                 return circ1.compose(circ2, range(self.ec1.num_qubits))
 
+            def draw(
+                self,
+                output=None,
+                num_features=None,
+                feature_label="x",
+                parameter_label="p",
+                decompose=False,
+                **kwargs,
+            ):
+                # make sure that the LayeredEncodingCircuit is built before drawing
+                if hasattr(self.ec1, "_build_layered_pqc"):
+                    self.ec1._build_layered_pqc(num_features)
+                if hasattr(self.ec2, "_build_layered_pqc"):
+                    self.ec2._build_layered_pqc(num_features)
+                return super().draw(
+                    output, num_features, feature_label, parameter_label, decompose, **kwargs
+                )
+
         return ComposedEncodingCircuit.create_from_encoding_circuits(self, x)
+
+
+class EncodingSlotsMismatchError(Exception):
+    """Exception raised when the number of encoding slots does not match the number of features."""
+
+    def __init__(self, num_slots, num_features):
+        self.num_slots = num_slots
+        self.num_features = num_features
+        self.message = (
+            f"Encoding slots ({num_slots}) do not match the number of features ({num_features})."
+        )
+        super().__init__(self.message)
