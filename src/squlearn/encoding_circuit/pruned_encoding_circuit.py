@@ -71,7 +71,7 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         if getattr(self, "_pruned_circuit", None) is not None:
             return self._encoding_circuit.num_encoding_slots - self._removed_feature_gate_count
         else:
-            raise ValueError("Circuit not generated yet. Please call get_circuit() first.")
+            return self._encoding_circuit.num_encoding_slots
 
     def generate_initial_parameters(
         self, num_features: int, seed: Union[int, None] = None

@@ -136,6 +136,8 @@ class EncodingCircuitBase(ABC):
         Returns:
             Returns the circuit in qiskit QuantumCircuit.draw() format
         """
+        if num_features == 0:
+            num_features = None
 
         if (
             self.num_features is None
