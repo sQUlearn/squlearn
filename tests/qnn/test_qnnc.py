@@ -28,25 +28,28 @@ class TestQNNClassifier:
     @pytest.fixture(scope="module")
     def qnn_classifier(self) -> QNNClassifier:
         """QNNClassifier module."""
-        np.random.seed(30)
+        random_device = np.random.default_rng(seed=30)
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
         loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        param_ini = np.random.rand(pqc.num_parameters)
-        param_op_ini = np.random.rand(operator.num_parameters)
+        param_ini = random_device.random(pqc.num_parameters)
+        param_op_ini = random_device.random(operator.num_parameters)
         return QNNClassifier(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
     @pytest.fixture(scope="module")
     def qnn_classifier_2out(self) -> QNNClassifier:
         """QNNClassifier module."""
+        random_device = np.random.default_rng(seed=30)
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
         loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
-        return QNNClassifier(pqc, operator, executor, loss, optimizer, parameter_seed=1)
+        param_ini = random_device.random(pqc.num_parameters)
+        param_op_ini = random_device.random(sum(op.num_parameters for op in operator))
+        return QNNClassifier(pqc, operator, executor, loss, optimizer, param_ini, param_op_ini)
 
     def test_predict_unfitted(self, qnn_classifier, data):
         """Tests concerning the unfitted QNNClassifier.
