@@ -189,8 +189,9 @@ def _get_quantum_fisher_pennylane(
 
     fisher_list = []
     if mode == "p":
-        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
-        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs")
+        pennylane_circuit = qml.QNode(pennylane_circuit.pennylane_circuit, executor.backend)
+        fisher_func = qml.metric_tensor(pennylane_circuit)
         for x_values in x_adjusted:
             x_values = pnp.array(x_values, requires_grad=False)
             for p_values in p_adjusted:
@@ -199,8 +200,9 @@ def _get_quantum_fisher_pennylane(
                 fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
     elif mode == "x":
-        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
-        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs")
+        pennylane_circuit = qml.QNode(pennylane_circuit.pennylane_circuit, executor.backend)
+        fisher_func = qml.metric_tensor(pennylane_circuit)
         for x_values in x_adjusted:
             x_values = pnp.array(x_values, requires_grad=True)
             for p_values in p_adjusted:
@@ -214,8 +216,9 @@ def _get_quantum_fisher_pennylane(
         )
         dictionary = dict(zip(list(parameter_vector) + list(feature_vector), list(px_)))
         circuit.assign_parameters(dictionary, inplace=True)
-        pennylane_circuit = PennyLaneCircuit(circuit, "probs", executor)
-        fisher_func = qml.metric_tensor(pennylane_circuit.pennylane_circuit)
+        pennylane_circuit = PennyLaneCircuit(circuit, "probs")
+        pennylane_circuit = qml.QNode(pennylane_circuit.pennylane_circuit, executor.backend)
+        fisher_func = qml.metric_tensor(pennylane_circuit)
         for x_values in x_adjusted:
             for p_values in p_adjusted:
                 x_values = pnp.array(np.concatenate((p_values, x_values)), requires_grad=True)

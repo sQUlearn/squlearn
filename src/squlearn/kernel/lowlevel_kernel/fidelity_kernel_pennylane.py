@@ -1,8 +1,8 @@
 """Fidelity Quantum Kernel class"""
 
 from typing import Union
-import numpy as np
 
+import numpy as np
 from qiskit.circuit import ParameterVector
 from qiskit.compiler import transpile
 from qiskit_algorithms.utils import algorithm_globals
@@ -66,7 +66,7 @@ class FidelityKernelPennyLane:
             circuit = transpile(
                 enc_circ, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
             )
-            self._pennylane_circuit = PennyLaneCircuit(circuit, "state", self._executor)
+            self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
 
             @lru_cache(maxsize=self._cache_size)
             def pennylane_circuit_executor(*args, **kwargs):
@@ -94,7 +94,7 @@ class FidelityKernelPennyLane:
             circuit = transpile(
                 circuit, basis_gates=qiskit_pennylane_gate_dict.keys(), optimization_level=0
             )
-            self._pennylane_circuit = PennyLaneCircuit(circuit, "probs", self._executor)
+            self._pennylane_circuit = PennyLaneCircuit(circuit, "probs")
 
     @property
     def num_parameters(self) -> int:
