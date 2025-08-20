@@ -53,12 +53,6 @@ class LowLevelQNNBase(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def num_features(self) -> int:
-        """Return the dimension of the features of the PQC"""
-        raise NotImplementedError
-
-    @property
-    @abc.abstractmethod
     def num_parameters(self) -> int:
         """Return the number of trainable parameters of the PQC"""
         raise NotImplementedError

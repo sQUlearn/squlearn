@@ -202,5 +202,5 @@ class TestQNNClassifier:
         qnn_classifier.fit(X, y)
 
         assert qnn_classifier._is_fitted
-        assert not np.allclose(qnn_classifier.param, qnn_classifier.param_ini)
+        assert len(qnn_classifier.param) != len(qnn_classifier.param_ini)
         assert not np.allclose(qnn_classifier.param_op, qnn_classifier.param_op_ini)
