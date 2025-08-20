@@ -168,14 +168,3 @@ class QGPC(GaussianProcessClassifier, SerializableModelMixin):
         if quantum_kernel_params:
             self._quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
         return self
-
-    @property
-    def quantum_kernel(self) -> KernelMatrixBase:
-        """Returns quantum kernel"""
-        return self._quantum_kernel
-
-    @quantum_kernel.setter
-    def quantum_kernel(self, quantum_kernel: KernelMatrixBase):
-        """Sets quantum kernel"""
-        self._quantum_kernel = quantum_kernel
-        self.kernel = kernel_wrapper(quantum_kernel)
