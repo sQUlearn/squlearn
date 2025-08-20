@@ -32,20 +32,22 @@ class LowLevelQNN:
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
+        num_features: int,
         *args,
         **kwargs,
     ) -> [LowLevelQNNPennyLane, LowLevelQNNQiskit]:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
-                warn("Primitive argument is not supported for PennyLane. Ignoring...")
+                if kwargs["primitive"] is not None:
+                    warn("Primitive argument is not supported for PennyLane. Ignoring...")
                 kwargs.pop("primitive")
             return LowLevelQNNPennyLane(
-                parameterized_quantum_circuit, observable, executor, *args, **kwargs
+                parameterized_quantum_circuit, observable, executor, num_features, *args, **kwargs
             )
         elif executor.quantum_framework == "qiskit":
             return LowLevelQNNQiskit(
-                parameterized_quantum_circuit, observable, executor, *args, **kwargs
+                parameterized_quantum_circuit, observable, executor, num_features, *args, **kwargs
             )
         elif executor.quantum_framework == "qulacs":
             if "primitive" in kwargs:

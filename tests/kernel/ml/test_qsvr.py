@@ -51,6 +51,31 @@ class TestQSVR:
         )
         return QSVR(kernel, C=1, epsilon=0.1)
 
+    @pytest.fixture(scope="module")
+    def qsvr_fidelity_without_num_features(self) -> QSVR:
+        """QSVR module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = FidelityKernel(
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
+        )
+        return QSVR(kernel, C=1, epsilon=0.1)
+
+    @pytest.fixture(scope="module")
+    def qsvr_pqk_without_num_features(self) -> QSVR:
+        """QSVR module wit ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = MultiControlEncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = ProjectedQuantumKernel(
+            encoding_circuit, executor=executor, regularization="thresholding"
+        )
+        return QSVR(kernel, C=1, epsilon=0.1)
+
     def test_that_qsvr_params_are_present(self):
         """Asserts that all classical parameters are present in the QSVR."""
         qsvr_instance = QSVR(MagicMock())
@@ -94,6 +119,25 @@ class TestQSVR:
         assert isinstance(y_pred, np.ndarray)
         assert y_pred.shape == y.shape
 
+    @pytest.mark.parametrize(
+        "qsvr", ["qsvr_fidelity_without_num_features", "qsvr_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qsvr, request, data):
+        """Tests concerning the predict function of the QSVR.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvr_instance = request.getfixturevalue(qsvr)
+
+        X, y = data
+        qsvr_instance.fit(X, y)
+
+        y_pred = qsvr_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+
     @pytest.mark.parametrize("qsvr", ["qsvr_fidelity", "qsvr_pqk"])
     def test_list_input(self, qsvr, request, data):
         """Tests concerning the predict function of the QSVR with list input.
@@ -115,7 +159,6 @@ class TestQSVR:
     def test_kernel_params_can_be_changed_after_initialization(self, qsvr, request, data):
         """Tests concerning the kernel parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
-
         qsvr_params = qsvr_instance.get_params()
         assert qsvr_params["num_qubits"] == 3
         assert qsvr_params["regularization"] == "thresholding"
@@ -138,8 +181,10 @@ class TestQSVR:
     ):
         """Tests concerning the encoding circuit parameter changes."""
         qsvr_instance = request.getfixturevalue(qsvr)
+
         assert qsvr_instance.get_params()["num_layers"] == 2
         qsvr_instance.set_params(num_layers=4)
+
         assert qsvr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
@@ -190,10 +235,10 @@ class TestQSVR:
 
         qsvr_instance.set_params(regularization="tikhonov")
 
-        qsvr_instance.quantum_kernel._regularize_matrix = MagicMock()
-        qsvr_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+        qsvr_instance._quantum_kernel._regularize_matrix = MagicMock()
+        qsvr_instance._quantum_kernel._regularize_matrix.side_effect = lambda x: x
 
         qsvr_instance.fit(X, y)
         qsvr_instance.predict(X)
 
-        assert qsvr_instance.quantum_kernel._regularize_matrix.call_count == 2
+        assert qsvr_instance._quantum_kernel._regularize_matrix.call_count == 2

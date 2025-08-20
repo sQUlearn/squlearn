@@ -4,8 +4,6 @@ import pytest
 import numpy as np
 import sympy as sp
 
-from unittest.mock import MagicMock
-
 from squlearn import Executor
 from squlearn.encoding_circuit import LayeredEncodingCircuit
 from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
@@ -57,11 +55,9 @@ class TestProjectedQuantumKernel:
 
         return x0, y0, x1, y1, gamma_sp, p0, p1, sympy_values
 
-    def create_projected_quantum_kernel(self, num_features, gamma_num, initial_parameters):
+    def create_projected_quantum_kernel(self, num_qubits, gamma_num, initial_parameters):
         executor = Executor()
-        encoding_circuit = LayeredEncodingCircuit(
-            num_qubits=num_features, num_features=num_features
-        )
+        encoding_circuit = LayeredEncodingCircuit(num_qubits=num_qubits)
         encoding_circuit.Ry("p")
         encoding_circuit.Rx("x")
 
@@ -89,6 +85,7 @@ class TestProjectedQuantumKernel:
         values = kernel.evaluate_derivatives(
             [x_num], [y_num], ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]
         )
+
         for key in ["K", "dKdx", "dKdy", "dKdxdx", "dKdp"]:
             assert np.allclose(
                 np.array(values[key]).flatten().astype(float),

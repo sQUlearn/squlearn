@@ -74,7 +74,7 @@ class QRCClassifier(BaseQRC, ClassifierMixin):
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.33, random_state=42)
 
-        clf = QRCClassifier(HubregtsenEncodingCircuit(num_qubits=4, num_features=2),
+        clf = QRCClassifier(HubregtsenEncodingCircuit(num_qubits=4),
                             Executor(),
                             ml_model="linear",
                             operators="random_paulis",

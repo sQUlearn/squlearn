@@ -14,8 +14,8 @@ from qiskit.circuit import ParameterVector
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
-from ...util.executor import Executor, BaseSamplerV2
-from ...util.data_preprocessing import convert_to_float64
+from ...util.executor import BaseSamplerV2, Executor
+from ...util.data_preprocessing import convert_to_float64, extract_num_features
 
 from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
 from .fidelity_kernel_statevector import FidelityKernelStatevector
@@ -99,85 +99,11 @@ class FidelityKernel(KernelMatrixBase):
         super().__init__(
             encoding_circuit, executor, initial_parameters, parameter_seed, regularization
         )
-
-        self._quantum_kernel = None
         self._evaluate_duplicates = evaluate_duplicates
         self._mit_depol_noise = mit_depol_noise
+        self._is_initialized = False
         self._use_expectation = use_expectation
-
-        if self.num_parameters > 0:
-            self._parameter_vector = ParameterVector("p", self.num_parameters)
-        else:
-            self._parameter_vector = None
-
-        if self._use_expectation:
-            self._quantum_kernel = FidelityKernelExpectationValue(
-                encoding_circuit=self._encoding_circuit,
-                executor=self._executor,
-                evaluate_duplicates=self._evaluate_duplicates,
-                caching=caching,
-            )
-        else:
-            if self._executor.quantum_framework in ["pennylane", "qulacs"]:
-
-                self._quantum_kernel = FidelityKernelStatevector(
-                    encoding_circuit=self._encoding_circuit,
-                    executor=self._executor,
-                    evaluate_duplicates=self._evaluate_duplicates,
-                )
-
-            elif self._executor.quantum_framework == "qiskit":
-
-                # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
-                self._feature_vector = ParameterVector("x_", self.num_features)
-
-                self._enc_circ = self._encoding_circuit.get_circuit(
-                    self._feature_vector, self._parameter_vector
-                )
-
-                # Automatic select backend if not chosen
-                if not self._executor.backend_chosen:
-                    self._enc_circ, _ = self._executor.select_backend(self._enc_circ)
-
-                if self._executor.is_statevector:
-                    if self._parameter_vector is None:
-                        self._quantum_kernel = FidelityStatevectorKernel(
-                            feature_map=self._enc_circ,
-                            shots=self._executor.get_shots(),
-                            enforce_psd=False,
-                        )
-                    else:
-                        self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                            feature_map=self._enc_circ,
-                            training_parameters=self._parameter_vector,
-                            shots=self._executor.get_shots(),
-                            enforce_psd=False,
-                        )
-                else:
-                    sampler = self._executor.get_sampler()
-                    if isinstance(sampler, BaseSamplerV2):
-                        raise ValueError(
-                            "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
-                            "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
-                        )
-                    fidelity = ComputeUncompute(sampler=sampler)
-                    if self._parameter_vector is None:
-                        self._quantum_kernel = FidelityQuantumKernel(
-                            feature_map=self._enc_circ,
-                            fidelity=fidelity,
-                            evaluate_duplicates=self._evaluate_duplicates,
-                            enforce_psd=False,
-                        )
-                    else:
-                        self._quantum_kernel = TrainableFidelityQuantumKernel(
-                            feature_map=self._enc_circ,
-                            fidelity=fidelity,
-                            training_parameters=self._parameter_vector,
-                            evaluate_duplicates=self._evaluate_duplicates,
-                            enforce_psd=False,
-                        )
-            else:
-                raise RuntimeError("Invalid quantum framework!")
+        self._caching = caching
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -268,12 +194,15 @@ class FidelityKernel(KernelMatrixBase):
         Returns:
             Returns the quantum kernel matrix as 2D numpy array.
         """
+        num_features = extract_num_features(x)
 
         if y is None:
             y = x
 
         x = convert_to_float64(x)
         y = convert_to_float64(y)
+
+        self._initialize_kernel(num_features=num_features)
 
         if self._parameter_vector is not None:
             if self._parameters is None:
@@ -399,3 +328,86 @@ class FidelityKernel(KernelMatrixBase):
         """
         surv_prob = self._survival_probability(kernel)
         return np.mean(surv_prob)
+
+    def _initialize_kernel(self, num_features: int) -> None:
+        """Initializes the quantum kernel."""
+        if not self._is_initialized:
+            super()._initialize_kernel(num_features=num_features)
+
+            # Do all the nessacary initialization logic here
+            if self.num_parameters > 0:
+                self._parameter_vector = ParameterVector("p", self.num_parameters)
+            else:
+                self._parameter_vector = None
+            if self._use_expectation:
+                self._quantum_kernel = FidelityKernelExpectationValue(
+                    encoding_circuit=self._encoding_circuit,
+                    executor=self._executor,
+                    evaluate_duplicates=self._evaluate_duplicates,
+                    caching=self._caching,
+                )
+            else:
+                if self._executor.quantum_framework in ["pennylane", "qulacs"]:
+
+                    self._quantum_kernel = FidelityKernelStatevector(
+                        encoding_circuit=self._encoding_circuit,
+                        executor=self._executor,
+                        evaluate_duplicates=self._evaluate_duplicates,
+                        num_features=num_features,
+                    )
+
+                elif self._executor.quantum_framework == "qiskit":
+
+                    # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
+                    self._feature_vector = ParameterVector("x_", num_features)
+
+                    self._enc_circ = self._encoding_circuit.get_circuit(
+                        self._feature_vector, self._parameter_vector
+                    )
+
+                    # Automatic select backend if not chosen
+                    if not self._executor.backend_chosen:
+                        self._enc_circ, _ = self._executor.select_backend(
+                            self._enc_circ, num_features
+                        )
+
+                    if self._executor.is_statevector:
+                        if self._parameter_vector is None:
+                            self._quantum_kernel = FidelityStatevectorKernel(
+                                feature_map=self._enc_circ,
+                                shots=self._executor.get_shots(),
+                                enforce_psd=False,
+                            )
+                        else:
+                            self._quantum_kernel = TrainableFidelityStatevectorKernel(
+                                feature_map=self._enc_circ,
+                                training_parameters=self._parameter_vector,
+                                shots=self._executor.get_shots(),
+                                enforce_psd=False,
+                            )
+                    else:
+                        sampler = self._executor.get_sampler()
+                        if isinstance(sampler, BaseSamplerV2):
+                            raise ValueError(
+                                "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
+                                "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
+                            )
+                        fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                        if self._parameter_vector is None:
+                            self._quantum_kernel = FidelityQuantumKernel(
+                                feature_map=self._enc_circ,
+                                fidelity=fidelity,
+                                evaluate_duplicates=self._evaluate_duplicates,
+                                enforce_psd=False,
+                            )
+                        else:
+                            self._quantum_kernel = TrainableFidelityQuantumKernel(
+                                feature_map=self._enc_circ,
+                                fidelity=fidelity,
+                                training_parameters=self._parameter_vector,
+                                evaluate_duplicates=self._evaluate_duplicates,
+                                enforce_psd=False,
+                            )
+                else:
+                    raise RuntimeError("Invalid quantum framework!")
+            self._is_initialized = True
