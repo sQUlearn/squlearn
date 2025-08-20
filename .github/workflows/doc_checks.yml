@@ -18,4 +18,4 @@ jobs:
           with:
             docs-folder: "docs/"
             pre-build-command: "pip3 install .[docs]"
-            build-command: "sphinx-build -b html . _build -W --keep-going"
+            build-command: "sphinx-build -b html . _build -W --keep-going -j 1"
