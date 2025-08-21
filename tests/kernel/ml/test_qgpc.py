@@ -258,8 +258,12 @@ class TestQGPC:
         predict_before = instance.predict(X)
 
         buffer.seek(0)
-        instance_loaded = QGPC.load(buffer, Executor())
+        instance_loaded = QGPC.load(buffer, Executor("qiskit"))
         predict_after = instance_loaded.predict(X)
 
         assert isinstance(instance_loaded, QGPC)
         assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded.fit(X, y)
+        predict_after2 = instance_loaded.predict(X)
+        assert np.allclose(predict_before, predict_after2, atol=1e-6)

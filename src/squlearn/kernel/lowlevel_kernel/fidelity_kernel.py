@@ -331,6 +331,9 @@ class FidelityKernel(KernelMatrixBase):
 
     def _initialize_kernel(self, num_features: int) -> None:
         """Initializes the quantum kernel."""
+
+        self._quantum_framework = self._executor.quantum_framework
+
         if not self._is_initialized:
             super()._initialize_kernel(num_features=num_features)
 
@@ -411,3 +414,11 @@ class FidelityKernel(KernelMatrixBase):
                 else:
                     raise RuntimeError("Invalid quantum framework!")
             self._is_initialized = True
+
+    def __setstate__(self, state):
+        """
+        Set _is_initialized to False to ensure re-initialization to avoid issues with pickling
+        """
+        self.__dict__.update(state)
+        if self._quantum_framework != self._executor.quantum_framework:
+            self._is_initialized = False

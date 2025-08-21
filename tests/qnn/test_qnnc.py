@@ -217,8 +217,15 @@ class TestQNNClassifier:
         predict_before = qnn_classifier.predict(X)
 
         buffer.seek(0)
-        instance_loaded = QNNClassifier.load(buffer, Executor())
+        instance_loaded = QNNClassifier.load(buffer, Executor("qiskit"))
         predict_after = instance_loaded.predict(X)
 
         assert isinstance(instance_loaded, QNNClassifier)
         assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded._is_fitted = False
+        instance_loaded.fit(X, y)
+
+        assert instance_loaded._is_fitted
+        assert np.allclose(instance_loaded.param, qnn_classifier.param)
+        assert np.allclose(instance_loaded.param_op, qnn_classifier.param_op)
