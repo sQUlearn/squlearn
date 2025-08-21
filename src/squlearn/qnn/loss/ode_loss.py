@@ -204,7 +204,6 @@ class ODELoss(QNNLossBase):
                 loss_values["dfdxdx"][:, 0, 0],
             )
 
-
     def value(self, value_dict: dict, **kwargs) -> float:
         r"""
         Calculates the squared loss of the loss function for the ODE as
@@ -242,9 +241,7 @@ class ODELoss(QNNLossBase):
             raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
         else:
             functional_loss = np.sum(
-                np.multiply(
-                    np.square(self._ODE_functional(value_dict) - ground_truth), weights
-                )
+                np.multiply(np.square(self._ODE_functional(value_dict) - ground_truth), weights)
             )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, 1)
 
             initial_value_loss_f = self.eta * (

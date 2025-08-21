@@ -10,6 +10,7 @@ from functools import partial
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
+
     def validate_data(self, *args, **kwargs):
         return self._validate_data(*args, **kwargs)
 
