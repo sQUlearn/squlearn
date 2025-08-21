@@ -379,6 +379,7 @@ class BaseQNN(BaseEstimator, ABC):
             self.operator,
             self.executor,
             num_features,
+            self._post_processing,
             caching=self.caching,
             primitive=self.primitive,
         )

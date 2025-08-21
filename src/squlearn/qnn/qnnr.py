@@ -186,6 +186,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
+        self._post_processing = None
         super().__init__(
             encoding_circuit,
             operator,

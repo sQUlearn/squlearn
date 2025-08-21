@@ -56,6 +56,7 @@ examples = [
     "jupyter",
     "matplotlib>=3.5.1",
     "mlflow",
+    "numpy>=1.24.1",
     "pandas",
     "pylatexenc>=2.10",
     "seaborn",
