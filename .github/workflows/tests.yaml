@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_minimal
           source venv_minimal/bin/activate
-          pip install toml
+          pip install toml autoray==0.7.2
           python3 install_lowest_dependencies.py
       - name: Test with pytest
         run: |
@@ -49,7 +49,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_qiskit_0_46
           source venv_qiskit_0_46/bin/activate
-          pip install .[examples] qiskit==0.46.3 qiskit-ibm-runtime==0.20.0
+          pip install .[examples] qiskit==0.46.3 qiskit-ibm-runtime==0.20.0 autoray==0.7.2
       - name: Test with pytest
         run: |
           source venv_qiskit_0_46/bin/activate
@@ -78,7 +78,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_qiskit_1
           source venv_qiskit_1/bin/activate
-          pip install .[examples] qiskit==1.1.2 qiskit-ibm-runtime==0.27.1
+          pip install .[examples] qiskit==1.1.2 qiskit-ibm-runtime==0.27.1 autoray==0.7.2
       - name: Test with pytest
         run: |
           source venv_qiskit_1/bin/activate
