@@ -1,4 +1,9 @@
+import numpy as np
 import dill
+import sympy as sp
+
+from qiskit.quantum_info import SparsePauliOp
+
 from ..executor import Executor
 
 EXECUTOR_ID = "squlearn.util.executor"
@@ -23,6 +28,28 @@ class ExecutorPickler(dill.Pickler):
 
         if isinstance(obj, Executor):
             return (EXECUTOR_ID, None)
+
+        if isinstance(obj, SparsePauliOp):
+            try:
+                # Qiskit stores coefficients in a private array `_coeffs`
+                coeffs = getattr(obj, "_coeffs", None)
+                if coeffs is not None:
+
+                    if isinstance(coeffs, np.ndarray) and coeffs.dtype == object:
+
+                        # Convert each coefficient to a SymPy object that is picklable in contrast
+                        # To the default qiskit object
+                        obj._coeffs = np.array(
+                            [
+                                sp.sympify(c._symbol_expr) if hasattr(c, "_symbol_expr") else c
+                                for c in coeffs
+                            ],
+                            dtype=object,
+                        )
+            except Exception:
+                # If anything goes wrong, fall back to default serialization.
+                pass
+
         return None
 
 
