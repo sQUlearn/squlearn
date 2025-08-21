@@ -98,5 +98,4 @@ addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
     "--ignore=examples/tutorials/ode_solver.ipynb",
-    "--ignore=examples/tutorials/test_doc.ipynb",
 ]
