@@ -38,7 +38,7 @@ class QGPC(GaussianProcessClassifier):
 
     References
     ----------
-       [1] `Carl E. Rasmussen and Christopher K.I. Williams,
+    .. [RW2006] `Carl E. Rasmussen and Christopher K.I. Williams,
        "Gaussian Processes for Machine Learning",
        MIT Press 2006 <https://www.gaussianprocess.org/gpml/chapters/RW.pdf>`_
 
