@@ -178,7 +178,7 @@ class TestZeroParam:
 
         assert_dict = {
             "QNNRegressor": np.array([0.12, 0.12, 0.12, 0.12, 0.12]),
-            "QNNClassifier": np.array([1, 0, 0, 0, 0]),
+            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
 
         pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)
@@ -195,7 +195,7 @@ class TestZeroParam:
 
         assert_dict = {
             "QNNRegressor": np.array([0.19470917, 0.09933467, 0.0, -0.09933467, -0.19470917]),
-            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
+            "QNNClassifier": np.array([1, 1, 0, 0, 0]),
         }
 
         pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)

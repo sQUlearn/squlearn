@@ -10,7 +10,7 @@ from squlearn import Executor
 from squlearn.observables import SummedPaulis
 from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.optimizers import SLSQP, Adam
-from squlearn.qnn import QNNClassifier, SquaredLoss
+from squlearn.qnn import CrossEntropyLoss, QNNClassifier
 
 
 class TestQNNClassifier:
@@ -20,7 +20,7 @@ class TestQNNClassifier:
     def data(self) -> tuple[np.ndarray, np.ndarray]:
         """Test data module."""
         # pylint: disable=unbalanced-tuple-unpacking
-        X, y = make_blobs(n_samples=6, n_features=2, centers=2, random_state=42)
+        X, y = make_blobs(n_samples=7, n_features=2, centers=2, random_state=15)
         scl = MinMaxScaler((0.1, 0.9))
         X = scl.fit_transform(X, y)
         return X, y
@@ -32,7 +32,7 @@ class TestQNNClassifier:
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
-        loss = SquaredLoss()
+        loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = random_device.random(pqc.num_parameters)
         param_op_ini = random_device.random(operator.num_parameters)
@@ -45,7 +45,7 @@ class TestQNNClassifier:
         executor = Executor()
         pqc = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
-        loss = SquaredLoss()
+        loss = CrossEntropyLoss()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = random_device.random(pqc.num_parameters)
         param_op_ini = random_device.random(sum(op.num_parameters for op in operator))
@@ -100,7 +100,7 @@ class TestQNNClassifier:
             - whether `_param_op` is updated
         """
         X, y = data
-        y = np.array([y, y]).T
+        y = np.array([1 - y, y]).T
         qnn_classifier_2out.fit(X, y)
         assert qnn_classifier_2out._is_fitted
         assert not np.allclose(qnn_classifier_2out.param, qnn_classifier_2out.param_ini)
@@ -186,7 +186,7 @@ class TestQNNClassifier:
 
         assert isinstance(y_pred, np.ndarray)
         assert y_pred.shape == y.shape
-        assert np.allclose(y_pred, np.zeros_like(y))
+        assert np.allclose(y_pred, np.ones_like(y))
 
     def test_set_params_and_fit(self, qnn_classifier, data):
         """
