@@ -86,7 +86,7 @@ class QKODE(QKRR):
                 )
                 self.k_train = K
                 self.dkdx_train = dKdx
-                if self._loss.order_of_ODE == 2:
+                if self._loss.order_of_ode == 2:
                     self.dkdxdx_train = dKdxdx
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
@@ -101,7 +101,7 @@ class QKODE(QKRR):
             self.dkdx_train = self._quantum_kernel.evaluate_derivatives(
                 self.X_train, values="dKdx"
             )
-            if self._loss.order_of_ODE == 2:
+            if self._loss.order_of_ode == 2:
                 self.dkdxdx_train = self._quantum_kernel.evaluate_derivatives(
                     self.X_train, self.X_train, values="dKdxdx"
                 )
