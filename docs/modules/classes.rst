@@ -284,7 +284,7 @@ Qulacs interface
    :toctree: generated/
    :template: class.rst
 
-   util.pennylane.QulacsCircuit
+   util.qulacs.QulacsCircuit
 
 
 Base Classes
