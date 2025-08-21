@@ -17,8 +17,8 @@ from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import BaseSamplerV2, Executor
 from ...util.data_preprocessing import convert_to_float64, extract_num_features
 
-from .fidelity_kernel_pennylane import FidelityKernelPennyLane
 from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
+from .fidelity_kernel_statevector import FidelityKernelStatevector
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -347,9 +347,9 @@ class FidelityKernel(KernelMatrixBase):
                     caching=self._caching,
                 )
             else:
-                if self._executor.quantum_framework == "pennylane":
+                if self._executor.quantum_framework in ["pennylane", "qulacs"]:
 
-                    self._quantum_kernel = FidelityKernelPennyLane(
+                    self._quantum_kernel = FidelityKernelStatevector(
                         encoding_circuit=self._encoding_circuit,
                         executor=self._executor,
                         evaluate_duplicates=self._evaluate_duplicates,
