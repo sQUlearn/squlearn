@@ -199,9 +199,9 @@ QNN Core
    :template: class.rst
 
    qnn.lowlevel_qnn.LowLevelQNN
-   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
-   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.Expec
    qnn.lowlevel_qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
+   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
+   qnn.lowlevel_qnn.lowlevel_qnn_qulacs.LowLevelQNNQulacs
    qnn.lowlevel_qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.CrossEntropyLoss
@@ -275,6 +275,18 @@ PennyLane interface
 
    util.pennylane.PennyLaneCircuit
 
+Qulacs interface
+------------------------------------
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   util.qulacs.QulacsCircuit
+
 
 Base Classes
 ------------------------------------
@@ -294,9 +306,3 @@ Base Classes
     qnn.base_qnn.BaseQNN
     qnn.loss.qnn_loss_base.QNNLossBase
     qrc.base_qrc.BaseQRC
-
-
-
-
-
-

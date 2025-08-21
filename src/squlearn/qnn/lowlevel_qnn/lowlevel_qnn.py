@@ -9,6 +9,7 @@ from ...util import Executor
 
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 
 
 class LowLevelQNN:
@@ -37,7 +38,7 @@ class LowLevelQNN:
         post_processing: Callable = None,
         *args,
         **kwargs,
-    ) -> Union[LowLevelQNNPennyLane, LowLevelQNNQiskit]:
+    ) -> Union[LowLevelQNNPennyLane, LowLevelQNNQiskit, LowLevelQNNQulacs]:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
@@ -62,6 +63,13 @@ class LowLevelQNN:
                 post_processing,
                 *args,
                 **kwargs,
+            )
+        elif executor.quantum_framework == "qulacs":
+            if "primitive" in kwargs:
+                warn("Primitive argument is not supported for Qulacs. Ignoring...")
+                kwargs.pop("primitive")
+            return LowLevelQNNQulacs(
+                parameterized_quantum_circuit, observable, executor, num_features, *args, **kwargs
             )
         else:
             raise RuntimeError("Quantum framework not supported")
