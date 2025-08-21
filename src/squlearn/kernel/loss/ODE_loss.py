@@ -1,11 +1,9 @@
 """Negative log likelihood loss function"""
 
-import scipy
 import numpy as np
 import sympy as sp
 
 from .kernel_loss_base import KernelLossBase
-from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
 class ODELoss(KernelLossBase):
