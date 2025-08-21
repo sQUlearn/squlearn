@@ -17,10 +17,10 @@ import numpy as np
 from packaging import version
 
 import pennylane as qml
+from pennylane import __version__ as pennylane_version
 from pennylane.devices import Device as PennylaneDevice
-from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import (
     Estimator as PrimitiveEstimatorV1,
@@ -37,7 +37,7 @@ from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
-if version.parse(qml.__version__) < version.parse("0.39.0"):
+if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
 else:
     from pennylane.devices import QubitDevice
@@ -172,6 +172,8 @@ else:
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
+from .pennylane import PennyLaneCircuit
+from .qulacs import QulacsCircuit
 
 
 class Executor:
@@ -492,10 +494,6 @@ class Executor:
             self._logger = logging.getLogger("executor")
             self._logger.setLevel(logging.INFO)
 
-        if execution is None and backend is not None:
-            # Only backend is given
-            execution = backend
-
         self._quantum_framework = "qiskit"
         self._pennylane_device = None
 
@@ -522,6 +520,8 @@ class Executor:
                 self._pennylane_device = qml.device("default.qubit")
                 if shots is None:
                     shots = self._pennylane_device.shots.total_shots
+            elif execution in ["qulacs"]:
+                self._quantum_framework = "qulacs"
             else:
                 raise ValueError("Unknown backend string: " + execution)
             self._execution_origin = "Simulator"
@@ -574,7 +574,7 @@ class Executor:
         elif isinstance(execution, Session):
             # Execution is a active? session
             self._session = execution
-            self._backend = self._session.service.get_backend(self._session.backend())
+            self._backend = self._session.service.backend(self._session.backend())
             self._execution_origin = "Session"
             if shots is None:
                 shots = self._backend.options.shots
@@ -747,16 +747,19 @@ class Executor:
                 )
             if self.qpu_parallelization:
                 raise ValueError("QPU parallelization is not supported for PennyLane devices!")
-
             self._remote_backend = not any(
-                substring in str(self._pennylane_device)
+                substring in self._pennylane_device.name.lower()
                 for substring in [
                     "default.qubit",
                     "default.mixed",
                     "default.clifford",
-                    "Lightning Qubit",
+                    "lightning.qubit",
+                    "lightning.gpu",
                 ]
             )
+        elif self.quantum_framework == "qulacs":
+            self._remote_backend = False
+            self._ibm_quantum_backend = False
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -798,6 +801,61 @@ class Executor:
         """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
 
+    def qulacs_execute(
+        self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs
+    ) -> np.ndarray:
+        """
+        Function for executing of Qulacs circuits with the Executor with caching
+
+        Args:
+            qulacs_execution (callable): The Qulacs execution function from qulacs_execution
+            qulacs_circuit (QulacsCircuit): The Qulacs circuit data structure
+            **kwargs: Parameter values of the qulacs circuit and observable, name must match
+                the parameter names in the circuit and observable
+
+        Returns:
+            Numpy array: The result of the circuit execution
+        """
+
+        result = None
+        cached = True
+        hash_value = None
+
+        # Check if the result of the qulacs execution is already cached
+        if self._caching:
+
+            # Get hash value of the circuit
+            if hasattr(qulacs_execution, "__name__"):
+                func_name = qulacs_execution.__name__
+            else:
+                raise ValueError("Unknown function specified as qulacs execution")
+            hash_value = self._cache.hash_variable(
+                ["qulacs", func_name, qulacs_circuit.hash, kwargs]
+            )
+
+            # Check if the result is already cached
+            result = self._cache.get_file(hash_value)
+
+        # If the result is not cached, execute the circuit
+        if result is None:
+            if self._caching:
+                self._logger.info(
+                    f"Execution of qulacs circuit with hash value: {{}}".format(hash_value)
+                )
+            else:
+                self._logger.info(f"Execution of qulacs circuit")
+            result = qulacs_execution(qulacs_circuit, **kwargs)
+            cached = False
+            self._logger.info(f"Execution of qulacs successful")
+        elif self._caching:
+            self._logger.info(f"Cached result found with hash value: {{}}".format(hash_value))
+
+        # Store the result in the cache if caching is enabled and not already cached
+        if self._caching and not cached:
+            self._cache.store_file(hash_value, copy.copy(result))
+
+        return result
+
     def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
         """
         Function for executing of PennyLane circuits with the Executor with caching and restarts
@@ -817,6 +875,14 @@ class Executor:
             hash_value = [hash(pennylane_circuit), args]
 
         # Helper function for execution
+        if isinstance(pennylane_circuit, PennyLaneCircuit):
+            pennylane_circuit = pennylane_circuit.pennylane_circuit
+            pennylane_circuit = qml.QNode(pennylane_circuit, self.backend, diff_method="best")
+        if isinstance(pennylane_circuit, qml.QNode) and version.parse(
+            pennylane_version
+        ) >= version.parse("0.42.0"):
+            pennylane_circuit = qml.set_shots(pennylane_circuit, shots=self.shots)
+
         def execute_circuit():
             return pennylane_circuit(*args, **kwargs)
 
@@ -852,14 +918,21 @@ class Executor:
         hash_value = ""
         batched_tapes = []
         for i, arg_tuple in enumerate(arg_tuples):
-            pennylane_circuit[i].pennylane_circuit.construct(arg_tuple, kwargs)
+            circuit = pennylane_circuit[i]
+            if isinstance(circuit, PennyLaneCircuit):
+                circuit = circuit.pennylane_circuit
 
-            if hasattr(pennylane_circuit[i].pennylane_circuit, "hash"):
-                hash_value += str(pennylane_circuit[i].pennylane_circuit.hash)
+            circuit = qml.QNode(circuit, self.backend, diff_method="best")
+            if version.parse(pennylane_version) >= version.parse("0.42.0"):
+                circuit = qml.set_shots(circuit, shots=self.shots)
+            circuit.construct(arg_tuple, kwargs)
+
+            if hasattr(circuit, "hash"):
+                hash_value += str(circuit.hash)
             else:
-                hash_value += str(hash(pennylane_circuit[i].pennylane_circuit))
+                hash_value += str(hash(circuit))
 
-            batched_tapes.append(pennylane_circuit[i].pennylane_circuit.tape)
+            batched_tapes.append(circuit._tape)
 
         hash_value = [hash_value, arg_tuples]
 
@@ -989,6 +1062,8 @@ class Executor:
             return self._backend
         elif self.quantum_framework == "pennylane":
             return self._pennylane_device
+        elif self.quantum_framework == "qulacs":
+            return None
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -2115,9 +2190,20 @@ class Executor:
         if num_shots is None:
             num_shots = 0
 
-        if self.quantum_framework == "pennylane":
+        if self.quantum_framework == "qulacs":
 
-            if self._pennylane_device is not None:
+            if num_shots != 0:
+                raise RuntimeError(
+                    "Qulacs does not support shot-based sampling;"
+                    " it only supports statevector simulation."
+                )
+
+        elif self.quantum_framework == "pennylane":
+
+            if (
+                version.parse(pennylane_version) < version.parse("0.42.0")
+                and self._pennylane_device is not None
+            ):
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
                     if num_shots == 0:
                         self._pennylane_device._shots = qml.measurements.Shots(None)
@@ -2208,9 +2294,16 @@ class Executor:
         """
         shots = self._shots
 
-        if self.quantum_framework == "pennylane":
+        if self.quantum_framework == "qulacs":
 
-            if self._pennylane_device is not None:
+            return None
+
+        elif self.quantum_framework == "pennylane":
+
+            if (
+                version.parse(pennylane_version) < version.parse("0.42.0")
+                and self._pennylane_device is not None
+            ):
                 if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
                     shots = self._pennylane_device.shots.total_shots
                 elif (
@@ -2218,8 +2311,6 @@ class Executor:
                     or self._pennylane_device.shots is None
                 ):
                     shots = self._pennylane_device.shots
-            else:
-                return None  # No shots available
 
         elif self.quantum_framework == "qiskit":
 
@@ -2405,11 +2496,13 @@ class Executor:
         """
         self._set_seed_for_primitive = seed
 
-    def select_backend(self, circuit, **options):
+    def select_backend(self, circuit, num_features=None, **options):
         """Selects the best backend for a given circuit and options.
 
         Args:
             circuit: Either a QuantumCircuit or an EncodingCircuitBase
+            num_features: Number of features, if None the TranspileEncodingCircuit won't be
+                returned
             **options: Additional options for backend selection. Possible options:
 
                 * min_num_qubits: Minimum number of qubits in the circuit (default: None)
@@ -2429,6 +2522,12 @@ class Executor:
         """
         from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
         from ..encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCircuit
+
+        if isinstance(circuit, EncodingCircuitBase) and circuit.num_encoding_slots == np.inf:
+            raise RuntimeError(
+                f"""Automatic backend selection is not supported for {circuit.__name__}.\n 
+                This circuit has an infinite number of encoding slots, which is not supported by the automatic backend selection."""
+            )
 
         min_num_qubits = options.get("min_num_qubits", None)
         max_num_qubits = options.get("max_num_qubits", None)
@@ -2459,7 +2558,10 @@ class Executor:
                 real_circuit = circuit
 
             elif isinstance(circuit, EncodingCircuitBase):
-                x = ParameterVector("x", circuit.num_features)
+                num_features_for_transpilation = (
+                    num_features if num_features is not None else circuit.num_encoding_slots
+                )
+                x = ParameterVector("x", num_features_for_transpilation)
                 p = ParameterVector("p", circuit.num_parameters)
                 real_circuit = circuit.get_circuit(x, p)
             else:
@@ -2489,6 +2591,9 @@ class Executor:
                 info = None
                 transpiled_circuit = None
                 backend = None
+                num_features_for_transpilation = (
+                    num_features if num_features is not None else circuit.num_encoding_slots
+                )
 
                 def helper_function(qiskit_circuit, backend_dummy):
                     nonlocal info, transpiled_circuit, backend
@@ -2497,13 +2602,17 @@ class Executor:
                     )
                     return transpiled_circuit
 
-                return_circ = TranspiledEncodingCircuit(circuit, backend, helper_function)
+                return_circ = TranspiledEncodingCircuit(
+                    circuit, backend, num_features_for_transpilation, helper_function
+                )
 
             else:
                 raise ValueError("Circuit has to be a QuantumCircuit or EncodingCircuitBase")
 
         self.set_backend(backend)
 
+        if isinstance(circuit, EncodingCircuitBase) and num_features is None:
+            return info
         return return_circ, info
 
     def set_backend(self, backend: Backend):
@@ -2560,8 +2669,16 @@ class Executor:
         elif self.quantum_framework == "pennylane":
             return any(
                 name in self._pennylane_device.name.lower()
-                for name in ["default.qubit", "default.clifford", "lightning.qubit"]
+                for name in [
+                    "default.qubit",
+                    "default.mixed",
+                    "default.clifford",
+                    "lightning.qubit",
+                    "lightning.gpu",
+                ]
             )
+        elif self.quantum_framework == "qulacs":
+            return True
         else:
             raise RuntimeError("Unknown quantum framework!")
 

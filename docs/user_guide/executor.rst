@@ -13,7 +13,7 @@ The :class:`Executor <squlearn.Executor>` class is the central component of sQUl
 for running all quantum jobs.
 Both high- and low-level methods utilize the :class:`Executor <squlearn.Executor>` class to execute circuits or to run other
 quantum jobs.
-The class provides a high-level interface to the simulators of PennyLane and Qiskit,
+The class provides a high-level interface to the simulators of PennyLane, Qiskit and Qulacs,
 as well as manages access to real QC hardware as for example IBM Quantum.
 It features a variety of comfort features, such as result caching,
 automatic restarts of failed jobs, logging of all actions, and Qiskit Session handling.
@@ -93,7 +93,8 @@ execution environment:
 
 - A string specifying the local simulator backend: Qiskit's :class:`AerSimulator <qiskit_aer.AerSimulator>` is available by providing ``"qiskit"``,
   ``"statevector_simulator"`` and  ``"qasm_simulator"``; PennyLane's :class:`DefaultQubit <pennylane.devices.default_qubit.DefaultQubit>` simulator can be initialized by
-  ``"pennylane"`` or ``"default.qubit"``. Note that with Qiskit version 1.2, the sampler routines will always performe shots for the ``"statevector_simulator"`` keyword.
+  ``"pennylane"`` or ``"default.qubit"``. The Qulacs statevector simulator can be used with the keyword ``"qulacs"``.
+  Note that with Qiskit version 1.2, the sampler routines will always performe shots for the ``"statevector_simulator"`` keyword.
 
   .. jupyter-execute::
 
@@ -112,6 +113,9 @@ execution environment:
 
       # Initialize the Executor with the PennyLane shot-based simulator
       executor = Executor("default.qubit", shots=1234)
+
+      # Initialize the Executor with the Qulacs statevector simulator
+      executor = Executor("qulacs")
 
 - A Qiskit :class:`Backend <qiskit.providers.Backend>`, e.g. a :class:`AerProvider <qiskit_aer.AerProvider>` backend or a :mod:`fake_provider <qiskit_ibm_runtime.fake_provider>` backend. This allows also the utilization
   of other quantum computing backends, as long as they provide a Qiskit :class:`Backend <qiskit.providers.Backend>` class.
@@ -370,7 +374,7 @@ We set up a small :class:`QNNRegressor <squlearn.qnn.QNNRegressor>` example and 
    backends = [FakeBelemV2(), FakeAthensV2(), FakeManilaV2()]
    executor = Executor(backends, shots=10000)
    qnn = QNNRegressor(
-       ChebyshevPQC(2, 1),
+       ChebyshevPQC(2),
        SummedPaulis(2),
        executor,
        SquaredLoss(),
@@ -392,7 +396,7 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
    from squlearn import Executor
    from qiskit_ibm_runtime import QiskitRuntimeService
    from squlearn.encoding_circuit import ChebyshevRx
-   from squlearn.kernel import FidelityKernel, QKRR
+   from squlearn.kernel.lowlevel_kernel import FidelityKernel, QKRR
 
    # Executor is initialized with a service, and considers all available backends
    # (except simulators)
@@ -400,7 +404,7 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
    executor = Executor(service, auto_backend_mode="speed")
 
    # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
-   qkrr = QKRR(FidelityKernel(ChebyshevRx(4,1),executor))
+   qkrr = QKRR(FidelityKernel(ChebyshevRx(4),executor))
 
    # Backend is automatically selected based on the smallest queue
    # All the following functions will be executed on the selected backend

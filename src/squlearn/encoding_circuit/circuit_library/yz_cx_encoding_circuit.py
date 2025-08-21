@@ -3,6 +3,8 @@ from typing import Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from ..encoding_circuit_base import EncodingCircuitBase
 
 
@@ -36,8 +38,8 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int,
         num_layers: int = 1,
+        num_features: int = None,
         closed: bool = True,
         c: float = 1.0,
     ) -> None:
@@ -66,6 +68,11 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
     def c(self) -> int:
         """The prefactor :math:`c` of the YZ-CX Encoding Circuit encoding circuit."""
         return self._c
+
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the YZ_CXEncodingCircuit."""
+        return self.num_qubits * self.num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -100,9 +107,10 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         Return:
             Returns the circuit in qiskit format.
         """
-
-        nfeature = len(features)
-        nparam = len(parameters)
+        num_features = extract_num_features(features)
+        num_param = len(parameters)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         # Creates the layers of the encoding circuit
         QC = QuantumCircuit(self.num_qubits)
@@ -111,14 +119,14 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         for layer in range(self.num_layers):
             for i in range(self.num_qubits):
                 QC.ry(
-                    parameters[index_offset % nparam]
-                    + self.c * features[feature_offset % nfeature],
+                    parameters[index_offset % num_param]
+                    + self.c * features[feature_offset % num_features],
                     i,
                 )
                 index_offset += 1
                 QC.rz(
-                    parameters[index_offset % nparam]
-                    + self.c * features[feature_offset % nfeature],
+                    parameters[index_offset % num_param]
+                    + self.c * features[feature_offset % num_features],
                     i,
                 )
                 index_offset += 1

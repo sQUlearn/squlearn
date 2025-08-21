@@ -93,8 +93,8 @@ method:
 
     from squlearn.encoding_circuit import ChebyshevPQC
 
-    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
-    pqc.draw("mpl")
+    pqc = ChebyshevPQC(num_qubits = 4, num_layers = 2)
+    pqc.draw("mpl", num_features = 1)
 
 There are several alternative encoding circuits at your disposal in sQUlearn, which you can
 explore in the user guide located at :ref:`quantum_encoding_circuits`.
@@ -136,7 +136,7 @@ and the Adam optimizer for optimization.
     from squlearn import Executor
 
     op = SummedPaulis(num_qubits = 4)
-    pqc = ChebyshevPQC(num_qubits = 4, num_features = 1, num_layers = 2)
+    pqc = ChebyshevPQC(num_qubits = 4, num_layers = 2)
     qnn = QNNRegressor(pqc, op, Executor(), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
@@ -314,7 +314,7 @@ yields a high variance in the model output.
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(num_qubits=nqubits, num_layers=number_of_layers)
     exe = Executor("pennylane", seed=0)
     exe.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")
@@ -379,7 +379,7 @@ in the model, as depicted in `figure_qnn 3`_.
     from squlearn.optimizers import SLSQP
     nqubits = 4
     number_of_layers = 2
-    pqc = ChebyshevRx(nqubits, 1, num_layers=number_of_layers)
+    pqc = ChebyshevRx(num_qubits=nqubits, num_layers=number_of_layers)
     exe = Executor("qasm_simulator")
     exe.set_shots(5000)
     ising_op = IsingHamiltonian(nqubits, I="S", Z="S", ZZ="S")

@@ -39,6 +39,7 @@ dependencies = [
     "scipy>=1.8.0",
     "scikit-learn>=1.2.0",
     "tqdm>=4.1.0",
+    "qulacs>=0.6.0",
 ]
 requires-python = ">=3.9,<3.13"
 dynamic = ["version", "description"]
@@ -55,6 +56,7 @@ examples = [
     "jupyter",
     "matplotlib>=3.5.1",
     "mlflow",
+    "numpy>=1.24.1",
     "pandas",
     "pylatexenc>=2.10",
     "seaborn",
@@ -72,10 +74,12 @@ docs = [
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme<3.0.0",
     "sphinx-sitemap",
+    "scikit-learn!=1.7.1",
 ]
 
 [project.urls]
-Homepage = "https://github.com/sQUlearn/squlearn"
+github = "https://github.com/sQUlearn/squlearn"
+documentation = "https://squlearn.github.io"
 
 [tool.black]
 line-length=99
