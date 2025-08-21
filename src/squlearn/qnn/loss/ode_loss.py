@@ -13,6 +13,16 @@ class ODELoss(QNNLossBase):
 
     Implements an ODE Loss based on Ref. [1].
 
+    It uses the pinned method for handling the boundary conditions: An extra term is
+    added to the loss function to enforce the initial values of the ODE.
+    This term is pinned by the ``eta`` parameter. The loss function is given by:
+
+    .. math::
+
+        L = \sum_{i=0}^{n} L_{\alpha_i}\left( \dot{f}, f, x  \right) +
+        \eta \cdot (f(x_0) - f_0)^2, \text{with} f(x) = \sum \alpha_i k(x_i, x)
+
+
     Args:
         ODE_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential
             equation). Must be a sympy expression and ``symbols_involved_in_ODE`` must be provided.
@@ -24,20 +34,6 @@ class ODELoss(QNNLossBase):
             ``[t, y, dydt]``.
         initial_values (np.ndarray): Initial values of the ODE. The length of the array
             must match the order of the ODE.
-        boundary_handling (str): Method for handling the boundary conditions. Options are
-            ``'pinned'``, and ``'floating'``:
-
-                * ``'pinned'``:  An extra term is added to the loss function to enforce the initial
-                  values of the ODE. This term is pinned by the ``eta`` parameter. The
-                  loss function is given by: :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f},
-                  f, x  \right) + \eta \cdot (f(x_0) - f_0)^2`,
-                  with :math:`f(x) = QNN(x, \theta)`.
-                * ``'floating'``: (NOT IMPLEMENTED) An extra "floating" term is added to the trial
-                  QNN function to be optimized. The loss function is given by:
-                  :math:`L = \sum_{i=0}^{n} L_{\theta_i}\left( \dot{f}, f, x  \right)`,
-                  with :math:`f(x) = QNN(x, \theta) + f_b`, and
-                  :math:`f_b =  QNN(x_0, \theta) - f_0`.
-
         eta (float): Weight for the initial values of the ODE in the loss function for the "pinned"
             boundary handling method.
 
@@ -56,7 +52,6 @@ class ODELoss(QNNLossBase):
             eq,
             symbols_involved_in_ODE=[t, y, dydt],
             initial_values=initial_values,
-            boundary_handling="pinned",
         )
 
     2. Implements a loss function for the ODE :math:`\left(df(x)/dx\right) - cos(f(x)) = 0`
@@ -72,7 +67,6 @@ class ODELoss(QNNLossBase):
             eq,
             symbols_involved_in_ODE=[x, f, dfdx],
             initial_values=initial_values,
-            boundary_handling="pinned",
             eta=1.2,
         )
 
@@ -89,7 +83,6 @@ class ODELoss(QNNLossBase):
         symbols_involved_in_ODE=None,
         initial_values: np.ndarray = None,
         eta=np.float64(1.0),
-        boundary_handling="pinned",
     ):
         super().__init__()
         self._verify_size_of_ivp_with_order_of_ODE(initial_values, symbols_involved_in_ODE)
@@ -113,7 +106,6 @@ class ODELoss(QNNLossBase):
             len(symbols_involved_in_ODE) - 2
         )  # symbols_involved_in_ODE = [x, f, f_, f__, ...]
         self.eta = eta
-        self.boundary_handling = boundary_handling
 
     @property
     def loss_args_tuple(self) -> tuple:
@@ -212,52 +204,6 @@ class ODELoss(QNNLossBase):
                 loss_values["dfdxdx"][:, 0, 0],
             )
 
-    def _ansatz_to_floating_boundary_ansatz(
-        self, value_dict_floating: dict, gradient_calculation=True
-    ) -> dict:
-        """
-        Converts the value_dict_floating to a floating boundary ansatz by shifting the output
-        values by a bias term that includes the initial values of the ODE.
-
-        If 1rst order ODE: :math:`f(x) = f(x) - f_b`, with math:`f_b = f(x_0) - f_0`
-        and math:`f'(x) = f'(x) - f'(x_0)`
-
-        If 2nd order ODE: :math:`f(x) = f(x) - f_b`, with math:`f_b = f(x_0) - f_0`
-        and math:`f'(x) = f'(x) - f_b'` and math:`f''(x) = f''(x) - f''(x_0)`
-
-        Args:
-            value_dict (dict): Contains calculated values of the model
-            gradient_calculation (bool): True if the gradient is calculated
-
-        Returns:
-            value_dict_floating (dict): Contains the values of the model with the initial values
-                                        set to the initial values of the ODE
-
-
-        """
-        f_bias = value_dict_floating["f"][0] - self.initial_values[0]  # f_b = f(x_0) - f_0
-        value_dict_floating["f"] -= f_bias  # f(x) = f(x) - f_b
-
-        if self.order_of_ODE == 2:
-            f_bias = (
-                value_dict_floating["dfdx"][0] - self.initial_values[1]
-            )  # f_b = f'(x_0) - f_0'
-            value_dict_floating["dfdx"] -= f_bias  # f'(x) = f'(x) - f_b
-
-        if gradient_calculation:
-            df_biasdp = value_dict_floating["dfdp"][0]  # df_b/dp = df(x_0)/dp
-            value_dict_floating["dfdp"] -= df_biasdp  # df(x)/dp = df(x)/dp - df_b/dp
-            if self._opt_param_op:
-                df_biasdop = value_dict_floating["dfdop"][0]
-                value_dict_floating["dfdop"] -= df_biasdop
-
-            if self.order_of_ODE == 2:
-                df_biasdxdp = value_dict_floating["dfdxdp"][0]  # df_b/dp = df(x_0)/dp
-                value_dict_floating["dfdxdp"] -= df_biasdxdp  # df(x)/dp = df(x)/dp - df_b/dp
-                if self._opt_param_op:
-                    df_biasdxdop = value_dict_floating["dfdxdop"][0]
-                    value_dict_floating["dfdxdop"] -= df_biasdxdop
-        return value_dict_floating
 
     def value(self, value_dict: dict, **kwargs) -> float:
         r"""
@@ -295,35 +241,22 @@ class ODELoss(QNNLossBase):
         if multiple_output:
             raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
         else:
-            if self.boundary_handling == "pinned":
-                functional_loss = np.sum(
-                    np.multiply(
-                        np.square(self._ODE_functional(value_dict) - ground_truth), weights
-                    )
-                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, 1)
-
-                initial_value_loss_f = self.eta * (
-                    np.square(value_dict["f"][0] - self.initial_values[0])
-                )  # L_theta =  eta * (f(x_i) - f_0)^2 #Pinned boundary condition
-                if self.order_of_ODE == 2:
-                    initial_value_loss_df = self.eta * (
-                        np.square(value_dict["dfdx"][0] - self.initial_values[1])
-                    )  # L_theta =  eta * (f'(x_i) - f_0')^2
-                else:
-                    pass
-            elif self.boundary_handling == "floating":
-                raise NotImplementedError("Floating boundary handling not implemented yet.")
-                # Floating boundary needs to also modify the QNN such that the prediction
-                # includes the sum of the bias term
-                value_dict = self._ansatz_to_floating_boundary_ansatz(
-                    value_dict, gradient_calculation=False
+            functional_loss = np.sum(
+                np.multiply(
+                    np.square(self._ODE_functional(value_dict) - ground_truth), weights
                 )
-                functional_loss = np.sum(
-                    np.multiply(
-                        np.square(self._ODE_functional(value_dict) - ground_truth), weights
-                    )
-                )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2,
-                #    shape (n_samples, n_outputs)
+            )  # L_theta = sum_i w_i (F(x_i, f_i, f_i', f_i'') - 0)^2, shape (n_samples, 1)
+
+            initial_value_loss_f = self.eta * (
+                np.square(value_dict["f"][0] - self.initial_values[0])
+            )  # L_theta =  eta * (f(x_i) - f_0)^2 #Pinned boundary condition
+            if self.order_of_ODE == 2:
+                initial_value_loss_df = self.eta * (
+                    np.square(value_dict["dfdx"][0] - self.initial_values[1])
+                )  # L_theta =  eta * (f'(x_i) - f_0')^2
+            else:
+                pass
+
             # print(functional_loss + initial_value_loss_f + initial_value_loss_df)
             return functional_loss + initial_value_loss_f + initial_value_loss_df
 
@@ -390,25 +323,20 @@ class ODELoss(QNNLossBase):
                 # value_dict["dfdp"] shape: (n_samples, n_params)
                 # value_dict["dfdxdp"] shape: (n_samples, 1, n_params)
                 d_p = np.zeros(value_dict["dfdp"].shape[1])  # shape: (n_params)
-                if self.boundary_handling == "pinned":
+
+                d_p += (
+                    2.0
+                    * self.eta
+                    * (value_dict["f"][0] - self.initial_values[0])
+                    * value_dict["dfdp"][0, :]
+                )  # shape: (n_params)
+                if self.order_of_ODE == 2:
                     d_p += (
                         2.0
                         * self.eta
-                        * (value_dict["f"][0] - self.initial_values[0])
-                        * value_dict["dfdp"][0, :]
+                        * np.sum(value_dict["dfdx"][0] - self.initial_values[1])
+                        * value_dict["dfdxdp"][0, 0, :]
                     )  # shape: (n_params)
-                    if self.order_of_ODE == 2:
-                        d_p += (
-                            2.0
-                            * self.eta
-                            * np.sum(value_dict["dfdx"][0] - self.initial_values[1])
-                            * value_dict["dfdxdp"][0, 0, :]
-                        )  # shape: (n_params)
-
-                elif self.boundary_handling == "floating":
-                    value_dict = self._ansatz_to_floating_boundary_ansatz(
-                        value_dict, gradient_calculation=True
-                    )
 
                 d_ODE_functional_dD = self._ODE_functional_gradient_dp(
                     value_dict
@@ -440,20 +368,19 @@ class ODELoss(QNNLossBase):
                 raise NotImplementedError("Coupled ODEs and/or PDE are not implemented yet.")
             else:
                 d_op = np.zeros(value_dict["dfdop"].shape[1])  # shape: (n_param_op)
-                if self.boundary_handling == "pinned":
+                d_op += (
+                    2.0
+                    * self.eta
+                    * (value_dict["f"][0] - self.initial_values[0])
+                    * value_dict["dfdop"][0, :]
+                )
+                if self.order_of_ODE == 2:
                     d_op += (
                         2.0
                         * self.eta
-                        * (value_dict["f"][0] - self.initial_values[0])
-                        * value_dict["dfdop"][0, :]
+                        * np.sum(value_dict["dfdx"][0] - self.initial_values[1])
+                        * value_dict["dfdopdx"][0, 0, :]
                     )
-                    if self.order_of_ODE == 2:
-                        d_op += (
-                            2.0
-                            * self.eta
-                            * np.sum(value_dict["dfdx"][0] - self.initial_values[1])
-                            * value_dict["dfdopdx"][0, 0, :]
-                        )
 
                 d_ODE_functional_dD = self._ODE_functional_gradient_dop(
                     value_dict

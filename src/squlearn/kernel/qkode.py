@@ -10,8 +10,7 @@ from functools import partial
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
-
-    def validate_data(*args, **kwargs):
+    def validate_data(self, *args, **kwargs):
         return self._validate_data(*args, **kwargs)
 
 
@@ -37,9 +36,9 @@ class QKODE(QKRR):
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
         **kwargs: Additional keyword arguments to be passed to the base class.
 
-     Attributes:
+    Attributes:
     -----------
-        dual_coeff\_ : (np.ndarray) :
+        dual_coeff (np.ndarray) :
             Array containing the weight vector in kernel space
         k_train (np.ndarray) :
             Training kernel matrix of shape (n_train, n_train) which is available after calling the fit procedure
@@ -72,7 +71,9 @@ class QKODE(QKRR):
 
     def fit(self, X, y, param_ini=None, K=None, dKdx=None, dKdxdx=None):
         """ """
-        X, y = validate_data(X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True)
+        X, y = validate_data(
+            self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+        )
         self.X_train = X
 
         # set up kernel matrix
