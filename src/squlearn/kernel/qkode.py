@@ -10,6 +10,7 @@ from functools import partial
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
+
     def validate_data(*args, **kwargs):
         return self._validate_data(*args, **kwargs)
 
@@ -71,9 +72,7 @@ class QKODE(QKRR):
 
     def fit(self, X, y, param_ini=None, K=None, dKdx=None, dKdxdx=None):
         """ """
-        X, y = validate_data(
-            X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
-        )
+        X, y = validate_data(X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True)
         self.X_train = X
 
         # set up kernel matrix
