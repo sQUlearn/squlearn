@@ -69,7 +69,13 @@ class LowLevelQNN:
                 warn("Primitive argument is not supported for Qulacs. Ignoring...")
                 kwargs.pop("primitive")
             return LowLevelQNNQulacs(
-                parameterized_quantum_circuit, observable, executor, num_features, *args, **kwargs
+                parameterized_quantum_circuit,
+                observable,
+                executor,
+                num_features,
+                post_processing,
+                *args,
+                **kwargs,
             )
         else:
             raise RuntimeError("Quantum framework not supported")
