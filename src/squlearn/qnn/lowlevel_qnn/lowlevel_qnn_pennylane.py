@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Callable, List, Union
 import numpy as np
 import copy
 
@@ -35,6 +35,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         operator (Union[ObservableBase,list]): Operator that is used in the expectation
             value of the QNN. Can be a list for multiple outputs.
         executor (Executor) : Executor that is used for the evaluation of the QNN
+        post_processing (Callable): Optional post processing function operating on the result dict
+            after evaluate.
         caching : Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
 
@@ -62,9 +64,11 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         observable: Union[ObservableBase, list],
         executor: Executor,
         num_features: int,
+        post_processing: Callable = None,
         caching: bool = True,
     ) -> None:
-        super().__init__(parameterized_quantum_circuit, observable, executor)
+
+        super().__init__(parameterized_quantum_circuit, observable, executor, post_processing)
 
         self._num_features = num_features
 
@@ -183,7 +187,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         """Return the parameter vector of the cost operator."""
         return self._param_obs
 
-    def evaluate(
+    def _evaluate(
         self,
         x: Union[float, np.ndarray],
         param: Union[float, np.ndarray],

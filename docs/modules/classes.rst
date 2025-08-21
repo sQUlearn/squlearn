@@ -204,6 +204,7 @@ QNN Core
    qnn.lowlevel_qnn.lowlevel_qnn_qulacs.LowLevelQNNQulacs
    qnn.lowlevel_qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
+   qnn.loss.CrossEntropyLoss
    qnn.loss.VarianceLoss
    qnn.loss.ODELoss
    qnn.loss.ParameterRegularizationLoss

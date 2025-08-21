@@ -16,6 +16,8 @@ from squlearn.qnn.base_qnn import BaseQNN
 class MockBaseQNN(BaseQNN):
     """Mock class for BaseQNN."""
 
+    _post_processing = None
+
     def __init__(
         self,
         encoding_circuit,
