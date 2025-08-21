@@ -176,12 +176,12 @@ class ODELoss(KernelLossBase):
                 f_{\vec{\alpha}}, x\right)_j\right)^2  + \eta\left(f_{\vec{\alpha}}(0)
                 - u_0\right)^2 + \eta\left(\dot f_{\vec{\alpha}}(0) - \dot u_0\right)^2
             \end{align}
-        with the ansatz :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`. 
-        Importantly, the optimized parameters act as the coefficients of the kernel matrix 
+        with the ansatz :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`.
+        Importantly, the optimized parameters act as the coefficients of the kernel matrix
         and do not directly correspond parameterized rotations in the quantum circuit.
 
         Args:
-            parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the 
+            parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the
                 ansatz to be optimized.
             data (np.ndarray): The training data to be used for the kernel matrix.
             labels (np.ndarray): The labels of the training data.

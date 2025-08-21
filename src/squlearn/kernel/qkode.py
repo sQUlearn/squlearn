@@ -30,8 +30,8 @@ class QKODE(QKRR):
     (ODEs) using the mixed model regression method as described in Ref. [1].
 
     Args:
-        quantum_kernel (Union[KernelMatrixBase, str]): Quantum kernel to be used in the model. 
-            If set to "precomputed", 
+        quantum_kernel (Union[KernelMatrixBase, str]): Quantum kernel to be used in the model.
+            If set to "precomputed",
             the derivatives of the kernel matrix have to be provided in the fit method.
         loss (KernelLossBase): Loss function to be used for training the model.
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
@@ -69,7 +69,6 @@ class QKODE(QKRR):
         self.k_train = None
         self.dkdx_train = None
         self.dkdxdx_train = None
-
 
     def fit(self, X, y, param_ini=None, K=None, dKdx=None, dKdxdx=None):
         """ """
