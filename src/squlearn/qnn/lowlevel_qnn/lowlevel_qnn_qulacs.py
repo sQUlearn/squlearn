@@ -9,6 +9,7 @@ from .evaluation_classes import DirectEvaluation, PostProcessingEvaluation, get_
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 
 from ...util import Executor
 from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
@@ -56,17 +57,20 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
+        num_features: int,
         caching: bool = True,
     ) -> None:
-
         super().__init__(parameterized_quantum_circuit, observable, executor)
+
+        self._num_features = num_features
 
         # Initialize result cache
         self.caching = caching
         self.result_container = {}
+        self._preprocess_observable()
 
         # Initialize the Qulacs circuit
-        self._initialize_qulacs_circuit()
+        self._initialize_qulacs_circuit(self._num_features)
 
         # Define the not implemented derivatives that are not supported by Qulacs
         self._not_implemented = [
@@ -92,14 +96,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             "fischer",
         ]
 
-    def _initialize_qulacs_circuit(self):
-        """Function to initialize the PennyLane circuit function of the QNN"""
-
-        # Parameter vectors for the PQC and the observable
-        self._x = ParameterVector("x", self._pqc.num_features)
-        self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._qiskit_circuit = decompose_to_std(self._pqc.get_circuit(self._x, self._param))
-
+    def _preprocess_observable(self) -> None:
         # Pre-process the observable
         if isinstance(self._observable, ObservableBase):
             # Single output, single observable
@@ -128,6 +125,18 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
                 ioff = ioff + obs.num_parameters
         else:
             raise ValueError("Observable must be of type ObservableBase or list")
+
+    def _initialize_qulacs_circuit(self, num_features: int):
+        """Function to initialize the PennyLane circuit function of the QNN"""
+        # apply the stored operations to the layered encoding circuit to make sure that the circuit is up to date
+        # and the num_parameters can be calculated correctly in the following step
+        if isinstance(self._pqc, LayeredEncodingCircuit):
+            self._pqc._build_layered_pqc(num_features)
+
+        # Parameter vectors for the PQC and the observable
+        self._x = ParameterVector("x", num_features)
+        self._param = ParameterVector("param", self._pqc.num_parameters)
+        self._qiskit_circuit = decompose_to_std(self._pqc.get_circuit(self._x, self._param))
 
         # Qulacs Circuit data structure of the QNN
         self._qulacs_circuit = QulacsCircuit(self._qiskit_circuit, self._qiskit_observable)
@@ -212,11 +221,6 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         return self._qulacs_circuit.num_qubits
 
     @property
-    def num_features(self) -> int:
-        """Return the dimension of the features of the PQC"""
-        return self._pqc.num_features
-
-    @property
     def num_parameters(self) -> int:
         """Return the number of trainable parameters of the PQC"""
         return self._pqc.num_parameters
@@ -289,7 +293,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         """
 
         # Pre-process the input data to the format [[x1],[x2]]
-        x_inp, multi_x = adjust_features(x, self._pqc.num_features)
+        x_inp, multi_x = adjust_features(x, self._num_features)
         # x_inpT = np.transpose(x_inp)
         param_inp, multi_param = adjust_parameters(param, self._pqc.num_parameters)
         param_obs_inp, multi_param_op = adjust_parameters(
@@ -301,7 +305,7 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         compare_list = []
         if self.num_parameters > 0:
             compare_list.append("param")
-        if self.num_features > 0:
+        if self._num_features > 0:
             compare_list.append("x")
         if self.num_parameters_observable > 0:
             compare_list.append("param_obs")

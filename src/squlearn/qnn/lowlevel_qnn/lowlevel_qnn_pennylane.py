@@ -8,13 +8,12 @@ from qiskit.circuit.parametervector import ParameterVectorElement
 import pennylane as qml
 import pennylane.numpy as pnp
 
-from squlearn.encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
-
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .evaluation_classes import DirectEvaluation, PostProcessingEvaluation, get_evaluation_class
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 
 from ...util import Executor
 from ...util.data_preprocessing import (
