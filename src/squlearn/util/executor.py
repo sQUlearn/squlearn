@@ -602,8 +602,6 @@ class Executor:
                 # TODO: check if this is duplicate
                 if not shots:
                     shots = self._estimator.options["execution"]["shots"]
-            else:
-                raise ValueError("Unknown estimator type: " + str(execution))
 
             # Set options for the estimator
             if self._options_estimator is not None:
@@ -631,8 +629,6 @@ class Executor:
                 # TODO: check if this is duplicate
                 if not shots:
                     shots = self._sampler.options["execution"]["shots"]
-            else:
-                raise ValueError("Unknown sampler type: " + str(execution))
 
             # Set options for the sampler
             if self._options_sampler is not None:
@@ -673,8 +669,7 @@ class Executor:
                     self._estimator.options.update(
                         simulator={"seed_simulator": self._set_seed_for_primitive}
                     )
-            else:
-                raise ValueError("Unknown execution type: " + str(type(execution)))
+
         elif isinstance(execution, BaseSamplerV2):
             self._sampler = execution
             if isinstance(self._sampler, StatevectorSampler):
@@ -703,8 +698,6 @@ class Executor:
                     self._sampler.options.update(
                         simulator={"seed_simulator": self._set_seed_for_primitive}
                     )
-            else:
-                raise ValueError("Unknown execution type: " + str(type(execution)))
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
@@ -1085,7 +1078,7 @@ class Executor:
     @property
     def backend_chosen(self) -> bool:
         """Returns true if the backend has been chosen."""
-        if self.backend is None:
+        if len(self._backend_list) > 1 and self.backend is None:
             return False
         else:
             return True
