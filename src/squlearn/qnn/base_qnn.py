@@ -352,6 +352,9 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
             self._param = self.param_ini.copy()
             self._param_op = self.param_op_ini.copy()
             self._initialize_lowlevel_qnn(num_features)
+        elif self._qnn is None and self._is_fitted:
+            num_features = extract_num_features(X)
+            self._initialize_lowlevel_qnn(num_features)
 
         if self.shot_control is not None:
             self.shot_control.reset_shots()
