@@ -459,6 +459,7 @@ circuits that need to be transpiled.
    * `Qsikit Primitives <https://docs.quantum.ibm.com/api/qiskit/primitives>`_
    * `Mapomatic: Automatic mapping of compiled circuits to low-noise sub-graphs <https://github.com/qiskit-community/mapomatic>`_
    * `PennyLane Devices <https://docs.pennylane.ai/en/stable/code/api/pennylane.device.html>`_
+   * `Qulacs <http://docs.qulacs.org/en/latest>`_
 
 .. rubric:: References
 

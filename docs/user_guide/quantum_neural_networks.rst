@@ -76,6 +76,37 @@ The specific form of the cost function depends on the problem that the QNN is de
 For instance, in a regression problem, the cost function is often defined as the mean squared
 error between the QNN's output and the target value.
 
+The optimization of a QNN's parameters is typically carried out using gradient-based methods
+such as Adam or SLSQP. The gradients of the cost function with respect to the QNN parameters
+can be computed via the parameter-shift rule (:math:`\alpha \in \{x,y,z\}`):
+
+.. math::
+
+    \frac{d}{dx} \langle \Psi | R_\alpha(\varphi(x)) \hat{C} R_\alpha(\varphi(x)) | \Psi \rangle
+    = \tfrac{1}{2} \varphi'(x) \big[ \langle \hat{C}^+ \rangle - \langle \hat{C}^- \rangle \big]
+
+where
+
+.. math::
+
+    \langle \hat{C} \rangle^\pm =
+    \langle \Psi | R_\alpha(\varphi(x) \pm \tfrac{\pi}{2}) \hat{C}
+    R_\alpha(\varphi(x) \pm \tfrac{\pi}{2}) | \Psi \rangle
+
+When running the optimization on a statevector simulator, gradients can alternatively
+be computed using automatic differentiation (autodiff) or backpropagation.
+These methods are considerably more efficient than the parameter-shift rule, which is required
+in shot-based simulations or on real quantum hardware. It is important to note that
+autodiff and backpropagation are not applicable on real quantum computers, as the
+no-cloning theorem prevents copying quantum states for reuse in gradient computation.
+
+sQUlearn automatically exploits fast gradient evaluation through autodiff for both
+the PennyLane and Qulacs quantum frameworks. PennyLane is the default backend and
+additionally supports the computation of higher-order derivatives. Qulacs, on the other hand,
+is typically much faster than PennyLane for larger circuits, making it the recommended choice
+for most QNN applications. The tutorial below demonstrates how to use Qulacs within sQUlearn.
+
+
 High-level methods for QNNs
 ====================================
 
@@ -125,7 +156,8 @@ We refer to the documentations and examples of the respective classes for in-dep
 
 In the following example we will use a :class:`QNNRegressor`, the encoding circuit, and
 the observable as defined above. Additionally, we utilize the mean squared error loss function
-and the Adam optimizer for optimization.
+and the Adam optimizer for optimization. Furthermore, Qulacs is used as the quantum simulator
+to enable fast gradient calculations.
 
 .. code-block:: python
 
@@ -137,7 +169,7 @@ and the Adam optimizer for optimization.
 
     op = SummedPaulis(num_qubits = 4)
     pqc = ChebyshevPQC(num_qubits = 4, num_layers = 2)
-    qnn = QNNRegressor(pqc, op, Executor(), SquaredLoss(), Adam())
+    qnn = QNNRegressor(pqc, op, Executor("qulacs"), SquaredLoss(), Adam())
 
 The QNN can be trained utilizing the :meth:`fit <squlearn.qnn.QNNRegressor.fit>` method:
 
