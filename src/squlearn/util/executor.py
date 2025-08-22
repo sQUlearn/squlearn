@@ -310,7 +310,7 @@ class Executor:
             wires=4
         )
         executor = Executor(dev)
-    
+
     **Example: Qulacs based initialization of the Executor**
 
     .. code-block:: python
