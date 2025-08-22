@@ -210,8 +210,9 @@ class Executor:
             The execution environment, possible inputs are:
 
                 * A string, that specifics the simulator backend. For Qiskit this can be
-                  ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``.
-                  For PennyLane this can be ``"pennylane"``, ``"default.qubit"``.
+                  ``"qiskit"``,``"statevector_simulator"`` or ``"qasm_simulator"``. For PennyLane
+                  this can be ``"pennylane"``, ``"default.qubit"``. For Qulacs this can be
+                  ``"qulacs"``.
                 * A PennyLane device, to run the jobs with PennyLane (e.g. AWS Braket plugin
                   for PennyLane)
                 * A Qiskit backend, to run the jobs on IBM Quantum systems or simulators
@@ -309,6 +310,15 @@ class Executor:
             wires=4
         )
         executor = Executor(dev)
+    
+    **Example: Qulacs based initialization of the Executor**
+
+    .. code-block:: python
+
+        from squlearn import Executor
+
+        # Executor with Qulacs backend
+        executor = Executor("qulacs")
 
     **Example: Different Qiskit based initializations of the Executor**
 
