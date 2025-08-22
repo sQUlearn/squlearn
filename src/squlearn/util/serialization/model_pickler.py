@@ -9,9 +9,9 @@ from ..executor import Executor
 EXECUTOR_ID = "squlearn.util.executor"
 
 
-class ExecutorPickler(dill.Pickler):
+class ModelPickler(dill.Pickler):
     """
-    Custom Pickler to handle the `Executor` object.
+    Custom Pickler to handle the `Executor` and `SparsePauliOp` object.
     When an `Executor` is encountered, it will not be serialized directly.
     Instead, it will return a marker that can be used to reconstruct the `Executor` later.
     """
@@ -53,7 +53,7 @@ class ExecutorPickler(dill.Pickler):
         return None
 
 
-class ExecutorUnpickler(dill.Unpickler):
+class ModelUnpickler(dill.Unpickler):
     """
     Custom Unpickler to handle the `Executor` object.
     When a marker for an `Executor` is encountered, it will return the `Executor` instance that was provided during initialization.

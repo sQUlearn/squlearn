@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from io import IOBase
 from typing import IO, Type, TypeVar, Union
-from .model_pickler import ExecutorPickler, ExecutorUnpickler
+from .model_pickler import ModelPickler, ModelUnpickler
 from ..executor import Executor
 
 T = TypeVar("T", bound="SerializableModelMixin")
@@ -47,7 +47,7 @@ class SerializableModelMixin:
         """
 
         with open_maybe(target, "wb") as f:
-            ExecutorPickler(f).dump(self)
+            ModelPickler(f).dump(self)
 
     @classmethod
     def load(cls: Type[T], source: Union[str, IO[bytes]], executor: Executor) -> T:
@@ -61,4 +61,4 @@ class SerializableModelMixin:
         """
 
         with open_maybe(source, "rb") as f:
-            return ExecutorUnpickler(f, executor).load()
+            return ModelUnpickler(f, executor).load()
