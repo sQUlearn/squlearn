@@ -97,7 +97,7 @@ class EncodingCircuitBase(ABC):
     ) -> QuantumCircuit:
         """
         Return the encoding circuit as a qiskit QuantumCircuit.
-        
+
         Checks the matching of the encoding slots with the provided features.
 
         Args:

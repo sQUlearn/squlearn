@@ -26,6 +26,7 @@ from ..observables.observable_base import ObservableBase
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..optimizers.optimizer_base import OptimizerBase, SGDMixin
 from ..util import Executor
+from ..util.serialization import SerializableModelMixin
 
 from .loss.qnn_loss_base import QNNLossBase
 
@@ -33,7 +34,7 @@ from .lowlevel_qnn import LowLevelQNN
 from .util.training import ShotControlBase
 
 
-class BaseQNN(BaseEstimator, ABC):
+class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
     """Base Class for Quantum Neural Networks.
 
     Args:
@@ -350,6 +351,9 @@ class BaseQNN(BaseEstimator, ABC):
             num_features = extract_num_features(X)
             self._param = self.param_ini.copy()
             self._param_op = self.param_op_ini.copy()
+            self._initialize_lowlevel_qnn(num_features)
+        elif self._qnn is None and self._is_fitted:
+            num_features = extract_num_features(X)
             self._initialize_lowlevel_qnn(num_features)
 
         if self.shot_control is not None:

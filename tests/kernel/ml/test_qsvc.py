@@ -1,5 +1,6 @@
 """Tests for QSVC"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
@@ -26,7 +27,7 @@ class TestQSVC:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvc_fidelity(self) -> QSVC:
         """QSVC module with FidelityKernel."""
         np.random.seed(42)
@@ -40,7 +41,7 @@ class TestQSVC:
         )
         return QSVC(kernel)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvc_pqk(self) -> QSVC:
         """QSVC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
@@ -245,3 +246,26 @@ class TestQSVC:
         qsvc_instance.predict(X)
 
         assert qsvc_instance._quantum_kernel._regularize_matrix.call_count == 2
+
+    @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
+    def test_serialization(self, qsvc, request, data):
+        """Tests serialization of QSVC."""
+        instance = request.getfixturevalue(qsvc)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QSVC.load(buffer, Executor("qiskit"))
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QSVC)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded.fit(X, y)
+        predict_after2 = instance_loaded.predict(X)
+        assert np.allclose(predict_before, predict_after2, atol=1e-6)

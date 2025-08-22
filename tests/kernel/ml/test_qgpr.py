@@ -1,11 +1,13 @@
 """Tests for QGPR"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
 
 from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
+from sympy import E
 
 from squlearn import Executor
 from squlearn.encoding_circuit import YZ_CX_EncodingCircuit
@@ -25,7 +27,7 @@ class TestQGPR:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qgpr_fidelity(self) -> QGPR:
         """QGPR module with FidelityKernel."""
         np.random.seed(42)
@@ -34,7 +36,7 @@ class TestQGPR:
         kernel = FidelityKernel(encoding_circuit=encoding_circuit, executor=executor)
         return QGPR(quantum_kernel=kernel, sigma=1.0e-6)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qgpr_pqk(self) -> QGPR:
         """QGPR module with ProjectedQuantumKernel."""
         np.random.seed(42)
@@ -254,3 +256,26 @@ class TestQGPR:
         qgpr_instance.predict(X)
 
         assert qgpr_instance._quantum_kernel._regularize_matrix.call_count == 3
+
+    @pytest.mark.parametrize("qgpr", ["qgpr_fidelity", "qgpr_pqk"])
+    def test_serialization(self, qgpr, request, data):
+        """Tests serialization of QGPR."""
+        instance = request.getfixturevalue(qgpr)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QGPR.load(buffer, Executor("qiskit"))
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QGPR)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded.fit(X, y)
+        predict_after2 = instance_loaded.predict(X)
+        assert np.allclose(predict_before, predict_after2, atol=1e-6)
