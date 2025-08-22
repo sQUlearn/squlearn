@@ -36,22 +36,16 @@ class ModelPickler(dill.Pickler):
                 if coeffs is not None:
 
                     if isinstance(coeffs, np.ndarray) and coeffs.dtype == object:
-
                         # Convert each coefficient to a SymPy object that is picklable in contrast
                         # To the default qiskit object
-                        obj._coeffs = np.array(
-                            [
-                                sp.sympify(c._symbol_expr) if hasattr(c, "_symbol_expr") else c
-                                for c in coeffs
-                            ],
-                            dtype=object,
-                        )
+                        for i in range(len(coeffs)):
+                            if hasattr(coeffs[i], "_symbol_expr"):
+                                coeffs[i]._symbol_expr = sp.sympify(coeffs[i]._symbol_expr)
             except Exception:
                 # If anything goes wrong, fall back to default serialization.
                 pass
 
         return None
-
 
 class ModelUnpickler(dill.Unpickler):
     """
