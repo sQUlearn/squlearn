@@ -35,17 +35,17 @@ class SquaredLoss(QNNLossBase):
     def value(self, value_dict: dict, **kwargs) -> float:
         r"""Calculates the squared loss.
 
-        This function calculates the squared loss between the values in value_dict and ground_truth
-        as
+        This function calculates the squared loss between the values in `value_dict` and
+        `ground_truth` as
 
         .. math::
-            \sum_i w_i \left|f\left(x_i\right)-f_ref\left(x_i\right)\right|^2
+            \sum_i w_i \cdot \left|f\left(x_i\right)-y\left(x_i\right)\right|^2
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
             weights (np.ndarray): Weight for each data point, if None all data points count the
-            same
+                same
 
         Returns:
             Loss value
@@ -92,16 +92,16 @@ class SquaredLoss(QNNLossBase):
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         r"""Returns the gradient of the squared loss.
 
-        This function calculates the gradient of the squared loss between the values in value_dict
-        and ground_truth as
+        This function calculates the gradient of the squared loss between the values in
+        `value_dict` and `ground_truth` as
 
         .. math::
-           2\sum_j \sum_i w_i \left(f\left(x_i\right)-f_ref\left(x_i\right)\right)
-           \frac{\partial f(x_i)}{\partial p_j}
+            2 \cdot \sum_i w_i \cdot \left|f\left(x_i\right)-y\left(x_i\right)\right|
+                \cdot \frac{\partial f\left(x_i\right)}{\partial \theta}
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            ground_truth (np.ndarray): The true values :math:`f_ref\left(x_i\right)`
+            ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
             weights (np.ndarray): Weight for each data point, if None all data points count the
                 same
             multiple_output (bool): True if the QNN has multiple outputs

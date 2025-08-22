@@ -1,5 +1,6 @@
 """This script installs the package with the lowest dependencies."""
 
+from argparse import ArgumentParser
 import re
 import subprocess
 import sys
@@ -7,13 +8,28 @@ from typing import List, Optional, Tuple
 
 import toml
 
+parser = ArgumentParser(
+    description="This script installs the package with the lowest dependencies."
+)
+parser.add_argument(
+    "-e",
+    "--examples",
+    action="store_true",
+    help="Install the examples dependencies",
+)
+
+args = parser.parse_args()
+
 # Load the pyproject.toml
 pyproject = toml.load("pyproject.toml")
 
 # Extract dependencies
-dependencies: List[str] = pyproject.get("project", {}).get("dependencies", []) + pyproject.get(
-    "project", {}
-).get("optional-dependencies", {}).get("examples", [])
+if args.examples:
+    dependencies: List[str] = (
+        pyproject.get("project", {}).get("optional-dependencies", {}).get("examples", [])
+    )
+else:
+    dependencies: List[str] = pyproject.get("project", {}).get("dependencies", [])
 
 
 # Function to get exactly the minimal specified version

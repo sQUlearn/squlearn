@@ -1,5 +1,6 @@
 import abc
-from typing import Union
+from typing import Callable, Union
+from unittest import result
 import numpy as np
 import copy
 
@@ -18,6 +19,8 @@ class LowLevelQNNBase(abc.ABC):
         pqc (EncodingCircuitBase): The parameterized quantum circuit.
         observable (Union[ObservableBase, list]): The observable(s) to measure.
         executor (Executor): The executor for the quantum circuit.
+        post_processing (Callable): Optional post processing function operating on the result dict
+            after evaluate.
     """
 
     def __init__(
@@ -25,10 +28,12 @@ class LowLevelQNNBase(abc.ABC):
         parameterized_quantum_circuit: EncodingCircuitBase,
         observable: Union[ObservableBase, list],
         executor: Executor,
+        post_processing: Callable = None,
     ) -> None:
         self._pqc = copy.copy(parameterized_quantum_circuit)
         self._observable = copy.copy(observable)
         self._executor = executor
+        self._post_processing = post_processing
 
     @abc.abstractmethod
     def set_params(self, **params) -> None:
@@ -67,7 +72,6 @@ class LowLevelQNNBase(abc.ABC):
         """Return true if multiple outputs are used"""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def evaluate(
         self,
         x: Union[float, np.ndarray],
@@ -95,7 +99,47 @@ class LowLevelQNNBase(abc.ABC):
             param (np.ndarray): Parameter values of the PQC parameters
             param_op (np.ndarray): Parameter values of the operator parameters
             values : Derivatives (or values) of the QNN that are evaluated. Higher order
-                     derivatives are given as tuples of parameters or vectors.
+                derivatives are given as tuples of parameters or vectors.
+
+        Results:
+            Returns a dictionary with the computed values.
+            The keys of the dictionary are given by the entries in the values tuple
+
+        """
+        result_dict = self._evaluate(x, param, param_obs, *values)
+        if self._post_processing:
+            result_dict = self._post_processing(result_dict)
+        return result_dict
+
+    @abc.abstractmethod
+    def _evaluate(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_obs: Union[float, np.ndarray],
+        *values: Union[
+            str,
+            ParameterVector,
+            ParameterVectorElement,
+            tuple,
+        ],
+    ) -> dict:
+        """General function for evaluating the output of derivatives of the QNN.
+
+        Evaluation works for given combination of
+        input features `x` and parameters `param` and `param_op`.
+        The function includes caching of results
+
+        If `x`, `param`, and/or `param_op` are given as a nested list
+        (for example multiple sets of parameters),
+        the values are returned in a nested list.
+
+        Args:
+            x (np.ndarray): Values of the input feature data.
+            param (np.ndarray): Parameter values of the PQC parameters
+            param_op (np.ndarray): Parameter values of the operator parameters
+            values : Derivatives (or values) of the QNN that are evaluated. Higher order
+                derivatives are given as tuples of parameters or vectors.
 
         Results:
             Returns a dictionary with the computed values.
