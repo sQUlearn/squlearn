@@ -2147,13 +2147,14 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     def get_params(self, deep: bool = True) -> dict:
         params = {
+            "num_qubits": self._num_qubits,
             "num_features": self._num_features,
             "feature_str": self._feature_str,
+            "parameter_str": self._parameter_str,
+            "encoding_circuit_str": self._encoding_circuit_str,
         }
-
         if deep:
             params.update(self._layered_pqc_params)
-            params["encoding_circuit_str"] = self._encoding_circuit_str
 
         return params
 
