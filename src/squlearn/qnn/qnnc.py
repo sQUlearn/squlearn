@@ -5,9 +5,12 @@ from typing import Callable, Union
 import sys
 
 import numpy as np
+from scipy.special import expit, softmax
 from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import __version__
+
+from squlearn.util.data_preprocessing import extract_num_features
 
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
@@ -97,7 +100,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
             X, y, test_size=0.33, random_state=42
         )
         clf = QNNClassifier(
-            ChebyshevRx(4, 2, 2),
+            ChebyshevRx(4, 2),
             SummedPaulis(4),
             Executor(),
             SquaredLoss(),
@@ -134,6 +137,62 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
+
+        def _post_processing(result_dict: dict):
+            if not isinstance(result_dict, dict):
+                raise TypeError("result_dict should be a dictionary")
+
+            updated_results = result_dict.copy()
+            if "f" not in updated_results:
+                raise KeyError("'f' is a required key in the result dictionary")
+
+            f = updated_results["f"].copy()
+            if not isinstance(f, np.ndarray) or not f.size:
+                raise ValueError("f should be a non-empty numpy array")
+
+            if len(f.shape) > 1:
+                f_max = np.max(f, axis=-1)
+                if f_max.size != f.shape[0]:
+                    raise ValueError("f_max should have the same shape as f.shape[0]")
+                updated_results["f"] = softmax(f, axis=1)
+            else:
+                updated_results["f"] = expit(f)
+
+            if "dfdp" in updated_results and (
+                isinstance(updated_results["dfdp"], np.ndarray) and updated_results["dfdp"].size
+            ):
+                dfdp = updated_results["dfdp"].copy()
+
+                if len(dfdp.shape) > 2:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for softmax gradient calculation")
+                    updated_results["dfdp"] = (
+                        dfdp * (softmax(f, axis=1) * (1 - softmax(f, axis=1)))[:, :, np.newaxis]
+                    )
+                else:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for sigmoid gradient calculation")
+                    updated_results["dfdp"] = dfdp * (expit(f) * (1 - expit(f)))[:, np.newaxis]
+
+            if "dfdop" in updated_results and (
+                isinstance(updated_results["dfdop"], np.ndarray) and updated_results["dfdop"].size
+            ):
+                dfdop = updated_results["dfdop"].copy()
+
+                if len(dfdop.shape) > 2:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for softmax gradient calculation")
+                    updated_results["dfdop"] = (
+                        dfdop * (softmax(f, axis=1) * (1 - softmax(f, axis=1)))[:, :, np.newaxis]
+                    )
+                else:
+                    if not "f" in updated_results:
+                        raise KeyError("'f' is needed for sigmoid gradient calculation")
+                    updated_results["dfdop"] = dfdop * (expit(f) * (1 - expit(f)))[:, np.newaxis]
+
+            return updated_results
+
+        self._post_processing = _post_processing
         super().__init__(
             encoding_circuit,
             operator,
@@ -166,15 +225,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
-
-        if not self._is_fitted and not self.pretrained:
-            raise RuntimeError("The model is not fitted.")
-
-        if self.shot_control is not None:
-            self.shot_control.reset_shots()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         return self._label_binarizer.inverse_transform(pred)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -186,11 +237,7 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
         Returns:
             np.ndarray : The probabilities
         """
-
-        if self.shot_control is not None:
-            self.shot_control.reset()
-
-        pred = self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        pred = self._predict(X)
         if pred.ndim == 1:
             return np.vstack([1 - pred, pred]).T
 
@@ -209,6 +256,10 @@ class QNNClassifier(BaseQNN, ClassifierMixin):
                 Labels
             weights: Weights for each data point
         """
+
+        num_features = extract_num_features(X)
+        self._initialize_lowlevel_qnn(num_features)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         if not self._is_fitted:

@@ -1,15 +1,15 @@
 """Tests for QKRR"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
 
 from sklearn.datasets import make_regression
-from sklearn.exceptions import NotFittedError
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.encoding_circuit import ParamZFeatureMap
+from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.kernel import QKRR
 from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel, FidelityKernel
 
@@ -26,14 +26,37 @@ class TestQKRR:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qkrr_fidelity(self) -> QKRR:
         """QKRR module with FidelityKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=2, num_layers=2, entangling=True
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        kernel = FidelityKernel(
+            encoding_circuit=encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
         )
+        return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
+
+    @pytest.fixture
+    def qkrr_pqk(self) -> QKRR:
+        """QKRR module with ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        kernel = ProjectedQuantumKernel(
+            encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
+        )
+        return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
+
+    @pytest.fixture(scope="module")
+    def qkrr_fidelity_without_num_features(self) -> QKRR:
+        """QKRR module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = FidelityKernel(
             encoding_circuit=encoding_circuit,
             executor=executor,
@@ -43,13 +66,11 @@ class TestQKRR:
         return QKRR(quantum_kernel=kernel, alpha=1.0e-6)
 
     @pytest.fixture(scope="module")
-    def qkrr_pqk(self) -> QKRR:
+    def qkrr_pqk_without_num_features(self) -> QKRR:
         """QKRR module with ProjectedQuantumKernel."""
-        np.random.seed(42)  # why?
+        np.random.seed(42)
         executor = Executor()
-        encoding_circuit = ParamZFeatureMap(
-            num_qubits=3, num_features=2, num_layers=2, entangling=True
-        )
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit=encoding_circuit, executor=executor, regularization="thresholding"
         )
@@ -62,6 +83,25 @@ class TestQKRR:
 
     @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
     def test_predict(self, qkrr, request, data):
+        """Tests concerning the predict function of the QKRR.
+
+        Tests include
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qkrr_instance = request.getfixturevalue(qkrr)
+
+        X, y = data
+        qkrr_instance.fit(X, y)
+
+        y_pred = qkrr_instance.predict(X)
+        assert y_pred.shape == y.shape
+        assert isinstance(y_pred, np.ndarray)
+
+    @pytest.mark.parametrize(
+        "qkrr", ["qkrr_fidelity_without_num_features", "qkrr_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qkrr, request, data):
         """Tests concerning the predict function of the QKRR.
 
         Tests include
@@ -123,6 +163,7 @@ class TestQKRR:
         qkrr_instance = request.getfixturevalue(qkrr)
         assert qkrr_instance.get_params()["num_layers"] == 2
         qkrr_instance.set_params(num_layers=4)
+
         assert qkrr_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
@@ -178,3 +219,26 @@ class TestQKRR:
         qkrr_instance.predict(X)
 
         assert qkrr_instance._quantum_kernel._regularize_matrix.call_count == 2
+
+    @pytest.mark.parametrize("qkrr", ["qkrr_fidelity", "qkrr_pqk"])
+    def test_serialization(self, qkrr, request, data):
+        """Tests serialization of QKRR."""
+        instance = request.getfixturevalue(qkrr)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QKRR.load(buffer, Executor("qiskit"))
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QKRR)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded.fit(X, y)
+        predict_after2 = instance_loaded.predict(X)
+        assert np.allclose(predict_before, predict_after2, atol=1e-6)

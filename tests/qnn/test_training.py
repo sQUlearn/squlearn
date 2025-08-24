@@ -22,10 +22,10 @@ examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 class TestSolvemini_batch:
     """Tests for mini-batch gradient descent."""
 
-    pqc = ChebyshevPQC(4, 1, 3, False)
+    pqc = ChebyshevPQC(num_qubits=4, closed=False)
     cost_op = SummedPaulis(4)
-    qnn = LowLevelQNN(pqc, cost_op, executor)
     ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
+    qnn = LowLevelQNN(pqc, cost_op, executor, 1)
 
     def test_wrong_optimizer(self):
         """Test for error caused by wrong optimizer type."""
@@ -51,7 +51,7 @@ class TestShotsFromRSTD:
     def test_qnn_training(self):
         """Test a optimization with variance reduction and shots from RSTD."""
 
-        pqc = ChebyshevPQC(2, 1, 3, False)
+        pqc = ChebyshevPQC(num_qubits=2, closed=False)
         ob = SummedPaulis(2)
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -68,14 +68,13 @@ class TestShotsFromRSTD:
         y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
-
-        reference = np.array([-0.23382872, -0.42261867, -0.17905442, 0.18627426, 0.09754079])
+        reference = np.array([-0.09867318, -0.14080412, -0.1864203, -0.22726776, -0.24570661])
         assert np.allclose(test, reference, atol=1e-3)
 
     def test_qnn_training_two_outputs(self):
         """Test a optimization with variance reduction and shots from RSTD with two outputs."""
 
-        pqc = ChebyshevPQC(2, 1, 3, False)
+        pqc = ChebyshevPQC(num_qubits=2, closed=False)
         ob = [SummedPaulis(2), SummedPaulis(2)]
         executor = Executor("qasm_simulator", seed=0)
         qnn = QNNRegressor(
@@ -94,13 +93,14 @@ class TestShotsFromRSTD:
         test = qnn.predict(x_train)
         reference = np.array(
             [
-                [0.42006322, 0.39721762],
-                [0.38582841, 0.3824161],
-                [0.23203671, 0.20858907],
-                [-0.0534579, -0.06126247],
-                [-0.12367106, -0.14982011],
+                [-0.10152712, -0.15280509],
+                [-0.14254195, -0.19631623],
+                [-0.19140704, -0.24552197],
+                [-0.23021383, -0.28467866],
+                [-0.24711364, -0.30817718],
             ]
         )
+
         assert np.allclose(test, reference, atol=1e-3)
 
 
@@ -164,12 +164,12 @@ class TestZeroParam:
             "QNNRegressor": regressor_result,
             "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
-        pqc = ChebyshevPQC(2, 1, 1)
+        pqc = ChebyshevPQC(num_qubits=2)
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
-        assert qnn.num_parameters_observable == 0
         qnn.fit(x_train, y_train)
+        assert qnn.num_parameters_observable == 0
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
 
     @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
@@ -178,15 +178,15 @@ class TestZeroParam:
 
         assert_dict = {
             "QNNRegressor": np.array([0.12, 0.12, 0.12, 0.12, 0.12]),
-            "QNNClassifier": np.array([1, 0, 0, 0, 0]),
+            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
         }
 
-        pqc = HighDimEncodingCircuit(2, 1, num_layers=1)
+        pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)
         ob = SummedPaulis(2)
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
-        assert qnn.num_parameters == 0
         qnn.fit(x_train, y_train)
+        assert qnn.num_parameters == 0
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)
 
     @pytest.mark.parametrize("test_case", ["QNNRegressor", "QNNClassifier"])
@@ -195,14 +195,14 @@ class TestZeroParam:
 
         assert_dict = {
             "QNNRegressor": np.array([0.19470917, 0.09933467, 0.0, -0.09933467, -0.19470917]),
-            "QNNClassifier": np.array([0, 0, 0, 0, 0]),
+            "QNNClassifier": np.array([1, 1, 0, 0, 0]),
         }
 
-        pqc = HighDimEncodingCircuit(2, 1, num_layers=1)
+        pqc = HighDimEncodingCircuit(num_qubits=2, num_layers=1)
         ob = SinglePauli(2, 0, "Z")
 
         qnn, x_train, y_train = self._build_qnn_setup(pqc, ob, test_case)
+        qnn.fit(x_train, y_train)
         assert qnn.num_parameters_observable == 0
         assert qnn.num_parameters == 0
-        qnn.fit(x_train, y_train)
         assert np.allclose(qnn.predict(x_train), assert_dict[test_case], atol=1e-6)

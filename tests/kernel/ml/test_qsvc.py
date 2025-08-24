@@ -1,5 +1,6 @@
 """Tests for QSVC"""
 
+import io
 import pytest
 import numpy as np
 from unittest.mock import MagicMock
@@ -26,7 +27,7 @@ class TestQSVC:
         X = scl.fit_transform(X, y)
         return X, y
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvc_fidelity(self) -> QSVC:
         """QSVC module with FidelityKernel."""
         np.random.seed(42)
@@ -40,12 +41,37 @@ class TestQSVC:
         )
         return QSVC(kernel)
 
-    @pytest.fixture(scope="module")
+    @pytest.fixture
     def qsvc_pqk(self) -> QSVC:
         """QSVC module wit ProjectedQuantumKernel."""
         np.random.seed(42)
         executor = Executor()
         encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_features=2, num_layers=2)
+        kernel = ProjectedQuantumKernel(
+            encoding_circuit, executor=executor, regularization="thresholding"
+        )
+        return QSVC(kernel)
+
+    @pytest.fixture(scope="module")
+    def qsvc_fidelity_without_num_features(self) -> QSVC:
+        """QSVC module with FidelityKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
+        kernel = FidelityKernel(
+            encoding_circuit,
+            executor=executor,
+            regularization="thresholding",
+            mit_depol_noise="msplit",
+        )
+        return QSVC(kernel)
+
+    @pytest.fixture(scope="module")
+    def qsvc_pqk_without_num_features(self) -> QSVC:
+        """QSVC module wit ProjectedQuantumKernel."""
+        np.random.seed(42)
+        executor = Executor()
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=3, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit, executor=executor, regularization="thresholding"
         )
@@ -87,6 +113,26 @@ class TestQSVC:
 
         Tests include
             - whether the prediction output is correct
+            - whether the output is of the same shape as the reference
+            - whether the type of the output is np.ndarray
+        """
+        qsvc_instance = request.getfixturevalue(qsvc)
+
+        X, y = data
+        qsvc_instance.fit(X, y)
+
+        y_pred = qsvc_instance.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert y_pred.shape == y.shape
+        assert np.allclose(y_pred, y)
+
+    @pytest.mark.parametrize(
+        "qsvc", ["qsvc_fidelity_without_num_features", "qsvc_pqk_without_num_features"]
+    )
+    def test_predict_without_num_features(self, qsvc, request, data):
+        """Tests concerning the predict function of the QSVR.
+
+        Tests include
             - whether the output is of the same shape as the reference
             - whether the type of the output is np.ndarray
         """
@@ -148,6 +194,7 @@ class TestQSVC:
         qsvc_instance = request.getfixturevalue(qsvc)
         assert qsvc_instance.get_params()["num_layers"] == 2
         qsvc_instance.set_params(num_layers=4)
+
         assert qsvc_instance.get_params()["num_layers"] == 4
 
         # Check if fit is still possible
@@ -187,14 +234,38 @@ class TestQSVC:
     def test_that_regularization_is_called_when_not_none(self, qsvc, request, data):
         """Asserts that regularization is called."""
         qsvc_instance = request.getfixturevalue(qsvc)
+
         X, y = data
 
         qsvc_instance.set_params(regularization="tikhonov")
 
-        qsvc_instance.quantum_kernel._regularize_matrix = MagicMock()
-        qsvc_instance.quantum_kernel._regularize_matrix.side_effect = lambda x: x
+        qsvc_instance._quantum_kernel._regularize_matrix = MagicMock()
+        qsvc_instance._quantum_kernel._regularize_matrix.side_effect = lambda x: x
 
         qsvc_instance.fit(X, y)
         qsvc_instance.predict(X)
 
-        assert qsvc_instance.quantum_kernel._regularize_matrix.call_count == 2
+        assert qsvc_instance._quantum_kernel._regularize_matrix.call_count == 2
+
+    @pytest.mark.parametrize("qsvc", ["qsvc_fidelity", "qsvc_pqk"])
+    def test_serialization(self, qsvc, request, data):
+        """Tests serialization of QSVC."""
+        instance = request.getfixturevalue(qsvc)
+        X, y = data
+        instance.fit(X, y)
+
+        buffer = io.BytesIO()
+        instance.dump(buffer)
+
+        predict_before = instance.predict(X)
+
+        buffer.seek(0)
+        instance_loaded = QSVC.load(buffer, Executor("qiskit"))
+        predict_after = instance_loaded.predict(X)
+
+        assert isinstance(instance_loaded, QSVC)
+        assert np.allclose(predict_before, predict_after, atol=1e-6)
+
+        instance_loaded.fit(X, y)
+        predict_after2 = instance_loaded.predict(X)
+        assert np.allclose(predict_before, predict_after2, atol=1e-6)

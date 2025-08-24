@@ -2,11 +2,14 @@
 
 from sklearn.gaussian_process import GaussianProcessClassifier
 
+from ..util.serialization import SerializableModelMixin
+from ..util.data_preprocessing import extract_num_features
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.kernel_util import kernel_wrapper
 
 
-class QGPC(GaussianProcessClassifier):
+class QGPC(GaussianProcessClassifier, SerializableModelMixin):
     """
     Quantum Gaussian process classification (QGPC), that extends the scikit-learn
     `sklearn.gaussian_process.GaussianProcessClassifier
@@ -51,7 +54,7 @@ class QGPC(GaussianProcessClassifier):
         from squlearn.kernel import QGPC
         X, y = load_iris(return_X_y=True)
 
-        enc_circ = HubregtsenEncodingCircuit(num_qubits=X.shape[1], num_features=X.shape[1], num_layers=2)
+        enc_circ = HubregtsenEncodingCircuit(num_qubits=X.shape[1], num_layers=2)
         q_kernel = FidelityKernel(encoding_circuit=enc_circ, executor=Executor())
         q_kernel.assign_parameters(np.random.rand(enc_circ.num_parameters))
         qgpc_ansatz = QGPC(quantum_kernel=q_kernel)
@@ -68,23 +71,13 @@ class QGPC(GaussianProcessClassifier):
 
     def __init__(self, quantum_kernel: KernelMatrixBase, **kwargs) -> None:
         self._quantum_kernel = quantum_kernel
+        self._kernel_params = kwargs
 
-        # Apply kwargs to set_params of quantum kernel
+        # determine the parameters that are relevant for the superclass
+        superclass_params = set(self._get_param_names()) & self._kernel_params.keys()
 
-        print("self.quantum_kernel", self.quantum_kernel)
-        print("kwargs", kwargs)
-
-        quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-        if quantum_kernel_update_params:
-            self.quantum_kernel.set_params(
-                **{key: kwargs[key] for key in quantum_kernel_update_params}
-            )
-            # remove quantum_kernel_kwargs for SVR initialization
-            for key in quantum_kernel_update_params:
-                kwargs.pop(key, None)
-
-        super().__init__(**kwargs)
-        self.kernel = kernel_wrapper(self._quantum_kernel)
+        # call the constructor of the superclass only with the relevant parameters
+        super().__init__(**{key: self._kernel_params[key] for key in superclass_params})
 
     @classmethod
     def _get_param_names(cls):
@@ -106,6 +99,20 @@ class QGPC(GaussianProcessClassifier):
         Return:
             Returns an instance of self.
         """
+        num_features = extract_num_features(X)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+        quantum_kernel_update_params = (
+            self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
+        )
+        if quantum_kernel_update_params:
+            self._quantum_kernel.set_params(
+                **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+            )
+        self.kernel = kernel_wrapper(self._quantum_kernel)
+
         if self._quantum_kernel.is_trainable:
             self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
@@ -161,14 +168,3 @@ class QGPC(GaussianProcessClassifier):
         if quantum_kernel_params:
             self._quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
         return self
-
-    @property
-    def quantum_kernel(self) -> KernelMatrixBase:
-        """Returns quantum kernel"""
-        return self._quantum_kernel
-
-    @quantum_kernel.setter
-    def quantum_kernel(self, quantum_kernel: KernelMatrixBase):
-        """Sets quantum kernel"""
-        self._quantum_kernel = quantum_kernel
-        self.kernel = kernel_wrapper(quantum_kernel)
