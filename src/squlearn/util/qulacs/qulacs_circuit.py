@@ -796,3 +796,38 @@ class QulacsCircuit:
             return list_operators
 
         return observable_func
+
+    def __getstate__(self):
+        """Remove qulacs caches and objects to avoid pickling issues"""
+        state = self.__dict__.copy()
+        # Remove caches to avoid pickling issues
+        state["_circuit_func_cache"] = {}
+        state["_observable_func_cache"] = None
+        state["_outer_jacobi_circuit_cache"] = {}
+        state["_outer_jacobi_observable_cache"] = {}
+
+        # Remove qulacs instructions to avoid pickling issues
+        state["_circuit_gate_list"] = []
+        state["_circuit_qubit_list"] = []
+        state["_circuit_param_list"] = []
+        state["_circuit_param_func_list"] = []
+        state["_circuit_param_func_grad_list"] = []
+        state["_circuit_param_names"] = []
+        state["_circuit_symbols_tuple"] = ()
+        state["_observable_pauli_list"] = []
+        state["_observable_param_func_list"] = []
+        state["_observable_param_func_grad_list"] = []
+        state["_observable_used_parameters"] = []
+        state["_observable_symbols_tuple"] = ()
+        state["_observable_param_names"] = []
+
+        return state
+
+    def __setstate__(self, state):
+        """Rebuild the circuit and observable instructions from the state"""
+        self.__dict__.update(state)
+        # Rebuild circuit instructions
+        self._build_circuit_instructions(self._qiskit_circuit)
+        # Rebuild observable instructions if needed
+        if self._is_qiskit_observable:
+            self.build_observable_instructions(self._qiskit_observable)

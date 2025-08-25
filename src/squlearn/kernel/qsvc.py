@@ -6,9 +6,10 @@ from typing import Union, Optional
 from squlearn.util.data_preprocessing import extract_num_features
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from ..util.serialization import SerializableModelMixin
 
 
-class QSVC(SVC):
+class QSVC(SVC, SerializableModelMixin):
     """
     Quantum Support Vector Classification
 

@@ -96,7 +96,9 @@ class EncodingCircuitBase(ABC):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the encoding circuit and check the matching of the encoding slots with the provided features (has to be overwritten, otherwise a NotImplementedError is thrown)
+        Return the encoding circuit as a qiskit QuantumCircuit.
+
+        Checks the matching of the encoding slots with the provided features.
 
         Args:
             features Union[ParameterVector,np.ndarray]: Input vector of the features
@@ -123,8 +125,8 @@ class EncodingCircuitBase(ABC):
         Draws the encoding circuit using the QuantumCircuit.draw() function.
 
         Args:
-            num_features (int): Number of features to draw the circuit with (default: None).
             output (str): Output format of the drawing (default: None).
+            num_features (int): Number of features to draw the circuit with (default: None).
             feature_label (str): Label for the feature vector (default:"x").
             parameter_label (str): Label for the parameter vector (default:"p").
             decompose (bool): If True, the circuit is decomposed before printing (default: False).
@@ -222,11 +224,11 @@ class EncodingCircuitBase(ABC):
 
         Args:
             x (np.ndarray): Input data to check, where each row corresponds to a data sample
-                            and each column to a feature.
+                and each column to a feature.
 
         Raises:
             ValueError: Raised if the number of features in the input data does not match the
-                     `num_features` of the encoding circuit.
+                `num_features` of the encoding circuit.
         """
         actual_num_features = extract_num_features(x)
 

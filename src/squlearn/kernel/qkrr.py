@@ -8,7 +8,7 @@ from typing import Optional, Union
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn import __version__
 
-from squlearn.util.data_preprocessing import extract_num_features
+from ..util.data_preprocessing import extract_num_features
 
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
@@ -19,9 +19,10 @@ else:
 
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from ..util.serialization import SerializableModelMixin
 
 
-class QKRR(BaseEstimator, RegressorMixin):
+class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
     r"""
     Quantum Kernel Ridge Regression.
 

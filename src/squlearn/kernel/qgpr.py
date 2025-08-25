@@ -23,9 +23,10 @@ else:
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.regularization import regularize_full_kernel
+from ..util.serialization import SerializableModelMixin
 
 
-class QGPR(BaseEstimator, RegressorMixin):
+class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
     """
     Quantum Gaussian Process Regression (QGPR).
 

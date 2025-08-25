@@ -25,9 +25,10 @@ from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ..util import Executor
 from ..qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 from ..qnn.lowlevel_qnn import LowLevelQNN
+from ..util.serialization import SerializableModelMixin
 
 
-class BaseQRC(BaseEstimator, ABC):
+class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
     """Base class for Quantum Reservoir Computing (QRC) models.
 
     Args:

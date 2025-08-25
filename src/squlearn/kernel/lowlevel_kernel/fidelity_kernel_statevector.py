@@ -348,6 +348,11 @@ class FidelityKernelStatevector:
             else:
                 x_sv = np.array([self._cached_execution(tuple(x_)) for x_ in x_inp])
                 y_sv = np.array([self._cached_execution(tuple(y_)) for y_ in y_inp])
+        else:
+            raise RuntimeError(
+                "Quantum framework not supported for FidelityKernelStatevector: "
+                f"{self._executor.quantum_framework}"
+            )
 
         if len(x_sv.shape) == 1:
             x_sv = np.array([x_sv])

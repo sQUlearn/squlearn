@@ -2,13 +2,14 @@
 
 from sklearn.gaussian_process import GaussianProcessClassifier
 
-from squlearn.util.data_preprocessing import extract_num_features
+from ..util.serialization import SerializableModelMixin
+from ..util.data_preprocessing import extract_num_features
 
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .lowlevel_kernel.kernel_util import kernel_wrapper
 
 
-class QGPC(GaussianProcessClassifier):
+class QGPC(GaussianProcessClassifier, SerializableModelMixin):
     """
     Quantum Gaussian process classification (QGPC), that extends the scikit-learn
     `sklearn.gaussian_process.GaussianProcessClassifier
@@ -167,14 +168,3 @@ class QGPC(GaussianProcessClassifier):
         if quantum_kernel_params:
             self._quantum_kernel.set_params(**{key: params[key] for key in quantum_kernel_params})
         return self
-
-    @property
-    def quantum_kernel(self) -> KernelMatrixBase:
-        """Returns quantum kernel"""
-        return self._quantum_kernel
-
-    @quantum_kernel.setter
-    def quantum_kernel(self, quantum_kernel: KernelMatrixBase):
-        """Sets quantum kernel"""
-        self._quantum_kernel = quantum_kernel
-        self.kernel = kernel_wrapper(quantum_kernel)
