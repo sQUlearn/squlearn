@@ -80,14 +80,11 @@ class QKODE(QKRR):
 
         num_features = extract_num_features(X)
 
-        # initialize the kernel with the known feature vector
-        self._quantum_kernel._initialize_kernel(num_features=num_features)
-
         # set up kernel matrix
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
                 # if kernel is precomputed, validate shape of kernel matrix
-                K, y = self._validate_data(
+                K, y = validate_data(
                     K, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
                 )
                 self.k_train = K
@@ -97,6 +94,9 @@ class QKODE(QKRR):
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
+            # initialize the kernel with the known feature vector
+            self._quantum_kernel._initialize_kernel(num_features=num_features)
+
             # check if quantum kernel is trainable
             if self._quantum_kernel.is_trainable:
                 print(
@@ -151,7 +151,7 @@ class QKODE(QKRR):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        X = self._validate_data(X, accept_sparse=("csr", "csc"), reset=False)
+        X = validate_data(X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":
