@@ -3,9 +3,11 @@
 from packaging import version
 
 import numpy as np
-from typing import Optional, Union
+from typing import Union
 from sklearn import __version__
 from functools import partial
+
+from squlearn.util.data_preprocessing import extract_num_features
 
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
@@ -19,7 +21,6 @@ from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 from .qkrr import QKRR
 from .loss.kernel_loss_base import KernelLossBase
 from ..optimizers.optimizer_base import OptimizerBase
-from .lowlevel_kernel.regularization import thresholding_regularization, tikhonov_regularization
 
 
 class QKODE(QKRR):
@@ -76,6 +77,11 @@ class QKODE(QKRR):
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
         )
         self.X_train = X
+
+        num_features = extract_num_features(X)
+
+        # initialize the kernel with the known feature vector
+        self._quantum_kernel._initialize_kernel(num_features=num_features)
 
         # set up kernel matrix
         if isinstance(self._quantum_kernel, str):

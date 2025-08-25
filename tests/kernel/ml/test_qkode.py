@@ -1,5 +1,3 @@
-import pytest
-
 import numpy as np
 import sympy as sp
 
@@ -80,6 +78,7 @@ class TestQKODE:
             encoding_circuit=encoding_circuit,
             executor=Executor("pennylane"),
             regularization="tikhonov",
+            use_expectation=True,
         )
 
         # Create the QKODE instance
@@ -94,15 +93,15 @@ class TestQKODE:
             qkode.predict(x_train),
             np.array(
                 [
-                    0.99663332,
-                    1.12030422,
-                    1.2525221,
-                    1.39952847,
-                    1.56866833,
-                    1.75470725,
-                    1.96290259,
-                    2.19701171,
-                    2.46206022,
+                    0.99993338,
+                    1.11905726,
+                    1.25272212,
+                    1.40211314,
+                    1.56893983,
+                    1.75539996,
+                    1.96415182,
+                    2.19823199,
+                    2.46048537,
                 ]
             ),
             atol=1e-3,
