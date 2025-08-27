@@ -13,12 +13,13 @@ from sklearn.gaussian_process.kernels import (
     PairwiseKernel,
 )
 
-from sklearn.gaussian_process.kernels import Kernel as SklearnKernel
+from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
-from ...util.data_preprocessing import to_tuple
+from ...util.data_preprocessing import extract_num_features, to_tuple
 
 
 from ...qnn.lowlevel_qnn import LowLevelQNN
@@ -379,7 +380,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
        from squlearn.util import Executor
 
-       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+       fm = ChebyshevTower(num_qubits=4, num_chebyshev=4)
        kernel = ProjectedQuantumKernel(encoding_circuit=fm, executor=Executor())
        x = np.random.rand(10)
        kernel_matrix = kernel.evaluate(x.reshape(-1, 1), x.reshape(-1, 1))
@@ -396,7 +397,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
        from squlearn.observables import CustomObservable
        from squlearn.kernel import QKRR
 
-       fm = ChebyshevTower(num_qubits=4, num_features=1, num_chebyshev=4)
+       fm = ChebyshevTower(num_qubits=4, num_chebyshev=4)
 
        # Create custom observables
        measuments = []
@@ -431,63 +432,21 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         super().__init__(
             encoding_circuit, executor, initial_parameters, parameter_seed, regularization
         )
-
         self._measurement_input = measurement
         self._outer_kernel_input = outer_kernel
         self._caching = caching
         self._derivative_cache = {}
+        self._outer_kernel = outer_kernel
 
-        # Set-up measurement operator
-        if isinstance(measurement, str):
-            self._measurement = []
-            for m_str in measurement:
-                if m_str not in ("X", "Y", "Z"):
-                    raise ValueError("Unknown measurement operator: {}".format(m_str))
-                for i in range(self.num_qubits):
-                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
-        elif isinstance(measurement, ObservableBase) or isinstance(measurement, list):
-            self._measurement = measurement
-        else:
-            raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
+        # additional variables used in _initialize_kernel
+        self._kwargs = kwargs
+        self._initial_parameters = initial_parameters
+        self._parameter_seed = parameter_seed
+        self._is_initialized = False
 
-        # Set-up of the QNN
-        self._qnn = LowLevelQNN(
-            self._encoding_circuit, self._measurement, executor, caching=self._caching
-        )
-
-        # Set-up of the outer kernel
-        self._set_outer_kernel(self._outer_kernel_input, **kwargs)
-
-        # Generate default parameters of the measurement operators
-        if initial_parameters is None:
-            if self._parameters is None:
-                self._parameters = np.array([])
-            if isinstance(self._measurement, list):
-                for i, m in enumerate(self._measurement):
-                    self._parameters = np.concatenate(
-                        (
-                            self._parameters,
-                            m.generate_initial_parameters(seed=parameter_seed + i + 1),
-                        )
-                    )
-            elif isinstance(self._measurement, ObservableBase):
-                self._parameters = np.concatenate(
-                    (
-                        self._parameters,
-                        self._measurement.generate_initial_parameters(seed=parameter_seed),
-                    )
-                )
-            else:
-                raise ValueError("Unknown type of measurement: {}".format(type(measurement)))
-
-        # Check if the number of parameters is correct
-        if self._parameters is not None:
-            if len(self._parameters) != self.num_parameters:
-                raise ValueError(
-                    "Number of initial parameters is wrong, expected number: {}".format(
-                        self.num_parameters
-                    )
-                )
+        self._set_up_measurement_operator()
+        self._set_outer_kernel(outer_kernel, **kwargs)
+        self._qnn = None
 
     def __reduce__(self):
         return (
@@ -505,13 +464,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         )
 
     @property
-    def num_features(self) -> int:
-        """Feature dimension of the encoding circuit"""
-        return self._qnn.num_features
-
-    @property
     def num_parameters(self) -> int:
         """Number of trainable parameters of the encoding circuit"""
+        if self._qnn is None:
+            return None
         return self._qnn.num_parameters + self._qnn.num_parameters_observable
 
     @property
@@ -532,6 +488,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated output of the QNN as numpy array
         """
+        self.__check_num_params()
 
         # Copy parameters in QNN form
         if self._parameters is None and self.num_parameters == 0:
@@ -552,11 +509,10 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated projected quantum kernel as numpy array
         """
+        self._initialize_kernel(num_features=extract_num_features(x))
+
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = np.array([])
-
-        if self._parameters is None:
-            raise ValueError("Parameters have not been set yet!")
 
         kernel_matrix = self._outer_kernel(self._qnn, self._parameters, x, y)
         if (self._regularization is not None) and (
@@ -575,11 +531,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             x (np.ndarray): Data points x
             y (np.ndarray): Data points y, if None y = x is used
             values (Union[str, tuple]): Values to evaluate. Can be a string or a tuple of strings.
-                Possible values are: ``dKdx``, ``dKdy``, ``dKdxdx``
+            Possible values are: ``dKdx``, ``dKdy``, ``dKdxdx``, ``dKdp``
         Returns:
             Dictionary with the evaluated values
 
         """
+        num_features = extract_num_features(x)
+        self._initialize_kernel(num_features)
+
         if self._parameters is None and self.num_parameters == 0:
             self._parameters = []
         if self._parameters is None:
@@ -622,7 +581,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     elif todo[2:] == "dy":
                         dOdx = eval_helper(y, "dfdx")
 
-                    if self.num_features == 1:
+                    if num_features == 1:
                         kernel_matrix = np.einsum(
                             "njl,nl->nj",
                             self._outer_kernel.dKdx(
@@ -656,7 +615,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
                     )  # shape (num_parameters, len(x), len(y))
                 elif todo == "dKdxdx":
 
-                    if self.num_features > 1:
+                    if num_features > 1:
                         raise NotImplementedError(
                             "Second-order derivatives wrt multiple feature are not implemented"
                         )
@@ -712,6 +671,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Return:
             Dictionary with hyper-parameters and values.
         """
+
         params = super().get_params(deep=False)
         params.update(self._outer_kernel.get_params())
         params["measurement"] = self._measurement_input
@@ -720,7 +680,14 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         params["outer_kernel"] = self._outer_kernel_input
 
         if deep:
-            params.update(self._qnn.get_params())
+            params.update(self._encoding_circuit.get_params())
+            if isinstance(self._measurement_input, list):
+                for m in self._measurement_input:
+                    params.update(m.get_params())
+            elif isinstance(self._measurement_input, ObservableBase):
+                params.update(self._measurement_input.get_params())
+            if self._qnn is not None:
+                params.update(self._qnn.get_params())
         return params
 
     def set_params(self, **params):
@@ -811,14 +778,15 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             )
 
         # Set Remaining QNN parameters
-        dict_qnn = {}
-        for key, value in params.items():
-            if key in self._qnn.get_params():
-                dict_qnn[key] = value
-        for key in dict_qnn.keys():
-            params.pop(key)
-        if len(dict_qnn) > 0:
-            self._qnn.set_params(**dict_qnn)
+        if self._qnn is not None:
+            dict_qnn = {}
+            for key, value in params.items():
+                if key in self._qnn.get_params():
+                    dict_qnn[key] = value
+            for key in dict_qnn.keys():
+                params.pop(key)
+            if len(dict_qnn) > 0:
+                self._qnn.set_params(**dict_qnn)
 
         # Set outer kernel
         if "outer_kernel" in params:
@@ -879,6 +847,82 @@ class ProjectedQuantumKernel(KernelMatrixBase):
             self._outer_kernel = outer_kernel
         else:
             raise ValueError("Unknown type of outer kernel: {}".format(type(outer_kernel)))
+
+    def _set_up_qnn(self, num_features) -> None:
+        """Set-up of the QNN"""
+        self._qnn = LowLevelQNN(
+            self._encoding_circuit,
+            self._measurement,
+            self._executor,
+            num_features,
+            caching=self._caching,
+        )
+
+    def _set_up_measurement_operator(self) -> None:
+        """Set-up of the observable"""
+        if isinstance(self._measurement_input, str):
+            self._measurement = []
+            for m_str in self._measurement_input:
+                if m_str not in ("X", "Y", "Z"):
+                    raise ValueError("Unknown measurement operator: {}".format(m_str))
+                for i in range(self.num_qubits):
+                    self._measurement.append(SinglePauli(self.num_qubits, i, op_str=m_str))
+        elif isinstance(self._measurement_input, ObservableBase) or isinstance(
+            self._measurement_input, list
+        ):
+            self._measurement = self._measurement_input
+        else:
+            raise ValueError(
+                "Unknown type of measurement: {}".format(type(self._measurement_input))
+            )
+
+    def _initialize_kernel(self, num_features: int) -> None:
+        """Initializes the quantum kernel.
+        Args:
+            num_features (int): Number of features in the input data
+        """
+        if not self._is_initialized:
+            super()._initialize_kernel(num_features=num_features)
+            self._set_up_qnn(num_features)
+
+            # Generate default parameters of the measurement operators
+            if self._initial_parameters is None:
+                if self._parameters is None:
+                    self._parameters = np.array([])
+                if isinstance(self._measurement, list):
+                    for i, m in enumerate(self._measurement):
+                        self._parameters = np.concatenate(
+                            (
+                                self._parameters,
+                                m.generate_initial_parameters(seed=self._parameter_seed + i + 1),
+                            )
+                        )
+                elif isinstance(self._measurement, ObservableBase):
+                    self._parameters = np.concatenate(
+                        (
+                            self._parameters,
+                            self._measurement.generate_initial_parameters(
+                                seed=self._parameter_seed
+                            ),
+                        )
+                    )
+                else:
+                    raise ValueError(
+                        "Unknown type of measurement: {}".format(type(self._measurement_input))
+                    )
+
+            self.__check_num_params()
+            self._is_initialized = True
+
+    def __check_num_params(self):
+        """Check if the number of parameters is correct"""
+        if self._parameters is not None:
+            if len(self._parameters) != self.num_parameters:
+                raise ValueError(
+                    "Number of initial parameters is wrong, expected number: {}".format(
+                        self.num_parameters
+                    )
+                )
 
 
 class GaussianOuterKernel(OuterKernelBase):

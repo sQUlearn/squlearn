@@ -4,6 +4,8 @@ from typing import Union
 from qiskit.circuit import ParameterVector
 from qiskit.circuit import QuantumCircuit
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from ..encoding_circuit_base import EncodingCircuitBase
 from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
 
@@ -31,13 +33,14 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     .. plot::
 
         from squlearn.encoding_circuit import KyriienkoEncodingCircuit
-        pqc = KyriienkoEncodingCircuit(4, 1, num_encoding_layers=1, num_variational_layers=2,
+        pqc = KyriienkoEncodingCircuit(4, num_encoding_layers=1, num_variational_layers=2,
                                        variational_arrangement="ABA")
-        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10})
+        pqc.draw(output="mpl", style={'fontsize':15,'subfontsize': 10}, num_features=1)
 
 
     Args:
         num_qubits (int): Number of qubits of the encoding circuit
+        num_features (int): Dimension of the feature vector (default: None)
         encoding_style (str): Style of the encoding. Options are ``'chebyshev_tower'`` (default),
                               ``'chebyshev_sparse'`` and ``'chebyshev_product'``
                               (see reference [1], Equation  15, 14 and 5 respectively)
@@ -48,7 +51,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         num_variational_layers (int): Number of variational layers (default: 1)
         rotation_gate (str): Rotation gate to use. Either ``'rx'``, ``'ry'`` or
                              ``'rz'`` (default: ``'ry'`` as in reference [1])
-        num_features (int): Dimension of the feature vector (default: 1)
+
         block_width (int): Only necessary for arrangement ``'ABA'``. Width (vertical) of each
                            blocks for the ABA arrangement (default: 2), also refered as Nb in
                            the paper. Must be a divisor of the number of qubits
@@ -65,7 +68,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     def __init__(
         self,
         num_qubits: int,
-        num_features: int = 1,
+        num_features: int = None,
         encoding_style: str = "chebyshev_tower",
         variational_arrangement: str = "HEA",
         num_encoding_layers: int = 1,
@@ -110,6 +113,11 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
             num_param = 3 * self.num_qubits * self.block_depth * self.num_variational_layers
         return num_param
 
+    @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the Kyriienko encoding circuit."""
+        return self.num_qubits * self.num_encoding_layers
+
     def get_params(self, deep: bool = True) -> dict:
         """
         Returns hyper-parameters and their values of the Kyriienko encoding circuit
@@ -138,7 +146,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         parameters: Union[ParameterVector, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Generates and returns the circuit of the Kyriienko encoding circuit
+        Generates and returns the circuit of the KyriienkoEncodingCircuit
 
         Args:
             features (Union[ParameterVector, np.ndarray]): The features to encode
@@ -147,6 +155,9 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
         Returns:
             QuantumCircuit: The encoding circuit
         """
+        num_features = extract_num_features(features)
+        self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
+        self._check_feature_consistency(features)
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""
@@ -188,10 +199,8 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                                 QC.cx(i, 0)
             return QC, index_offset
 
-        nfeature = len(features)
-
         if self.encoding_style == "chebyshev_product":
-            QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=self.num_features)
+            QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=num_features)
             layer = Layer(QC)
             {"rx": layer.Rx, "ry": layer.Ry, "rz": layer.Rz}[self.rotation_gate](
                 "x", encoding=np.arcsin
@@ -206,13 +215,13 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                 iqubit = 0
                 icheb = 1
 
-                inner = self.num_features
+                inner = num_features
                 outer = self.num_chebyshev
 
                 for outer_ in range(outer):
                     for inner_ in range(inner):
                         {"rx": QC.rx, "ry": QC.ry, "rz": QC.rz}[self.rotation_gate](
-                            mapping(features[index_offset_encoding % nfeature], icheb),
+                            mapping(features[index_offset_encoding % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                         iqubit += 1

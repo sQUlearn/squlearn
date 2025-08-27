@@ -9,6 +9,8 @@ import numpy as np
 from sklearn.base import RegressorMixin
 from sklearn import __version__
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 if version.parse(__version__) >= version.parse("1.6"):
     from sklearn.utils.validation import validate_data
 else:
@@ -96,7 +98,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             X, y, test_size=0.33, random_state=42
         )
         reg = QNNRegressor(
-            ChebyshevRx(4, 1, 2),
+            ChebyshevRx(4, 1),
             IsingHamiltonian(4, I="S", Z="S", ZZ="S"),
             Executor(),
             SquaredLoss(),
@@ -138,14 +140,13 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             num_qubits=6,
             encoding_style="chebyshev_tower",
             variational_arrangement="HEA",
-            num_features=1,
             num_encoding_layers=1,
             num_variational_layers=5,
         )
         observable = SummedPaulis(6, include_identity=False)
 
         param_observable = observable.generate_initial_parameters(seed=1)
-        param_initial = circuit.generate_initial_parameters(seed=1)
+        param_initial = circuit.generate_initial_parameters(seed=1, num_features=1)
 
         ode_regressor = QNNRegressor(
             circuit,
@@ -185,6 +186,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
+        self._post_processing = None
         super().__init__(
             encoding_circuit,
             operator,
@@ -216,15 +218,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         Returns:
             np.ndarray : The predicted values.
         """
-        X = validate_data(self, X, accept_sparse=["csr", "csc"], reset=False)
-
-        if not self._is_fitted and not self.pretrained:
-            warn("The model is not fitted.")
-
-        if self.shot_control is not None:
-            self.shot_control.reset_shots()
-
-        return self._qnn.evaluate(X, self._param, self._param_op, "f")["f"]
+        return self._predict(X)
 
     def partial_fit(self, X, y, weights: np.ndarray = None) -> None:
         """Fit a model to data.
@@ -239,6 +233,9 @@ class QNNRegressor(BaseQNN, RegressorMixin):
                 Labels
             weights: Weights for each data point
         """
+        num_features = extract_num_features(X)
+        self._initialize_lowlevel_qnn(num_features)
+
         X, y = self._validate_input(X, y, incremental=False, reset=False)
 
         loss = self.loss

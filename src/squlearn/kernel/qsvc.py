@@ -3,10 +3,13 @@
 from sklearn.svm import SVC
 from typing import Union, Optional
 
+from squlearn.util.data_preprocessing import extract_num_features
+
 from .lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
+from ..util.serialization import SerializableModelMixin
 
 
-class QSVC(SVC):
+class QSVC(SVC, SerializableModelMixin):
     """
     Quantum Support Vector Classification
 
@@ -53,7 +56,7 @@ class QSVC(SVC):
         from squlearn.kernel.qsvc import QSVC
         from squlearn.kernel.lowlevel_kernel import ProjectedQuantumKernel
 
-        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_features=2, num_layers=2)
+        encoding_circuit = HubregtsenEncodingCircuit(num_qubits=2, num_layers=2)
         kernel = ProjectedQuantumKernel(
             encoding_circuit,
             executor=Executor(),
@@ -76,25 +79,24 @@ class QSVC(SVC):
         quantum_kernel: Optional[Union[KernelMatrixBase, str]] = None,
         **kwargs,
     ) -> None:
-        self.quantum_kernel = quantum_kernel
+        # save the kwargs as the kernel params, for lazy initialization of the kernel
+        self._quantum_kernel = quantum_kernel
+        self._kernel_params = kwargs
 
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
-            # Apply kwargs to set_params of quantum kernel
-            quantum_kernel_update_params = self.quantum_kernel.get_params().keys() & kwargs.keys()
-            if quantum_kernel_update_params:
-                self.quantum_kernel.set_params(
-                    **{key: kwargs[key] for key in quantum_kernel_update_params}
-                )
-                # remove quantum_kernel_kwargs for SVR initialization
-                for key in quantum_kernel_update_params:
-                    kwargs.pop(key, None)
+        # filter parameters to pass to the superclass (SVC)
+        superclass_params = set(self._get_param_names()) & self._kernel_params.keys()
 
-            super().__init__(
-                kernel=self.quantum_kernel.evaluate,
-                **kwargs,
-            )
+        # determine the kernel parameter passed to the SVC:
+        # if quantum_kernel is a KernelMatrixBase, use its evaluate method, otherwise use 'precomputed'
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            kernel_argument = self._quantum_kernel.evaluate
         else:
-            super().__init__(kernel="precomputed", **kwargs)
+            kernel_argument = "precomputed"
+
+        # call the constructor of the superclass with the filtered parameters and the appropriate kernel
+        super().__init__(
+            kernel=kernel_argument, **{key: self._kernel_params[key] for key in superclass_params}
+        )
 
     @classmethod
     def _get_param_names(cls):
@@ -126,8 +128,23 @@ class QSVC(SVC):
         Return:
             Returns an instance of self.
         """
-        if self.quantum_kernel.is_trainable:
-            self.quantum_kernel.run_optimization(X, y)
+        num_features = extract_num_features(X)
+
+        # initialize the kernel with the known feature vector
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            self._quantum_kernel._initialize_kernel(num_features=num_features)
+
+            # Apply kernel_params (kwargs) to set_params of quantum kernel
+            quantum_kernel_update_params = (
+                self._quantum_kernel.get_params().keys() & self._kernel_params.keys()
+            )
+            if quantum_kernel_update_params:
+                self._quantum_kernel.set_params(
+                    **{key: self._kernel_params[key] for key in quantum_kernel_update_params}
+                )
+
+        if self._quantum_kernel.is_trainable:
+            self._quantum_kernel.run_optimization(X, y)
         return super().fit(X, y)
 
     def get_params(self, deep: bool = True) -> dict:
@@ -148,9 +165,9 @@ class QSVC(SVC):
             params[key] = getattr(self, key)
 
         # add qsvc specific parameters
-        params["quantum_kernel"] = self.quantum_kernel
-        if deep and isinstance(self.quantum_kernel, KernelMatrixBase):
-            params.update(self.quantum_kernel.get_params(deep=deep))
+        params["quantum_kernel"] = self._quantum_kernel
+        if deep and isinstance(self._quantum_kernel, KernelMatrixBase):
+            params.update(self._quantum_kernel.get_params(deep=deep))
         return params
 
     def set_params(self, **params) -> None:
@@ -176,10 +193,10 @@ class QSVC(SVC):
                 setattr(self, "_" + key, params[key])
 
         # Set parameters of the Quantum Kernel and its underlying objects
-        if isinstance(self.quantum_kernel, KernelMatrixBase):
-            quantum_kernel_params = self.quantum_kernel.get_params().keys() & params.keys()
+        if isinstance(self._quantum_kernel, KernelMatrixBase):
+            quantum_kernel_params = self._quantum_kernel.get_params().keys() & params.keys()
             if quantum_kernel_params:
-                self.quantum_kernel.set_params(
+                self._quantum_kernel.set_params(
                     **{key: params[key] for key in quantum_kernel_params}
                 )
         return self

@@ -107,11 +107,11 @@ latex_elements = {
 # intersphinx
 intersphinx_mapping = {
     "pennylane": ("https://docs.pennylane.ai/en/stable/", None),
-    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit/", None),
+    "qiskit": ("https://quantum.cloud.ibm.com/docs/api/qiskit/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
-    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "sklearn": ("https://scikit-learn.org/1.4/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 
 suppress_warnings = ["myst.header", "config.cache"]
@@ -119,3 +119,4 @@ suppress_warnings = ["myst.header", "config.cache"]
 # base URL for sphinx_sitemap
 html_baseurl = "https://squlearn.github.io/"
 sitemap_url_scheme = "{link}"
+sitemap_show_lastmod = False

@@ -1,22 +1,19 @@
-import numpy as np
 from typing import Union, List
+
+import numpy as np
 from sympy import lambdify, sympify
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterExpression
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.circuit import QuantumCircuit, ParameterExpression
 from qiskit.circuit.classicalregister import Clbit
-
 from qiskit.compiler import transpile
-from qiskit_aer import Aer
+from qiskit.quantum_info import SparsePauliOp
 
 import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
-from pennylane.operation import Observable as PennyLaneObservable
+from pennylane.operation import Operator
 
 from .pennylane_gates import qiskit_pennylane_gate_dict
-from ..executor import Executor
 from ..decompose_to_std import decompose_to_std
 
 
@@ -105,9 +102,8 @@ class PennyLaneCircuit:
 
     Args:
         circuit (QuantumCircuit): Qiskit circuit to convert to PennyLane
-        observable (Union[None, SparsePauliOp, List[SparsePauliOp], str]): Observable to be measured
-                                                                           Can be also a string like ``"probs"`` or ``"state"``
-        executor (Executor): Executor object to handle the PennyLane circuit. Has to be initialized with a PennyLane device.
+        observable (Union[None, SparsePauliOp, List[SparsePauliOp], str]): Observable to be
+            measured. Can be also a string like ``"probs"`` or ``"state"``
 
     Attributes:
     -----------
@@ -133,15 +129,10 @@ class PennyLaneCircuit:
             SparsePauliOp,
             List[SparsePauliOp],
             str,
-            PennyLaneObservable,
-            List[PennyLaneObservable],
+            Operator,
+            List[Operator],
         ] = None,
-        executor: Executor = None,
     ) -> None:
-
-        self._executor = executor
-        if self._executor is None:
-            self._executor = Executor("pennylane")
 
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
@@ -432,7 +423,11 @@ class PennyLaneCircuit:
                         f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
                         pennylane_obs_param_function_.append(f)
                 else:
-                    if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
+                    if (
+                        isinstance(coeff, np.complex128)
+                        or isinstance(coeff, np.complex64)
+                        or isinstance(coeff, complex)
+                    ):
                         if np.imag(coeff) != 0:
                             raise ValueError(
                                 "Imaginary part of observable coefficient is not supported"
@@ -465,7 +460,7 @@ class PennyLaneCircuit:
                 pennylane_obs_parameters_dimensions,
             )
 
-    def build_pennylane_circuit(self, max_diff: Union[int, None] = None):
+    def build_pennylane_circuit(self):
         """
         Function to build the PennyLane circuit from the Qiskit circuit and observable.
 
@@ -477,10 +472,6 @@ class PennyLaneCircuit:
             Callable PennyLane circuit
         """
 
-        if max_diff is None:
-            max_diff = 1
-
-        @qml.qnode(self._executor.backend, diff_method="best", max_diff=max_diff)
         def pennylane_circuit(*args):
             """PennyLane circuit that can be called with parameters"""
 
