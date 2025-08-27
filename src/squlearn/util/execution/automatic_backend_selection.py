@@ -22,6 +22,7 @@ QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 if QISKIT_SMALLER_1_0:
     from qiskit.providers.models import BackendProperties
 
+
 def get_num_qubits(backend):
     """Gets the number of qubits of a backend.
 
