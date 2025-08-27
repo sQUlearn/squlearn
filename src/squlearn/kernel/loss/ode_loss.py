@@ -1,10 +1,11 @@
 """Negative log likelihood loss function"""
 
+from typing import Callable, Sequence, Union, Optional
+import warnings
 import numpy as np
 import sympy as sp
 
 from .kernel_loss_base import KernelLossBase
-from ..lowlevel_kernel.kernel_matrix_base import KernelMatrixBase
 
 
 class ODELoss(KernelLossBase):
@@ -26,18 +27,20 @@ class ODELoss(KernelLossBase):
         \eta \cdot (f(x_0) - f_0)^2, \text{with} f(x) = \sum \alpha_i k(x_i, x)
 
     Args:
-        ode_functional (sympy.Expr): Functional representation of the ODE (Homogeneous diferential
-            equation). Must be a sympy expression and ``symbols_involved_in_ODE`` must be provided.
-        symbols_involved_in_ode (list): List of sympy symbols involved in the ODE functional.
-            The list must be ordered as follows: ``[x, f, dfdx]`` where each element is a sympy
-            symbol corresponding to the independent variable (``x``), the dependent variable
-            (``f``), and the first derivative of the dependent variable (``dxfx``), respectively.
-            There are no requirements for the symbols beyond the correct order, for example,
-            ``[t, y, dydt]``.
-        initial_values (np.ndarray): Initial values of the ODE. The length of the array
-            must match the order of the ODE.
-        eta (float): Weight for the initial values of the ODE in the loss function for the "pinned"
-            boundary handling method.
+        ode_functional (sympy.Expr or callable)
+            Functional representation of the ODE. If a `sympy.Expr` is passed,
+            then `symbols_involved_in_ode` is required. If a callable is passed,
+            `symbols_involved_in_ode` is optional (can be used for sanity checks) and
+            `ode_order` must be provided if symbols are not given.
+        symbols_involved_in_ode (sequence of sympy.Symbol, optional)
+            Symbols in the order `[x, f, f_d1, f_d2, ...]`. Required for sympy.Expr.
+            initial_values : sequence or np.ndarray
+            Initial values for the ODE (length must equal ODE order).
+        eta (float, default: 1.0)
+            Weight for the pinned initial-value penalty.
+        ode_order (int, optional)
+            Order of the ODE. If provided it is used to set/validate `order_of_ode`.
+            When passing a sympy.Expr this must match `len(symbols_involved_in_ode)-2`.
 
     **Example**
 
@@ -83,77 +86,110 @@ class ODELoss(KernelLossBase):
 
     def __init__(
         self,
-        ode_functional=None,
-        symbols_involved_in_ode=None,
-        initial_values: np.ndarray = None,
-        eta=np.float64(1.0),
+        ode_functional: Union[sp.Expr, Callable],
+        symbols_involved_in_ode: Optional[Sequence[sp.Basic]],
+        initial_values: Union[Sequence, np.ndarray] = None,
+        eta: float = np.float64(1.0),
+        ode_order: Optional[int] = None,
     ):
         super().__init__()
-        self._verify_size_of_ivp_with_order_of_ode(initial_values, symbols_involved_in_ode)
-        self.order_of_ode = (
-            len(symbols_involved_in_ode) - 2
-        )  # symbols_involved_in_ode = [x, f, f_, f__, ...]
-        self.symbols_involved_in_ode = symbols_involved_in_ode
-        self.ode_functional = self._create_ode_loss_format(ode_functional, symbols_involved_in_ode)
-        self.initial_values = initial_values
-        self.eta = eta
+        if initial_values is None:
+            raise ValueError("initial_values must be provided")
 
-    def _create_ode_loss_format(self, ode_functional, symbols_involved_in_ode=None):
+        # normalize initial_values to a 1D numpy array
+        iv = np.asarray(initial_values).ravel()
+        if iv.ndim != 1:
+            raise ValueError("initial_values must be one-dimensional")
+        self.initial_values = iv
+        self.eta = float(eta)
+
+        if isinstance(ode_functional, sp.Expr):
+            if symbols_involved_in_ode is None:
+                raise ValueError("symbols_involved_in_ode must be provided for sympy.Expr inputs")
+            if ode_order is not None and ode_order != len(symbols_involved_in_ode) - 2:
+                raise ValueError(
+                    "ode_order does not match the length of symbols_involved_in_ode - 2"
+                )
+            self.order_of_ode = len(symbols_involved_in_ode) - 2
+            self._check_order_of_ode_and_ivp()
+
+            self.ode_functional = self._create_ode_loss_format_sympy(
+                ode_functional, symbols_involved_in_ode
+            )
+        elif callable(ode_functional):
+            if ode_order is None:
+                raise ValueError("ode_order must be provided for callable inputs")
+            if (
+                symbols_involved_in_ode is not None
+                and ode_order != len(symbols_involved_in_ode) - 2
+            ):
+                raise ValueError(
+                    "ode_order does not match the length of symbols_involved_in_ode - 2"
+                )
+            self.order_of_ode = ode_order
+
+            self._check_order_of_ode_and_ivp()
+            self.ode_functional = self._create_ode_loss_format_callable(ode_functional)
+        else:
+            raise ValueError("ode_functional must be either a sympy.Expr or a callable")
+
+    def _check_order_of_ode_and_ivp(self) -> None:
         """
-        Create a function that takes the derivatives list and returns the loss function
+        Check that the order of the ODE matches the length of the initial values.
+        """
+        if self.order_of_ode != len(self.initial_values):
+            raise ValueError(
+                f"Initial values must have the same length as the order of the ODE. Order of ODE:"
+                f"{self.order_of_ode},"
+                f"Length of initial values: {len(self.initial_values)}"
+            )
+        elif self.order_of_ode == 2:
+            warnings.warn(
+                "2nd order DEs differentiate the loss function by calculating the"
+                " second derivative. This can be computationally expensive and inneficient."
+            )
+        elif self.order_of_ode > 2:
+            raise ValueError("Currently, only 1rst and 2nd order ODEs are supported")
+
+    def _create_ode_loss_format_sympy(
+        self, ode_functional: sp.Expr, symbols_involved_in_ode: Sequence[sp.Basic]
+    ) -> Callable:
+        """
+        Create a standardized loss-function wrapper for an ODE functional given as a sympy expression.
 
         Args:
-            ode_functional (Union[Callable, sympy.Expr]): Functional representation of the ODE
-                                                          (Homogeneous diferential equation).
-                                                          This can be a callable function or a
-                                                          sympy expression. If a sympy expression
-                                                          is given, then, the
-                                                          symbols_involved_in_ode must be provided.
-            symbols_involved_in_ode (list): The list of symbols involved in the ODE problem. The
-                                            list of symbols should be in order of differentiation,
-                                            with the first element being the independent variable,
-                                            i.e. [x, f, dfdx, dfdxdx]
-        Returns:
-            QNN_loss (function): The loss function for the QNN with input in the format of the QNN
-                                 tuple derivatives
-        """
+            ode_functional (sp.Expr): Functional representation of the ODE
+            symbols_involved_in_ode (Sequence): List of sympy symbols involved in the ODE functional.
 
-        if isinstance(ode_functional, sp.Expr):  # if ode_question isinstance of sympy equation
-            if symbols_involved_in_ode is None:
-                raise ValueError(
-                    "symbols_involved_in_ode must be provided"
-                    " if ode_functional is a sympy equation"
-                )  # Perhaps this can be somehow improved by list(ode_functional.free_symbols)
-            _ode_functional = lambda f_alpha_tensor: sp.lambdify(
-                symbols_involved_in_ode, ode_functional, "numpy"
-            )(*f_alpha_tensor)
-        else:
-            raise ValueError("Only sympy expressions are allowed")
+        Returns:
+            Callable: A callable that takes in a tensor of shape (order_of_ode+2 , n_samples, 1).
+        """
+        lamb_func = sp.lambdify(tuple(symbols_involved_in_ode), ode_functional, "numpy")
+
+        def _ode_functional(f_alpha_tensor):
+            # minimalistic wrapper: caller is responsible for correct ordering/shape
+            return np.asarray(lamb_func(*f_alpha_tensor))
 
         return _ode_functional
 
-    def _verify_size_of_ivp_with_order_of_ode(self, initial_values, symbols_involved_in_ode):
+    def _create_ode_loss_format_callable(self, ode_functional: Callable) -> Callable:
         """
-        Verifies that the length of the initial values vector matches the order of the ODE.
+        Create a standardized loss-function wrapper for an ODE functional given as a callable.
 
         Args:
-            initial_values (np.ndarray): Initial values of the ODE
-            order_of_ode (int): Order of the ODE
+            ode_functional (Callable): Functional representation of the ODE as a callable.
+
+        Returns:
+            Callable: A callable that takes in a tensor of shape (order_of_ode+2 , n_samples, 1).
         """
-        order_of_ode = len(symbols_involved_in_ode) - 2
-        if order_of_ode != len(initial_values):
-            raise ValueError(
-                f"Initial values must have the same length as the order of the ODE. Order of ODE:"
-                f"{len(symbols_involved_in_ode)-2},"
-                f"Length of initial values: {len(initial_values)}"
-            )
-        elif order_of_ode == 2:
-            print(
-                "WARNING: 2nd order DEs differentiate the loss function by calculating the"
-                " second derivative. This can be computationally expensive and inneficient."
-            )
-        elif order_of_ode > 2:
-            raise ValueError("Currently, only 1rst and 2nd order ODEs are supported")
+
+        def _ode_functional(f_alpha_tensor):
+            try:
+                return np.asarray(ode_functional(*f_alpha_tensor))
+            except TypeError:
+                return np.asarray(ode_functional(f_alpha_tensor))
+
+        return _ode_functional
 
     def compute(
         self,
@@ -182,7 +218,6 @@ class ODELoss(KernelLossBase):
             parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the
                 ansatz to be optimized.
             data (np.ndarray): The training data to be used for the kernel matrix.
-            labels (np.ndarray): The labels of the training data.
             kernel_tensor (array): A tensor containing the kernel matrix and its derivatives.
                 The tensor contains the kernel matrix,  the first derivative of the kernel
                 matrix, and the second derivative of the kernel matrix. The shapes of each element
@@ -192,6 +227,14 @@ class ODELoss(KernelLossBase):
             float: The loss function value.
 
         """
+
+        if kernel_tensor is None:
+            raise ValueError("kernel_tensor must be provided to compute ODE residuals")
+        if len(kernel_tensor) != self.order_of_ode + 1:
+            raise ValueError(
+                f"kernel_tensor must contain {self.order_of_ode+1} kernel matrices "
+                f"(orders 0..{self.order_of_ode}), got {len(kernel_tensor)}"
+            )
 
         def f_alpha_order(alpha_, kernel_tensor, order):
             r"""
@@ -223,7 +266,7 @@ class ODELoss(KernelLossBase):
                 for i in range(self.order_of_ode + 1)
             ]
         )
-        sum1 = np.sum((self.ode_functional([data, *f_alpha_tensor]) ** 2))  # Functional
+        sum1 = np.sum((self.ode_functional([data, *f_alpha_tensor]) ** 2))
         sum2 = np.sum(
             (f_alpha_tensor[:, 0][: len(self.initial_values)] - self.initial_values) ** 2
         )  # Initial condition

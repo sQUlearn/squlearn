@@ -151,7 +151,7 @@ class QKODE(QKRR):
         if self.k_train is None:
             raise ValueError("The fit() method has to be called beforehand.")
 
-        X = validate_data(X, accept_sparse=("csr", "csc"), reset=False)
+        X = validate_data(self, X, accept_sparse=("csr", "csc"), reset=False)
 
         if isinstance(self._quantum_kernel, str):
             if self._quantum_kernel == "precomputed":

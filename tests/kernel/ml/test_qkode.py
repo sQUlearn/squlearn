@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import sympy as sp
 
 
@@ -10,25 +11,30 @@ from squlearn.kernel import QKODE
 from squlearn.optimizers import LBFGSB
 
 
+@pytest.fixture(params=["expr", "callable"])
+def ode_loss(request):
+    x, f, dfdx = sp.symbols("x f dfdx")
+    eq = dfdx - f
+
+    if request.param == "expr":
+        ode = eq
+        symbols = [x, f, dfdx]
+    else:  # callable
+        symbols = [x, f, dfdx]
+
+        def ode(x, f, dfdx):
+            return dfdx - f
+
+    return ODELoss(ode, symbols_involved_in_ode=symbols, initial_values=[1], ode_order=1)
+
+
 class TestQKODE:
 
-    def test_qkode_pqk(self):
-        # Define the ODE
-        x, f, dfdx = sp.symbols("x f dfdx")
-        eq = dfdx - f
-
-        # Initial values
-        initial_values = [1]
-
-        # Create the encoding circuit
-        encoding_circuit = ChebyshevTower(num_qubits=4, num_chebyshev=2)
-
-        # Create the ODE loss function
-        ode_loss = ODELoss(eq, symbols_involved_in_ode=[x, f, dfdx], initial_values=initial_values)
+    def test_qkode_pqk(self, ode_loss):
 
         # Create the quantum kernel
         q_kernel = ProjectedQuantumKernel(
-            encoding_circuit=encoding_circuit,
+            encoding_circuit=ChebyshevTower(num_qubits=4, num_chebyshev=2),
             executor=Executor("pennylane"),
             regularization="tikhonov",
         )
@@ -59,23 +65,11 @@ class TestQKODE:
             atol=1e-3,
         )
 
-    def test_qkode_fqk(self):
-        # Define the ODE
-        x, f, dfdx = sp.symbols("x f dfdx")
-        eq = dfdx - f
-
-        # Initial values
-        initial_values = [1]
-
-        # Create the encoding circuit
-        encoding_circuit = ChebyshevTower(num_qubits=4, num_chebyshev=2)
-
-        # Create the ODE loss function
-        ode_loss = ODELoss(eq, symbols_involved_in_ode=[x, f, dfdx], initial_values=initial_values)
+    def test_qkode_fqk(self, ode_loss):
 
         # Create the quantum kernel
         q_kernel = FidelityKernel(
-            encoding_circuit=encoding_circuit,
+            encoding_circuit=ChebyshevTower(num_qubits=4, num_chebyshev=2),
             executor=Executor("pennylane"),
             regularization="tikhonov",
             use_expectation=True,
