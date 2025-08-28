@@ -230,11 +230,6 @@ class ODELoss(KernelLossBase):
 
         if kernel_tensor is None:
             raise ValueError("kernel_tensor must be provided to compute ODE residuals")
-        if len(kernel_tensor) != self.order_of_ode + 1:
-            raise ValueError(
-                f"kernel_tensor must contain {self.order_of_ode+1} kernel matrices "
-                f"(orders 0..{self.order_of_ode}), got {len(kernel_tensor)}"
-            )
 
         def f_alpha_order(alpha_, kernel_tensor, order):
             r"""

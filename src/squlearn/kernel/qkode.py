@@ -1,5 +1,6 @@
 """Quantum Kernel ODE"""
 
+import warnings
 from packaging import version
 
 import numpy as np
@@ -33,7 +34,7 @@ class QKODE(QKRR):
     Args:
         quantum_kernel (Union[KernelMatrixBase, str]): Quantum kernel to be used in the model.
             If set to "precomputed",
-            the derivatives of the kernel matrix have to be provided in the fit method.
+            the derivatives of the kernel matrix have to be provided.
         loss (KernelLossBase): Loss function to be used for training the model.
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
         **kwargs: Additional keyword arguments to be passed to the base class.
@@ -71,35 +72,53 @@ class QKODE(QKRR):
         self.dkdx_train = None
         self.dkdxdx_train = None
 
-    def fit(self, X, y, param_ini=None, K=None, dKdx=None, dKdxdx=None):
-        """ """
+    def fit(self, X, y):
+        """
+        Fit the Quantum Kernel ODE model.
+        Args:
+            X (np.ndarray) : Samples of data of shape (n_samples, n_features) used for fitting the QKODE model.
+            y (np.ndarray) : Labels of shape (n_samples,) used for fitting the QKODE model.
+        """
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
         )
         self.X_train = X
 
-        num_features = extract_num_features(X)
-
         # set up kernel matrix
         if isinstance(self._quantum_kernel, str):
+            if self.k_train is None:
+                raise ValueError(
+                    "If quantum_kernel is 'precomputed', the training kernel matrix has to be provided via k_train."
+                )
+            if self.dkdx_train is None:
+                raise ValueError(
+                    "If quantum_kernel is 'precomputed', the first derivatives of the training kernel matrix have to be provided via dkdx_train."
+                )
+            if self.dkdxdx_train is None and self._loss.order_of_ode == 2:
+                raise ValueError(
+                    "If quantum_kernel is 'precomputed' and the ODE is of order 2, the second derivatives of the training kernel matrix have to be provided via dkdxdx_train."
+                )
+
             if self._quantum_kernel == "precomputed":
                 # if kernel is precomputed, validate shape of kernel matrix
                 K, y = validate_data(
-                    K, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
+                    self.k_train,
+                    y,
+                    accept_sparse=("csr", "csc"),
+                    multi_output=True,
+                    y_numeric=True,
                 )
                 self.k_train = K
-                self.dkdx_train = dKdx
-                if self._loss.order_of_ode == 2:
-                    self.dkdxdx_train = dKdxdx
             else:
                 raise ValueError("Unknown quantum kernel: {}".format(self._quantum_kernel))
         elif isinstance(self._quantum_kernel, KernelMatrixBase):
             # initialize the kernel with the known feature vector
+            num_features = extract_num_features(X)
             self._quantum_kernel._initialize_kernel(num_features=num_features)
 
             # check if quantum kernel is trainable
             if self._quantum_kernel.is_trainable:
-                print(
+                warnings.warn(
                     "The Quantum Kernel is trainable but training the parameters of the kernel is not supported yet. Setting random parameters."
                 )
 
@@ -117,9 +136,8 @@ class QKODE(QKRR):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        if param_ini is None:
-            np.random.seed(0)
-            param_ini = np.random.rand(len(y) + 1)
+        np.random.seed(0)
+        param_ini = np.random.rand(len(y) + 1)
 
         # pass self into the loss function
         loss_function = partial(
