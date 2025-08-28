@@ -37,6 +37,12 @@ class QKODE(QKRR):
             the derivatives of the kernel matrix have to be provided.
         loss (KernelLossBase): Loss function to be used for training the model.
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
+        k_train (np.ndarray): Precomputed training kernel matrix of shape (n_train, n_train).
+            Required if quantum_kernel is "precomputed".
+        dkdx_train (np.ndarray): Precomputed first derivatives of the training kernel matrix.
+            Required if quantum_kernel is "precomputed".
+        dkdxdx_train (np.ndarray): Precomputed second derivatives of the training kernel matrix.
+            Required if quantum_kernel is "precomputed" and the ODE is of order 2.
         **kwargs: Additional keyword arguments to be passed to the base class.
 
     Attributes:
@@ -62,15 +68,18 @@ class QKODE(QKRR):
         quantum_kernel: Union[KernelMatrixBase, str] = None,
         loss: KernelLossBase = None,
         optimizer: OptimizerBase = None,
+        k_train: np.ndarray = None,
+        dkdx_train: np.ndarray = None,
+        dkdxdx_train: np.ndarray = None,
         **kwargs,
     ) -> None:
         super().__init__(quantum_kernel=quantum_kernel, alpha=None, **kwargs)
         self._loss = loss
         self._loss.set_quantum_kernel(quantum_kernel)
         self._optimizer = optimizer
-        self.k_train = None
-        self.dkdx_train = None
-        self.dkdxdx_train = None
+        self.k_train = k_train
+        self.dkdx_train = dkdx_train
+        self.dkdxdx_train = dkdxdx_train
 
     def fit(self, X, y):
         """
@@ -102,6 +111,7 @@ class QKODE(QKRR):
             if self._quantum_kernel == "precomputed":
                 # if kernel is precomputed, validate shape of kernel matrix
                 K, y = validate_data(
+                    self,
                     self.k_train,
                     y,
                     accept_sparse=("csr", "csc"),
