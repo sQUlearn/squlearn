@@ -4,7 +4,9 @@ from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 from squlearn.encoding_circuit.pruned_encoding_circuit import (
     PrunedEncodingCircuit,
+    automated_pruning,
 )
+from squlearn.util.executor import Executor
 
 
 class TestPrunedEncodingCircuit:
@@ -32,5 +34,12 @@ class TestPrunedEncodingCircuit:
 
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 4
-        # encdoding slots got pruned
+        # encoding slots got pruned
         assert pruned.num_encoding_slots == circuit.num_encoding_slots - 4
+
+    def test_automated_pruning(self):
+        circuit = LayeredEncodingCircuit.from_string("Rz(x)-crz(p)-Ry(x)-crx(p)", num_qubits=4)
+        circuit._build_layered_pqc(4)
+        pruned = automated_pruning(circuit, Executor())
+        assert isinstance(pruned, PrunedEncodingCircuit)
+        assert pruned.num_parameters == circuit.num_parameters - len(pruned._pruned_parameters)
