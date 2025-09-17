@@ -2700,6 +2700,7 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
 
     def __init__(self, executor: Executor):
         self._executor = executor
+        _ = self._executor.estimator  # to raise error if no estimator is set
 
     def run(self, pubs: Iterable[EstimatorPubLike], *, precision: Union[float, None] = None):
         """
@@ -2746,6 +2747,7 @@ class ExecutorSamplerV2(BaseSamplerV2):
 
     def __init__(self, executor: Executor):
         self._executor = executor
+        _ = self._executor.sampler  # to raise error if no sampler is set
 
     def run(self, pubs: Iterable[SamplerPubLike], *, shots: Union[int, None] = None):
         """
@@ -2793,6 +2795,7 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
     def __init__(self, executor: Executor, options=None):
         super().__init__(options=_convert_options_to_dict(options))
         self._executor = executor
+        _ = self._executor.estimator  # to raise error if no estimator is set
 
     def _call(
         self,
@@ -2918,6 +2921,7 @@ class ExecutorSamplerV1(BaseSamplerV1):
     def __init__(self, executor: Executor, options=None):
         super().__init__(options=_convert_options_to_dict(options))
         self._executor = executor
+        _ = self._executor.sampler  # to raise error if no sampler is set
 
     def run(
         self,
