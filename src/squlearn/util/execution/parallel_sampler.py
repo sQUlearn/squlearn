@@ -13,7 +13,7 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import Options
 from qiskit_aer import Aer
-from qiskit_ibm_runtime import RuntimeJob
+from qiskit_ibm_runtime import RuntimeJobV2 as RuntimeJob
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
