@@ -13,7 +13,6 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import Options
 from qiskit_aer import Aer
-from qiskit_ibm_runtime import RuntimeJob
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
@@ -76,6 +75,7 @@ QISKIT_RUNTIME_SMALLER_0_28 = version.parse(ibm_runtime_version) < version.parse
 if QISKIT_RUNTIME_SMALLER_0_21:
     # pylint: disable=ungrouped-imports
     from qiskit_ibm_runtime import (
+        RuntimeJob,
         Sampler as RuntimeSamplerV1,
     )
 
@@ -87,6 +87,7 @@ if QISKIT_RUNTIME_SMALLER_0_21:
 
 elif QISKIT_RUNTIME_SMALLER_0_28:
     from qiskit_ibm_runtime import (
+        RuntimeJob,
         SamplerV1 as RuntimeSamplerV1,
         SamplerV2 as RuntimeSamplerV2,
     )
@@ -98,6 +99,9 @@ else:
     from qiskit_ibm_runtime import (
         Sampler as RuntimeSamplerV2,
     )
+
+    class RuntimeJob:
+        """Dummy RuntimeJob"""
 
     class RuntimeSamplerV1:
         """Dummy RuntimeSamplerV1"""
