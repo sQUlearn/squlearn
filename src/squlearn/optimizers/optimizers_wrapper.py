@@ -1,7 +1,7 @@
 """Various optimization methods that are implemented via wrappers"""
 
 import numpy as np
-import qiskit_algorithms.optimizers as qiskit_optimizers
+from qiskit_algorithms.optimizers import SPSA as QiskitSPSA
 from scipy.optimize import minimize
 
 from .optimizer_base import OptimizerBase, OptimizerResult, IterativeMixin, default_callback
@@ -177,7 +177,7 @@ class SPSA(WrappedOptimizerBase):
             Result of the optimization in class:`OptimizerResult` format.
         """
 
-        spsa = qiskit_optimizers.SPSA(
+        spsa = QiskitSPSA(
             maxiter=self.maxiter,
             blocking=self.blocking,
             allowed_increase=self.allowed_increase,
