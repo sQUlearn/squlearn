@@ -43,6 +43,12 @@ class TestIsingHamiltonian:
 
         return op_list
 
+    def test_init_raises_on_invalid_term(self):
+        with pytest.raises(ValueError):
+            IsingHamiltonian(num_qubits=2, I="X", Z="N", X="N", ZZ="N")
+        with pytest.raises(ValueError):
+            IsingHamiltonian(num_qubits=2, I="N", Z="Y", X="N", ZZ="N")
+
     @pytest.mark.parametrize(
         "num_qubits,I,Z,X,ZZ,expected",
         [
