@@ -192,7 +192,7 @@ class EncodingCircuitDerivatives:
             return self._optree_start.copy()
         else:
             # Check if differentiating tuple is already stored in optree_cache
-            if self._optree_caching == True and helper_hash((diff_tuple,)) in self._optree_cache:
+            if self._optree_caching is True and helper_hash((diff_tuple,)) in self._optree_cache:
                 # If stored -> return
                 return self._optree_cache[helper_hash((diff_tuple,))].copy()
             else:
@@ -201,7 +201,7 @@ class EncodingCircuitDerivatives:
                     self._differentiation_from_tuple(diff_tuple[1:]), diff_tuple[0]
                 )
                 # Store result in the optree_cache
-                if self._optree_caching == True:
+                if self._optree_caching is True:
                     self._optree_cache[helper_hash((diff_tuple,))] = circ
                 return circ
 
@@ -229,7 +229,7 @@ class EncodingCircuitDerivatives:
         self, optree: OpTreeElementBase, features: np.ndarray, parameters: np.ndarray
     ) -> OpTreeElementBase:
         """
-        Assigns numerical values to the ParameterVector elements of the encoding circuit circuit.
+        Assigns numerical values to the ParameterVector elements of the encoding circuit.
 
         Args:
             optree (OperatorBase): OpTree object to be assigned.
