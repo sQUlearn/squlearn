@@ -66,6 +66,7 @@ class EncodingCircuitBase(ABC):
         return np.array([-np.pi, np.pi])
 
     @property
+    @abstractmethod
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the encoding circuit."""
         raise NotImplementedError()

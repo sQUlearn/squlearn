@@ -127,6 +127,11 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
             raise ValueError("The type {} is not supported!".format(self._mode))
 
     @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        return self._num_features
+
+    @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the Qiskit encoding circuit."""
         return self._num_parameters
