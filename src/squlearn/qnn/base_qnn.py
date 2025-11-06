@@ -357,7 +357,10 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
             caching=self.caching,
             primitive=self.primitive,
         )
-        
+
+        if self._is_fitted:
+            self._is_lowlevel_qnn_initialized = True
+            return
 
         if self.param_ini is None or len(self.param_ini) != self.encoding_circuit.num_parameters:
             self._param = self.encoding_circuit.generate_initial_parameters(
