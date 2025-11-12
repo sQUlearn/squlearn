@@ -113,7 +113,7 @@ class MeanSquaredError(QNNLossBase):
         ground_truth = kwargs["ground_truth"]
         if "weights" in kwargs and kwargs["weights"] is not None:
             raise ValueError("Weights are not supported for MeanSquaredError.")
-        
+
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
         diff = value_dict["f"] - ground_truth

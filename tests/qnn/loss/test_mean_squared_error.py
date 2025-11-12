@@ -22,14 +22,24 @@ class TestMeanSquaredError:
             loss.variance({"f": np.array([0.0]), "var": np.array([0.0])})
         with pytest.raises(AttributeError):
             loss.gradient({"f": np.array([0.0]), "dfdp": np.zeros((1, 1))})
-        
+
         # weights provided should raise ValueError
         with pytest.raises(ValueError):
-            loss.value({"f": np.array([0.0])}, ground_truth=np.array([0.0]), weights=np.array([1.0]))
+            loss.value(
+                {"f": np.array([0.0])}, ground_truth=np.array([0.0]), weights=np.array([1.0])
+            )
         with pytest.raises(ValueError):
-            loss.variance({"f": np.array([0.0]), "var": np.array([0.0])}, ground_truth=np.array([0.0]), weights=np.array([1.0]))
+            loss.variance(
+                {"f": np.array([0.0]), "var": np.array([0.0])},
+                ground_truth=np.array([0.0]),
+                weights=np.array([1.0]),
+            )
         with pytest.raises(ValueError):
-            loss.gradient({"f": np.array([0.0]), "dfdp": np.zeros((1, 1))}, ground_truth=np.array([0.0]), weights=np.array([1.0]))
+            loss.gradient(
+                {"f": np.array([0.0]), "dfdp": np.zeros((1, 1))},
+                ground_truth=np.array([0.0]),
+                weights=np.array([1.0]),
+            )
 
     def test_value_basic_and_with_weights(self):
         loss = MeanSquaredError()
