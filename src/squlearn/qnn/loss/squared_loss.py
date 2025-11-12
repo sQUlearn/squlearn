@@ -53,10 +53,7 @@ class SquaredLoss(QNNLossBase):
         if "ground_truth" not in kwargs:
             raise AttributeError("SquaredLoss requires ground_truth.")
         ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
-            weights = kwargs["weights"]
-        else:
-            weights = np.ones_like(ground_truth)
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
         return np.sum(np.multiply(np.square(value_dict["f"] - ground_truth), weights))
 
     def variance(self, value_dict: dict, **kwargs) -> float:
@@ -79,10 +76,7 @@ class SquaredLoss(QNNLossBase):
         if "ground_truth" not in kwargs:
             raise AttributeError("SquaredLoss requires ground_truth.")
         ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
-            weights = kwargs["weights"]
-        else:
-            weights = np.ones_like(ground_truth)
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
 
         diff_square = np.multiply(weights, np.square(value_dict["f"] - ground_truth))
         return np.sum(4 * np.multiply(diff_square, value_dict["var"]))
@@ -114,10 +108,7 @@ class SquaredLoss(QNNLossBase):
             raise AttributeError("SquaredLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
-            weights = kwargs["weights"]
-        else:
-            weights = np.ones_like(ground_truth)
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
         weighted_diff = np.multiply((value_dict["f"] - ground_truth), weights)
