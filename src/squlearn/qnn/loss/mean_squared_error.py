@@ -2,7 +2,6 @@
 
 from typing import Union
 
-from cycler import V
 import numpy as np
 
 from .qnn_loss_base import QNNLossBase
