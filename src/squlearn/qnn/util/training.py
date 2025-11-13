@@ -477,7 +477,7 @@ def train_mini_batch(
             batch_loss = loss.value(
                 loss_values,
                 ground_truth=ground_truth[idcs[batch_slice]],
-                weights=weights[idcs[batch_slice]],
+                weights=weights[idcs[batch_slice]] if weights is not None else None,
                 iteration=epoch,
             )
 
@@ -495,7 +495,7 @@ def train_mini_batch(
                                 *loss.variance_args_tuple,
                             ),
                             ground_truth=ground_truth[idcs[batch_slice]],
-                            weights=weights[idcs[batch_slice]],
+                            weights=weights[idcs[batch_slice]] if weights is not None else None,
                             iteration=epoch,
                         )
 
@@ -512,7 +512,7 @@ def train_mini_batch(
             grad = loss.gradient(
                 diff_values,
                 ground_truth=ground_truth[idcs[batch_slice]],
-                weights=weights[idcs[batch_slice]],
+                weights=weights[idcs[batch_slice]] if weights is not None else None,
                 iteration=epoch,
                 multiple_output=qnn.multiple_output,
                 opt_param_op=opt_param_op,
