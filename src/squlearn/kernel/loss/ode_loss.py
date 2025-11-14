@@ -156,11 +156,12 @@ class ODELoss(KernelLossBase):
         self, ode_functional: sp.Expr, symbols_involved_in_ode: Sequence[sp.Basic]
     ) -> Callable:
         """
-        Create a standardized loss-function wrapper for an ODE functional given as a sympy expression.
+        Create a standardized loss-function wrapper for an ODE functional.
 
         Args:
             ode_functional (sp.Expr): Functional representation of the ODE
-            symbols_involved_in_ode (Sequence): List of sympy symbols involved in the ODE functional.
+            symbols_involved_in_ode (Sequence): List of sympy symbols involved in the ODE
+                functional.
 
         Returns:
             Callable: A callable that takes in a tensor of shape (order_of_ode+2 , n_samples, 1).
@@ -254,9 +255,10 @@ class ODELoss(KernelLossBase):
 
         Order correspond to how often the ODE is differentiated.
 
-        * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`.
-
-        * For order = 1, the ansatz is :math:`\dot f_{\vec{\alpha}} = \sum_{i=1}^{n} \alpha_i \dot k(x_i, x)`.
+        * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} 
+            \alpha_i k(x_i, x)`.
+        * For order = 1, the ansatz is :math:`\dot f_{\vec{\alpha}} = \sum_{i=1}^{n} \alpha_i
+            \dot k(x_i, x)`.
 
         Args:
             alpha_ (np.ndarray): The vector of alphas, of shape (len(x_span)+1, 1).

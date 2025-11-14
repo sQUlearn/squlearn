@@ -48,11 +48,12 @@ class QKODE(QKRR):
     Attributes:
     -----------
         dual_coeff (np.ndarray) :
-            Array containing the weight vector in kernel space
+            Array containing the weight vector in kernel space.
         k_train (np.ndarray) :
-            Training kernel matrix of shape (n_train, n_train) which is available after calling the fit procedure
+            Training kernel matrix of shape (n_train, n_train) which is available after calling the
+            fit procedure.
         k_testtrain (np.ndarray) :
-            Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step
+            Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step.
 
     See Also
     --------
@@ -104,9 +105,12 @@ class QKODE(QKRR):
     def fit(self, X, y):
         """
         Fit the Quantum Kernel ODE model.
+
         Args:
-            X (np.ndarray) : Samples of data of shape (n_samples, n_features) used for fitting the QKODE model.
+            X (np.ndarray) : Samples of data of shape (n_samples, n_features) used for fitting the
+                QKODE model.
             y (np.ndarray) : Labels of shape (n_samples,) used for fitting the QKODE model.
+        
         """
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True
@@ -136,7 +140,8 @@ class QKODE(QKRR):
             # check if quantum kernel is trainable
             if self._quantum_kernel.is_trainable:
                 warnings.warn(
-                    "The Quantum Kernel is trainable but training the parameters of the kernel is not supported yet. Setting random parameters."
+                    "The Quantum Kernel is trainable but training the parameters of the kernel is"
+                    " not supported yet. Setting random parameters."
                 )
 
             self.k_train = self._quantum_kernel.evaluate_derivatives(self.X_train, values="K")
