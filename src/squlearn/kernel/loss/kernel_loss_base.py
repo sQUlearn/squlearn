@@ -21,19 +21,17 @@ class KernelLossBase(ABC):
     @abstractmethod
     def compute(
         self,
-        quantum_kernel: KernelMatrixBase,
         parameter_values: np.array,
         data: np.ndarray,
-        labels: np.ndarray,
+        **kwargs,
     ) -> float:
         """Compute the target alignment loss.
 
         Args:
-            quantum_kernel (KernelMatrixBase): The quantum kernel matrix to be used in the loss.
             parameter_values (np.ndarray): The parameter values for the variational quantum
                                            kernel parameters.
             data (np.ndarray): The training data to be used for the kernel matrix.
-            labels (np.ndarray): The training labels.
+            kwargs: Additional arguments for specific loss functions.
 
         Returns:
             float: The loss value.
