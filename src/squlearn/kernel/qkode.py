@@ -1,5 +1,6 @@
 """Quantum Kernel ODE"""
 
+import random
 import warnings
 from packaging import version
 
@@ -37,6 +38,7 @@ class QKODE(QKRR):
             the derivatives of the kernel matrix have to be provided.
         loss (KernelLossBase): Loss function to be used for training the model.
         optimizer (OptimizerBase): Optimizer to be used for minimizing the loss function.
+        alpha_seed (int, default=0): Seed for random initialization of dual coefficients.
         k_train (np.ndarray): Precomputed training kernel matrix of shape (n_train, n_train).
             Required if quantum_kernel is "precomputed".
         dkdx_train (np.ndarray): Precomputed first derivatives of the training kernel matrix.
@@ -74,6 +76,7 @@ class QKODE(QKRR):
         quantum_kernel: Union[KernelMatrixBase, str],
         loss: KernelLossBase,
         optimizer: OptimizerBase,
+        alpha_seed: int = 0,
         k_train: np.ndarray = None,
         dkdx_train: np.ndarray = None,
         dkdxdx_train: np.ndarray = None,
@@ -83,6 +86,7 @@ class QKODE(QKRR):
         self._loss = loss
         self._loss.set_quantum_kernel(quantum_kernel)
         self._optimizer = optimizer
+        self.alpha_seed = alpha_seed
         self.k_train = k_train
         self.dkdx_train = dkdx_train
         self.dkdxdx_train = dkdxdx_train
@@ -158,8 +162,8 @@ class QKODE(QKRR):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        np.random.seed(0)
-        param_ini = np.random.rand(len(y) + 1)
+        random_device = np.random.RandomState(seed=self.alpha_seed)
+        alpha_ini = random_device.rand(len(y) + 1)
 
         # pass self into the loss function
         loss_function = partial(
@@ -167,7 +171,7 @@ class QKODE(QKRR):
             data=X,
             kernel_tensor=[self.k_train, self.dkdx_train, self.dkdxdx_train],
         )
-        opt_result = self._optimizer.minimize(fun=loss_function, x0=param_ini)
+        opt_result = self._optimizer.minimize(fun=loss_function, x0=alpha_ini)
         self.dual_coeff_ = opt_result.x
         self._is_fitted = True
 
