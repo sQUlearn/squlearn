@@ -1,13 +1,12 @@
 """Quantum Kernel ODE"""
 
-import random
+from functools import partial
+from typing import Union
 import warnings
-from packaging import version
 
 import numpy as np
-from typing import Union
+from packaging import version
 from sklearn import __version__
-from functools import partial
 
 from squlearn.util.data_preprocessing import extract_num_features
 
