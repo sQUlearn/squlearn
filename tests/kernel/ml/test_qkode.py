@@ -1,7 +1,8 @@
 import numpy as np
+from packaging import version
 import pytest
+from scipy import __version__ as scipy_version
 import sympy as sp
-
 
 from squlearn.util import Executor
 from squlearn.encoding_circuit import ChebyshevTower
@@ -48,10 +49,8 @@ class TestQKODE:
         labels = np.zeros((len(x_train), 1))
         qkode.fit(x_train, labels)
 
-        assert qkode._loss.order_of_ode == 1
-        assert np.allclose(
-            qkode.predict(x_train),
-            np.array(
+        if version.parse(scipy_version) < version.parse("1.16"):
+            regressor_result = np.array(
                 [
                     0.99663332,
                     1.12030422,
@@ -63,7 +62,26 @@ class TestQKODE:
                     2.19701171,
                     2.46206022,
                 ]
-            ),
+            )
+        else:
+            regressor_result = np.array(
+                [
+                    0.9973879,
+                    1.12113415,
+                    1.25344976,
+                    1.40061217,
+                    1.56992748,
+                    1.7561082,
+                    1.96445327,
+                    2.19875868,
+                    2.46402581,
+                ]
+            )
+
+        assert qkode._loss.order_of_ode == 1
+        assert np.allclose(
+            qkode.predict(x_train),
+            regressor_result,
             atol=1e-3,
         )
 
