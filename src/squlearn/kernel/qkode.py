@@ -110,7 +110,7 @@ class QKODE(QKRR):
             X (np.ndarray) : Samples of data of shape (n_samples, n_features) used for fitting the
                 QKODE model.
             y (np.ndarray) : Labels of shape (n_samples,) used for fitting the QKODE model.
-        
+
         """
         X, y = validate_data(
             self, X, y, accept_sparse=("csr", "csc"), multi_output=True, y_numeric=True

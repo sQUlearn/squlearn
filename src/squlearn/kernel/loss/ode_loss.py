@@ -255,7 +255,7 @@ class ODELoss(KernelLossBase):
 
         Order correspond to how often the ODE is differentiated.
 
-        * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} 
+        * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n}
             \alpha_i k(x_i, x)`.
         * For order = 1, the ansatz is :math:`\dot f_{\vec{\alpha}} = \sum_{i=1}^{n} \alpha_i
             \dot k(x_i, x)`.
