@@ -56,9 +56,9 @@ class ODELoss(KernelLossBase):
         initial_values = [0.1]
 
         loss_ode = ODELoss(
-            eq,
-            symbols_involved_in_ode=[t, y, dydt],
+            ode_functional=eq,
             initial_values=initial_values,
+            symbols_involved_in_ode=[t, y, dydt],
         )
 
     2. Implements a loss function for the ODE :math:`\left(df(x)/dx\right) - cos(f(x)) = 0`
@@ -71,9 +71,9 @@ class ODELoss(KernelLossBase):
         initial_values = [0]
 
         loss_ode = ODELoss(
-            eq,
-            symbols_involved_in_ode=[x, f, dfdx],
+            ode_functional=eq,
             initial_values=initial_values,
+            symbols_involved_in_ode=[x, f, dfdx],
             eta=1.2,
         )
 
@@ -83,8 +83,8 @@ class ODELoss(KernelLossBase):
 
     References
     ----------
-    [1]: A. Paine et al., "Quantum kernel methods for solving regression problems and differential
-    equations", Phys. Rev. A 107, 032428
+        [1]: A. Paine et al., "Quantum kernel methods for solving regression problems and
+        differential equations", Phys. Rev. A 107, 032428
 
     Methods:
     --------
@@ -196,8 +196,7 @@ class ODELoss(KernelLossBase):
         self,
         parameter_values: np.ndarray,
         data: np.ndarray,
-        labels: np.ndarray,
-        kernel_tensor: np.ndarray = None,  # [K, dKdx, dKdxdx] where dKdx is a np.ndarray of shape (n_samples, n_samples) and dKdxdx is a np.ndarray of shape (n_samples, n_samples)
+        **kwargs,
     ) -> float:
         r"""
         Calculates the squared loss of the loss function for the ODE as
@@ -219,46 +218,25 @@ class ODELoss(KernelLossBase):
             parameter_values (np.ndarray): The parameters :math:`\vec{\alpha}` of the
                 ansatz to be optimized.
             data (np.ndarray): The training data to be used for the kernel matrix.
-            kernel_tensor (array): A tensor containing the kernel matrix and its derivatives.
-                The tensor contains the kernel matrix,  the first derivative of the kernel
-                matrix, and the second derivative of the kernel matrix. The shapes of each element
-                in the array are (n_samples, n_samples).
+            kwargs: Additional arguments for specific loss functions.
+
+                - kernel_tensor (np.ndarray):
+                    A tensor containing the kernel matrix and its derivatives. The shapes of each
+                    element in the array are (n_samples, n_samples).
 
         Returns:
             float: The loss function value.
 
         """
-
+        kernel_tensor = kwargs.get("kernel_tensor", None)
         if kernel_tensor is None:
-            raise ValueError("kernel_tensor must be provided to compute ODE residuals")
-
-        def f_alpha_order(alpha_, kernel_tensor, order):
-            r"""
-            Calculates the ansatz f_alpha. Order correspond to how often the ODE is differentiated.
-
-            * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`.
-
-            * For order = 1, the ansatz is :math:`\dot f_{\vec{\alpha}} = \sum_{i=1}^{n} \alpha_i \dot k(x_i, x)`.
-
-            Args:
-                alpha_ (np.ndarray): The vector of alphas, of shape (len(x_span)+1, 1).
-                kernel_tensor (tuple): A tuple containing kernel objects for f_alpha_0 and
-                    f_alpha_1.
-                order (int): Order of the kernel.
-
-            Returns:
-                np.ndarray: The vector of f_alphas, of shape (len(x_span), 1).
-            """
-            alpha = alpha_[1:]
-            if order == 0:
-                return (
-                    np.dot(kernel_tensor[order], alpha).reshape(-1, 1) + alpha_[0]
-                )  # shape (n_samples, 1)
-            return np.dot(kernel_tensor[order], alpha).reshape(-1, 1)
+            raise ValueError(
+                "kernel_tensor must be provided as a keyword argument for ODELoss computation"
+            )
 
         f_alpha_tensor = np.array(
             [
-                f_alpha_order(parameter_values, kernel_tensor, i)
+                self.__f_alpha_order(parameter_values, kernel_tensor, i)
                 for i in range(self.order_of_ode + 1)
             ]
         )
@@ -266,6 +244,32 @@ class ODELoss(KernelLossBase):
         sum2 = np.sum(
             (f_alpha_tensor[:, 0][: len(self.initial_values)] - self.initial_values) ** 2
         )  # Initial condition
-        L = sum2 + sum1 * self.eta
+        loss_value = sum2 + sum1 * self.eta
 
-        return L
+        return loss_value
+
+    def __f_alpha_order(self, alpha_, kernel_tensor, order):
+        r"""
+        Calculates the ansatz f_alpha.
+        
+        Order correspond to how often the ODE is differentiated.
+
+        * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`.
+
+        * For order = 1, the ansatz is :math:`\dot f_{\vec{\alpha}} = \sum_{i=1}^{n} \alpha_i \dot k(x_i, x)`.
+
+        Args:
+            alpha_ (np.ndarray): The vector of alphas, of shape (len(x_span)+1, 1).
+            kernel_tensor (np.array): A tensor containing the kernel matrix and its derivatives.
+                The shapes of each element in the array are (n_samples, n_samples).
+            order (int): Order of the kernel.
+
+        Returns:
+            np.ndarray: The vector of f_alphas, of shape (len(x_span), 1).
+        """
+        alpha = alpha_[1:]
+        if order == 0:
+            return (
+                np.dot(kernel_tensor[order], alpha).reshape(-1, 1) + alpha_[0]
+            )  # shape (n_samples, 1)
+        return np.dot(kernel_tensor[order], alpha).reshape(-1, 1)

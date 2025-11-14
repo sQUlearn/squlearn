@@ -54,9 +54,14 @@ class QKODE(QKRR):
         k_testtrain (np.ndarray) :
             Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step
 
+    See Also
+    --------
+        squlearn.kernel.loss.ODELoss : Loss function for ODEs.
+
     References
     ----------
-    [1]: A. Paine et al., "Quantum kernel methods for solving regression problems and differential equations", Phys. Rev. A 107, 032428
+        [1]: A. Paine et al., "Quantum kernel methods for solving regression problems and
+        differential equations", Phys. Rev. A 107, 032428
 
 
     Methods:
@@ -65,9 +70,9 @@ class QKODE(QKRR):
 
     def __init__(
         self,
-        quantum_kernel: Union[KernelMatrixBase, str] = None,
-        loss: KernelLossBase = None,
-        optimizer: OptimizerBase = None,
+        quantum_kernel: Union[KernelMatrixBase, str],
+        loss: KernelLossBase,
+        optimizer: OptimizerBase,
         k_train: np.ndarray = None,
         dkdx_train: np.ndarray = None,
         dkdxdx_train: np.ndarray = None,
@@ -80,6 +85,24 @@ class QKODE(QKRR):
         self.k_train = k_train
         self.dkdx_train = dkdx_train
         self.dkdxdx_train = dkdxdx_train
+
+        
+        if quantum_kernel=="precomputed":
+            if k_train is None or dkdx_train is None :
+                raise ValueError(
+                    "If quantum_kernel is 'precomputed', the training kernel matrix and its first"
+                    " derivatives have to be provided via k_train and dkdx_train."
+                )
+            if loss.order_of_ode ==2 and dkdxdx_train is None:
+                raise ValueError(
+                    "If quantum_kernel is 'precomputed' and the ODE is of order 2, the second "
+                    "derivatives of the training kernel matrix have to be provided via "
+                    "dkdxdx_train."
+                )
+        elif not isinstance(quantum_kernel, KernelMatrixBase):
+            raise ValueError(
+                "Unknown type of quantum kernel: {}".format(type(quantum_kernel))
+            )
 
     def fit(self, X, y):
         """
@@ -95,19 +118,6 @@ class QKODE(QKRR):
 
         # set up kernel matrix
         if isinstance(self._quantum_kernel, str):
-            if self.k_train is None:
-                raise ValueError(
-                    "If quantum_kernel is 'precomputed', the training kernel matrix has to be provided via k_train."
-                )
-            if self.dkdx_train is None:
-                raise ValueError(
-                    "If quantum_kernel is 'precomputed', the first derivatives of the training kernel matrix have to be provided via dkdx_train."
-                )
-            if self.dkdxdx_train is None and self._loss.order_of_ode == 2:
-                raise ValueError(
-                    "If quantum_kernel is 'precomputed' and the ODE is of order 2, the second derivatives of the training kernel matrix have to be provided via dkdxdx_train."
-                )
-
             if self._quantum_kernel == "precomputed":
                 # if kernel is precomputed, validate shape of kernel matrix
                 K, y = validate_data(
@@ -153,7 +163,6 @@ class QKODE(QKRR):
         loss_function = partial(
             self._loss.compute,
             data=X,
-            labels=y,
             kernel_tensor=[self.k_train, self.dkdx_train, self.dkdxdx_train],
         )
         opt_result = self._optimizer.minimize(fun=loss_function, x0=param_ini)

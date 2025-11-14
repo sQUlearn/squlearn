@@ -43,7 +43,7 @@ class TargetAlignment(KernelLossBase):
         self,
         parameter_values: np.ndarray,
         data: np.ndarray,
-        labels: np.ndarray,
+        **kwargs,
     ) -> float:
         """Compute the target alignment loss.
 
@@ -51,7 +51,10 @@ class TargetAlignment(KernelLossBase):
             parameter_values (np.ndarray): The parameter values for the variational quantum kernel
                                            parameters.
             data (np.ndarray): The  training data to be used for the kernel matrix.
-            labels (np.ndarray): The labels of the training data.
+            kwargs: Additional arguments for specific loss functions.
+                
+                - labels (np.ndarray):
+                    The labels of the training data.
 
         Returns:
             float: The negative target alignment.
@@ -60,6 +63,12 @@ class TargetAlignment(KernelLossBase):
         if self._quantum_kernel is None:
             raise ValueError(
                 "Quantum kernel is not set, please set the quantum kernel with set_quantum_kernel method"
+            )
+        
+        labels = kwargs.get("labels", None)
+        if labels is None:
+            raise ValueError(
+                "labels must be provided as a keyword argument for TargetAlignment computation"
             )
 
         # Bind training parameters

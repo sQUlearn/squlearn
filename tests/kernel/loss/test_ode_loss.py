@@ -33,12 +33,11 @@ class TestODELoss:
         params = np.array([[0.5], [2.0]])
 
         data = np.array([[0.0]])
-        labels = np.zeros((n, 1))
 
         # compute loss: residual = df - f = 2.0 - 2.5 = -0.5 -> squared = 0.25
-        # initial penalty: f(0) - initial_values = 2.5 - 2.5 = 0 -> total L = 0.25
-        L = ode.compute(params, data, labels, kernel_tensor=kernel_tensor)
-        assert pytest.approx(0.25, rel=1e-12) == float(L)
+        # initial penalty: f(0) - initial_values = 2.5 - 2.5 = 0 -> total loss_value = 0.25
+        loss_value = ode.compute(params, data, kernel_tensor=kernel_tensor)
+        assert pytest.approx(0.25, rel=1e-12) == float(loss_value)
 
     def test_callable_with_symbols_basic_loss(self):
         # same ODE but as callable; provide symbols as well for sanity checks
@@ -58,10 +57,9 @@ class TestODELoss:
         kernel_tensor = make_identity_kernel_tensor(n_samples=1, order=1)
         params = np.array([[0.5], [2.0]])
         data = np.array([[0.0]])
-        labels = np.zeros((1, 1))
 
-        L = ode.compute(params, data, labels, kernel_tensor=kernel_tensor)
-        assert pytest.approx(0.25, rel=1e-12) == float(L)
+        loss_value = ode.compute(params, data, kernel_tensor=kernel_tensor)
+        assert pytest.approx(0.25, rel=1e-12) == float(loss_value)
 
     def test_callable_without_symbols_requires_ode_order(self):
         # callable without symbols: must pass ode_order
@@ -76,10 +74,9 @@ class TestODELoss:
         kernel_tensor = make_identity_kernel_tensor(n_samples=1, order=1)
         params = np.array([[0.5], [2.0]])
         data = np.array([[0.0]])
-        labels = np.zeros((1, 1))
 
-        L = ode.compute(params, data, labels, kernel_tensor=kernel_tensor)
-        assert pytest.approx(0.25, rel=1e-12) == float(L)
+        loss_value = ode.compute(params, data, kernel_tensor=kernel_tensor)
+        assert pytest.approx(0.25, rel=1e-12) == float(loss_value)
 
     def test_sympy_expr_without_symbols_raises(self):
         x, f, dfdx = sp.symbols("x f dfdx")

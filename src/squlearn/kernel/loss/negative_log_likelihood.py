@@ -44,7 +44,7 @@ class NLL(KernelLossBase):
         self,
         parameter_values: np.ndarray,
         data: np.ndarray,
-        labels: np.ndarray,
+        **kwargs,
     ) -> float:
         """Compute the negative log likelihood loss function.
 
@@ -52,7 +52,10 @@ class NLL(KernelLossBase):
             parameter_values (np.ndarray): The parameter values for the variational quantum
                                            kernel parameters.
             data (np.ndarray): The training data to be used for the kernel matrix.
-            labels (np.ndarray): The training labels.
+            kwargs: Additional arguments for specific loss functions.
+                
+                - labels (np.ndarray):
+                    The training labels.
 
         Returns:
             float: The negative log likelihood loss value.
@@ -61,6 +64,12 @@ class NLL(KernelLossBase):
         if self._quantum_kernel is None:
             raise ValueError(
                 "Quantum kernel is not set, please set the quantum kernel with set_quantum_kernel method"
+            )
+        
+        labels = kwargs.get("labels", None)
+        if labels is None:
+            raise ValueError(
+                "labels must be provided as a keyword argument for NLL computation"
             )
 
         # Bind training parameters
