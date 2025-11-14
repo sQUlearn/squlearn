@@ -244,21 +244,18 @@ def train(
         Optimized parameters of the PQC, and, if opt_param_op=True,
         the optimized parameters of the observable
     """
-    if isinstance(weights, np.ndarray):
-        weights_values = weights
-    elif weights is None:
-        weights_values = np.ones(np.shape(ground_truth))
-    else:
-        raise TypeError(f"Unknown weight format: {type(weights)}")
+    if weights:
+        if not isinstance(weights, np.ndarray):
+            raise TypeError(f"Unknown weight format: {type(weights)}")
+
+        if weights.shape != np.shape(ground_truth):
+            raise ValueError(
+                f"Shape {weights.shape} of weight values doesn't match shape"
+                f" {np.shape(ground_truth)} of reference values"
+            )
 
     # Tell the loss function if the cost operator parameters are optimized
     loss.set_opt_param_op(opt_param_op)
-
-    if weights_values.shape != np.shape(ground_truth):
-        raise ValueError(
-            f"Shape {weights_values.shape} of weight values doesn't match shape"
-            f" {np.shape(ground_truth)} of reference values"
-        )
 
     # Preprocessing of the input values in case of lists
     if not isinstance(param_ini, np.ndarray):
@@ -304,7 +301,7 @@ def train(
         loss_value = loss.value(
             loss_values,
             ground_truth=ground_truth,
-            weights=weights_values,
+            weights=weights,
             iteration=iteration,
         )
         return loss_value
@@ -333,13 +330,13 @@ def train(
                     loss_variance = loss.variance(
                         qnn.evaluate(input_values, param_, param_op_, *loss.variance_args_tuple),
                         ground_truth=ground_truth,
-                        weights=weights_values,
+                        weights=weights,
                         iteration=iteration,
                     )
                     loss_values = loss.value(
                         qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple),
                         ground_truth=ground_truth,
-                        weights=weights_values,
+                        weights=weights,
                         iteration=iteration,
                     )
                     shot_control.set_shots_for_grad(value=loss_values, variance=loss_variance)
@@ -351,7 +348,7 @@ def train(
             loss.gradient(
                 grad_values,
                 ground_truth=ground_truth,
-                weights=weights_values,
+                weights=weights,
                 iteration=iteration,
                 multiple_output=qnn.multiple_output,
                 opt_param_op=opt_param_op,
@@ -423,22 +420,18 @@ def train_mini_batch(
             f"Optimizer {optimizer.__class__.__name__} is not supported for mini-batch gradient "
             "descent."
         )
+    if weights:
+        if not isinstance(weights, np.ndarray):
+            raise TypeError(f"Unknown weight format: {type(weights)}")
 
-    if isinstance(weights, np.ndarray):
-        weights_values = weights
-    elif weights is None:
-        weights_values = np.ones(ground_truth.shape)
-    else:
-        raise TypeError(f"Unknown weight format: {type(weights)}")
+        if weights.shape != np.shape(ground_truth):
+            raise ValueError(
+                f"Shape {weights.shape} of weight values doesn't match shape"
+                f" {np.shape(ground_truth)} of reference values"
+            )
 
     # Tell the loss function if the cost operator parameters are optimized
     loss.set_opt_param_op(opt_param_op)
-
-    if weights_values.shape != ground_truth.shape:
-        raise ValueError(
-            f"Shape {weights_values.shape} of weight values doesn't match shape"
-            f" {ground_truth.shape} of reference values"
-        )
 
     n_samples = len(input_values)
 
@@ -484,7 +477,7 @@ def train_mini_batch(
             batch_loss = loss.value(
                 loss_values,
                 ground_truth=ground_truth[idcs[batch_slice]],
-                weights=weights_values[idcs[batch_slice]],
+                weights=weights[idcs[batch_slice]] if weights is not None else None,
                 iteration=epoch,
             )
 
@@ -502,7 +495,7 @@ def train_mini_batch(
                                 *loss.variance_args_tuple,
                             ),
                             ground_truth=ground_truth[idcs[batch_slice]],
-                            weights=weights_values[idcs[batch_slice]],
+                            weights=weights[idcs[batch_slice]] if weights is not None else None,
                             iteration=epoch,
                         )
 
@@ -519,7 +512,7 @@ def train_mini_batch(
             grad = loss.gradient(
                 diff_values,
                 ground_truth=ground_truth[idcs[batch_slice]],
-                weights=weights_values[idcs[batch_slice]],
+                weights=weights[idcs[batch_slice]] if weights is not None else None,
                 iteration=epoch,
                 multiple_output=qnn.multiple_output,
                 opt_param_op=opt_param_op,

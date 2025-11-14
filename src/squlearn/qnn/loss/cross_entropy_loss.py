@@ -54,7 +54,7 @@ class CrossEntropyLoss(QNNLossBase):
             raise AttributeError("CrossEntropyLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
-        weights = kwargs.get("weights", np.ones_like(ground_truth))
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
 
         probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
         if probability_values.ndim == 1:
@@ -94,7 +94,7 @@ class CrossEntropyLoss(QNNLossBase):
             raise AttributeError("CrossEntropyLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
-        weights = kwargs.get("weights", np.ones(ground_truth.shape[0]))
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
         multiple_output = kwargs.get("multiple_output", False)
 
         probability_values = np.clip(value_dict["f"], self._eps, 1.0 - self._eps)
