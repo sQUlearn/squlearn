@@ -101,10 +101,7 @@ class ODELoss(KernelLossBase):
         super().__init__()
 
         # normalize initial_values to a 1D numpy array
-        iv = np.asarray(initial_values).ravel()
-        if iv.ndim != 1:
-            raise ValueError("initial_values must be one-dimensional")
-        self.initial_values = iv
+        self.initial_values = np.asarray(initial_values).ravel()
         self.eta = float(eta)
 
         if isinstance(ode_functional, sp.Expr):
