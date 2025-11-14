@@ -336,12 +336,14 @@ class FidelityKernel(KernelMatrixBase):
 
         if not self._is_initialized:
             super()._initialize_kernel(num_features=num_features)
+            self._quantum_kernel = None
 
             # Do all the nessacary initialization logic here
             if self.num_parameters > 0:
                 self._parameter_vector = ParameterVector("p", self.num_parameters)
             else:
                 self._parameter_vector = None
+
             if self._use_expectation:
                 self._quantum_kernel = FidelityKernelExpectationValue(
                     encoding_circuit=self._encoding_circuit,
@@ -389,28 +391,41 @@ class FidelityKernel(KernelMatrixBase):
                                 enforce_psd=False,
                             )
                     else:
-                        sampler = self._executor.get_sampler()
-                        if isinstance(sampler, BaseSamplerV2):
-                            raise ValueError(
-                                "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
-                                "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
-                            )
-                        fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
-                        if self._parameter_vector is None:
-                            self._quantum_kernel = FidelityQuantumKernel(
-                                feature_map=self._enc_circ,
-                                fidelity=fidelity,
+                        try:
+                            sampler = self._executor.get_sampler()
+                        except RuntimeError:
+                            sampler = None
+                        if sampler is None:
+                            # No sampler available, use expectation value based fidelity kernel as
+                            # fallback
+                            self._quantum_kernel = FidelityKernelExpectationValue(
+                                encoding_circuit=self._encoding_circuit,
+                                executor=self._executor,
                                 evaluate_duplicates=self._evaluate_duplicates,
-                                enforce_psd=False,
+                                caching=self._caching,
                             )
                         else:
-                            self._quantum_kernel = TrainableFidelityQuantumKernel(
-                                feature_map=self._enc_circ,
-                                fidelity=fidelity,
-                                training_parameters=self._parameter_vector,
-                                evaluate_duplicates=self._evaluate_duplicates,
-                                enforce_psd=False,
-                            )
+                            if isinstance(sampler, BaseSamplerV2):
+                                raise ValueError(
+                                    "Incompatible Qiskit version for Fidelity-Kernel calculation with Qiskit "
+                                    "Algorithms. Please downgrade to Qiskit 1.0 or consider using PennyLane."
+                                )
+                            fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
+                            if self._parameter_vector is None:
+                                self._quantum_kernel = FidelityQuantumKernel(
+                                    feature_map=self._enc_circ,
+                                    fidelity=fidelity,
+                                    evaluate_duplicates=self._evaluate_duplicates,
+                                    enforce_psd=False,
+                                )
+                            else:
+                                self._quantum_kernel = TrainableFidelityQuantumKernel(
+                                    feature_map=self._enc_circ,
+                                    fidelity=fidelity,
+                                    training_parameters=self._parameter_vector,
+                                    evaluate_duplicates=self._evaluate_duplicates,
+                                    enforce_psd=False,
+                                )
                 else:
                     raise RuntimeError("Invalid quantum framework!")
             self._is_initialized = True
