@@ -54,7 +54,7 @@ dev = [
 ]
 examples = [
     "jupyter",
-    "matplotlib>=3.5.1",
+    "matplotlib>=3.4.1",
     "mlflow",
     "numpy>=1.24.1",
     "pandas",
@@ -65,7 +65,7 @@ examples = [
 docs = [
     "ipykernel",
     "jupyter-sphinx",
-    "matplotlib>=3.5.1",
+    "matplotlib>=3.4.1",
     "myst-parser",
     "nbsphinx",
     "nbsphinx_link",
