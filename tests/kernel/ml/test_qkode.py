@@ -25,7 +25,9 @@ def ode_loss(request):
         def ode(x, f, dfdx):
             return dfdx - f
 
-    return ODELoss(ode, symbols_involved_in_ode=symbols, initial_values=[1], ode_order=1)
+    return ODELoss(
+        ode_functional=ode, initial_values=[1], symbols_involved_in_ode=symbols, ode_order=1
+    )
 
 
 class TestQKODE:

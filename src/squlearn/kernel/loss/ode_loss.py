@@ -10,7 +10,7 @@ from .kernel_loss_base import KernelLossBase
 
 class ODELoss(KernelLossBase):
     r"""
-    ODE loss function for Quantum Kernels. It uses the same style as the QNN ODE loss function.
+    ODE loss function for Quantum Kernels.
 
     This class implements the ODE loss function for Quantum Kernels. The ODE loss function is
     defined as the sum of the squared residuals of the ODE functional and the initial conditions.
@@ -27,20 +27,22 @@ class ODELoss(KernelLossBase):
         \eta \cdot (f(x_0) - f_0)^2, \text{with} f(x) = \sum \alpha_i k(x_i, x)
 
     Args:
-        ode_functional (sympy.Expr or callable)
-            Functional representation of the ODE. If a `sympy.Expr` is passed,
+        ode_functional (:class:`sympy.core.expr.Expr` or callable)
+            Functional representation of the ODE. If a :class:`sympy.core.expr.Expr` is passed,
             then `symbols_involved_in_ode` is required. If a callable is passed,
             `symbols_involved_in_ode` is optional (can be used for sanity checks) and
             `ode_order` must be provided if symbols are not given.
-        symbols_involved_in_ode (sequence of sympy.Symbol, optional)
-            Symbols in the order `[x, f, f_d1, f_d2, ...]`. Required for sympy.Expr.
-            initial_values : sequence or np.ndarray
+        initial_values (sequence or np.ndarray)
             Initial values for the ODE (length must equal ODE order).
-        eta (float, default: 1.0)
+        symbols_involved_in_ode (sequence of :class:`sympy.core.symbol.Symbol`, optional)
+            Symbols in the order `[x, f, f_d1, f_d2, ...]`. Required for
+            :class:`sympy.core.expr.Expr`.
+        eta (float, default=1.0)
             Weight for the pinned initial-value penalty.
         ode_order (int, optional)
             Order of the ODE. If provided it is used to set/validate `order_of_ode`.
-            When passing a sympy.Expr this must match `len(symbols_involved_in_ode)-2`.
+            When passing a :class:`sympy.core.expr.Expr` this must match
+            `len(symbols_involved_in_ode)-2`.
 
     **Example**
 
@@ -75,6 +77,10 @@ class ODELoss(KernelLossBase):
             eta=1.2,
         )
 
+    See Also
+    --------
+        squlearn.kernel.QKODE : Quantum Kernel for ODE solving.
+
     References
     ----------
     [1]: A. Paine et al., "Quantum kernel methods for solving regression problems and differential
@@ -87,14 +93,12 @@ class ODELoss(KernelLossBase):
     def __init__(
         self,
         ode_functional: Union[sp.Expr, Callable],
-        symbols_involved_in_ode: Optional[Sequence[sp.Basic]],
-        initial_values: Union[Sequence, np.ndarray] = None,
+        initial_values: Union[Sequence, np.ndarray],
+        symbols_involved_in_ode: Optional[Sequence[sp.Basic]] = None,
         eta: float = np.float64(1.0),
         ode_order: Optional[int] = None,
     ):
         super().__init__()
-        if initial_values is None:
-            raise ValueError("initial_values must be provided")
 
         # normalize initial_values to a 1D numpy array
         iv = np.asarray(initial_values).ravel()
