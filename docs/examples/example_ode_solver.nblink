@@ -1,5 +1,5 @@
 {
-    "path": "../../examples/tutorials/qnn_ode_solver.ipynb",
+    "path": "../../examples/tutorials/ode_solver.ipynb",
     "extra-media": [
         "../../examples/tutorials/images"
     ]
