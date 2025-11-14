@@ -251,7 +251,7 @@ class ODELoss(KernelLossBase):
     def __f_alpha_order(self, alpha_, kernel_tensor, order):
         r"""
         Calculates the ansatz f_alpha.
-        
+
         Order correspond to how often the ODE is differentiated.
 
         * For order = 0, the ansatz is :math:`f_{\vec{\alpha}} = \alpha_0 + \sum_{i=1}^{n} \alpha_i k(x_i, x)`.

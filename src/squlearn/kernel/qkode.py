@@ -86,23 +86,20 @@ class QKODE(QKRR):
         self.dkdx_train = dkdx_train
         self.dkdxdx_train = dkdxdx_train
 
-        
-        if quantum_kernel=="precomputed":
-            if k_train is None or dkdx_train is None :
+        if quantum_kernel == "precomputed":
+            if k_train is None or dkdx_train is None:
                 raise ValueError(
                     "If quantum_kernel is 'precomputed', the training kernel matrix and its first"
                     " derivatives have to be provided via k_train and dkdx_train."
                 )
-            if loss.order_of_ode ==2 and dkdxdx_train is None:
+            if loss.order_of_ode == 2 and dkdxdx_train is None:
                 raise ValueError(
                     "If quantum_kernel is 'precomputed' and the ODE is of order 2, the second "
                     "derivatives of the training kernel matrix have to be provided via "
                     "dkdxdx_train."
                 )
         elif not isinstance(quantum_kernel, KernelMatrixBase):
-            raise ValueError(
-                "Unknown type of quantum kernel: {}".format(type(quantum_kernel))
-            )
+            raise ValueError("Unknown type of quantum kernel: {}".format(type(quantum_kernel)))
 
     def fit(self, X, y):
         """

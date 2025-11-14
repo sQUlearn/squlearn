@@ -53,7 +53,7 @@ class NLL(KernelLossBase):
                                            kernel parameters.
             data (np.ndarray): The training data to be used for the kernel matrix.
             kwargs: Additional arguments for specific loss functions.
-                
+
                 - labels (np.ndarray):
                     The training labels.
 
@@ -65,12 +65,10 @@ class NLL(KernelLossBase):
             raise ValueError(
                 "Quantum kernel is not set, please set the quantum kernel with set_quantum_kernel method"
             )
-        
+
         labels = kwargs.get("labels", None)
         if labels is None:
-            raise ValueError(
-                "labels must be provided as a keyword argument for NLL computation"
-            )
+            raise ValueError("labels must be provided as a keyword argument for NLL computation")
 
         # Bind training parameters
         self._quantum_kernel.assign_parameters(parameter_values)
