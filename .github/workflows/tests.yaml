@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_minimal
           source venv_minimal/bin/activate
-          pip install toml autoray==0.7.2
+          pip install toml autoray==0.7.2 matplotlib-inline==0.1.7
           python3 install_lowest_dependencies.py
       - name: Test with pytest
         run: |
