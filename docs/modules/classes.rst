@@ -4,10 +4,11 @@
 API Reference
 =============
 
-
+High Level API
+==============
 
 QML Regressors
-=====================================
+--------------
 
 .. currentmodule:: squlearn
 
@@ -22,9 +23,8 @@ QML Regressors
    qnn.QNNRegressor
    qrc.QRCRegressor
 
-
 QML Classifiers
-======================================
+---------------
 
 .. currentmodule:: squlearn
 
@@ -37,6 +37,18 @@ QML Classifiers
    kernel.QGPC
    qnn.QNNClassifier
    qrc.QRCClassifier
+
+ODE Solvers
+-----------
+
+.. currentmodule:: squlearn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+   :template: class.rst
+
+   kernel.QKODE
 
 Circuit Design
 ====================================
@@ -183,6 +195,7 @@ Quantum Kernel Core
 
    kernel.loss.negative_log_likelihood.NLL
    kernel.loss.target_alignment.TargetAlignment
+   kernel.loss.ODELoss
 
 QNN Core
 ------------------------------------

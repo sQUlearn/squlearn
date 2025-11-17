@@ -5,6 +5,7 @@ from .qgpc import QGPC
 from .qkrr import QKRR
 from .qsvr import QSVR
 from .qsvc import QSVC
+from .qkode import QKODE
 
 __all__ = [
     "FidelityKernel",
@@ -15,4 +16,5 @@ __all__ = [
     "QKRR",
     "QSVR",
     "QSVC",
+    "QKODE",
 ]

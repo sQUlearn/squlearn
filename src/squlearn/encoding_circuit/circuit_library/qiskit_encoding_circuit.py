@@ -65,7 +65,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
             else:
                 self._qiskit_circuit = qiskit_circuit
 
-        self._num_qubits = self._qiskit_circuit.num_qubits
+        super().__init__(num_qubits=self._qiskit_circuit.num_qubits)
         self._mode = mode
         self._feature_label = feature_label
         self._parameter_label = parameter_label
@@ -127,6 +127,11 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
             raise ValueError("The type {} is not supported!".format(self._mode))
 
     @property
+    def num_encoding_slots(self) -> int:
+        """The number of encoding slots of the encoding circuit."""
+        return self._num_features
+
+    @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the Qiskit encoding circuit."""
         return self._num_parameters
@@ -165,9 +170,9 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
 
         Args:
             features (Union[ParameterVector,np.ndarray]): Input vector of the features
-                                                          from which the gate inputs are obtained.
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
-                                                           from which the gate inputs are obtained.
+                from which the gate inputs are obtained.
+            parameters (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+                from which the gate inputs are obtained.
 
         Return:
             The circuit of the Qiskit Encoding Circuit with the assigned parameters.
