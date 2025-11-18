@@ -11,7 +11,7 @@ from squlearn import Executor
 from squlearn.observables import SummedPaulis
 from squlearn.encoding_circuit import ChebyshevRx
 from squlearn.optimizers import SLSQP, Adam
-from squlearn.qnn import QNNRegressor, SquaredLoss
+from squlearn.qnn import QNNRegressor, MeanSquaredError
 
 
 class TestQNNRegressor:
@@ -35,7 +35,7 @@ class TestQNNRegressor:
             executor = Executor(framework)
         pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = SummedPaulis(num_qubits=2)
-        loss = SquaredLoss()
+        loss = MeanSquaredError()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = random_device.random(pqc.num_parameters)
         param_op_ini = random_device.random(operator.num_parameters)
@@ -48,7 +48,7 @@ class TestQNNRegressor:
         executor = Executor()
         pqc = ChebyshevRx(num_qubits=2, num_layers=1)
         operator = [SummedPaulis(num_qubits=2), SummedPaulis(num_qubits=2)]
-        loss = SquaredLoss()
+        loss = MeanSquaredError()
         optimizer = SLSQP(options={"maxiter": 2})
         param_ini = random_device.random(pqc.num_parameters)
         param_op_ini = random_device.random(sum(op.num_parameters for op in operator))

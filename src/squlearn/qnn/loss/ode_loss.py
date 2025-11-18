@@ -228,10 +228,7 @@ class ODELoss(QNNLossBase):
         if "ground_truth" not in kwargs:
             raise AttributeError("SquaredLoss requires ground_truth.")
         ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
-            weights = kwargs["weights"]
-        else:
-            weights = np.ones_like(ground_truth)
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
 
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
@@ -301,10 +298,7 @@ class ODELoss(QNNLossBase):
             raise AttributeError("SquaredLoss requires ground_truth.")
 
         ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
-            weights = kwargs["weights"]
-        else:
-            weights = np.ones_like(ground_truth)
+        weights = kwargs.get("weights") or np.ones_like(ground_truth)
         multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
 
         weighted_diff = np.multiply(
