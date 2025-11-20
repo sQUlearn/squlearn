@@ -144,9 +144,6 @@ jobs:
           source venv_latest/bin/activate
           pip install pytest
           pytest tests/
-      - name: clean
-        run: |
-          rm -rf venv_latest
       - name: Test examples
         run: |
           source venv_latest/bin/activate
@@ -186,9 +183,6 @@ jobs:
         run: |
           .\venv_latest\Scripts\pip.exe install pytest
           .\venv_latest\Scripts\pytest.exe tests/
-      - name: clean
-        run: |
-          rm -rf venv_latest
       - name: Test examples
         run: |
           .\venv_latest\Scripts\pip.exe venv_latest/bin/activate
