@@ -25,9 +25,9 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           python -m venv venv_minimal
           source venv_minimal/bin/activate
+          python -m pip install --upgrade pip
           pip install toml autoray==0.7.2 matplotlib-inline==0.1.7
           python3 install_lowest_dependencies.py
       - name: Test with pytest
@@ -59,9 +59,9 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           python -m venv venv_qiskit_0_46
           source venv_qiskit_0_46/bin/activate
+          python -m pip install --upgrade pip
           pip install .[examples] qiskit==0.46.3 qiskit-ibm-runtime==0.20.0 autoray==0.7.2
       - name: Test with pytest
         run: |
@@ -88,9 +88,9 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           python -m venv venv_qiskit_1
           source venv_qiskit_1/bin/activate
+          python -m pip install --upgrade pip
           pip install .[examples] qiskit==1.1.2 qiskit-algorithms==0.3.0 qiskit-ibm-runtime==0.27.1 autoray==0.7.2
       - name: Test with pytest
         run: |
@@ -126,14 +126,10 @@ jobs:
             }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           python -m venv venv_latest
-          if [ ${{ runner.os }} == 'Windows' ]; then
-            .\venv_latest\Scripts\pip.exe install .
-          else
-            source venv_latest/bin/activate
-            pip install .
-          fi
+          source venv_latest/bin/activate
+          python -m pip install --upgrade pip
+          pip install .
       - name: Install old autoray
         if: matrix.python-version == '3.9'
         run: |
@@ -174,6 +170,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m venv venv_latest
+          .\venv_latest\Scripts\python.exe -m pip install --upgrade pip
           .\venv_latest\Scripts\pip.exe install .
       - name: Install old autoray
         if: matrix.python-version == '3.9'
