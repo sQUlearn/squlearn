@@ -129,7 +129,7 @@ jobs:
           python -m venv venv_latest
           source venv_latest/bin/activate
           python -m pip install --upgrade pip
-          pip install .
+          pip install .[examples]
       - name: Install old autoray
         if: matrix.python-version == '3.9'
         run: |
@@ -171,7 +171,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv_latest
           .\venv_latest\Scripts\python.exe -m pip install --upgrade pip
-          .\venv_latest\Scripts\pip.exe install .
+          .\venv_latest\Scripts\pip.exe install .[examples]
       - name: Install old autoray
         if: matrix.python-version == '3.9'
         run: |
