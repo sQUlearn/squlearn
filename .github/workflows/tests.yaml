@@ -181,8 +181,7 @@ jobs:
           .\venv_latest\Scripts\pytest.exe tests/
       - name: Test examples
         run: |
-          .\venv_latest\Scripts\pip.exe venv_latest/bin/activate
-          pip install nbmake
+          .\venv_latest\Scripts\pip.exe install nbmake
           .\venv_latest\Scripts\pytest.exe --nbmake --nbmake-timeout 600 examples/
       - name: clean
         run: |
