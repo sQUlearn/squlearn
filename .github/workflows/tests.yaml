@@ -128,26 +128,58 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m venv venv_latest
-          source venv_latest/bin/activate
-          pip install .
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            .\venv_latest\Scripts\pip.exe install .
+          else
+            source venv_latest/bin/activate
+            pip install .
+          fi
+
       - name: Install old autoray
         if: matrix.python-version == '3.9'
         run: |
-          source venv_latest/bin/activate
-          pip install autoray==0.7.2
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            .\venv_latest\Scripts\pip.exe install autoray==0.7.2
+          else
+            source venv_latest/bin/activate
+            pip install autoray==0.7.2
+          fi
+
       - name: Test with pytest
         run: |
-          source venv_latest/bin/activate
-          pip install pytest
-          pytest tests/
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            .\venv_latest\Scripts\pip.exe install pytest
+            .\venv_latest\Scripts\pytest.exe tests/
+          else
+            source venv_latest/bin/activate
+            pip install pytest
+            pytest tests/
+          fi
+
       - name: clean
         run: |
-          rm -rf venv_latest
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            rmdir /S /Q venv_latest
+          else
+            rm -rf venv_latest
+          fi
+
       - name: Test examples
         run: |
-          source venv_latest/bin/activate
-          pip install nbmake
-          pytest --nbmake --nbmake-timeout 600 examples/
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            .\venv_latest\Scripts\pip.exe install nbmake
+            .\venv_latest\Scripts\pytest.exe --nbmake --nbmake-timeout 600 examples/
+          else
+            source venv_latest/bin/activate
+            pip install nbmake
+            pytest --nbmake --nbmake-timeout 600 examples/
+          fi
+
       - name: clean
         run: |
-          rm -rf venv_latest
+          if [ ${{ runner.os }} == 'windows-latest' ]; then
+            rmdir /S /Q venv_latest
+          else
+            rm -rf venv_latest
+          fi
+
