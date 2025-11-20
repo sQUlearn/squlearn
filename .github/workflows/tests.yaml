@@ -7,15 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${
+      (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
+    }
+  cancel-in-progress: true
+
 jobs:
   pytest_minimal_requirements:
     runs-on: ubuntu-latest
-
-    concurrency:
-      group: ${{ github.workflow }}-${
-          (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
-        }-minimal_requirements
-      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v5
@@ -51,12 +51,6 @@ jobs:
   pytest_qiskit_0_46:
     runs-on: ubuntu-latest
 
-    concurrency:
-      group: ${{ github.workflow }}-${
-          (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
-        }-qiskit_0_46
-      cancel-in-progress: true
-
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python
@@ -85,12 +79,6 @@ jobs:
 
   pytest_qiskit_1:
     runs-on: ubuntu-latest
-
-    concurrency:
-      group: ${{ github.workflow }}-${
-          (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
-        }-qiskit_1
-      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v5
@@ -127,12 +115,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
-    concurrency:
-      group: ${{ github.workflow }}-${
-          (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
-        }-${{ matrix.os }}-${{ matrix.python-version }}
-      cancel-in-progress: true
-
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python
@@ -158,6 +140,14 @@ jobs:
           source venv_latest/bin/activate
           pip install pytest
           pytest tests/
+      - name: clean
+        run: |
+          rm -rf venv_latest
+      - name: Test examples
+        run: |
+          source venv_latest/bin/activate
+          pip install nbmake
+          pytest --nbmake --nbmake-timeout 600 examples/
       - name: clean
         run: |
           rm -rf venv_latest
