@@ -49,7 +49,7 @@ class TestQKODE:
         labels = np.zeros((len(x_train), 1))
         qkode.fit(x_train, labels)
 
-        if version.parse(scipy_version) < version.parse("1.16"):
+        if version.parse(scipy_version) < version.parse("1.15"):
             regressor_result = np.array(
                 [
                     0.99663332,
