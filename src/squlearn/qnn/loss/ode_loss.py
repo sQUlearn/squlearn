@@ -79,8 +79,8 @@ class ODELoss(QNNLossBase):
 
     def __init__(
         self,
-        ode_functional = None,
-        symbols_involved_in_ode = None,
+        ode_functional=None,
+        symbols_involved_in_ode=None,
         initial_values: np.ndarray = None,
         eta: float = 1.0,
     ):
