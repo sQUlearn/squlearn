@@ -10,7 +10,7 @@ from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.kernel import ProjectedQuantumKernel, FidelityKernel
 from squlearn.kernel.loss import ODELoss
 from squlearn.kernel import QKODE
-from squlearn.optimizers import SLSQP
+from squlearn.optimizers import LBFGSB
 
 
 @pytest.fixture(params=["expr", "callable"])
@@ -44,7 +44,7 @@ class TestQKODE:
         )
 
         # Create the QKODE instance
-        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=SLSQP())
+        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=LBFGSB())
 
         x_train = np.linspace(0, 0.9, 9).reshape(-1, 1)
         labels = np.zeros((len(x_train), 1))
@@ -80,7 +80,7 @@ class TestQKODE:
         )
 
         # Create the QKODE instance
-        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=SLSQP())
+        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=LBFGSB())
 
         x_train = np.linspace(0, 0.9, 9).reshape(-1, 1)
         labels = np.zeros((len(x_train), 1))

@@ -95,14 +95,14 @@ class ODELoss(KernelLossBase):
         ode_functional: Union[sp.Expr, Callable],
         initial_values: Union[Sequence, np.ndarray],
         symbols_involved_in_ode: Optional[Sequence[sp.Basic]] = None,
-        eta: float = np.float64(1.0),
+        eta: float = 1.0,
         ode_order: Optional[int] = None,
     ):
         super().__init__()
 
         # normalize initial_values to a 1D numpy array
         self.initial_values = np.asarray(initial_values).ravel()
-        self.eta = float(eta)
+        self.eta = eta
 
         if isinstance(ode_functional, sp.Expr):
             if symbols_involved_in_ode is None:
