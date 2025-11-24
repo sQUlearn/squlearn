@@ -185,4 +185,4 @@ jobs:
           .\venv_latest\Scripts\pytest.exe --nbmake --nbmake-timeout 600 examples/
       - name: clean
         run: |
-          rmdir /S /Q venv_latest
+          rm -Recurse -Force venv_latest
