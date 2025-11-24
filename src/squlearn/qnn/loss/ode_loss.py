@@ -79,10 +79,10 @@ class ODELoss(QNNLossBase):
 
     def __init__(
         self,
-        ode_functional=None,
-        symbols_involved_in_ode=None,
+        ode_functional = None,
+        symbols_involved_in_ode = None,
         initial_values: np.ndarray = None,
-        eta=np.float64(1.0),
+        eta: float = 1.0,
     ):
         super().__init__()
         self._verify_size_of_ivp_with_order_of_ode(initial_values, symbols_involved_in_ode)
