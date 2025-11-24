@@ -64,7 +64,7 @@ class TestQKODE:
                     2.46206022,
                 ]
             )
-        elif system() == "Windows": 
+        elif system() == "Windows":
             regressor_result = np.array(
                 [
                     0.9973879,
