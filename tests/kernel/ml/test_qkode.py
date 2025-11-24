@@ -78,6 +78,20 @@ class TestQKODE:
                     2.46402581,
                 ]
             )
+        elif system() == "Darwin":
+            regressor_result = np.array(
+                [
+                    0.99705777,
+                    1.12080111,
+                    1.25306857,
+                    1.40014354,
+                    1.56938517,
+                    1.75553607,
+                    1.96384703,
+                    2.1980863,
+                    2.46328302,
+                ]
+            )
         else:
             regressor_result = np.array(
                 [
