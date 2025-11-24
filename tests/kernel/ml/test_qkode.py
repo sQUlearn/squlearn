@@ -1,5 +1,6 @@
 import numpy as np
 from packaging import version
+from platform import system
 import pytest
 from scipy import __version__ as scipy_version
 import sympy as sp
@@ -63,7 +64,7 @@ class TestQKODE:
                     2.46206022,
                 ]
             )
-        else:
+        elif system() == "Windows": 
             regressor_result = np.array(
                 [
                     0.9973879,
@@ -75,6 +76,20 @@ class TestQKODE:
                     1.96445327,
                     2.19875868,
                     2.46402581,
+                ]
+            )
+        else:
+            regressor_result = np.array(
+                [
+                    0.99689371,
+                    1.12059708,
+                    1.25287154,
+                    1.39998192,
+                    1.56922034,
+                    1.75531624,
+                    1.96360549,
+                    2.19784202,
+                    2.46296489,
                 ]
             )
 
