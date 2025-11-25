@@ -1,5 +1,6 @@
 import numpy as np
 from packaging import version
+from platform import system
 import pytest
 from scipy import __version__ as scipy_version
 import sympy as sp
@@ -9,7 +10,7 @@ from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.kernel import ProjectedQuantumKernel, FidelityKernel
 from squlearn.kernel.loss import ODELoss
 from squlearn.kernel import QKODE
-from squlearn.optimizers import LBFGSB
+from squlearn.optimizers import SLSQP
 
 
 @pytest.fixture(params=["expr", "callable"])
@@ -43,45 +44,28 @@ class TestQKODE:
         )
 
         # Create the QKODE instance
-        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=LBFGSB())
+        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=SLSQP())
 
         x_train = np.linspace(0, 0.9, 9).reshape(-1, 1)
         labels = np.zeros((len(x_train), 1))
         qkode.fit(x_train, labels)
 
-        if version.parse(scipy_version) < version.parse("1.16"):
-            regressor_result = np.array(
-                [
-                    0.99663332,
-                    1.12030422,
-                    1.2525221,
-                    1.39952847,
-                    1.56866833,
-                    1.75470725,
-                    1.96290259,
-                    2.19701171,
-                    2.46206022,
-                ]
-            )
-        else:
-            regressor_result = np.array(
-                [
-                    0.9973879,
-                    1.12113415,
-                    1.25344976,
-                    1.40061217,
-                    1.56992748,
-                    1.7561082,
-                    1.96445327,
-                    2.19875868,
-                    2.46402581,
-                ]
-            )
-
         assert qkode._loss.order_of_ode == 1
         assert np.allclose(
             qkode.predict(x_train),
-            regressor_result,
+            np.array(
+                [
+                    0.99673544,
+                    1.12042196,
+                    1.25265393,
+                    1.39967403,
+                    1.56883119,
+                    1.75490046,
+                    1.96312582,
+                    2.19726599,
+                    2.46239031,
+                ]
+            ),
             atol=1e-3,
         )
 
@@ -96,7 +80,7 @@ class TestQKODE:
         )
 
         # Create the QKODE instance
-        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=LBFGSB())
+        qkode = QKODE(q_kernel, loss=ode_loss, optimizer=SLSQP())
 
         x_train = np.linspace(0, 0.9, 9).reshape(-1, 1)
         labels = np.zeros((len(x_train), 1))
