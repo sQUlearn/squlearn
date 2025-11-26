@@ -1,0 +1,50 @@
+name: Quick Tests
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${
+      (github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name)
+    }
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Tests on ubuntu-latest with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: |
+            ${{
+              matrix.python-version
+            }}
+      - name: Install dependencies
+        run: |
+          python -m venv venv_latest
+          source venv_latest/bin/activate
+          python -m pip install --upgrade pip
+          pip install .
+      - name: Install old autoray
+        if: matrix.python-version == '3.9'
+        run: |
+          source venv_latest/bin/activate
+          pip install autoray==0.7.2
+      - name: Test with pytest
+        run: |
+          source venv_latest/bin/activate
+          pip install pytest
+          pytest tests/
+      - name: clean
+        run: |
+          rm -rf venv_latest
