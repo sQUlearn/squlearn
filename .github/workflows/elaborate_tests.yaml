@@ -1,6 +1,7 @@
-name: Tests
+name: Elaborate Tests
 on:
   pull_request:
+    types: [review_requested]
   schedule:
     - cron: '23 1 * * *'
 
