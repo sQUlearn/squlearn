@@ -13,8 +13,8 @@ class Adam(OptimizerBase, SGDMixin):
 
     * **tol** (float): Tolerance for the termination of the optimization (default: 1e-6)
     * **break_condition** (str): Break when parameter update is below tol ('param_update'), when
-      the function value ('func_value') goes below tol or the function value does not change
-      ('func_update') (default: 'param_update').
+      the function value ('func_value') goes below tol or the function value change is below
+      tol ('func_update') (default: 'param_update').
     * **lr** (float, list, np.ndarray, callable): Learning rate. If float, the learning rate is constant.
       If list or np.ndarray, the learning rate is taken from the list or array.
       If callable, the learning rate is taken from the function. (default: 0.05)
