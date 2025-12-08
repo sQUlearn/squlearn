@@ -6,6 +6,7 @@ from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
+from squlearn.util.qiskit_circuit_equivalence import assert_circuits_equal
 
 
 class TestChebyshevPQC:
@@ -133,3 +134,115 @@ class TestChebyshevPQC:
 
         with pytest.raises(ValueError):
             circuit.get_circuit(features, params)
+
+    @pytest.mark.parametrize(
+        "num_qubits,num_layers,closed,entangling_gate,nonlinearity",
+        [
+            (2, 1, True, "crz", "arccos"),
+            (3, 1, False, "crz", "arccos"),
+            (3, 2, True, "rzz", "arctan"),
+            (4, 2, False, "rzz", "arccos"),
+        ],
+    )
+    def test_get_circuit_matches_ground_truth(
+        self, num_qubits, num_layers, closed, entangling_gate, nonlinearity
+    ):
+
+        def build_expected_chebyshev_circuit(
+            num_qubits, num_layers, closed, entangling_gate, nonlinearity, features, parameters
+        ):
+            if nonlinearity == "arccos":
+
+                def mapping(a, x):
+                    return a * np.arccos(x)
+
+            else:
+
+                def mapping(a, x):
+                    return a * np.arctan(x)
+
+            QC = QuantumCircuit(num_qubits)
+            index_offset = 0
+            feature_offset = 0
+
+            if entangling_gate == "crz":
+                egate_name = "crz"
+            elif entangling_gate == "rzz":
+                egate_name = "rzz"
+            else:
+                raise ValueError("Unknown entangling gate")
+
+            # basis change at beginning
+            for i in range(num_qubits):
+                QC.ry(parameters[index_offset % len(parameters)], i)
+                index_offset += 1
+
+            for _ in range(num_layers):
+                # chebyshev rx encodings
+                for i in range(num_qubits):
+                    QC.rx(
+                        mapping(
+                            parameters[index_offset % len(parameters)],
+                            features[feature_offset % len(features)],
+                        ),
+                        i,
+                    )
+                    index_offset += 1
+                    feature_offset += 1
+
+                # even pairs (0,1), (2,3), ...
+                for i in range(0, num_qubits + (1 if closed else 0) - 1, 2):
+                    if egate_name == "crz":
+                        QC.crz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                    else:
+                        QC.rzz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                    index_offset += 1
+
+                # odd pairs (1,2), (3,4), ...
+                if num_qubits > 2:
+                    for i in range(1, num_qubits + (1 if closed else 0) - 1, 2):
+                        if egate_name == "crz":
+                            QC.crz(
+                                parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits
+                            )
+                        else:
+                            QC.rzz(
+                                parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits
+                            )
+                        index_offset += 1
+
+            # final basis change
+            for i in range(num_qubits):
+                QC.ry(parameters[index_offset % len(parameters)], i)
+                index_offset += 1
+
+            return QC
+
+        circuit = ChebyshevPQC(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            entangling_gate=entangling_gate,
+            nonlinearity=nonlinearity,
+        )
+
+        num_encoding_slots = circuit.num_encoding_slots
+        num_features = min(2, num_encoding_slots) if num_encoding_slots >= 2 else 1
+        features = np.linspace(-0.9, 0.9, num_features)
+
+        rng = np.random.RandomState(42)
+        parameters = rng.uniform(-np.pi, np.pi, size=circuit.num_parameters)
+
+        qc_actual = circuit.get_circuit(features=features, parameters=parameters)
+
+        qc_expected = build_expected_chebyshev_circuit(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            entangling_gate=entangling_gate,
+            nonlinearity=nonlinearity,
+            features=features,
+            parameters=parameters,
+        )
+
+        assert_circuits_equal(qc_actual, qc_expected)

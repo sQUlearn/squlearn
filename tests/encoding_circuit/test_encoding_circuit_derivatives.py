@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from squlearn.encoding_circuit import EncodingCircuitDerivatives
-from squlearn.util.optree.optree import OpTreeCircuit, OpTreeList, OpTreeElementBase, OpTreeSum
+from squlearn.encoding_circuit.circuit_library.hubregtsen_encoding_circuit import (
+    HubregtsenEncodingCircuit,
+)
+from squlearn.util.optree.optree import (
+    OpTree,
+    OpTreeCircuit,
+    OpTreeList,
+    OpTreeElementBase,
+    OpTreeSum,
+)
 
 
 class DummyEncodingCircuit:
@@ -21,6 +30,13 @@ class DummyEncodingCircuit:
             # use a different qubit index if possible
             qc.rx(parameters[0], (0 if self.num_qubits == 1 else 1))
         return qc
+
+
+def _build_simple_deriv():
+    """Helper function to build a simple EncodingCircuitDerivatives instance for testing."""
+    pqc = HubregtsenEncodingCircuit(num_qubits=2, num_layers=1, num_features=1, closed=True)
+    fm_deriv = EncodingCircuitDerivatives(pqc, num_features=1, optree_caching=True)
+    return fm_deriv
 
 
 class TestEncodingCircuitDerivatives:
@@ -55,26 +71,33 @@ class TestEncodingCircuitDerivatives:
         else:
             assert ecd._optree_cache == {}
 
-    @pytest.mark.parametrize(
-        "deriv, expected_type",
-        [
-            ("I", OpTreeCircuit),
-            ("dx", OpTreeElementBase),
-            ("dxdx", OpTreeElementBase),
-            ("dpdxdx", OpTreeElementBase),
-            ("laplace", OpTreeSum),
-            ("laplace_dp", OpTreeSum),
-            ("dp", OpTreeElementBase),
-            ("dpdp", OpTreeElementBase),
-            ("dpdx", OpTreeElementBase),
-            ("dxdp", OpTreeElementBase),
-        ],
-    )
-    def test_get_derivative(self, deriv, expected_type):
-        enc = DummyEncodingCircuit(num_qubits=2, num_parameters=1)
-        ecd = EncodingCircuitDerivatives(enc, num_features=2, optree_caching=True)
-        op_tree = ecd.get_derivative(deriv)
-        assert isinstance(op_tree, expected_type)
+    def test_I_returns_optree_start(self):
+        fm_deriv = _build_simple_deriv()
+        I = fm_deriv.get_derivative("I")
+        assert I == fm_deriv._optree_start
+
+    def test_string_and_vector_derivative_equivalence_dp_dx(self):
+        fm_deriv = _build_simple_deriv()
+
+        # dp (string) vs ParameterVector
+        dp_str = fm_deriv.get_derivative("dp")
+        dp_vec = fm_deriv.get_derivative((fm_deriv.parameter_vector,))
+        assert dp_str == dp_vec
+
+        # dx (string) vs Feature ParameterVector
+        dx_str = fm_deriv.get_derivative("dx")
+        dx_vec = fm_deriv.get_derivative((fm_deriv.feature_vector,))
+        assert dx_str == dx_vec
+
+    def test_laplace_equals_sum_of_dxdx(self):
+        fm_deriv = _build_simple_deriv()
+        # Laplace-Operator
+        lap = fm_deriv.get_derivative("laplace")
+
+        dxdx_list = [fm_deriv.get_derivative((xi, xi)).copy() for xi in fm_deriv.feature_vector]
+        manual_sum = OpTreeSum(dxdx_list)
+
+        assert lap == manual_sum
 
     def test_assign_parameters_returns_none_for_none_optree(self):
         enc = DummyEncodingCircuit(num_qubits=1, num_parameters=0)
