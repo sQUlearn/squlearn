@@ -41,7 +41,7 @@ dependencies = [
     "tqdm>=4.1.0",
     "qulacs>=0.6.0",
 ]
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9"
 dynamic = ["version", "description"]
 
 [project.optional-dependencies]
@@ -54,7 +54,7 @@ dev = [
 ]
 examples = [
     "jupyter",
-    "matplotlib>=3.5.1",
+    "matplotlib>=3.4.1",
     "mlflow",
     "numpy>=1.24.1",
     "pandas",
@@ -65,7 +65,7 @@ examples = [
 docs = [
     "ipykernel",
     "jupyter-sphinx",
-    "matplotlib>=3.5.1",
+    "matplotlib>=3.4.1",
     "myst-parser",
     "nbsphinx",
     "nbsphinx_link",
@@ -97,5 +97,5 @@ extension-pkg-allow-list = [
 addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
-    "--ignore=examples/tutorials/qnn_ode_solver.ipynb",
+    "--ignore=examples/tutorials/ode_solver.ipynb",
 ]

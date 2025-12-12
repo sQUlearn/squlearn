@@ -1,7 +1,17 @@
+import scipy as sp
 import pytest
 import numpy as np
+import sympy
 
 from squlearn.qnn import CrossEntropyLoss
+from squlearn import Executor
+from squlearn.encoding_circuit import ChebyshevPQC
+from squlearn.observables import SummedPaulis
+from squlearn.qnn.qnnr import QNNRegressor
+from squlearn.optimizers import Adam, LBFGSB
+from squlearn.qnn import QNNRegressor
+from squlearn.qnn.util import get_lr_decay
+from squlearn.qnn import ODELoss
 
 
 class TestCrossEntropyLoss:
@@ -69,4 +79,37 @@ class TestCrossEntropyLoss:
                 value_dict, multiple_output=multiple_output, ground_truth=ground_truth
             ),
             gradient_value,
+        )
+
+
+class TestODELoss:
+
+    def test_ode_loss(self):
+        x, y, dydx = sympy.symbols("x y dydx")  # Define the symbols
+        eq = dydx - y  # Define the differential equation
+
+        ode_loss = ODELoss(
+            eq,
+            symbols_involved_in_ode=["x", "y", "dydx"],
+            initial_values=[1],
+            eta=10,
+        )
+
+        circuit = ChebyshevPQC(4, 1)
+        observable = SummedPaulis(4)
+
+        ode_regressor = QNNRegressor(
+            circuit,
+            observable,
+            Executor("pennylane"),
+            ode_loss,
+            Adam(options={"maxiter": 3}),
+        )
+
+        x_numerical = np.linspace(0, 0.9, 3).reshape(-1, 1)
+        ref_values = np.zeros(len(x_numerical))
+        ode_regressor.fit(x_numerical, ref_values)
+
+        assert np.allclose(
+            ode_regressor.predict(x_numerical), np.array([1.62429362, 2.87454102, 1.46558265])
         )

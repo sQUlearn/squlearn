@@ -12,6 +12,9 @@ class Adam(OptimizerBase, SGDMixin):
     Possible options that can be set in the options dictionary are:
 
     * **tol** (float): Tolerance for the termination of the optimization (default: 1e-6)
+    * **break_condition** (str): Break when parameter update is below tol ('param_update'), when
+      the function value ('func_value') goes below tol or the function value change is below
+      tol ('func_update') (default: 'param_update').
     * **lr** (float, list, np.ndarray, callable): Learning rate. If float, the learning rate is constant.
       If list or np.ndarray, the learning rate is taken from the list or array.
       If callable, the learning rate is taken from the function. (default: 0.05)
@@ -37,6 +40,11 @@ class Adam(OptimizerBase, SGDMixin):
             options = {}
 
         self.tol = options.get("tol", 1e-6)
+        self.break_condition = options.get("break_condition", "param_update")
+        if self.break_condition not in ["param_update", "func_value", "func_update"]:
+            raise ValueError(
+                "Break condition must be 'param_update', 'func_value' or 'func_update'."
+            )
         self.lr = options.get("lr", 0.05)
         self.beta_1 = options.get("beta_1", 0.9)
         self.beta_2 = options.get("beta_2", 0.99)
@@ -50,6 +58,12 @@ class Adam(OptimizerBase, SGDMixin):
 
         self.callback = callback
         self.options = options
+
+        if self.break_condition in ["func_value", "func_update"] and self.skip_fun:
+            raise ValueError(
+                "Function evaluations cannot be skipped when using 'func_value' or 'func_update' "
+                "as break condition."
+            )
 
         self.gradient_deque = deque(maxlen=self.num_average)
         self.m = None
@@ -141,8 +155,16 @@ class Adam(OptimizerBase, SGDMixin):
                 self.callback(self.iteration, self.x, gradient, fval)
 
             # check termination
-            if np.linalg.norm(self.x - x_updated) < self.tol:
-                break
+            if self.break_condition == "func_value":  # func_value
+                if fval is not None and fval < self.tol:
+                    break
+            elif self.break_condition == "func_update":  # func_update
+                fval_updated = fun(x_updated)
+                if fval is not None and abs(fval - fval_updated) < self.tol:
+                    break
+            else:  # param_update
+                if np.linalg.norm(self.x - x_updated) < self.tol:
+                    break
 
             self.x = x_updated
 
