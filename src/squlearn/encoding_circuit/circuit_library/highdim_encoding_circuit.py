@@ -36,7 +36,7 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         cycling_type (str): Defines, how the indices are cycled.\n
                             ``saw``: restarts by 0, e.g. 0,1,2,3,0,1,2,3 (recommended);
                             ``hat``: goes up and then down, e.g. 0,1,2,3,2,1,0,1,2,3
-        number_of_layers (int): Sets the number of layer repetitions. If not given, the number of
+        num_layers (Union[None, int]): Sets the number of layer repetitions. If not given, the number of
                                 layers is determined automatically by the number of features and
                                 qubits. If the given number of layers is to low, a error is thrown.
         layer_type (str): Defines in which directions the features are assigned to the gates.
