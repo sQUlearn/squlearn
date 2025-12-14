@@ -4,7 +4,7 @@ import numpy as np
 from sympy import lambdify, sympify
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.compiler import transpile
 from qiskit.quantum_info import SparsePauliOp
 

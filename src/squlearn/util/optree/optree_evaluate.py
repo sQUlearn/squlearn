@@ -7,9 +7,7 @@ from packaging import version
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
-from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
-from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
 from ...util.decompose_to_std import decompose_to_std
 
@@ -27,6 +25,7 @@ from .optree import (
 )
 
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
 if QISKIT_SMALLER_1_2:
 
@@ -36,7 +35,14 @@ if QISKIT_SMALLER_1_2:
 else:
     from qiskit.primitives import BitArray
 
-from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
+if QISKIT_SMALLER_2_0:
+    from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
+else:
+    def _pauli_expval_with_variance(counts, paulis):
+        """Dummy function for Qiskit >= 2.0."""
+        pass
+
+from ..executor import QISKIT_SMALLER_2_0, BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
@@ -861,6 +867,7 @@ def _transform_operator_to_zbasis(
     """
 
     if QISKIT_SMALLER_1_2:
+        from qiskit.primitives import BackendEstimator
         measurement_circuit = BackendEstimator._measurement_circuit
     else:
         from qiskit.primitives.backend_estimator_v2 import (

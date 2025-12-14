@@ -22,10 +22,6 @@ from pennylane.devices import Device as PennylaneDevice
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import (
-    Estimator as PrimitiveEstimatorV1,
-    Sampler as PrimitiveSamplerV1,
-)
 from qiskit.primitives.base import EstimatorResult, SamplerResult
 from qiskit.providers import JobV1
 from qiskit.providers import Options
@@ -48,12 +44,11 @@ from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_global
 
 QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
 if QISKIT_SMALLER_1_0:
     # pylint: disable=ungrouped-imports
     from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BackendSampler as BackendSamplerV1,
         BaseEstimator as BaseEstimatorV1,
         BaseSampler as BaseSamplerV1,
     )
@@ -84,8 +79,6 @@ if QISKIT_SMALLER_1_0:
 
 else:
     from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BackendSampler as BackendSamplerV1,
         BaseEstimatorV1,
         BaseEstimatorV2,
         BaseSamplerV1,
@@ -113,6 +106,28 @@ else:
         BackendEstimatorV2,
         BackendSamplerV2,
     )
+
+if QISKIT_SMALLER_2_0:
+    # pylint: disable=ungrouped-imports
+    from qiskit.primitives import (
+        BackendEstimator as BackendEstimatorV1,
+        BackendSampler as BackendSamplerV1,
+        Estimator as PrimitiveEstimatorV1,
+        Sampler as PrimitiveSamplerV1,
+    )
+else:
+
+    class BackendEstimatorV1:
+        """Dummy BackendEstimatorV1"""
+
+    class BackendSamplerV1:
+        """Dummy BackendSamplerV1"""
+
+    class PrimitiveEstimatorV1:
+        """Dummy PrimitiveEstimatorV1"""
+
+    class PrimitiveSamplerV1:
+        """Dummy PrimitiveSamplerV1"""
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
