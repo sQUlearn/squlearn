@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
+from qiskit import QuantumCircuit
 from squlearn.observables import SingleProbability
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli, Statevector
 
 
 class TestSingleProbability:
@@ -39,3 +40,53 @@ class TestSingleProbability:
         assert isinstance(pauli, SparsePauliOp)
         assert pauli.num_qubits == 3
         assert pauli.paulis[0] == Pauli("III")
+
+    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
+    @pytest.mark.parametrize("one_state", [False, True])
+    def test_single_probability_returns_expected_expectation_value(self, basis_state, one_state):
+        """
+        Test that SingleProbability returns the correct probability on computational
+        basis states.
+        """
+        num_qubits = 2
+        measured_qubit = 0  # test probability on qubit 0
+
+        ob = SingleProbability(
+            num_qubits=num_qubits,
+            qubit=measured_qubit,
+            one_state=one_state,
+            parameterized=False,
+        )
+
+        pauli = ob.get_pauli()
+
+        # Prepare computational basis state
+        qc = QuantumCircuit(num_qubits)
+        for pos, bit in enumerate(basis_state):
+            qubit_index = num_qubits - pos - 1
+            if bit == "1":
+                qc.x(qubit_index)
+
+        state = Statevector.from_instruction(qc)
+
+        # Expectation value from qiskit
+        exp_val = state.expectation_value(pauli).real
+
+        # Manual expectation value
+        labels = list(pauli.paulis.to_labels())
+        coeffs = pauli.coeffs
+
+        expected_exp_val = 0.0
+        for lbl, coeff in zip(labels, coeffs):
+            term = 1.0
+            for k, ch in enumerate(lbl):
+                if ch == "I":
+                    continue
+                elif ch == "Z":
+                    bit = basis_state[k]
+                    term *= 1.0 if bit == "0" else -1.0
+                else:
+                    term *= 0.0
+            expected_exp_val += float(coeff.real) * term
+
+        assert np.isclose(exp_val, expected_exp_val)
