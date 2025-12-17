@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
+from qiskit.quantum_info import Statevector
 
+from squlearn.encoding_circuit import LayeredEncodingCircuit
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
+from squlearn.util.executor import Executor
 
 
 class DummyEncodingCircuit:
@@ -205,3 +208,50 @@ class TestFidelityKernel:
         out = self.kernel.evaluate_derivatives(x=np.array([[0.0]]), y=None, values="dKdp")
         assert isinstance(out, dict)
         assert "dKdp" in out or dqk.evaluate_derivatives_called is not None
+
+    @pytest.mark.parametrize("num_qubits", [1, 2])
+    @pytest.mark.parametrize("use_expectation", [True, False])
+    def test_fidelity_kernel_expectation_value(self, num_qubits, use_expectation):
+        """
+        Use LayeredEncodingCircuit with a single Ry('x') layer as encoding.
+        Compare the FidelityKernel.evaluate(X) result with the fidelity computed
+        directly from the statevectors of the constructed circuits.
+        """
+        pqc = LayeredEncodingCircuit(num_qubits=num_qubits, num_features=1)
+        pqc.Rx("x")
+        pqc.generate_initial_parameters(num_features=1, seed=42)
+        n_params = pqc.num_parameters
+
+        # create reproducible parameter vector
+        params = np.array([np.pi / 4.0] * n_params)
+
+        X = np.zeros((2, 1))
+
+        executor = Executor()
+        kernel = FidelityKernel(
+            encoding_circuit=pqc, executor=executor, use_expectation=use_expectation
+        )
+
+        # Provide the trainable parameters to the kernel (if present)
+        if kernel.num_parameters > 0:
+            kernel._parameters = params
+
+        K_impl = kernel.evaluate(X)
+
+        # compute expected kernel matrix from statevectors directly
+        # For each datapoint x_i compute psi_i = Statevector(U(x_i, params)|0>)
+        psi_list = []
+        for i in range(len(X)):
+            circ = pqc.get_circuit(features=X[i], parameters=params)
+            sv = Statevector.from_instruction(circ)
+            psi_list.append(sv.data)
+
+        n = len(psi_list)
+        K_expected = np.zeros((n, n), dtype=float)
+        for i in range(n):
+            for j in range(n):
+                overlap = np.vdot(psi_list[i], psi_list[j])  # <psi_i|psi_j>
+                fidelity = abs(overlap) ** 2
+                K_expected[i, j] = fidelity
+
+        assert np.allclose(K_impl, K_expected, atol=1e-12)
