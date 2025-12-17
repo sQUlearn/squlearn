@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp, Statevector
 
 from squlearn.observables import SummedPaulis
 
@@ -122,3 +122,56 @@ class TestSummedPaulis:
         labels_without = list(pa_without.paulis.to_labels())
         # first label should be the Z operator on qubit 0 (per generator order)
         assert labels_without[0] != "I" * num_qubits
+
+    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
+    def test_summed_paulis_returns_expected_expectation_value(self, basis_state):
+        """Test that SummedPaulis returns expected expectation value on basis states."""
+        num_qubits = 2
+
+        # Observable: I + sum_i Z_i  (full_sum=True => separate parameter per qubit)
+        ob = SummedPaulis(
+            num_qubits=num_qubits,
+            op_str="Z",
+            full_sum=True,
+            include_identity=True,
+        )
+
+        # Parameters:
+        # [I_coeff, Z(q0)_coeff, Z(q1)_coeff]
+        params = np.array([1.0, 2.0, 3.0])
+
+        pauli = ob.get_pauli(parameters=params)
+
+        # Prepare computational basis state
+        qc = QuantumCircuit(num_qubits)
+        for pos, bit in enumerate(basis_state):
+            qubit_index = num_qubits - pos - 1
+            if bit == "1":
+                qc.x(qubit_index)
+
+        state = Statevector.from_instruction(qc)
+
+        # Expectation value from Qiskit
+        exp_val = state.expectation_value(pauli).real
+
+        # Manual expectation value
+        expected_exp_val = 0.0
+        labels = list(pauli.paulis.to_labels())
+        coeffs = pauli.coeffs
+
+        for lbl, coeff in zip(labels, coeffs):
+            term = 1.0
+            for k, ch in enumerate(lbl):
+                if ch == "I":
+                    continue
+                elif ch == "Z":
+                    bit = basis_state[k]
+                    term *= 1.0 if bit == "0" else -1.0
+                else:
+                    # X or Y on computational basis states -> expectation value 0
+                    term *= 0.0
+
+            cval = coeff.real if hasattr(coeff, "real") else float(coeff)
+            expected_exp_val += float(cval) * float(term)
+
+        assert np.isclose(exp_val, expected_exp_val)
