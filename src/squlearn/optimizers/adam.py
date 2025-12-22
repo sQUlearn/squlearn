@@ -1,4 +1,3 @@
-import abc
 from collections import deque
 import numpy as np
 
@@ -145,7 +144,7 @@ class Adam(OptimizerBase, SGDMixin):
 
             x_updated = self.step(x=self.x, grad=gradient)
 
-            if bounds != None:
+            if bounds is not None:
                 x_updated = np.clip(x_updated, bounds[:, 0], bounds[:, 1])
 
             if self.log_file is not None:
