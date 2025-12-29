@@ -86,6 +86,6 @@ class NLL(KernelLossBase):
             + 0.5 * labels.T @ S2
             + 0.5 * len(data) * np.log(2.0 * np.pi)
         )
-        neg_log_lh = neg_log_lh.reshape(-1)
 
-        return neg_log_lh
+        # Ensure a float is returned, not a single-element array
+        return float(neg_log_lh)
