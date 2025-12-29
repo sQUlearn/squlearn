@@ -98,9 +98,9 @@ class TestFidelityKernelStatevector:
         k._parameters = np.array([0.5])  # dummy params
 
         exec_mock.pennylane_execute_batched.return_value = [
-            [np.array([1.0])],
-            [np.array([0.6])],
-            [np.array([1.0])],
+            [1.0],
+            [0.6],
+            [1.0],
         ]
 
         # Test 'all' mode -> should produce kernel entries for (0,0),(0,1),(1,1) but our batched result length 1
@@ -115,10 +115,10 @@ class TestFidelityKernelStatevector:
         y = np.array([[0.1, 0.2], [0.5, 0.6]])
         # Create return list for 4 pairs (2x2)
         exec_mock.pennylane_execute_batched.return_value = [
-            [np.array([0.11])],
-            [np.array([0.22])],
-            [np.array([0.33])],
-            [np.array([0.44])],
+            [0.11],
+            [0.22],
+            [0.33],
+            [0.44],
         ]
         k._evaluate_duplicates = "off_diagonal"
         # parameter_vector present -> arguments include (params, x1, x2)
