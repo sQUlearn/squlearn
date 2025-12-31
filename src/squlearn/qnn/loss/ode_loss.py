@@ -1,6 +1,6 @@
 """ODE Loss for QNNs."""
 
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import sympy as sp
@@ -204,7 +204,7 @@ class ODELoss(QNNLossBase):
                 loss_values["dfdxdx"][:, 0, 0],
             )
 
-    def value(self, value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray]) -> float:
         r"""
         Calculates the squared loss of the loss function for the ODE as
 
@@ -219,18 +219,15 @@ class ODELoss(QNNLossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`f_{ref}\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points
+            weights (Optional[np.ndarray]): Weight for each data point, if None all data points
                                   count the same
 
         Returns:
             Loss value
         """
-        if "ground_truth" not in kwargs:
-            raise AttributeError("SquaredLoss requires ground_truth.")
-        ground_truth = kwargs["ground_truth"]
-        weights = kwargs.get("weights") or np.ones_like(ground_truth)
+        weights = weights or np.ones_like(ground_truth)
 
-        multiple_output = "multiple_output" in kwargs and kwargs["multiple_output"]
+        multiple_output = None # Not used in this implementation
 
         functional_loss, initial_value_loss_f, initial_value_loss_df = 0, 0, 0
 

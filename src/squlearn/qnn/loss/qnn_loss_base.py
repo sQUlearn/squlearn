@@ -2,7 +2,7 @@
 
 import abc
 from collections.abc import Callable
-from typing import Union
+from typing import Union, overload, Optional
 import numpy as np
 
 
@@ -42,8 +42,18 @@ class QNNLossBase(abc.ABC):
         """Returns evaluation tuple for loss gradient calculation."""
         raise NotImplementedError()
 
+    # Signature for SquaredLoss, ODELoss, MeanSquaredError, CrossEntropyLoss
+    @overload
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray]) -> float:
+        ...
+
+    # Signature for VarianceLoss, ParameterRegularizationLoss
+    @overload
+    def value(self, value_dict: dict, iteration: Optional[int]) -> float:
+        ...
+
     @abc.abstractmethod
-    def value(self, value_dict: dict, **kwargs) -> float:
+    def value(self, **kwargs) -> float:
         """Calculates and returns the loss value."""
         raise NotImplementedError()
 
@@ -333,10 +343,6 @@ class ConstantLoss(QNNLossBase):
 
     def value(self, value_dict: dict, **kwargs) -> float:
         """Returns constant or iteration dependent loss value
-
-        Args:
-            value_dict (dict): Contains calculated values of the model
-            iteration (int): iteration number, if value is a callable function
         """
         if callable(self._value):
             if "iteration" not in kwargs:
