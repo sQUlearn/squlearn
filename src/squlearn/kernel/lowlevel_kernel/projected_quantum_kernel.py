@@ -488,7 +488,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated output of the QNN as numpy array
         """
-        self.__check_num_params()
+        self._initialize_kernel(num_features=extract_num_features(x))
 
         # Copy parameters in QNN form
         if self._parameters is None and self.num_parameters == 0:
