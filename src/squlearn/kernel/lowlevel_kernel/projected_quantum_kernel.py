@@ -488,7 +488,7 @@ class ProjectedQuantumKernel(KernelMatrixBase):
         Returns:
             The evaluated output of the QNN as numpy array
         """
-        self.__check_num_params()
+        self._initialize_kernel(num_features=extract_num_features(x))
 
         # Copy parameters in QNN form
         if self._parameters is None and self.num_parameters == 0:
@@ -961,10 +961,8 @@ class GaussianOuterKernel(OuterKernelBase):
         param = parameters[: qnn.num_parameters]
         param_op = parameters[qnn.num_parameters :]
 
-        if len(param.shape) == 1 and len(param) == 1:
-            param = float(param)
-        if len(param_op.shape) == 1 and len(param_op) == 1:
-            param_op = float(param_op)
+        param = param.item() if param.size == 1 else param
+        param_op = param_op.item() if param_op.size == 1 else param_op
 
         x_result = qnn.evaluate(x, param, param_op, "f")["f"]
         if y is not None:

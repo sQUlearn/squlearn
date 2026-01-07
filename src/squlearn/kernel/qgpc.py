@@ -33,8 +33,7 @@ class QGPC(GaussianProcessClassifier, SerializableModelMixin):
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
             of the underlying encoding circuit.
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.QSVC : Quantum Support Vector classification.
 
     References

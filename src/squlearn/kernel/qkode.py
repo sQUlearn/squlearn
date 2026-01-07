@@ -56,8 +56,7 @@ class QKODE(QKRR):
         k_testtrain (np.ndarray) :
             Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step.
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.loss.ODELoss : Loss function for ODEs.
 
     References
