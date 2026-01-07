@@ -73,7 +73,7 @@ class FiniteDiffGradient(ApproxGradientBase):
             g = np.zeros(len(x))
             for i in range(len(x)):
                 dx = np.eye(1, len(x), k=i)[0] * self.eps
-                g[i] = (((f0 - self.fun(x - dx))) / self.eps).item()
+                g[i] = ((f0 - self.fun(x - dx)) / self.eps).item()
 
         elif self.formula == "central":
             g = np.zeros(len(x))
