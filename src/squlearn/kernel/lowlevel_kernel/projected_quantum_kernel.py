@@ -961,10 +961,8 @@ class GaussianOuterKernel(OuterKernelBase):
         param = parameters[: qnn.num_parameters]
         param_op = parameters[qnn.num_parameters :]
 
-        if param.size == 1:
-            param = param.item()
-        if param_op.size == 1:
-            param_op = param_op.item()
+        param = param.item() if param.size == 1 else param
+        param_op = param_op.item() if param_op.size == 1 else param_op
 
         x_result = qnn.evaluate(x, param, param_op, "f")["f"]
         if y is not None:
