@@ -32,7 +32,7 @@ class MeanSquaredError(QNNLossBase):
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray]) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         r"""Calculates the mean squared error.
 
         This function calculates the mean squared error between the values in `value_dict` and

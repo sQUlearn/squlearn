@@ -1,6 +1,7 @@
 """Loss Base Classes for QNNs."""
 
 import abc
+import inspect
 from collections.abc import Callable
 from typing import Union, overload, Optional
 import numpy as np
@@ -206,9 +207,19 @@ class _ComposedLoss(QNNLossBase):
         Returns:
             float: Composed loss value
         """
+        params_l1 = inspect.signature(self._l1.value).parameters
+        params_l2 = inspect.signature(self._l2.value).parameters
 
-        value_l1 = self._l1.value(value_dict, **kwargs)
-        value_l2 = self._l2.value(value_dict, **kwargs)
+        def _child_value(loss, params):
+            if "ground_truth" in params:
+                if "ground_truth" not in kwargs:
+                    raise TypeError("ground_truth is required for this loss.")
+                return loss.value(value_dict, kwargs["ground_truth"], kwargs.get("weights", None))
+            else:
+                return loss.value(value_dict, kwargs.get("iteration", None))
+
+        value_l1 = _child_value(self._l1, params_l1)
+        value_l2 = _child_value(self._l2, params_l2)
 
         if self._composition == "*":
             return value_l1 * value_l2

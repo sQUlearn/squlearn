@@ -32,7 +32,7 @@ class SquaredLoss(QNNLossBase):
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray]) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         r"""Calculates the squared loss.
 
         This function calculates the squared loss between the values in `value_dict` and

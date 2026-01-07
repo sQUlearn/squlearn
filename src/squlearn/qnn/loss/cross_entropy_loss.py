@@ -31,7 +31,7 @@ class CrossEntropyLoss(QNNLossBase):
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray]) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         r"""Calculates the cross entropy loss.
 
         This function calculates the cross entropy loss between the probability values in

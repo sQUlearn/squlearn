@@ -298,12 +298,17 @@ def train(
 
         loss_values = qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple)
 
-        loss_value = loss.value(
-            loss_values,
-            ground_truth=ground_truth,
-            weights=weights,
-            iteration=iteration,
-        )
+        if ground_truth is not None:
+            loss_value = loss.value(
+                loss_values,
+                ground_truth=ground_truth,
+                weights=weights,
+            )
+        else:
+            loss_value = loss.value(
+                loss_values,
+                iteration=iteration
+            )
         return loss_value
 
     def _grad(theta):
@@ -333,12 +338,19 @@ def train(
                         weights=weights,
                         iteration=iteration,
                     )
-                    loss_values = loss.value(
-                        qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple),
-                        ground_truth=ground_truth,
-                        weights=weights,
-                        iteration=iteration,
-                    )
+
+                    if ground_truth is not None:
+                        loss_values = loss.value(
+                            qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple),
+                            ground_truth=ground_truth,
+                            weights=weights,
+                        )
+                    else:
+                        loss_values = loss.value(
+                            qnn.evaluate(input_values, param_, param_op_, *loss.loss_args_tuple),
+                            iteration=iteration,
+                        )
+
                     shot_control.set_shots_for_grad(value=loss_values, variance=loss_variance)
                 else:
                     raise ValueError("Loss variance necessary for ShotsFromRSTD shot control")
@@ -474,12 +486,17 @@ def train_mini_batch(
                 input_values[idcs[batch_slice]], param, param_op, *loss.loss_args_tuple
             )
 
-            batch_loss = loss.value(
-                loss_values,
-                ground_truth=ground_truth[idcs[batch_slice]],
-                weights=weights[idcs[batch_slice]] if weights is not None else None,
-                iteration=epoch,
-            )
+            if ground_truth is not None:
+                batch_loss = loss.value(
+                    loss_values,
+                    ground_truth=ground_truth[idcs[batch_slice]],
+                    weights=weights[idcs[batch_slice]] if weights is not None else None,
+                )
+            else:
+                batch_loss = loss.value(
+                    loss_values,
+                    iteration=epoch,
+                )
 
             accumulated_loss += batch_loss
 
