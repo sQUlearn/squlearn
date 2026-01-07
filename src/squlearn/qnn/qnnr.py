@@ -77,8 +77,7 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             specified, the estimator will used. Possible values are ``"estimator"`` or
             ``"sampler"``.
 
-    See Also
-    --------
+    See Also:
         squlearn.qnn.QNNClassifier : Quantum Neural Network for Classification.
 
     **Example**
