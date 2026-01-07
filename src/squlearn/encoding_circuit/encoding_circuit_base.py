@@ -22,7 +22,7 @@ class EncodingCircuitBase(ABC):
 
     def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
-        self._num_features = num_features
+        self._num_features = num_features if num_features != 0 else None
 
         if num_features is not None:
             warnings.warn(
@@ -213,6 +213,8 @@ class EncodingCircuitBase(ABC):
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
+            if key == "num_features" and value == 0:
+                value = None
             try:
                 setattr(self, key, value)
             except:
