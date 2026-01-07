@@ -2158,7 +2158,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
         return params
 
-    def set_params(self, **params) -> None:
+    def set_params(self, **params):
         super().set_params(**params)
 
         dict_layered_pqc = {}
