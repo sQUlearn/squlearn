@@ -2159,22 +2159,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         return params
 
     def set_params(self, **params) -> None:
-        if "encoding_circuit_str" in params:
-            self._encoding_circuit_str = params["encoding_circuit_str"]
-
-        valid_params = self.get_params()
-        for key, value in params.items():
-            if key not in valid_params:
-                raise ValueError(
-                    f"Invalid parameter {key!r}. "
-                    f"Valid parameters are {sorted(valid_params)!r}."
-                )
-
-        if "num_features" in params:
-            self._num_features = params["num_features"]
-
-        if "num_qubits" in params:
-            self._num_qubits = params["num_qubits"]
+        super().set_params(**params)
 
         dict_layered_pqc = {}
         for key in params.keys():
