@@ -79,7 +79,7 @@ class FiniteDiffGradient(ApproxGradientBase):
             g = np.zeros(len(x))
             for i in range(len(x)):
                 dx = np.eye(1, len(x), k=i)[0] * self.eps
-                g[i] = (((self.fun(x + dx) - self.fun(x - dx))) / (2.0 * self.eps)).item()
+                g[i] = ((self.fun(x + dx) - self.fun(x - dx)) / (2.0 * self.eps)).item()
 
         elif self.formula == "five-point":
             g = np.zeros(len(x))
