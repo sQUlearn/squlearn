@@ -39,8 +39,7 @@ class QSVR(SVR, SerializableModelMixin):
             underlying encoding circuit can be adjusted via kwargs such as the number of qubits
             (``num_qubits``), or (if supported) the number of layers (``num_layers``).
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.QSVC : Quantum Support Vector Classification
 
     **Example**

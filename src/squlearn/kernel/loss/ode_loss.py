@@ -77,8 +77,7 @@ class ODELoss(KernelLossBase):
             eta=1.2,
         )
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.QKODE : Quantum Kernel for ODE solving.
 
     References

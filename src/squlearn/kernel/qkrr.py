@@ -58,8 +58,7 @@ class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         k_testtrain (np.ndarray) :
             Kernel matrix of shape (n_test, n_train) which is evaluated at the predict step
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.QGPR : Quantum Gaussian Process regression.
         squlearn.kernel.QSVR : Quantum Support Vector regression.
 
