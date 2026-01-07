@@ -402,17 +402,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         Args:
             params: Hyper-parameters and their values, e.g. ``num_qubits=2``.
         """
-        valid_params = self.get_params()
-        for key, value in params.items():
-            if key not in valid_params:
-                raise ValueError(
-                    f"Invalid parameter {key!r}. "
-                    f"Valid parameters are {sorted(valid_params)!r}."
-                )
-            try:
-                setattr(self, key, value)
-            except:
-                setattr(self, "_" + key, value)
+        super().set_params(**params)
 
         # Reset the random configuration
         self._is_config_available = False
