@@ -53,8 +53,7 @@ class QRCRegressor(BaseQRC, RegressorMixin):
             parameters are given.
         caching (bool): Whether to cache the results of the evaluated expectation values.
 
-    See Also
-    --------
+    See Also:
         squlearn.qrc.QRCClassifier: Quantum Reservoir Computing for Classification.
         squlearn.qrc.base_qrc.BaseQRC: Base class for Quantum Reservoir Computing.
 

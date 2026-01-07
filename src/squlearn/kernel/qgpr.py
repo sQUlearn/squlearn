@@ -60,8 +60,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
             (``num_qubits=``), or (if supported) the number of layers (``num_layers=``)
             of the underlying encoding circuit.
 
-    See Also
-    --------
+    See Also:
         squlearn.kernel.QKRR : Quantum Gaussian Process regression.
         squlearn.kernel.QSVR : Quantum Support Vector regression.
 
