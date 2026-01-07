@@ -156,7 +156,9 @@ class EncodingCircuitBase(ABC):
 
         # ensure random configuration is available
         if hasattr(self, "_is_config_available") and not self._is_config_available:
-            self._gen_random_config(num_features=num_features or self.num_features or 0, seed=self.get_params()["seed"])
+            self._gen_random_config(
+                num_features=num_features or self.num_features or 0, seed=self.get_params()["seed"]
+            )
 
         # ensure that the LayeredEncodingCircuit is built before drawing
         if hasattr(self, "_build_layered_pqc"):
