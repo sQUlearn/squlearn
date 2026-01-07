@@ -3,9 +3,9 @@ import numpy as np
 from squlearn.optimizers import Adam
 
 
-def quad(x: np.ndarray) -> float:
+def quad(x: np.ndarray) -> np.ndarray:
     x = np.asarray(x)
-    return float(np.dot(x, x))
+    return np.dot(x, x)
 
 
 def quad_grad(x: np.ndarray) -> np.ndarray:

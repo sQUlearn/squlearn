@@ -6,8 +6,8 @@ from squlearn.optimizers import FiniteDiffGradient, StochasticPerturbationGradie
 
 class TestFiniteDiffGradient:
     @staticmethod
-    def quad_fun(x: np.ndarray) -> float:
-        return float(np.sum(x**2))
+    def quad_fun(x: np.ndarray) -> np.ndarray:
+        return np.sum(x**2)
 
     @staticmethod
     def quad_grad(x: np.ndarray) -> np.ndarray:
