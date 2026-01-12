@@ -22,7 +22,7 @@ class EncodingCircuitBase(ABC):
 
     def __init__(self, num_qubits: int, num_features: int = None) -> None:
         self._num_qubits = num_qubits
-        self._num_features = num_features
+        self._num_features = num_features if num_features != 0 else None
 
         if num_features is not None:
             warnings.warn(
@@ -149,14 +149,16 @@ class EncodingCircuitBase(ABC):
         ):
             feature_vec = ParameterVector(feature_label, self.num_encoding_slots)
 
-        elif self.num_features is not None and num_features is None:
-            feature_vec = ParameterVector(feature_label, self.num_features)
+        elif num_features or self.num_features:
+            feature_vec = ParameterVector(feature_label, num_features or self.num_features)
         else:
             feature_vec = [Parameter(feature_label)]
 
         # ensure random configuration is available
         if hasattr(self, "_is_config_available") and not self._is_config_available:
-            self._gen_random_config(num_features=num_features, seed=self.get_params()["seed"])
+            self._gen_random_config(
+                num_features=num_features or self.num_features or 0, seed=self.get_params()["seed"]
+            )
 
         # ensure that the LayeredEncodingCircuit is built before drawing
         if hasattr(self, "_build_layered_pqc"):
@@ -211,6 +213,8 @@ class EncodingCircuitBase(ABC):
                     f"Invalid parameter {key!r}. "
                     f"Valid parameters are {sorted(valid_params)!r}."
                 )
+            if key == "num_features" and value == 0:
+                value = None
             try:
                 setattr(self, key, value)
             except:
