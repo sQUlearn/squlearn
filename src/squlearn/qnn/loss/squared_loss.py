@@ -1,6 +1,6 @@
 """Squared Loss for QNNs."""
 
-from typing import Union
+from typing import Union, overload, Optional
 
 import numpy as np
 
@@ -32,7 +32,7 @@ class SquaredLoss(QNNLossBase):
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    def value(self, value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         r"""Calculates the squared loss.
 
         This function calculates the squared loss between the values in `value_dict` and
@@ -44,16 +44,13 @@ class SquaredLoss(QNNLossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the
+            weights: (Optional[np.ndarray]): Weight for each data point, if None all data points count the
                 same
 
         Returns:
             Loss value
         """
-        if "ground_truth" not in kwargs:
-            raise AttributeError("SquaredLoss requires ground_truth.")
-        ground_truth = kwargs["ground_truth"]
-        weights = kwargs.get("weights") or np.ones_like(ground_truth)
+        weights = weights or np.ones_like(ground_truth)
         return np.sum(np.multiply(np.square(value_dict["f"] - ground_truth), weights))
 
     def variance(self, value_dict: dict, **kwargs) -> float:

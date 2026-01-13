@@ -15,9 +15,7 @@ class TestMeanSquaredError:
         loss._opt_param_op = False
         assert loss.gradient_args_tuple == ("f", "dfdp")
 
-        # missing ground_truth should raise for value/variance/gradient
-        with pytest.raises(AttributeError):
-            loss.value({"f": np.array([0.0])})
+        # missing ground_truth should raise for variance/gradient
         with pytest.raises(AttributeError):
             loss.variance({"f": np.array([0.0]), "var": np.array([0.0])})
         with pytest.raises(AttributeError):

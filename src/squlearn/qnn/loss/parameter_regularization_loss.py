@@ -1,7 +1,7 @@
 """Parameter Regularization Loss for QNNs."""
 
 from collections.abc import Callable
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 
@@ -60,7 +60,7 @@ class ParameterRegularizationLoss(QNNLossBase):
         """Returns evaluation tuple for loss gradient calculation."""
         return tuple()
 
-    def value(self, value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, iteration: Optional[int]) -> float:
         r"""Returns the variance.
 
         This function returns the weighted variance as
@@ -70,16 +70,16 @@ class ParameterRegularizationLoss(QNNLossBase):
 
         Args:
             value_dict (dict): Contains calculated values of the model
-            iteration (int): iteration number, if alpha is a callable function
+            iteration (Optional[int]): iteration number, if alpha is a callable function
 
         Returns:
             Loss value
         """
 
         if callable(self._alpha):
-            if "iteration" not in kwargs:
+            if iteration is None:
                 raise AttributeError("If alpha is callable, iteration is required.")
-            alpha = self._alpha(kwargs["iteration"])
+            alpha = self._alpha(iteration)
         else:
             alpha = self._alpha
 

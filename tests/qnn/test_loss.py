@@ -1,17 +1,14 @@
-import scipy as sp
-import pytest
 import numpy as np
+import pytest
 import sympy
 
-from squlearn.qnn import CrossEntropyLoss
 from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.observables import SummedPaulis
-from squlearn.qnn.qnnr import QNNRegressor
-from squlearn.optimizers import Adam, LBFGSB
-from squlearn.qnn import QNNRegressor
-from squlearn.qnn.util import get_lr_decay
+from squlearn.optimizers import Adam
+from squlearn.qnn import CrossEntropyLoss
 from squlearn.qnn import ODELoss
+from squlearn.qnn import QNNRegressor
 
 
 class TestCrossEntropyLoss:
