@@ -105,8 +105,18 @@ class TestCustomObservable:
         expected = np.array([1.0, 2.0, 1.0, 2.0], dtype=float)
         assert np.allclose(coeffs, expected)
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    def test_custom_observable_returns_expected_expectation_value(self, basis_state):
+    @pytest.mark.parametrize(
+        "basis_state, expected_exp_val",
+        [
+            ("00", 2.0),
+            ("01", 0.0),
+            ("10", 0.0),
+            ("11", -2.0),
+        ],
+    )
+    def test_custom_observable_returns_expected_expectation_value(
+        self, basis_state, expected_exp_val
+    ):
         """Test that CustomObservable returns the expected expectation value on basis states."""
         num_qubits = 2
 
@@ -132,30 +142,20 @@ class TestCustomObservable:
         # Expectation value computed by Qiskit
         exp_val = state.expectation_value(pauli).real
 
-        # Manual expectation value computation
-        expected_exp_val = 0.0
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                elif ch == "Z":
-                    bit = basis_state[k]
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    # X or Y on computational basis states -> expectation 0
-                    term *= 0.0
-
-            cval = coeff.real if hasattr(coeff, "real") else float(coeff)
-            expected_exp_val += float(cval) * float(term)
-
         assert np.isclose(exp_val, expected_exp_val)
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    def test_parameterized_custom_observable_returns_expected_expectation_value(self, basis_state):
+    @pytest.mark.parametrize(
+        "basis_state, expected_exp_val",
+        [
+            ("00", 1.0),
+            ("01", 3.0),
+            ("10", -3.0),
+            ("11", -1.0),
+        ],
+    )
+    def test_parameterized_custom_observable_returns_expected_expectation_value(
+        self, basis_state, expected_exp_val
+    ):
         num_qubits = 2
 
         ob = CustomObservable(
@@ -175,22 +175,5 @@ class TestCustomObservable:
 
         state = Statevector.from_instruction(qc)
         exp_val = state.expectation_value(pauli).real
-
-        expected_exp_val = 0.0
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                elif ch == "Z":
-                    bit = basis_state[k]
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    term *= 0.0
-
-            expected_exp_val += float(coeff) * term
 
         assert np.isclose(exp_val, expected_exp_val)

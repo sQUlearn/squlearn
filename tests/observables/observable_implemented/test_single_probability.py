@@ -41,9 +41,22 @@ class TestSingleProbability:
         assert pauli.num_qubits == 3
         assert pauli.paulis[0] == Pauli("III")
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    @pytest.mark.parametrize("one_state", [False, True])
-    def test_single_probability_returns_expected_expectation_value(self, basis_state, one_state):
+    @pytest.mark.parametrize(
+        "basis_state, one_state, expected_exp_val",
+        [
+            ("00", False, 1.0),
+            ("01", False, 0.0),
+            ("10", False, 1.0),
+            ("11", False, 0.0),
+            ("00", True, 0.0),
+            ("01", True, 1.0),
+            ("10", True, 0.0),
+            ("11", True, 1.0),
+        ],
+    )
+    def test_single_probability_returns_expected_expectation_value(
+        self, basis_state, one_state, expected_exp_val
+    ):
         """
         Test that SingleProbability returns the correct probability on computational
         basis states.
@@ -71,22 +84,5 @@ class TestSingleProbability:
 
         # Expectation value from qiskit
         exp_val = state.expectation_value(pauli).real
-
-        # Manual expectation value
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-
-        expected_exp_val = 0.0
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                elif ch == "Z":
-                    bit = basis_state[k]
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    term *= 0.0
-            expected_exp_val += float(coeff.real) * term
 
         assert np.isclose(exp_val, expected_exp_val)

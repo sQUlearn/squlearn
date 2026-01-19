@@ -47,8 +47,18 @@ class TestSummedProbability:
         pauli = ob.get_pauli(np.array([0.5]))
         assert isinstance(pauli, SparsePauliOp)
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    def test_summed_probabilities_zero_state_returns_expected_expectation(self, basis_state):
+    @pytest.mark.parametrize(
+        "basis_state, expected_exp_val",
+        [
+            ("00", 6.0),
+            ("01", 4.0),
+            ("10", 3.0),
+            ("11", 1.0),
+        ],
+    )
+    def test_summed_probabilities_zero_state_returns_expected_expectation(
+        self, basis_state, expected_exp_val
+    ):
         """
         SummedProbabilities with one_state=False measures probability of |0> for each qubit.
         """
@@ -74,30 +84,20 @@ class TestSummedProbability:
         # compute expectation by qiskit
         exp_val = float(state.expectation_value(pauli).real)
 
-        # compute expected expectation manually from Pauli labels and coeffs
-        expected_exp_val = 0.0
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                if ch == "Z":
-                    bit = basis_state[
-                        k
-                    ]  # left-to-right in string corresponds to pauli label ordering
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    # X or Y terms give zero expectation on computational basis states
-                    term *= 0.0
-            cval = coeff.real if hasattr(coeff, "real") else float(coeff)
-            expected_exp_val += float(cval) * float(term)
-
         assert np.isclose(exp_val, expected_exp_val)
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    def test_summed_probabilities_one_state_returns_expected_expectation(self, basis_state):
+    @pytest.mark.parametrize(
+        "basis_state, expected_exp_val",
+        [
+            ("00", 0.5),
+            ("01", 2.5),
+            ("10", 3.5),
+            ("11", 5.5),
+        ],
+    )
+    def test_summed_probabilities_one_state_returns_expected_expectation(
+        self, basis_state, expected_exp_val
+    ):
         """
         SummedProbabilities with one_state=True measures probability of |1> for each qubit.
         """
@@ -118,21 +118,5 @@ class TestSummedProbability:
 
         state = Statevector.from_instruction(qc)
         exp_val = float(state.expectation_value(pauli).real)
-
-        expected_exp_val = 0.0
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                if ch == "Z":
-                    bit = basis_state[k]
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    term *= 0.0
-            cval = coeff.real if hasattr(coeff, "real") else float(coeff)
-            expected_exp_val += float(cval) * float(term)
 
         assert np.isclose(exp_val, expected_exp_val)

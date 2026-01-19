@@ -129,8 +129,16 @@ class TestIsingHamiltonian:
         with pytest.raises(ValueError):
             ob.get_pauli(parameters=np.array([1.0]))
 
-    @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
-    def test_obeservable_retruns_expected_expectation_value(self, basis_state):
+    @pytest.mark.parametrize(
+        "basis_state, expected_exp_val",
+        [
+            ("00", 8.0),
+            ("01", -2.0),
+            ("10", -2.0),
+            ("11", 0.0),
+        ],
+    )
+    def test_obeservable_retruns_expected_expectation_value(self, basis_state, expected_exp_val):
         """Test that the observable returns expected expectation value on a set of basis states."""
         num_qubits = 2
         ob = IsingHamiltonian(num_qubits=num_qubits, I="S", Z="S", X="N", ZZ="S")
@@ -152,24 +160,5 @@ class TestIsingHamiltonian:
 
         # Compute expectation value using qiskit (the value under test)
         exp_val = state.expectation_value(pauli).real
-
-        # Compute expected expectation value manually from Pauli labels and coeffs.
-        # For computational-basis states: I -> 1, Z -> +1 for '0' and -1 for '1'.
-        expected_exp_val = 0.0
-        labels = list(pauli.paulis.to_labels())
-        coeffs = pauli.coeffs
-        for lbl, coeff in zip(labels, coeffs):
-            term = 1.0
-            for k, ch in enumerate(lbl):
-                if ch == "I":
-                    continue
-                if ch == "Z":
-                    bit = basis_state[k]
-                    term *= 1.0 if bit == "0" else -1.0
-                else:
-                    # X or other paulis on computational-basis states: expectation is 0
-                    term *= 0.0
-            cval = coeff.real if hasattr(coeff, "real") else float(coeff)
-            expected_exp_val += float(cval) * float(term)
 
         assert np.isclose(exp_val, expected_exp_val)

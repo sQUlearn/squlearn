@@ -80,19 +80,21 @@ class TestSinglePauli:
             sp.get_pauli(parameters=np.array([]))
 
     @pytest.mark.parametrize(
-        "basis_state, qubit, parameterized, coeff",
+        "basis_state, qubit, parameterized, coeff, expected_exp_val",
         [
-            ("00", 0, False, 1.0),
-            ("01", 0, False, 1.0),
-            ("10", 1, False, 1.0),
-            ("11", 1, False, 1.0),
-            ("00", 0, True, 2.5),
-            ("01", 0, True, 2.5),
-            ("10", 1, True, -1.3),
-            ("11", 1, True, -1.3),
+            ("00", 0, False, 1.0, 1.0),
+            ("01", 0, False, 1.0, -1.0),
+            ("10", 1, False, 1.0, -1.0),
+            ("11", 1, False, 1.0, -1.0),
+            ("00", 0, True, 2.5, 2.5),
+            ("01", 0, True, 2.5, -2.5),
+            ("10", 1, True, -1.3, 1.3),
+            ("11", 1, True, -1.3, 1.3),
         ],
     )
-    def test_single_pauli_z_expectation_value(self, basis_state, qubit, parameterized, coeff):
+    def test_single_pauli_z_expectation_value(
+        self, basis_state, qubit, parameterized, coeff, expected_exp_val
+    ):
         """Z Pauli gives ±coeff depending on computational basis state."""
         num_qubits = 2
 
@@ -116,12 +118,7 @@ class TestSinglePauli:
         state = Statevector.from_instruction(qc)
         exp_val = state.expectation_value(pauli).real
 
-        # Manual expectation
-        measured_bit = basis_state[num_qubits - qubit - 1]
-        sign = 1.0 if measured_bit == "0" else -1.0
-        expected = coeff * sign
-
-        assert np.isclose(exp_val, expected)
+        assert np.isclose(exp_val, expected_exp_val)
 
     @pytest.mark.parametrize("op_str", ["X", "Y"])
     @pytest.mark.parametrize("basis_state", ["00", "01", "10", "11"])
