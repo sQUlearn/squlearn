@@ -7,7 +7,7 @@ import numpy as np
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
-from squlearn.util.qiskit_circuit_equivalence import assert_circuits_equal
+from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
 class TestChebyshevRx:

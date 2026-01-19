@@ -8,7 +8,7 @@ from squlearn.encoding_circuit.pruned_encoding_circuit import (
     automated_pruning,
 )
 from squlearn.util.executor import Executor
-from squlearn.util.qiskit_circuit_equivalence import assert_circuits_equal
+from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
 class TestPrunedEncodingCircuit:
