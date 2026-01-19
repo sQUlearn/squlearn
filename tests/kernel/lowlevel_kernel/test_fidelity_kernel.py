@@ -7,6 +7,48 @@ from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.util.executor import Executor
 
 
+def _compute_expected_fidelity_matrix(num_qubits: int, X: np.ndarray):
+    """
+    Helper: build the LayeredEncodingCircuit exactly like in the test and compute
+    the fidelity kernel matrix from the statevectors. This runs at import-time
+    so the resulting K_expected can be used directly in @pytest.mark.parametrize.
+    """
+    pqc = LayeredEncodingCircuit(num_qubits=num_qubits, num_features=1)
+    pqc.Rx("x")
+    pqc.generate_initial_parameters(num_features=1, seed=42)
+    n_params = pqc.num_parameters
+
+    params = np.array([np.pi / 4.0] * n_params)
+
+    psi_list = []
+    for i in range(len(X)):
+        circ = pqc.get_circuit(features=np.asarray(X[i]), parameters=params)
+        sv = Statevector.from_instruction(circ)
+        psi_list.append(sv.data)
+
+    n = len(psi_list)
+    K_expected = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(n):
+            overlap = np.vdot(psi_list[i], psi_list[j])  # <psi_i|psi_j>
+            fidelity = abs(overlap) ** 2
+            K_expected[i, j] = fidelity
+
+    return K_expected
+
+
+# --- prepare parametrized expected matrices at import time ---
+X_trivial = np.zeros((2, 1))  # identical inputs -> fidelity matrix of ones
+X_nontrivial = np.array([[0.0], [1.0]])  # two different inputs
+
+# compute expected matrices for both num_qubits = 1 and 2
+K_1_trivial = _compute_expected_fidelity_matrix(num_qubits=1, X=X_trivial)
+K_1_nontriv = _compute_expected_fidelity_matrix(num_qubits=1, X=X_nontrivial)
+
+K_2_trivial = _compute_expected_fidelity_matrix(num_qubits=2, X=X_trivial)
+K_2_nontriv = _compute_expected_fidelity_matrix(num_qubits=2, X=X_nontrivial)
+
+
 class DummyEncodingCircuit:
     def __init__(self):
         self._params = {"enc_param": 42}
@@ -209,9 +251,20 @@ class TestFidelityKernel:
         assert isinstance(out, dict)
         assert "dKdp" in out or dqk.evaluate_derivatives_called is not None
 
-    @pytest.mark.parametrize("num_qubits", [1, 2])
-    @pytest.mark.parametrize("use_expectation", [True, False])
-    def test_fidelity_kernel_expectation_value(self, num_qubits, use_expectation):
+    @pytest.mark.parametrize(
+        "num_qubits, use_expectation, X, K_expected",
+        [
+            (1, True, X_trivial, K_1_trivial),
+            (1, True, X_nontrivial, K_1_nontriv),
+            (1, False, X_trivial, K_1_trivial),
+            (1, False, X_nontrivial, K_1_nontriv),
+            (2, True, X_trivial, K_2_trivial),
+            (2, True, X_nontrivial, K_2_nontriv),
+            (2, False, X_trivial, K_2_trivial),
+            (2, False, X_nontrivial, K_2_nontriv),
+        ],
+    )
+    def test_fidelity_kernel_expectation_value(self, num_qubits, use_expectation, X, K_expected):
         """
         Use LayeredEncodingCircuit with a single Ry('x') layer as encoding.
         Compare the FidelityKernel.evaluate(X) result with the fidelity computed
@@ -225,8 +278,6 @@ class TestFidelityKernel:
         # create reproducible parameter vector
         params = np.array([np.pi / 4.0] * n_params)
 
-        X = np.zeros((2, 1))
-
         executor = Executor()
         kernel = FidelityKernel(
             encoding_circuit=pqc, executor=executor, use_expectation=use_expectation
@@ -237,21 +288,5 @@ class TestFidelityKernel:
             kernel._parameters = params
 
         K_impl = kernel.evaluate(X)
-
-        # compute expected kernel matrix from statevectors directly
-        # For each datapoint x_i compute psi_i = Statevector(U(x_i, params)|0>)
-        psi_list = []
-        for i in range(len(X)):
-            circ = pqc.get_circuit(features=X[i], parameters=params)
-            sv = Statevector.from_instruction(circ)
-            psi_list.append(sv.data)
-
-        n = len(psi_list)
-        K_expected = np.zeros((n, n), dtype=float)
-        for i in range(n):
-            for j in range(n):
-                overlap = np.vdot(psi_list[i], psi_list[j])  # <psi_i|psi_j>
-                fidelity = abs(overlap) ** 2
-                K_expected[i, j] = fidelity
 
         assert np.allclose(K_impl, K_expected, atol=1e-12)
