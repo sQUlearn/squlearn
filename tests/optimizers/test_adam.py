@@ -13,6 +13,15 @@ def quad_grad(x: np.ndarray) -> np.ndarray:
     return 2.0 * x
 
 
+def shifted_quartic(x):
+    # global minima at 2 and -3
+    return (x[0] - 2) ** 2 * (x[0] + 3) ** 2
+
+
+def shifted_quartic_grad(x):
+    return np.array([2 * (x[0] - 2) * (x[0] + 3) ** 2 + 2 * (x[0] + 3) * (x[0] - 2) ** 2])
+
+
 class TestAdamOptimizer:
     def test_minimize_quadratic_with_grad(self):
         options = {"lr": 0.1, "tol": 1e-8, "maxiter": 100}
@@ -42,10 +51,10 @@ class TestAdamOptimizer:
 
         x0 = np.array([2.0])
         bounds = np.array([[-1.0, 1.0]])  # shape (n_params, 2)
-        res = opt.minimize(fun=quad, x0=x0, grad=quad_grad, bounds=bounds)
+        res = opt.minimize(fun=shifted_quartic, x0=x0, grad=shifted_quartic_grad, bounds=bounds)
 
         x_final = np.asarray(res.x).flatten()
-        assert x_final[0] <= 1.0 + 1e-12 and x_final[0] >= -1.0 - 1e-12
+        assert -1.0 - 1e-12 <= x_final[0] <= 1.0 + 1e-12
         assert res.fun >= 0.0
 
     def test_reset_resets_internal_state(self):
