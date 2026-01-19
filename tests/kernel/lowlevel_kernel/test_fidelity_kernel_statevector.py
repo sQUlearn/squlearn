@@ -170,9 +170,7 @@ class TestFidelityKernelStatevector:
         mat = k.evaluate_kernel_sv(x, x)
         # orthonormal sv -> overlap between distinct is 0; off_diagonal requires diagonal set to 1
         assert mat.shape == (2, 2)
-        assert np.allclose(np.diag(mat), np.ones(2))
-        assert mat[0, 1] == pytest.approx(0.0)
-        assert mat[1, 0] == pytest.approx(0.0)
+        assert mat == pytest.approx(np.eye(2), abs=1e-12)
 
         # now non-symmetric: y different -> values computed for all pairs
         y = np.array([[0.1, 0.2]])
