@@ -9,6 +9,85 @@ from squlearn.kernel import QGPR
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_chebyshev_tower(
+    num_qubits: int,
+    num_chebyshev: int,
+    num_layers: int,
+    alpha: float,
+    rotation_gate: str,
+    hadamard_start: bool,
+    arrangement: str,
+    nonlinearity: str,
+    features: np.ndarray,
+):
+    # mapping same as in implementation: mapping(x,i) = alpha * i * arccos/atan(x)
+    if nonlinearity == "arccos":
+
+        def mapping(x, i):
+            return alpha * i * np.arccos(x)
+
+    else:
+
+        def mapping(x, i):
+            return alpha * i * np.arctan(x)
+
+    def entangle_layer(QC: QuantumCircuit):
+        for i in range(0, num_qubits - 1, 2):
+            QC.cx(i, i + 1)
+        for i in range(1, num_qubits - 1, 2):
+            QC.cx(i, i + 1)
+        return QC
+
+    QC = QuantumCircuit(num_qubits)
+
+    if hadamard_start:
+        QC.h(range(num_qubits))
+
+    for layer in range(num_layers):
+        index_offset = 0
+        iqubit = 0
+        icheb = 1
+
+        if arrangement == "block":
+            outer = len(features)
+            inner = num_chebyshev
+        elif arrangement == "alternating":
+            inner = len(features)
+            outer = num_chebyshev
+        else:
+            raise ValueError("Arrangement must be either 'block' or 'alternating'")
+
+        for outer_ in range(outer):
+            for inner_ in range(inner):
+                angle = mapping(features[index_offset % len(features)], icheb)
+                target = iqubit % num_qubits
+                if rotation_gate.lower() == "rx":
+                    QC.rx(angle, target)
+                elif rotation_gate.lower() == "ry":
+                    QC.ry(angle, target)
+                elif rotation_gate.lower() == "rz":
+                    QC.rz(angle, target)
+                else:
+                    raise ValueError("Rotation gate {} not supported".format(rotation_gate))
+                iqubit += 1
+                if arrangement == "block":
+                    icheb += 1
+                elif arrangement == "alternating":
+                    index_offset += 1
+
+            if arrangement == "block":
+                index_offset += 1
+                icheb = 1
+            elif arrangement == "alternating":
+                icheb += 1
+
+        # entangling layer only if more layers follow
+        if layer + 1 < num_layers:
+            QC = entangle_layer(QC)
+
+    return QC
+
+
 class TestChebyshevTower:
     def test_init(self):
         circuit = ChebyshevTower(num_qubits=2, num_chebyshev=2)
@@ -141,86 +220,6 @@ class TestChebyshevTower:
         nonlinearity,
     ):
 
-        def build_expected_chebyshev_tower(
-            num_qubits,
-            num_chebyshev,
-            num_layers,
-            alpha,
-            rotation_gate,
-            hadamard_start,
-            arrangement,
-            nonlinearity,
-            features,
-        ):
-            # mapping same as in implementation: mapping(x,i) = alpha * i * arccos/atan(x)
-            if nonlinearity == "arccos":
-
-                def mapping(x, i):
-                    return alpha * i * np.arccos(x)
-
-            else:
-
-                def mapping(x, i):
-                    return alpha * i * np.arctan(x)
-
-            def entangle_layer(QC: QuantumCircuit):
-                for i in range(0, num_qubits - 1, 2):
-                    QC.cx(i, i + 1)
-                for i in range(1, num_qubits - 1, 2):
-                    QC.cx(i, i + 1)
-                return QC
-
-            QC = QuantumCircuit(num_qubits)
-
-            if hadamard_start:
-                QC.h(range(num_qubits))
-
-            for layer in range(num_layers):
-                index_offset = 0
-                iqubit = 0
-                icheb = 1
-
-                if arrangement == "block":
-                    outer = len(features)
-                    inner = num_chebyshev
-                elif arrangement == "alternating":
-                    inner = len(features)
-                    outer = num_chebyshev
-                else:
-                    raise ValueError("Arrangement must be either 'block' or 'alternating'")
-
-                for outer_ in range(outer):
-                    for inner_ in range(inner):
-                        angle = mapping(features[index_offset % len(features)], icheb)
-                        target = iqubit % num_qubits
-                        if rotation_gate.lower() == "rx":
-                            QC.rx(angle, target)
-                        elif rotation_gate.lower() == "ry":
-                            QC.ry(angle, target)
-                        elif rotation_gate.lower() == "rz":
-                            QC.rz(angle, target)
-                        else:
-                            raise ValueError(
-                                "Rotation gate {} not supported".format(rotation_gate)
-                            )
-                        iqubit += 1
-                        if arrangement == "block":
-                            icheb += 1
-                        elif arrangement == "alternating":
-                            index_offset += 1
-
-                    if arrangement == "block":
-                        index_offset += 1
-                        icheb = 1
-                    elif arrangement == "alternating":
-                        icheb += 1
-
-                # entangling layer only if more layers follow
-                if layer + 1 < num_layers:
-                    QC = entangle_layer(QC)
-
-            return QC
-
         circuit = ChebyshevTower(
             num_qubits=num_qubits,
             num_chebyshev=num_chebyshev,
@@ -238,7 +237,7 @@ class TestChebyshevTower:
 
         qc_actual = circuit.get_circuit(features=features, parameters=None)
 
-        qc_expected = build_expected_chebyshev_tower(
+        qc_expected = _build_expected_chebyshev_tower(
             num_qubits=num_qubits,
             num_chebyshev=num_chebyshev,
             num_layers=num_layers,

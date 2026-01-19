@@ -8,6 +8,35 @@ from squlearn.kernel import QGPR
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_paramz_circuit(
+    num_qubits: int,
+    num_layers: int,
+    entangling: bool,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    num_features = len(features)
+    num_params = len(parameters)
+    circuit = QuantumCircuit(num_qubits)
+    index_offset = 0
+
+    for layer in range(num_layers):
+        for i in range(num_qubits):
+            circuit.h(i)
+            circuit.p(parameters[index_offset % num_params] * features[i % num_features], i)
+            index_offset += 1
+
+        if entangling:
+            if num_layers % 2 == 0:
+                for j in range(num_qubits - 1):
+                    circuit.cx(j, j + 1)
+            else:
+                for j in range(1, num_qubits - 1, 2):
+                    circuit.cx(j, j + 1)
+
+    return circuit
+
+
 class TestParamZFeatureMap:
     def test_init(self):
         circuit = ParamZFeatureMap(num_qubits=2)
@@ -87,33 +116,7 @@ class TestParamZFeatureMap:
 
         qc_actual = circuit_obj.get_circuit(features=features, parameters=parameters)
 
-        def build_expected_paramz_circuit(
-            num_qubits, num_layers, entangling, features, parameters
-        ):
-            num_features = len(features)
-            num_params = len(parameters)
-            circuit = QuantumCircuit(num_qubits)
-            index_offset = 0
-
-            for layer in range(num_layers):
-                for i in range(num_qubits):
-                    circuit.h(i)
-                    circuit.p(
-                        parameters[index_offset % num_params] * features[i % num_features], i
-                    )
-                    index_offset += 1
-
-                if entangling:
-                    if num_layers % 2 == 0:
-                        for j in range(num_qubits - 1):
-                            circuit.cx(j, j + 1)
-                    else:
-                        for j in range(1, num_qubits - 1, 2):
-                            circuit.cx(j, j + 1)
-
-            return circuit
-
-        qc_expected = build_expected_paramz_circuit(
+        qc_expected = _build_expected_paramz_circuit(
             num_qubits=num_qubits,
             num_layers=num_layers,
             entangling=entangling,

@@ -10,6 +10,57 @@ from squlearn.kernel import QGPR
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_chebyshev_rx_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    nonlinearity: str,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    if nonlinearity == "arccos":
+
+        def mapping(a, x):
+            return a * np.arccos(x)
+
+    else:
+
+        def mapping(a, x):
+            return a * np.arctan(x)
+
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    feature_offset = 0
+
+    def entangle_layer_local(QC_local: QuantumCircuit) -> QuantumCircuit:
+        for i in range(0, num_qubits + (1 if closed else 0) - 1, 2):
+            QC_local.cx(i, (i + 1) % num_qubits)
+        if num_qubits > 2:
+            for i in range(1, num_qubits + (1 if closed else 0) - 1, 2):
+                QC_local.cx(i, (i + 1) % num_qubits)
+        return QC_local
+
+    for _ in range(num_layers):
+        for i in range(num_qubits):
+            QC.rx(
+                mapping(
+                    parameters[index_offset % len(parameters)],
+                    features[feature_offset % len(features)],
+                ),
+                i,
+            )
+            index_offset += 1
+            feature_offset += 1
+
+        for i in range(num_qubits):
+            QC.rx(parameters[index_offset % len(parameters)], i)
+            index_offset += 1
+
+        QC = entangle_layer_local(QC)
+
+    return QC
+
+
 class TestChebyshevRx:
     def test_init(self):
         circuit = ChebyshevRx(num_qubits=2)
@@ -139,56 +190,6 @@ class TestChebyshevRx:
         self, num_qubits, num_layers, closed, nonlinearity
     ):
 
-        def build_expected_chebyshev_rx_circuit(
-            num_qubits,
-            num_layers,
-            closed,
-            nonlinearity,
-            features,
-            parameters,
-        ):
-            if nonlinearity == "arccos":
-
-                def mapping(a, x):
-                    return a * np.arccos(x)
-
-            else:
-
-                def mapping(a, x):
-                    return a * np.arctan(x)
-
-            QC = QuantumCircuit(num_qubits)
-            index_offset = 0
-            feature_offset = 0
-
-            def entangle_layer_local(QC_local: QuantumCircuit) -> QuantumCircuit:
-                for i in range(0, num_qubits + (1 if closed else 0) - 1, 2):
-                    QC_local.cx(i, (i + 1) % num_qubits)
-                if num_qubits > 2:
-                    for i in range(1, num_qubits + (1 if closed else 0) - 1, 2):
-                        QC_local.cx(i, (i + 1) % num_qubits)
-                return QC_local
-
-            for _ in range(num_layers):
-                for i in range(num_qubits):
-                    QC.rx(
-                        mapping(
-                            parameters[index_offset % len(parameters)],
-                            features[feature_offset % len(features)],
-                        ),
-                        i,
-                    )
-                    index_offset += 1
-                    feature_offset += 1
-
-                for i in range(num_qubits):
-                    QC.rx(parameters[index_offset % len(parameters)], i)
-                    index_offset += 1
-
-                QC = entangle_layer_local(QC)
-
-            return QC
-
         circuit = ChebyshevRx(
             num_qubits=num_qubits,
             num_layers=num_layers,
@@ -205,7 +206,7 @@ class TestChebyshevRx:
 
         qc_actual = circuit.get_circuit(features=features, parameters=parameters)
 
-        qc_expected = build_expected_chebyshev_rx_circuit(
+        qc_expected = _build_expected_chebyshev_rx_circuit(
             num_qubits=num_qubits,
             num_layers=num_layers,
             closed=closed,

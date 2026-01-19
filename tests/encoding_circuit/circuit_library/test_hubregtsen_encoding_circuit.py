@@ -9,6 +9,55 @@ from squlearn.kernel import QGPR
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_hubregtsen_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    final_encoding: bool,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    num_features = len(features)
+    num_params = len(parameters)
+
+    # initial Hadamard on all qubits
+    QC.h(range(num_qubits))
+
+    # Layer loops
+    for layer in range(num_layers):
+        n_feature_loop = int(np.ceil(num_features / num_qubits))
+        for i in range(n_feature_loop * num_qubits):
+            if (i // num_qubits) % 2 == 0:
+                QC.rz(features[i % num_features], i % num_qubits)
+            else:
+                QC.rx(features[i % num_features], i % num_qubits)
+
+        # single theta Ry
+        for i in range(num_qubits):
+            QC.ry(parameters[index_offset % num_params], i)
+            index_offset += 1
+
+        # Entangled theta CRZ gates
+        if num_qubits > 2:
+            istop = num_qubits if closed else num_qubits - 1
+            for i in range(istop):
+                QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                index_offset += 1
+
+    # final encoding
+    if final_encoding:
+        n_feature_loop = int(np.ceil(num_features / num_qubits))
+        for i in range(n_feature_loop * num_qubits):
+            if int(np.ceil(i / num_qubits)) % 2 == 0:
+                QC.rz(features[i % num_features], i % num_qubits)
+            else:
+                QC.rx(features[i % num_features], i % num_qubits)
+
+    return QC
+
+
 class TestHubregtsenEncodingCircuit:
     def test_init(self):
         circuit = HubregtsenEncodingCircuit(num_qubits=2)
@@ -112,50 +161,7 @@ class TestHubregtsenEncodingCircuit:
 
         qc_actual = circuit.get_circuit(features=features, parameters=parameters)
 
-        def build_expected_hubregtsen_circuit(
-            num_qubits, num_layers, closed, final_encoding, features, parameters
-        ):
-            QC = QuantumCircuit(num_qubits)
-            index_offset = 0
-            num_features = len(features)
-            num_params = len(parameters)
-
-            # initial Hadamard on all qubits
-            QC.h(range(num_qubits))
-
-            # Layer loops
-            for layer in range(num_layers):
-                n_feature_loop = int(np.ceil(num_features / num_qubits))
-                for i in range(n_feature_loop * num_qubits):
-                    if (i // num_qubits) % 2 == 0:
-                        QC.rz(features[i % num_features], i % num_qubits)
-                    else:
-                        QC.rx(features[i % num_features], i % num_qubits)
-
-                # single theta Ry
-                for i in range(num_qubits):
-                    QC.ry(parameters[index_offset % num_params], i)
-                    index_offset += 1
-
-                # Entangled theta CRZ gates
-                if num_qubits > 2:
-                    istop = num_qubits if closed else num_qubits - 1
-                    for i in range(istop):
-                        QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                        index_offset += 1
-
-            # final encoding
-            if final_encoding:
-                n_feature_loop = int(np.ceil(num_features / num_qubits))
-                for i in range(n_feature_loop * num_qubits):
-                    if int(np.ceil(i / num_qubits)) % 2 == 0:
-                        QC.rz(features[i % num_features], i % num_qubits)
-                    else:
-                        QC.rx(features[i % num_features], i % num_qubits)
-
-            return QC
-
-        qc_expected = build_expected_hubregtsen_circuit(
+        qc_expected = _build_expected_hubregtsen_circuit(
             num_qubits=num_qubits,
             num_layers=num_layers,
             closed=closed,

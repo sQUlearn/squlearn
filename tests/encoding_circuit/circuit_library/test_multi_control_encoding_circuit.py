@@ -9,6 +9,55 @@ from squlearn.kernel import QGPR
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_multi_control_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    final_encoding: bool,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    feature_offset = 0
+    num_params = len(parameters)
+    num_features = len(features)
+
+    for _ in range(num_layers):
+        # ZZ encoding: H + Rz(features)
+        QC.h(range(num_qubits))
+        for i in range(num_qubits):
+            QC.rz(features[feature_offset % num_features], i)
+            feature_offset += 1
+
+        istop = num_qubits if closed else num_qubits - 1
+
+        # even pairs: CRx, CRy, CRz
+        for i in range(0, istop, 2):
+            QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            index_offset += 1
+            QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            index_offset += 1
+            QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            index_offset += 1
+
+        # odd pairs: CRx, CRy, CRz
+        if num_qubits >= 2:
+            for i in range(1, istop, 2):
+                QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                index_offset += 1
+                QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                index_offset += 1
+                QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                index_offset += 1
+
+    if final_encoding:
+        for i in range(num_qubits):
+            QC.rz(features[feature_offset % num_features], i)
+            feature_offset += 1
+    return QC
+
+
 class TestMultiControlEncodingCircuit:
 
     def test_init(self):
@@ -119,51 +168,7 @@ class TestMultiControlEncodingCircuit:
 
         qc_actual = circuit.get_circuit(features=features, parameters=parameters)
 
-        def build_expected_multi_control_circuit(
-            num_qubits, num_layers, closed, final_encoding, features, parameters
-        ):
-            QC = QuantumCircuit(num_qubits)
-            index_offset = 0
-            feature_offset = 0
-            num_params = len(parameters)
-            num_features = len(features)
-
-            for _ in range(num_layers):
-                # ZZ encoding: H + Rz(features)
-                QC.h(range(num_qubits))
-                for i in range(num_qubits):
-                    QC.rz(features[feature_offset % num_features], i)
-                    feature_offset += 1
-
-                istop = num_qubits if closed else num_qubits - 1
-
-                # even pairs: CRx, CRy, CRz
-                for i in range(0, istop, 2):
-                    QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                    index_offset += 1
-                    QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                    index_offset += 1
-                    QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                    index_offset += 1
-
-                # odd pairs: CRx, CRy, CRz
-                if num_qubits >= 2:
-                    for i in range(1, istop, 2):
-                        QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                        index_offset += 1
-                        QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                        index_offset += 1
-                        QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
-                        index_offset += 1
-
-            if final_encoding:
-                for i in range(num_qubits):
-                    QC.rz(features[feature_offset % num_features], i)
-                    feature_offset += 1
-
-            return QC
-
-        qc_expected = build_expected_multi_control_circuit(
+        qc_expected = _build_expected_multi_control_circuit(
             num_qubits=num_qubits,
             num_layers=num_layers,
             closed=closed,

@@ -9,6 +9,41 @@ from squlearn.util.executor import Executor
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
+def _build_expected_yz_cx_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    c: float,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    feature_offset = 0
+    num_param = len(parameters)
+    num_features = len(features)
+
+    for layer in range(num_layers):
+        for i in range(num_qubits):
+            angle_ry = (
+                parameters[index_offset % num_param] + c * features[feature_offset % num_features]
+            )
+            QC.ry(angle_ry, i)
+            index_offset += 1
+            angle_rz = (
+                parameters[index_offset % num_param] + c * features[feature_offset % num_features]
+            )
+            QC.rz(angle_rz, i)
+            index_offset += 1
+            feature_offset += 1
+
+        if num_qubits >= 2:
+            # Entanglement depends on odd/even layer
+            for i in range(layer % 2, num_qubits + (1 if closed else 0) - 1, 2):
+                QC.cx(i, (i + 1) % num_qubits)
+    return QC
+
+
 class TestYZ_CX_EncodingCircuit:
     def test_init(self):
         circuit = YZ_CX_EncodingCircuit(num_qubits=2)
@@ -101,36 +136,7 @@ class TestYZ_CX_EncodingCircuit:
 
         qc_actual = circuit.get_circuit(features=features, parameters=parameters)
 
-        def build_expected_yz_cx_circuit(num_qubits, num_layers, closed, c, features, parameters):
-            QC = QuantumCircuit(num_qubits)
-            index_offset = 0
-            feature_offset = 0
-            num_param = len(parameters)
-            num_features = len(features)
-
-            for layer in range(num_layers):
-                for i in range(num_qubits):
-                    angle_ry = (
-                        parameters[index_offset % num_param]
-                        + c * features[feature_offset % num_features]
-                    )
-                    QC.ry(angle_ry, i)
-                    index_offset += 1
-                    angle_rz = (
-                        parameters[index_offset % num_param]
-                        + c * features[feature_offset % num_features]
-                    )
-                    QC.rz(angle_rz, i)
-                    index_offset += 1
-                    feature_offset += 1
-
-                if num_qubits >= 2:
-                    # Entanglement depends on odd/even layer
-                    for i in range(layer % 2, num_qubits + (1 if closed else 0) - 1, 2):
-                        QC.cx(i, (i + 1) % num_qubits)
-            return QC
-
-        qc_expected = build_expected_yz_cx_circuit(
+        qc_expected = _build_expected_yz_cx_circuit(
             num_qubits=num_qubits,
             num_layers=num_layers,
             closed=closed,
