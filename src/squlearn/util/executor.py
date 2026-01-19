@@ -799,6 +799,14 @@ class Executor:
             self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
+    def __del__(self):
+        """Terminate the session in case the executor is deleted"""
+        if self._session is not None:
+            try:
+                self.close_session()
+            except:
+                pass
+
     @property
     def quantum_framework(self) -> str:
         """Return the quantum framework that is used in the executor."""
@@ -2412,14 +2420,6 @@ class Executor:
             self._session = None
         else:
             raise RuntimeError("No session found!")
-
-    def __del__(self):
-        """Terminate the session in case the executor is deleted"""
-        if self._session is not None:
-            try:
-                self.close_session()
-            except:
-                pass
 
     @property
     def estimator_options(self):
