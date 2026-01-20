@@ -712,6 +712,9 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
+        if self._session is not None:
+            self._finalizer = weakref.finalize(self, Executor._cleanup_session, weakref.ref(self))
+
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
@@ -727,11 +730,6 @@ class Executor:
                 # Check if backend is a simulator
                 self._remote_backend = not any(
                     str(substring) in str(self._backend) for substring in Aer.backends()
-                )
-
-            if self.IBMQuantum:
-                self._finalizer = weakref.finalize(
-                    self, Executor._cleanup_session, weakref.ref(self)
                 )
 
             if self._backend_list is None:
@@ -2424,6 +2422,7 @@ class Executor:
 
         if self._backend is not None:
             self._session = Session(backend=self._backend, max_time=self._max_session_time)
+            self._finalizer = weakref.finalize(self, self._cleanup_session, weakref.ref(self))
         else:
             raise RuntimeError("Session can not started because of missing backend!")
         self._logger.info("Executor created a new session.")
@@ -2440,6 +2439,10 @@ class Executor:
             self._session = None
         else:
             raise RuntimeError("No session found!")
+
+        if hasattr(self, "_finalizer"):
+            self._finalizer.detach()
+            del self._finalizer
 
     @property
     def estimator_options(self):
