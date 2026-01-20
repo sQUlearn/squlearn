@@ -1,12 +1,15 @@
-import pytest
-import numpy as np
+import gc
+import weakref
+from unittest.mock import MagicMock, Mock, patch
 
+import numpy as np
+import pennylane as qml
+import pytest
 from qiskit.circuit import ParameterVector, QuantumCircuit
-from qiskit.primitives import Estimator, Sampler, BackendEstimator, BackendSampler
+from qiskit.primitives import BackendEstimator, BackendSampler, Estimator, Sampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
-
-import pennylane as qml
+from qiskit_ibm_runtime import IBMBackend, Session
 
 from squlearn.util import Executor
 from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
@@ -308,3 +311,106 @@ class TestExecutor:
             circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
         )
         assert np.allclose(assert_dict[executor_str], res)
+
+
+class TestExecutorCleanup:
+    @pytest.fixture(scope="class")
+    def ibm_backend(self):
+        backend = MagicMock(spec=IBMBackend, name="ibm_brisbane")
+        backend.name = "ibm_brisbane"
+        backend.configuration = MagicMock(backend_name="ibm_brisbane")
+        return backend
+
+    @pytest.fixture
+    def mock_session(self, ibm_backend):
+        mock_session = MagicMock(spec=Session)
+        mock_session.backend.return_value = ibm_backend
+        mock_session.service.backend.return_value = ibm_backend
+        return mock_session
+
+    def test_non_ibm_no_cleanup(self):
+        executor = Executor("pennylane")
+        assert not hasattr(executor, "_finalizer")
+        del executor
+        gc.collect()
+
+    @patch.object(Executor, "_cleanup_session")
+    def test_finalizer_triggers_cleanup(self, mock_cleanup, ibm_backend, mock_session):
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            executor = Executor(ibm_backend)
+            executor.create_session()
+            del executor
+            gc.collect()
+            mock_cleanup.assert_called_once()
+
+    @patch.object(Executor, "_cleanup_session")
+    def test_preexisting_session_cleanup(self, mock_cleanup, mock_session):
+        executor = Executor(mock_session)
+        del executor
+        gc.collect()
+        mock_cleanup.assert_called_once()
+
+    def test_cleanup_logic(self, mock_session, ibm_backend):
+        """Verifies _cleanup_session → close_session."""
+        mock_session.reset_mock()
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            executor = Executor(ibm_backend)
+            executor.create_session()
+            executor_ref = weakref.ref(executor)
+            Executor._cleanup_session(executor_ref)  # Direct call
+            mock_session.close.assert_called_once()
+            executor = None
+            Executor._cleanup_session(executor_ref)
+
+    def test_normal_creation_deletion_closes_session(self, ibm_backend, mock_session):
+        mock_session.reset_mock()
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            mock_session.close.assert_not_called()
+            executor = Executor(ibm_backend)
+            executor.create_session()
+            del executor
+            gc.collect()
+            mock_session.close.assert_called_once()
+
+    def test_context_manager_closes_session(self, ibm_backend, mock_session):
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            with Executor(ibm_backend) as executor:
+                pass
+            mock_session.close.assert_called_once()
+
+    def test_context_manager_exception_closes_session(self, ibm_backend, mock_session):
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            try:
+                with Executor(ibm_backend) as executor:
+                    1 / 0
+            except ZeroDivisionError:
+                pass
+            mock_session.close.assert_called_once()
+
+    @patch.object(Executor, "_cleanup_session")
+    def test_python_side_failure_closes_session(self, mock_cleanup, ibm_backend, mock_session):
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            # with patch.object(Executor, "close_session", new=Mock()) as mock_close:
+            try:
+                executor = Executor(ibm_backend)
+                executor.create_session()
+                raise MemoryError("OOM")
+            except MemoryError:
+                pass
+            gc.collect()
+            # mock_close.assert_called_once()
+            mock_cleanup.assert_called_once()
+
+    def test_server_side_failure_closes_session(self, ibm_backend, mock_session):
+        with patch("squlearn.util.executor.Session", return_value=mock_session):
+            with patch.object(Executor, "close_session", new=Mock()) as mock_close:
+                executor = Executor(ibm_backend)
+                # Trigger potential internal setup paths by getting estimator/sampler
+                try:
+                    _ = executor.get_estimator()
+                except Exception:
+                    # ignore any runtime errors from primitives during test
+                    pass
+                del executor
+                gc.collect()
+                mock_close.assert_called_once()
