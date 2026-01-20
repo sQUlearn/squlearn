@@ -15,6 +15,7 @@ from collections.abc import Iterable
 import dill as pickle
 import numpy as np
 from packaging import version
+import weakref
 
 import pennylane as qml
 from pennylane import __version__ as pennylane_version
@@ -728,6 +729,11 @@ class Executor:
                     str(substring) in str(self._backend) for substring in Aer.backends()
                 )
 
+            if self.IBMQuantum:
+                self._finalizer = weakref.finalize(
+                    self, Executor._cleanup_session, weakref.ref(self)
+                )
+
             if self._backend_list is None:
                 self._backend_list = [self._backend]
             else:
@@ -799,13 +805,15 @@ class Executor:
             self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
-    def __del__(self):
-        """Terminate the session in case the executor is deleted"""
-        if self._session is not None:
-            try:
-                self.close_session()
-            except:
-                pass
+    @staticmethod
+    def _cleanup_session(executor_ref):
+        executor = executor_ref()
+        if executor is None or not executor.IBMQuantum:
+            return
+        try:
+            executor.close_session()
+        except Exception:
+            pass
 
     @property
     def quantum_framework(self) -> str:
