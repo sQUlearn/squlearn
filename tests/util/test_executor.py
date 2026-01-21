@@ -314,8 +314,15 @@ class TestExecutor:
 
 
 class TestExecutorCleanup:
+    """
+    Tests for the automatic cleanup of the session when the Executor is garbage collected.
+    """
+
     @pytest.fixture(scope="function")
     def ibm_backend(self):
+        """
+        Fixture providing a mock IBMBackend object.
+        """
         backend = MagicMock(spec=IBMBackend, name="ibm_brisbane")
         backend.name = "ibm_brisbane"
         backend.configuration = MagicMock(backend_name="ibm_brisbane")
@@ -325,6 +332,9 @@ class TestExecutorCleanup:
 
     @pytest.fixture(scope="function")
     def mock_session(self, ibm_backend):
+        """
+        Fixture providing a mock Session object.
+        """
         mock_session = MagicMock(spec=Session)
         mock_session.backend.return_value = ibm_backend
         mock_session.service.backend.return_value = ibm_backend
@@ -333,6 +343,9 @@ class TestExecutorCleanup:
         del mock_session
 
     def test_non_ibm_no_cleanup(self):
+        """
+        Verifies that no cleanup is performed when the backend is not an IBMBackend.
+        """
         executor = Executor("pennylane")
         assert not hasattr(executor, "_finalizer")
         del executor
@@ -340,6 +353,9 @@ class TestExecutorCleanup:
 
     @patch.object(Executor, "_cleanup_session")
     def test_finalizer_triggers_cleanup(self, mock_cleanup, ibm_backend, mock_session):
+        """
+        Verifies that the finalizer triggers the cleanup of the session.
+        """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             executor = Executor(ibm_backend)
             executor.create_session()
@@ -349,16 +365,22 @@ class TestExecutorCleanup:
 
     @patch.object(Executor, "_cleanup_session")
     def test_preexisting_session_cleanup(self, mock_cleanup, mock_session):
+        """
+        Verifies that the cleanup of the session is performed even if it was created before the Executor object.
+        """
         executor = Executor(mock_session)
         del executor
         gc.collect()
         mock_cleanup.assert_called_once()
 
     def test_cleanup_logic(self, mock_session, ibm_backend):
-        """Verifies _cleanup_session → close_session."""
+        """
+        Verifies that _cleanup_session calls close_session.
+        """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             executor = Executor(ibm_backend)
             executor.create_session()
+            #pylint: disable=protected-access
             session_ref = weakref.ref(executor._session)
             Executor._cleanup_session(session_ref)  # Direct call
             mock_session.close.assert_called_once()
@@ -366,6 +388,9 @@ class TestExecutorCleanup:
             Executor._cleanup_session(session_ref)
 
     def test_normal_creation_deletion_closes_session(self, ibm_backend, mock_session):
+        """
+        Verifies that the session is closed after normal creation and deletion of the Executor object.
+        """
         mock_session.reset_mock()
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             mock_session.close.assert_not_called()
@@ -376,28 +401,41 @@ class TestExecutorCleanup:
             mock_session.close.assert_called_once()
 
     def test_preexisting_session_is_closed_on_deletion(self, mock_session):
+        """
+        Verifies that the session is closed after deletion of the Executor object when a pre-existing session is provided.
+        """
         executor = Executor(mock_session)
         del executor
         gc.collect()
         mock_session.close.assert_called_once()
 
     def test_context_manager_closes_session(self, ibm_backend, mock_session):
+        """
+        Verifies that the context manager closes the session.
+        """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             with Executor(ibm_backend) as executor:
                 executor.create_session()
             mock_session.close.assert_called_once()
 
     def test_context_manager_exception_closes_session(self, ibm_backend, mock_session):
+        """
+        Verifies that the context manager closes the session even when an exception is raised.
+        """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             try:
                 with Executor(ibm_backend) as executor:
                     executor.create_session()
+                    #pylint: disable=pointless-statement
                     1 / 0
             except ZeroDivisionError:
                 pass
             mock_session.close.assert_called_once()
 
     def test_python_side_failure_closes_session(self, ibm_backend, mock_session):
+        """
+        Verifies that the session is closed even when a Python-side failure (e.g. OOM failure) occurs.
+        """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             try:
                 executor = Executor(ibm_backend)
