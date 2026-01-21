@@ -207,7 +207,7 @@ class Executor:
     Primitives V1 provides exact probabilities.
 
     **Important: Session Management**
-    
+
     When using the Executor with IBM Quantum backends or Sessions, it is **strongly recommended**
     to use the Executor within a context manager (``with`` statement). This ensures that sessions
     are properly closed when you are done with the executor, avoiding unnecessary open sessions
@@ -219,7 +219,7 @@ class Executor:
         from qiskit_ibm_runtime import QiskitRuntimeService
 
         service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
-        
+
         # Recommended: Use context manager
         with Executor(service.backend('ibm_kingston'), caching=True,
                       cache_dir='cache', log_file="log.log") as executor:
@@ -359,7 +359,7 @@ class Executor:
        # Executor with a shot-based simulator backend and 1000 shots
        exec = Executor("qasm_simulator")
        exec.set_shots(1000)
-        
+
        # Executor with a IBM Quantum backend (with context manager - recommended)
        # Session is automatically closed after the with block
        with Executor(service.backend('ibm_kingston'), caching=True,
@@ -370,7 +370,7 @@ class Executor:
        # Executor with a IBM Quantum backend (without context manager - not recommended)
        service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
        executor = Executor(service.backend('ibm_kingston'))
-       
+
        # Make sure to close the session when done
        try:
            # Your code here
@@ -2418,10 +2418,8 @@ class Executor:
 
                 if self._estimator is not None and self._sampler is not None:
                     if shots_estimator != shots_sampler:
-                        raise ValueError(
-                            "The number of shots of the given \
-                                        Estimator and Sampler is not equal!"
-                        )
+                        raise ValueError("The number of shots of the given \
+                                        Estimator and Sampler is not equal!")
                 if shots_estimator is None:
                     shots_estimator = 0
                 if shots_sampler is None:
@@ -2453,7 +2451,7 @@ class Executor:
 
     def create_session(self):
         """Creates a new session.
-        
+
         **Warning**: Creating a session outside of a context manager will issue a warning.
         It is strongly recommended to use the Executor within a ``with`` statement when working
         with IBM Quantum backends or sessions to ensure proper cleanup.
@@ -2493,7 +2491,7 @@ class Executor:
 
     def close_session(self):
         """Closes the current session.
-        
+
         This method should be called when you are done using the Executor with an IBM Quantum
         backend to avoid being charged for unused sessions. Alternatively, use the Executor
         within a context manager (``with`` statement) to ensure automatic cleanup.
