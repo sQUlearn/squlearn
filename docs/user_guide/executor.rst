@@ -159,10 +159,10 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
     
     # Recommended: Use context manager
-    with Executor(service.backend('ibm_brisbane'), caching=True) as executor:
+    with Executor(service.backend('ibm_kingston'), caching=True) as executor:
         # Your quantum computations here
         qnn.fit(X_train, y_train)
     # Session is automatically closed
@@ -174,8 +174,8 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.backend('ibm_brisbane'))
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.backend('ibm_kingston'))
     try:
         # Your quantum computations here
         qnn.fit(X_train, y_train)
@@ -195,7 +195,7 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
     
     # Use context manager for proper session management
     with Executor(service, auto_backend_mode="quality") as executor:
@@ -209,8 +209,8 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    session = service.create_session(backend = service.backend('ibm_brisbane'))
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    session = service.create_session(backend = service.backend('ibm_kingston'))
     
     # Use context manager with a pre-initialized session
     with Executor(session) as executor:
@@ -226,9 +226,9 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService, Estimator
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
-    session = service.create_session(backend = service.backend('ibm_brisbane'))
+    session = service.create_session(backend = service.backend('ibm_kingston'))
     estimator = Estimator(session=session)
     estimator.options.resilience.zne_mitigation = True
     estimator.options.resilience.zne.noise_factors = (1, 3, 5)
@@ -260,14 +260,14 @@ backend from the :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeS
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
     options = {"resilience":{"zne_mitigation"  : True,
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
     # Recommended: Use context manager
-    with Executor(service.backend('ibm_brisbane'), # Specify the backend
+    with Executor(service.backend('ibm_kingston'), # Specify the backend
                    cache_dir='cache', # Set cache folder to "cache"
                    caching=True, # Enable caching default for remote executions
                    log_file="executor.log", # Set-up logging file
@@ -325,13 +325,13 @@ They folow the same dictionary datastructure than the original V2 Primtives.
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
     options = {"resilience":{"zne_mitigation"  : True,
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
-    with Executor(service.backend("ibm_brisbane"), options_estimator=options) as executor:
+    with Executor(service.backend("ibm_kingston"), options_estimator=options) as executor:
         # Your quantum computations here
         pass
 
@@ -343,9 +343,9 @@ to the option interface of the V2 Primtives:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
     
-    with Executor(service.backend("ibm_brisbane")) as executor:
+    with Executor(service.backend("ibm_kingston")) as executor:
         executor.sampler_options.dynamical_decoupling.enable = True
         executor.sampler_options.dynamical_decoupling.sequence_type = "XpXm"
         # Your quantum computations here
@@ -359,9 +359,9 @@ Options can be adjusted by the :meth:`set_options` method of the Primitives that
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService, Options
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
-    with Executor(service.backend("ibm_brisbane")) as executor:
+    with Executor(service.backend("ibm_kingston")) as executor:
         estimator = executor.get_estimator()
         estimator.set_options(resilience_level=2)
         # Your quantum computations here
@@ -388,10 +388,10 @@ This ensures that sessions are automatically closed when you exit the block, reg
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
     
     # Recommended: Use context manager
-    with Executor(service.backend('ibm_brisbane'), caching=True,
+    with Executor(service.backend('ibm_kingston'), caching=True,
                   cache_dir='cache', log_file="log.log") as executor:
         # Your quantum computations here
         qnn.fit(X_train, y_train)
@@ -407,8 +407,8 @@ A ``UserWarning`` will be issued if a session is created outside of a context ma
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.backend('ibm_brisbane'))
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.backend('ibm_kingston'))
     
     try:
         # Your code here
@@ -498,7 +498,7 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
 
    # Executor is initialized with a service, and considers all available backends
    # (except simulators)
-   service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+   service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
    
    # Use context manager for proper session management
    with Executor(service, auto_backend_mode="speed") as executor:

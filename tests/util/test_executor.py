@@ -329,9 +329,9 @@ class TestExecutorCleanup:
         """
         Fixture providing a mock IBMBackend object.
         """
-        backend = MagicMock(spec=IBMBackend, name="ibm_brisbane")
-        backend.name = "ibm_brisbane"
-        backend.configuration = MagicMock(backend_name="ibm_brisbane")
+        backend = MagicMock(spec=IBMBackend, name="ibm_kingston")
+        backend.name = "ibm_kingston"
+        backend.configuration = MagicMock(backend_name="ibm_kingston")
         yield backend
         backend.reset_mock()
         del backend

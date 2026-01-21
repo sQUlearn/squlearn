@@ -218,10 +218,10 @@ class Executor:
         from squlearn import Executor
         from qiskit_ibm_runtime import QiskitRuntimeService
 
-        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+        service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
         
         # Recommended: Use context manager
-        with Executor(service.backend('ibm_brisbane'), caching=True,
+        with Executor(service.backend('ibm_kingston'), caching=True,
                       cache_dir='cache', log_file="log.log") as executor:
             # Your quantum computations here
             pass
@@ -362,14 +362,14 @@ class Executor:
         
        # Executor with a IBM Quantum backend (with context manager - recommended)
        # Session is automatically closed after the with block
-       with Executor(service.backend('ibm_brisbane'), caching=True,
+       with Executor(service.backend('ibm_kingston'), caching=True,
                     cache_dir='cache', log_file="log.log") as executor:
            # Your quantum computations here
            pass
 
        # Executor with a IBM Quantum backend (without context manager - not recommended)
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.backend('ibm_brisbane'))
+       service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service.backend('ibm_kingston'))
        
        # Make sure to close the session when done
        try:
@@ -411,7 +411,7 @@ class Executor:
 
        # Executor is initialized with a service, and considers all available backends
        # (except simulators)
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
        executor = Executor(service, auto_backend_mode="quality")
 
        # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
