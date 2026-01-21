@@ -206,10 +206,30 @@ class Executor:
     Note: The Sampler in Primitives V2 uses shots, even with statevector simulators, whereas
     Primitives V1 provides exact probabilities.
 
-    **Important**: When using the Executor to run jobs on IBM Quantum systems, sessions are
-    created automatically. If you are working in a Jupyter notebook, ensure you close the session
-    once calculations are complete to avoid unnecessary open sessions (:meth:`close_session`),
-    to avoide being charged for the opened but unused session.
+    **Important: Session Management**
+    
+    When using the Executor with IBM Quantum backends or Sessions, it is **strongly recommended**
+    to use the Executor within a context manager (``with`` statement). This ensures that sessions
+    are properly closed when you are done with the executor, avoiding unnecessary open sessions
+    and preventing charges for unused sessions.
+
+    .. code-block:: python
+
+        from squlearn import Executor
+        from qiskit_ibm_runtime import QiskitRuntimeService
+
+        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+        
+        # Recommended: Use context manager
+        with Executor(service.backend('ibm_brisbane'), caching=True,
+                      cache_dir='cache', log_file="log.log") as executor:
+            # Your quantum computations here
+            pass
+        # Session is automatically closed
+
+    If you cannot use a context manager, ensure you manually close the session by calling
+    :meth:`close_session` when you are done. Creating a session outside of a context manager
+    will issue a warning.
 
     Args:
         execution (Union[str, Backend, List[Backend], QiskitRuntimeService, Session,BaseEstimatorV1, BaseSamplerV1, BaseEstimatorV2, BaseSamplerV2, PennylaneDevice]):
@@ -339,15 +359,24 @@ class Executor:
        # Executor with a shot-based simulator backend and 1000 shots
        exec = Executor("qasm_simulator")
        exec.set_shots(1000)
+        
+       # Executor with a IBM Quantum backend (with context manager - recommended)
+       # Session is automatically closed after the with block
+       with Executor(service.backend('ibm_brisbane'), caching=True,
+                    cache_dir='cache', log_file="log.log") as executor:
+           # Your quantum computations here
+           pass
 
-       # Executor with a IBM Quantum backend
+       # Executor with a IBM Quantum backend (without context manager - not recommended)
        service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
        executor = Executor(service.backend('ibm_brisbane'))
-
-       # Executor with a IBM Quantum backend and caching and logging
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.backend('ibm_brisbane'), caching=True,
-                            cache_dir='cache', log_file="log.log")
+       
+       # Make sure to close the session when done
+       try:
+           # Your code here
+           pass
+       finally:
+           executor.close_session()
 
     **Example: Get the Executor based Qiskit primitives**
 
@@ -1474,7 +1503,7 @@ class Executor:
             if isinstance(self._sampler, RuntimeSamplerV2):
                 self._options_sampler = _convert_options_to_dict(self._sampler.options)
             if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new one and a new estimator
+                # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._sampler = RuntimeSamplerV2(mode=self._session, options=self._options_sampler)
             sampler = self._sampler
@@ -2423,7 +2452,19 @@ class Executor:
         return self.get_shots()
 
     def create_session(self):
-        """Creates a new session, is called automatically."""
+        """Creates a new session.
+        
+        **Warning**: Creating a session outside of a context manager will issue a warning.
+        It is strongly recommended to use the Executor within a ``with`` statement when working
+        with IBM Quantum backends or sessions to ensure proper cleanup.
+
+        Raises:
+            SessionContextMisuseWarning: If the session is created outside of a context manager.
+            RuntimeError: If the session cannot be created due to a missing backend.
+
+        See Also:
+            :meth:`close_session`: For manually closing a session.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be created for Qiskit framework!")
@@ -2451,7 +2492,18 @@ class Executor:
         self._logger.info("Executor created a new session.")
 
     def close_session(self):
-        """Closes the current session, is called automatically."""
+        """Closes the current session.
+        
+        This method should be called when you are done using the Executor with an IBM Quantum
+        backend to avoid being charged for unused sessions. Alternatively, use the Executor
+        within a context manager (``with`` statement) to ensure automatic cleanup.
+
+        Raises:
+            RuntimeError: If no session exists or the framework is not Qiskit.
+
+        See Also:
+            :meth:`create_session`: For creating a new session.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be closed for Qiskit framework!")
