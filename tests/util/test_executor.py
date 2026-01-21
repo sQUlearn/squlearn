@@ -375,6 +375,12 @@ class TestExecutorCleanup:
             gc.collect()
             mock_session.close.assert_called_once()
 
+    def test_preexisting_session_is_closed_on_deletion(self, mock_session):
+        executor = Executor(mock_session)
+        del executor
+        gc.collect()
+        mock_session.close.assert_called_once()
+
     def test_context_manager_closes_session(self, ibm_backend, mock_session):
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             with Executor(ibm_backend) as executor:
@@ -390,10 +396,8 @@ class TestExecutorCleanup:
                 pass
             mock_session.close.assert_called_once()
 
-    @patch.object(Executor, "_cleanup_session")
-    def test_python_side_failure_closes_session(self, mock_cleanup, ibm_backend, mock_session):
+    def test_python_side_failure_closes_session(self, ibm_backend, mock_session):
         with patch("squlearn.util.executor.Session", return_value=mock_session):
-            # with patch.object(Executor, "close_session", new=Mock()) as mock_close:
             try:
                 executor = Executor(ibm_backend)
                 executor.create_session()
@@ -403,5 +407,4 @@ class TestExecutorCleanup:
             finally:
                 del executor
             gc.collect()
-            # mock_close.assert_called_once()
-            mock_cleanup.assert_called_once()
+            mock_session.close.assert_called_once()
