@@ -314,12 +314,14 @@ class TestExecutor:
 
 
 class TestExecutorCleanup:
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="function")
     def ibm_backend(self):
         backend = MagicMock(spec=IBMBackend, name="ibm_brisbane")
         backend.name = "ibm_brisbane"
         backend.configuration = MagicMock(backend_name="ibm_brisbane")
-        return backend
+        yield backend
+        backend.reset_mock()
+        del backend
 
     @pytest.fixture(scope="function")
     def mock_session(self, ibm_backend):
@@ -354,15 +356,14 @@ class TestExecutorCleanup:
 
     def test_cleanup_logic(self, mock_session, ibm_backend):
         """Verifies _cleanup_session → close_session."""
-        mock_session.reset_mock()
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             executor = Executor(ibm_backend)
             executor.create_session()
-            executor_ref = weakref.ref(executor)
-            Executor._cleanup_session(executor_ref)  # Direct call
+            session_ref = weakref.ref(executor._session)
+            Executor._cleanup_session(session_ref)  # Direct call
             mock_session.close.assert_called_once()
             executor = None
-            Executor._cleanup_session(executor_ref)
+            Executor._cleanup_session(session_ref)
 
     def test_normal_creation_deletion_closes_session(self, ibm_backend, mock_session):
         mock_session.reset_mock()

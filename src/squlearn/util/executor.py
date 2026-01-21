@@ -713,7 +713,9 @@ class Executor:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
         if self._session is not None:
-            self._finalizer = weakref.finalize(self, Executor._cleanup_session, weakref.ref(self))
+            self._finalizer = weakref.finalize(
+                self, Executor._cleanup_session, weakref.ref(self._session)
+            )
 
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
@@ -816,12 +818,14 @@ class Executor:
                 pass
 
     @staticmethod
-    def _cleanup_session(executor_ref):
-        executor = executor_ref()
-        if executor is None or not executor.IBMQuantum:
-            return
+    def _cleanup_session(session_ref):
+        """Clean up session when executor is garbage collected."""
         try:
-            executor.close_session()
+            session = session_ref()
+            if session is None:
+                return
+            session.close()
+            del session
         except Exception:
             pass
 
@@ -2423,7 +2427,9 @@ class Executor:
         if self._backend is not None:
             self._session = Session(backend=self._backend, max_time=self._max_session_time)
             if not hasattr(self, "_finalizer"):
-                self._finalizer = weakref.finalize(self, Executor._cleanup_session, weakref.ref(self))
+                self._finalizer = weakref.finalize(
+                    self, Executor._cleanup_session, weakref.ref(self._session)
+                )
         else:
             raise RuntimeError("Session can not started because of missing backend!")
         self._logger.info("Executor created a new session.")
