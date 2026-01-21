@@ -12,11 +12,12 @@ from pathlib import Path
 from typing import Any, List, Union
 from types import MethodType
 from collections.abc import Iterable
+import warnings
+import weakref
+
 import dill as pickle
 import numpy as np
 from packaging import version
-import weakref
-
 import pennylane as qml
 from pennylane import __version__ as pennylane_version
 from pennylane.devices import Device as PennylaneDevice
@@ -175,6 +176,10 @@ from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimator
 from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
 from .pennylane import PennyLaneCircuit
 from .qulacs import QulacsCircuit
+
+
+class SessionContextMisuseWarning(UserWarning):
+    """Raised when a session is used outside its context manager."""
 
 
 class Executor:
@@ -443,6 +448,7 @@ class Executor:
         self._estimator = None
         self._sampler = None
         self._execution_origin = ""
+        self._context_managed = False
 
         # Copy estimator options and make a dict
         if options_estimator is not None:
@@ -806,6 +812,7 @@ class Executor:
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
     def __enter__(self):
+        self._context_managed = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -814,6 +821,8 @@ class Executor:
                 self.close_session()
             except Exception:
                 pass
+
+        self._context_managed = False
 
     @staticmethod
     def _cleanup_session(session_ref):
@@ -2421,6 +2430,15 @@ class Executor:
 
         if not self.IBMQuantum:
             raise RuntimeError("Sessions can only be created for IBM Quantum devices!")
+
+        if not self._context_managed:
+            warnings.warn(
+                "\033[1;91mCreating a session outside of a context manager may lead to  unclosed "
+                "sessions. It is recommended to use the Executor within a 'with' statement. At "
+                "least make sure to call 'executor.close_session()' when you are done with the "
+                "executor or make sure it is properly garbage collected.\033[0m",
+                SessionContextMisuseWarning,
+            )
 
         if self._backend is not None:
             self._session = Session(backend=self._backend, max_time=self._max_session_time)

@@ -12,7 +12,13 @@ from qiskit_aer import Aer
 from qiskit_ibm_runtime import IBMBackend, Session
 
 from squlearn.util import Executor
-from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSamplerV1, BaseSamplerV2
+from squlearn.util.executor import (
+    BaseEstimatorV1,
+    BaseEstimatorV2,
+    BaseSamplerV1,
+    BaseSamplerV2,
+    SessionContextMisuseWarning,
+)
 from squlearn.util.pennylane import PennyLaneCircuit
 
 
@@ -358,7 +364,8 @@ class TestExecutorCleanup:
         """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             executor = Executor(ibm_backend)
-            executor.create_session()
+            with pytest.warns(SessionContextMisuseWarning):
+                executor.create_session()
             del executor
             gc.collect()
             mock_cleanup.assert_called_once()
@@ -379,8 +386,9 @@ class TestExecutorCleanup:
         """
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             executor = Executor(ibm_backend)
-            executor.create_session()
-            #pylint: disable=protected-access
+            with pytest.warns(SessionContextMisuseWarning):
+                executor.create_session()
+            # pylint: disable=protected-access
             session_ref = weakref.ref(executor._session)
             Executor._cleanup_session(session_ref)  # Direct call
             mock_session.close.assert_called_once()
@@ -395,7 +403,8 @@ class TestExecutorCleanup:
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             mock_session.close.assert_not_called()
             executor = Executor(ibm_backend)
-            executor.create_session()
+            with pytest.warns(SessionContextMisuseWarning):
+                executor.create_session()
             del executor
             gc.collect()
             mock_session.close.assert_called_once()
@@ -409,7 +418,7 @@ class TestExecutorCleanup:
         gc.collect()
         mock_session.close.assert_called_once()
 
-    def test_context_manager_closes_session(self, ibm_backend, mock_session):
+    def test_context_manager_closes_session(self, ibm_backend, mock_session, recwarn):
         """
         Verifies that the context manager closes the session.
         """
@@ -417,8 +426,10 @@ class TestExecutorCleanup:
             with Executor(ibm_backend) as executor:
                 executor.create_session()
             mock_session.close.assert_called_once()
+            for warning in recwarn.list:
+                assert not isinstance(warning, SessionContextMisuseWarning)
 
-    def test_context_manager_exception_closes_session(self, ibm_backend, mock_session):
+    def test_context_manager_exception_closes_session(self, ibm_backend, mock_session, recwarn):
         """
         Verifies that the context manager closes the session even when an exception is raised.
         """
@@ -426,11 +437,13 @@ class TestExecutorCleanup:
             try:
                 with Executor(ibm_backend) as executor:
                     executor.create_session()
-                    #pylint: disable=pointless-statement
+                    # pylint: disable=pointless-statement
                     1 / 0
             except ZeroDivisionError:
                 pass
             mock_session.close.assert_called_once()
+            for warning in recwarn.list:
+                assert not isinstance(warning, SessionContextMisuseWarning)
 
     def test_python_side_failure_closes_session(self, ibm_backend, mock_session):
         """
@@ -439,7 +452,8 @@ class TestExecutorCleanup:
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             try:
                 executor = Executor(ibm_backend)
-                executor.create_session()
+                with pytest.warns(SessionContextMisuseWarning):
+                    executor.create_session()
                 raise MemoryError("OOM")
             except MemoryError:
                 pass
