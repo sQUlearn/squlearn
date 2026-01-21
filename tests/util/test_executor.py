@@ -321,12 +321,14 @@ class TestExecutorCleanup:
         backend.configuration = MagicMock(backend_name="ibm_brisbane")
         return backend
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def mock_session(self, ibm_backend):
         mock_session = MagicMock(spec=Session)
         mock_session.backend.return_value = ibm_backend
         mock_session.service.backend.return_value = ibm_backend
-        return mock_session
+        yield mock_session
+        mock_session.reset_mock()
+        del mock_session
 
     def test_non_ibm_no_cleanup(self):
         executor = Executor("pennylane")
