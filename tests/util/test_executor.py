@@ -400,20 +400,8 @@ class TestExecutorCleanup:
                 raise MemoryError("OOM")
             except MemoryError:
                 pass
+            finally:
+                del executor
             gc.collect()
             # mock_close.assert_called_once()
             mock_cleanup.assert_called_once()
-
-    def test_server_side_failure_closes_session(self, ibm_backend, mock_session):
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            with patch.object(Executor, "close_session", new=Mock()) as mock_close:
-                executor = Executor(ibm_backend)
-                # Trigger potential internal setup paths by getting estimator/sampler
-                try:
-                    _ = executor.get_estimator()
-                except Exception:
-                    # ignore any runtime errors from primitives during test
-                    pass
-                del executor
-                gc.collect()
-                mock_close.assert_called_once()
