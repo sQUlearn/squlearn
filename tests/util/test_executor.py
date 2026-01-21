@@ -384,13 +384,14 @@ class TestExecutorCleanup:
     def test_context_manager_closes_session(self, ibm_backend, mock_session):
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             with Executor(ibm_backend) as executor:
-                pass
+                executor.create_session()
             mock_session.close.assert_called_once()
 
     def test_context_manager_exception_closes_session(self, ibm_backend, mock_session):
         with patch("squlearn.util.executor.Session", return_value=mock_session):
             try:
                 with Executor(ibm_backend) as executor:
+                    executor.create_session()
                     1 / 0
             except ZeroDivisionError:
                 pass

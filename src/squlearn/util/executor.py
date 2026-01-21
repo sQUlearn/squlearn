@@ -806,8 +806,6 @@ class Executor:
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
 
     def __enter__(self):
-        if self.IBMQuantum and self.session is None:
-            self.create_session()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
