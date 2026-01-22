@@ -1,6 +1,6 @@
 """MSE for QNNs."""
 
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 
@@ -32,7 +32,7 @@ class MeanSquaredError(QNNLossBase):
             return ("f", "dfdp", "dfdop")
         return ("f", "dfdp")
 
-    def value(self, value_dict: dict, **kwargs) -> float:
+    def value(self, value_dict: dict, ground_truth: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         r"""Calculates the mean squared error.
 
         This function calculates the mean squared error between the values in `value_dict` and
@@ -44,16 +44,13 @@ class MeanSquaredError(QNNLossBase):
         Args:
             value_dict (dict): Contains calculated values of the model
             ground_truth (np.ndarray): The true values :math:`y\left(x_i\right)`
-            weights (np.ndarray): Weight for each data point, if None all data points count the
+            weights: (Optional[np.ndarray]): Weight for each data point, if None all data points count the
                 same
 
         Returns:
             Loss value
         """
-        if "ground_truth" not in kwargs:
-            raise AttributeError("SquaredLoss requires ground_truth.")
-        ground_truth = kwargs["ground_truth"]
-        if "weights" in kwargs and kwargs["weights"] is not None:
+        if weights:
             raise ValueError("Weights are not supported for MeanSquaredError.")
         return np.sum(np.square(value_dict["f"] - ground_truth)) / len(ground_truth)
 
