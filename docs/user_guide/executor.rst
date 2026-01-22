@@ -60,7 +60,9 @@ The :class:`Executor <squlearn.Executor>` class provides the following key comfo
   sub-programs. If the version of the Qiskit installation is larger equal than 1.2, the V2 Primitives are created, otherwise the V1 Primitives are returned.
 - **Qiskit Session handling:** Automatically manages the creation and handling of Qiskit IBM Runtime sessions.
   If Sessions are time out, the :class:`Executor <squlearn.Executor>` automatically creates a new session and re-executes the
-  job. Note that a manual closing of the session is reuqired when running in jupyter notebook, since otherwise unncessary runtime on the IBM Quantum Machines might be a consequence.
+  job. **Important:** When using IBM Quantum backends or Sessions, it is **strongly recommended**
+  to use the :class:`Executor <squlearn.Executor>` within a context manager (``with`` statement) to ensure proper cleanup
+  and avoid unnecessary charges for open sessions. See :ref:`Session Management <session_management>` for details.
 - **Automatic backend selection (IBM Quantum only):** The :class:`Executor <squlearn.Executor>` class can automatically select the most suitable
   backend for the quantum job. The selection process is facilitated by the `mapomatic <https://github.com/qiskit-community/mapomatic>`_ tool `[1]`_.
   The :class:`Executor <squlearn.Executor>` can be initialized with a list of backends, a :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`, or a Qiskit
@@ -148,18 +150,39 @@ execution environment:
 
 
 - A :class:`Backend <qiskit.providers.Backend>` from :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`'s :meth:`backend <qiskit_ibm_runtime.QiskitRuntimeservice.backend>` method, which utilizes the execution of quantum jobs on IBM Quantum.
-  Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class (remember to close the session at the end of your code when running on IBM Quantum).
+  Sessions and Primitives are automatically created and managed by the :class:`Executor <squlearn.Executor>` class.
+  
+  **Important:** Use the context manager to ensure the session is properly closed:
 
   .. code-block:: python
 
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.backend('ibm_brisbane'))
-    ...
-    # Close the session at the end of your code
-    executor.close_session()
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    
+    # Recommended: Use context manager
+    with Executor(service.backend('ibm_kingston'), caching=True) as executor:
+        # Your quantum computations here
+        qnn.fit(X_train, y_train)
+    # Session is automatically closed
+
+  If you cannot use a context manager, remember to close the session at the end of your code:
+
+  .. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.backend('ibm_kingston'))
+    try:
+        # Your quantum computations here
+        qnn.fit(X_train, y_train)
+    finally:
+        executor.close_session()
+
+  See :ref:`Session Management <session_management>` for details.
 
   It is also possible to pass a list of IBM Quantum backends from which the most suited backend is chosen
   automatically (see :ref:`Automatic backend selection <autoselect>`)
@@ -172,8 +195,12 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service)
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    
+    # Use context manager for proper session management
+    with Executor(service, auto_backend_mode="quality") as executor:
+        # Your quantum computations here
+        qkrr.fit(X_train, y_train)
 
 - A pre-initialized :class:`Session <qiskit_ibm_runtime.Session>` object, which can be used to execute quantum jobs on the :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeService>`.
 
@@ -182,11 +209,13 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    session = service.create_session(backend = service.backend('ibm_brisbane'))
-    executor = Executor(session)
-    ...
-    executor.close_session()
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    session = service.create_session(backend = service.backend('ibm_kingston'))
+    
+    # Use context manager with a pre-initialized session
+    with Executor(session) as executor:
+        # Your quantum computations here
+        qkrr.fit(X_train, y_train)
 
 - Pre-configured Primitive (:class:`Estimator <qiskit_ibm_runtime.Estimator>`, :class:`Sampler <qiskit_ibm_runtime.Sampler>`) with options for error mitigation.
   Note that the options from an :class:`Estimator <qiskit_ibm_runtime.Estimator>` are not automatically copied to
@@ -197,17 +226,17 @@ execution environment:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService, Estimator
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
-    session = service.create_session(backend = service.backend('ibm_brisbane'))
+    session = service.create_session(backend = service.backend('ibm_kingston'))
     estimator = Estimator(session=session)
     estimator.options.resilience.zne_mitigation = True
     estimator.options.resilience.zne.noise_factors = (1, 3, 5)
     estimator.options.resilience.zne.extrapolator = "linear"
 
-    executor = Executor(estimator)
-    ...
-    executor.close_session()
+    with Executor(estimator) as executor:
+        # Your quantum computations here
+        qkrr.fit(X_train, y_train)
 
 
 - If only the ``backend.run`` execution is wanted, this can be achieved by utilizing the
@@ -231,22 +260,24 @@ backend from the :class:`QiskitRuntimeService <qiskit_ibm_runtime.QiskitRuntimeS
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
     options = {"resilience":{"zne_mitigation"  : True,
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
-    executor = Executor(service.backend('ibm_brisbane'), # Specify the backend
-                         cache_dir='cache', # Set cache folder to "cache"
-                         caching=True, # Enable caching default for remote executions
-                         log_file="executor.log", # Set-up logging file
-                         wait_restart=600,  # Set 10 min pause between restarts of Jobs
-                         max_jobs_retries=10, # Set maximum number of restarts to 10 before aborting
-                         options_estimator=options # Set options for the Estimator primitive
-                         )
-
-    executor.set_shots(1234) # Shots can be adjusted after initialization
+    # Recommended: Use context manager
+    with Executor(service.backend('ibm_kingston'), # Specify the backend
+                   cache_dir='cache', # Set cache folder to "cache"
+                   caching=True, # Enable caching default for remote executions
+                   log_file="executor.log", # Set-up logging file
+                   wait_restart=600,  # Set 10 min pause between restarts of Jobs
+                   max_jobs_retries=10, # Set maximum number of restarts to 10 before aborting
+                   options_estimator=options # Set options for the Estimator primitive
+                   ) as executor:
+        executor.set_shots(1234) # Shots can be adjusted after initialization
+        # Your quantum computations here
+        qnn.fit(X_train, y_train)
 
 
 Utilizing Executor Primitives in Qiskit Routines
@@ -294,13 +325,15 @@ They folow the same dictionary datastructure than the original V2 Primtives.
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
     options = {"resilience":{"zne_mitigation"  : True,
                              "zne":{"noise_factors" : (1, 3, 5),"extrapolator":"linear" }}
               }
 
-    executor = Executor(service.backend("ibm_brisbane"),options_estimator=options)
+    with Executor(service.backend("ibm_kingston"), options_estimator=options) as executor:
+        # Your quantum computations here
+        pass
 
 Alternatively, the options can be adjusted by the attributes :meth:`estimator_options` and :meth:`sampler_options` similar
 to the option interface of the V2 Primtives:
@@ -310,10 +343,13 @@ to the option interface of the V2 Primtives:
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-    executor = Executor(service.backend("ibm_brisbane"))
-    executor.sampler_options.dynamical_decoupling.enable = True
-    executor.sampler_options.dynamical_decoupling.sequence_type = "XpXm"
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    
+    with Executor(service.backend("ibm_kingston")) as executor:
+        executor.sampler_options.dynamical_decoupling.enable = True
+        executor.sampler_options.dynamical_decoupling.sequence_type = "XpXm"
+        # Your quantum computations here
+        pass
 
 Options can be adjusted by the :meth:`set_options` method of the Primitives that are created by the
 :class:`Executor <squlearn.Executor>` class.
@@ -323,11 +359,73 @@ Options can be adjusted by the :meth:`set_options` method of the Primitives that
     from squlearn import Executor
     from qiskit_ibm_runtime import QiskitRuntimeService, Options
 
-    service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
 
-    executor = Executor(service.backend("ibm_brisbane"))
-    estimator = executor.get_estimator()
-    estimator.set_options(resilience_level=2)
+    with Executor(service.backend("ibm_kingston")) as executor:
+        estimator = executor.get_estimator()
+        estimator.set_options(resilience_level=2)
+        # Your quantum computations here
+        pass
+
+.. _session_management:
+
+Session Management (IBM Quantum)
+--------------------------------
+
+When using the :class:`Executor <squlearn.Executor>` with IBM Quantum backends or Sessions, **proper session management is critical** to avoid:
+
+- Unnecessary open sessions consuming resources
+- Unexpected charges from IBM Quantum for unused sessions
+- Resource leaks in long-running applications
+
+**Recommended: Using Context Manager**
+
+The recommended way to use the :class:`Executor <squlearn.Executor>` with IBM Quantum backends is within a context manager (``with`` statement).
+This ensures that sessions are automatically closed when you exit the block, regardless of whether an error occurs:
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    
+    # Recommended: Use context manager
+    with Executor(service.backend('ibm_kingston'), caching=True,
+                  cache_dir='cache', log_file="log.log") as executor:
+        # Your quantum computations here
+        qnn.fit(X_train, y_train)
+    # Session is automatically closed here
+
+**Alternative: Manual Session Closing**
+
+If you cannot use a context manager, you **must** manually close the session by calling :meth:`close_session` when done.
+A ``UserWarning`` will be issued if a session is created outside of a context manager context:
+
+.. code-block:: python
+
+    from squlearn import Executor
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+    executor = Executor(service.backend('ibm_kingston'))
+    
+    try:
+        # Your code here
+        qnn.fit(X_train, y_train)
+    finally:
+        # Make sure to close the session
+        executor.close_session()
+
+**Warning on Session Misuse**
+
+Creating a session outside of a context manager will issue a :class:`SessionContextMisuseWarning`. 
+This warning indicates that you should either:
+
+1. Use a context manager (recommended)
+2. Ensure you explicitly call :meth:`close_session` at the end
+
+Failing to do so may result in open sessions consuming resources and incurring charges on IBM Quantum.
 
 .. _autoselect:
 
@@ -400,16 +498,17 @@ the mode is switched to ``"speed"``. The :class:`Executor <squlearn.Executor>` i
 
    # Executor is initialized with a service, and considers all available backends
    # (except simulators)
-   service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-   executor = Executor(service, auto_backend_mode="speed")
+   service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+   
+   # Use context manager for proper session management
+   with Executor(service, auto_backend_mode="speed") as executor:
+       # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
+       qkrr = QKRR(FidelityKernel(ChebyshevRx(4),executor))
 
-   # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
-   qkrr = QKRR(FidelityKernel(ChebyshevRx(4),executor))
-
-   # Backend is automatically selected based on the smallest queue
-   # All the following functions will be executed on the selected backend
-   X_train, y_train = np.array([[0.1],[0.2]]), np.array([0.1,0.2])
-   qkrr.fit(X_train, y_train)
+       # Backend is automatically selected based on the smallest queue
+       # All the following functions will be executed on the selected backend
+       X_train, y_train = np.array([[0.1],[0.2]]), np.array([0.1,0.2])
+       qkrr.fit(X_train, y_train)
 
 
 In-QPU parallelization (Qiskit only)

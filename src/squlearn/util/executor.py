@@ -12,10 +12,12 @@ from pathlib import Path
 from typing import Any, List, Union
 from types import MethodType
 from collections.abc import Iterable
+import warnings
+import weakref
+
 import dill as pickle
 import numpy as np
 from packaging import version
-
 import pennylane as qml
 from pennylane import __version__ as pennylane_version
 from pennylane.devices import Device as PennylaneDevice
@@ -176,6 +178,10 @@ from .pennylane import PennyLaneCircuit
 from .qulacs import QulacsCircuit
 
 
+class SessionContextMisuseWarning(UserWarning):
+    """Raised when a session is used outside its context manager."""
+
+
 class Executor:
     r"""
     A class for executing quantum jobs on IBM Quantum systems or simulators.
@@ -200,10 +206,30 @@ class Executor:
     Note: The Sampler in Primitives V2 uses shots, even with statevector simulators, whereas
     Primitives V1 provides exact probabilities.
 
-    **Important**: When using the Executor to run jobs on IBM Quantum systems, sessions are
-    created automatically. If you are working in a Jupyter notebook, ensure you close the session
-    once calculations are complete to avoid unnecessary open sessions (:meth:`close_session`),
-    to avoide being charged for the opened but unused session.
+    **Important: Session Management**
+
+    When using the Executor with IBM Quantum backends or Sessions, it is **strongly recommended**
+    to use the Executor within a context manager (``with`` statement). This ensures that sessions
+    are properly closed when you are done with the executor, avoiding unnecessary open sessions
+    and preventing charges for unused sessions.
+
+    .. code-block:: python
+
+        from squlearn import Executor
+        from qiskit_ibm_runtime import QiskitRuntimeService
+
+        service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+
+        # Recommended: Use context manager
+        with Executor(service.backend('ibm_kingston'), caching=True,
+                      cache_dir='cache', log_file="log.log") as executor:
+            # Your quantum computations here
+            pass
+        # Session is automatically closed
+
+    If you cannot use a context manager, ensure you manually close the session by calling
+    :meth:`close_session` when you are done. Creating a session outside of a context manager
+    will issue a warning.
 
     Args:
         execution (Union[str, Backend, List[Backend], QiskitRuntimeService, Session,BaseEstimatorV1, BaseSamplerV1, BaseEstimatorV2, BaseSamplerV2, PennylaneDevice]):
@@ -334,14 +360,23 @@ class Executor:
        exec = Executor("qasm_simulator")
        exec.set_shots(1000)
 
-       # Executor with a IBM Quantum backend
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.backend('ibm_brisbane'))
+       # Executor with a IBM Quantum backend (with context manager - recommended)
+       # Session is automatically closed after the with block
+       with Executor(service.backend('ibm_kingston'), caching=True,
+                    cache_dir='cache', log_file="log.log") as executor:
+           # Your quantum computations here
+           pass
 
-       # Executor with a IBM Quantum backend and caching and logging
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
-       executor = Executor(service.backend('ibm_brisbane'), caching=True,
-                            cache_dir='cache', log_file="log.log")
+       # Executor with a IBM Quantum backend (without context manager - not recommended)
+       service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
+       executor = Executor(service.backend('ibm_kingston'))
+
+       # Make sure to close the session when done
+       try:
+           # Your code here
+           pass
+       finally:
+           executor.close_session()
 
     **Example: Get the Executor based Qiskit primitives**
 
@@ -376,7 +411,7 @@ class Executor:
 
        # Executor is initialized with a service, and considers all available backends
        # (except simulators)
-       service = QiskitRuntimeService(channel="ibm_quantum", token="INSERT_YOUR_TOKEN_HERE")
+       service = QiskitRuntimeService(channel="ibm_quantum_platform", token="INSERT_YOUR_TOKEN_HERE")
        executor = Executor(service, auto_backend_mode="quality")
 
        # Create a QKRR model with a FidelityKernel and the ChebyshevRx encoding circuit
@@ -442,6 +477,7 @@ class Executor:
         self._estimator = None
         self._sampler = None
         self._execution_origin = ""
+        self._context_managed = False
 
         # Copy estimator options and make a dict
         if options_estimator is not None:
@@ -711,6 +747,11 @@ class Executor:
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
+        if self._session is not None:
+            self._finalizer = weakref.finalize(
+                self, Executor._cleanup_session, weakref.ref(self._session)
+            )
+
         # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
             if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
@@ -798,6 +839,31 @@ class Executor:
         if self._sampler is not None:
             self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
+
+    def __enter__(self):
+        self._context_managed = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.IBMQuantum and self.session is not None:
+            try:
+                self.close_session()
+            except Exception:
+                pass
+
+        self._context_managed = False
+
+    @staticmethod
+    def _cleanup_session(session_ref):
+        """Clean up session when executor is garbage collected."""
+        try:
+            session = session_ref()
+            if session is None:
+                return
+            session.close()
+            del session
+        except Exception:
+            pass
 
     @property
     def quantum_framework(self) -> str:
@@ -1437,7 +1503,7 @@ class Executor:
             if isinstance(self._sampler, RuntimeSamplerV2):
                 self._options_sampler = _convert_options_to_dict(self._sampler.options)
             if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new one and a new estimator
+                # Session is expired, create a new session and a new estimator
                 self.create_session()
                 self._sampler = RuntimeSamplerV2(mode=self._session, options=self._options_sampler)
             sampler = self._sampler
@@ -2384,7 +2450,19 @@ class Executor:
         return self.get_shots()
 
     def create_session(self):
-        """Creates a new session, is called automatically."""
+        """Creates a new session.
+
+        **Warning**: Creating a session outside of a context manager will issue a warning.
+        It is strongly recommended to use the Executor within a ``with`` statement when working
+        with IBM Quantum backends or sessions to ensure proper cleanup.
+
+        Raises:
+            SessionContextMisuseWarning: If the session is created outside of a context manager.
+            RuntimeError: If the session cannot be created due to a missing backend.
+
+        See Also:
+            :meth:`close_session`: For manually closing a session.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be created for Qiskit framework!")
@@ -2392,14 +2470,38 @@ class Executor:
         if not self.IBMQuantum:
             raise RuntimeError("Sessions can only be created for IBM Quantum devices!")
 
+        if not self._context_managed:
+            warnings.warn(
+                "\033[1;91mCreating a session outside of a context manager may lead to  unclosed "
+                "sessions. It is recommended to use the Executor within a 'with' statement. At "
+                "least make sure to call 'executor.close_session()' when you are done with the "
+                "executor or make sure it is properly garbage collected.\033[0m",
+                SessionContextMisuseWarning,
+            )
+
         if self._backend is not None:
             self._session = Session(backend=self._backend, max_time=self._max_session_time)
+            if not hasattr(self, "_finalizer"):
+                self._finalizer = weakref.finalize(
+                    self, Executor._cleanup_session, weakref.ref(self._session)
+                )
         else:
             raise RuntimeError("Session can not started because of missing backend!")
         self._logger.info("Executor created a new session.")
 
     def close_session(self):
-        """Closes the current session, is called automatically."""
+        """Closes the current session.
+
+        This method should be called when you are done using the Executor with an IBM Quantum
+        backend to avoid being charged for unused sessions. Alternatively, use the Executor
+        within a context manager (``with`` statement) to ensure automatic cleanup.
+
+        Raises:
+            RuntimeError: If no session exists or the framework is not Qiskit.
+
+        See Also:
+            :meth:`create_session`: For creating a new session.
+        """
 
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be closed for Qiskit framework!")
@@ -2411,13 +2513,9 @@ class Executor:
         else:
             raise RuntimeError("No session found!")
 
-    def __del__(self):
-        """Terminate the session in case the executor is deleted"""
-        if self._session is not None:
-            try:
-                self.close_session()
-            except:
-                pass
+        if hasattr(self, "_finalizer"):
+            self._finalizer.detach()
+            del self._finalizer
 
     @property
     def estimator_options(self):
