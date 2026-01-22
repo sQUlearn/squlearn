@@ -50,10 +50,8 @@ class ObservableBase(ABC):
         self._num_all_qubits = num_all_qubits
         self._is_mapped = True
         if self._num_all_qubits < self._num_qubits:
-            raise ValueError(
-                """Number of qubits in the system is smaller than the number
-                                of qubits in the observable."""
-            )
+            raise ValueError("""Number of qubits in the system is smaller than the number
+                                of qubits in the observable.""")
 
     @property
     def is_mapped(self):
