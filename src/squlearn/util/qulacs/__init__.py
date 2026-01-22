@@ -7,7 +7,6 @@ from .qulacs_execution import (
     qulacs_evaluate_probabilities,
 )
 
-
 __all__ = [
     "QulacsCircuit",
     "qulacs_evaluate",

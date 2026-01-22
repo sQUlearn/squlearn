@@ -181,7 +181,7 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         self._check_feature_consistency(features)
 
         self._fm_str = self._generate_circuit_string(num_features)
-        (layered_pqc, num_parameters) = self._build_layered_encoding_circuit(num_features)
+        layered_pqc, num_parameters = self._build_layered_encoding_circuit(num_features)
 
         parameter = np.zeros(num_parameters)
 
