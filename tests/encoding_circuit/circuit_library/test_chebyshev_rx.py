@@ -7,6 +7,58 @@ import numpy as np
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
+from tests.qiskit_circuit_equivalence import assert_circuits_equal
+
+
+def _build_expected_chebyshev_rx_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    nonlinearity: str,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    if nonlinearity == "arccos":
+
+        def mapping(a, x):
+            return a * np.arccos(x)
+
+    else:
+
+        def mapping(a, x):
+            return a * np.arctan(x)
+
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    feature_offset = 0
+
+    def entangle_layer_local(QC_local: QuantumCircuit) -> QuantumCircuit:
+        for i in range(0, num_qubits + (1 if closed else 0) - 1, 2):
+            QC_local.cx(i, (i + 1) % num_qubits)
+        if num_qubits > 2:
+            for i in range(1, num_qubits + (1 if closed else 0) - 1, 2):
+                QC_local.cx(i, (i + 1) % num_qubits)
+        return QC_local
+
+    for _ in range(num_layers):
+        for i in range(num_qubits):
+            QC.rx(
+                mapping(
+                    parameters[index_offset % len(parameters)],
+                    features[feature_offset % len(features)],
+                ),
+                i,
+            )
+            index_offset += 1
+            feature_offset += 1
+
+        for i in range(num_qubits):
+            QC.rx(parameters[index_offset % len(parameters)], i)
+            index_offset += 1
+
+        QC = entangle_layer_local(QC)
+
+    return QC
 
 
 class TestChebyshevRx:
@@ -124,3 +176,43 @@ class TestChebyshevRx:
 
         with pytest.raises(ValueError):
             circuit.get_circuit(features, params)
+
+    @pytest.mark.parametrize(
+        "num_qubits,num_layers,closed,nonlinearity",
+        [
+            (2, 1, False, "arccos"),
+            (3, 1, True, "arccos"),
+            (3, 2, False, "arctan"),
+            (4, 2, True, "arctan"),
+        ],
+    )
+    def test_chebyshev_rx_get_circuit_matches_ground_truth(
+        self, num_qubits, num_layers, closed, nonlinearity
+    ):
+
+        circuit = ChebyshevRx(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            nonlinearity=nonlinearity,
+        )
+
+        num_encoding_slots = circuit.num_encoding_slots
+        num_features = min(2, num_encoding_slots) if num_encoding_slots >= 2 else 1
+        features = np.linspace(-0.9, 0.9, num_features)
+
+        rng = np.random.RandomState(42)
+        parameters = rng.uniform(-np.pi, np.pi, size=circuit.num_parameters)
+
+        qc_actual = circuit.get_circuit(features=features, parameters=parameters)
+
+        qc_expected = _build_expected_chebyshev_rx_circuit(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            nonlinearity=nonlinearity,
+            features=features,
+            parameters=parameters,
+        )
+
+        assert_circuits_equal(qc_actual, qc_expected)

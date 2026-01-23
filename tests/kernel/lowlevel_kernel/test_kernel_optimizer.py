@@ -1,6 +1,5 @@
 import pytest
 from squlearn import Executor
-from squlearn.encoding_circuit.circuit_library.chebyshev_pqc import ChebyshevPQC
 from squlearn.encoding_circuit.circuit_library.yz_cx_encoding_circuit import YZ_CX_EncodingCircuit
 from squlearn.kernel import FidelityKernel, ProjectedQuantumKernel, KernelOptimizer
 from squlearn.kernel import QGPR, QGPC, QKRR, QSVC, QSVR
