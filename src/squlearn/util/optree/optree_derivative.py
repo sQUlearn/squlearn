@@ -98,22 +98,22 @@ def _circuit_parameter_shift(
             # We check this by evaluating the gradient at two different values of the parameter
             try:
                 # Create test values for all parameters in the gradient
-                test_params = {}
-                for param in fac.parameters:
-                    if param == parameter:
-                        test_params[param] = 0.0
-                    else:
-                        test_params[param] = 0.5  # arbitrary value
+                # Try to use values that avoid common domain errors (e.g., division by zero, sqrt of negative)
+                test_values = [0.3, 0.7]  # Two different values to test dependency
+                gradient_values = []
                 
-                # Evaluate gradient at parameter = 0.0
-                val_0 = float(fac.bind(test_params))
-                
-                # Evaluate gradient at parameter = 1.0
-                test_params[parameter] = 1.0
-                val_1 = float(fac.bind(test_params))
+                for test_val in test_values:
+                    test_params = {}
+                    for param in fac.parameters:
+                        if param == parameter:
+                            test_params[param] = test_val
+                        else:
+                            test_params[param] = 0.3  # Safe value for most expressions
+                    gradient_values.append(float(fac.bind(test_params)))
                 
                 # If the gradient changes with the parameter, it's non-linear
-                if not np.isclose(val_0, val_1, rtol=1e-10, atol=1e-10):
+                # Use slightly relaxed tolerance to account for floating-point precision
+                if not np.isclose(gradient_values[0], gradient_values[1], rtol=1e-8, atol=1e-8):
                     raise ValueError(
                         f"Parameter shift rule cannot be applied to non-linear parameters. "
                         f"Parameter '{parameter}' appears in a non-linear function in gate "

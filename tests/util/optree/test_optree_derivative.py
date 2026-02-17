@@ -50,6 +50,8 @@ class TestOpTreeDerivative:
 
         # Compare numerical and analytical derivatives
         assert np.allclose(val_d_num[1:-1], val_d[1:-1], rtol=1e-2)
+        # Second derivative has slightly larger tolerance (4e-2) due to numerical errors
+        # that accumulate when taking gradients of gradients
         assert np.allclose(val_dd_num[1:-1], val_dd[2:-2], rtol=4e-2)
 
     def test_qc_gradient(self):
