@@ -50,15 +50,30 @@ class SingleProbability(ObservableBase):
     ) -> None:
         super().__init__(num_qubits)
 
-        self.qubit = qubit
-        self.one_state = one_state
-        self.parameterized = parameterized
+        self._qubit = qubit
+        self._one_state = one_state
+        self._parameterized = parameterized
+
+    @property
+    def qubit(self) -> int:
+        """The qubit to measure the probability of."""
+        return self._qubit
+
+    @property
+    def one_state(self) -> bool:
+        """If True, measure the probability of being in state 1, otherwise state 0."""
+        return self._one_state
+
+    @property
+    def parameterized(self) -> bool:
+        """If True, the operator is parameterized."""
+        return self._parameterized
 
     @property
     def num_parameters(self):
         """Number of trainable parameters in the single probability operator."""
 
-        if self.parameterized:
+        if self._parameterized:
             return 1
         else:
             return 0
@@ -75,9 +90,9 @@ class SingleProbability(ObservableBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["qubit"] = self.qubit
-        params["one_state"] = self.one_state
-        params["parameterized"] = self.parameterized
+        params["qubit"] = self._qubit
+        params["one_state"] = self._one_state
+        params["parameterized"] = self._parameterized
         return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
@@ -92,18 +107,18 @@ class SingleProbability(ObservableBase):
             SparsePauliOp expression of the specified single probability operator.
         """
 
-        i = self.qubit
+        i = self._qubit
         if 0 > i or self.num_qubits <= i:
             raise ValueError("Specified qubit out of range")
         I = "I" * self.num_qubits
         Z = I[(i + 1) :] + "Z" + I[:i]
 
-        if self.parameterized:
+        if self._parameterized:
             coeff = 0.5 * parameters[0]
         else:
             coeff = 0.5
 
-        if self.one_state:
+        if self._one_state:
             return SparsePauliOp([I, Z], [coeff, -coeff])
 
         else:

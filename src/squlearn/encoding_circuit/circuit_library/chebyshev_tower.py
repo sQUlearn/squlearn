@@ -58,25 +58,60 @@ class ChebyshevTower(EncodingCircuitBase):
     ) -> None:
         super().__init__(num_qubits, num_features)
 
-        self.num_chebyshev = num_chebyshev
-        self.alpha = alpha
-        self.num_layers = num_layers
-        self.rotation_gate = rotation_gate
-        self.hadamard_start = hadamard_start
-        self.arrangement = arrangement
-        self.nonlinearity = nonlinearity
+        self._num_chebyshev = num_chebyshev
+        self._alpha = alpha
+        self._num_layers = num_layers
+        self._rotation_gate = rotation_gate
+        self._hadamard_start = hadamard_start
+        self._arrangement = arrangement
+        self._nonlinearity = nonlinearity
 
-        if self.rotation_gate not in ("rx", "ry", "rz"):
+        if self._rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
 
-        if self.arrangement not in ("block", "alternating"):
+        if self._arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
-        if self.nonlinearity not in ("arccos", "arctan"):
+        if self._nonlinearity not in ("arccos", "arctan"):
             raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
+                f"Unknown value for nonlinearity: {self._nonlinearity}."
                 " Possible values are 'arccos' and 'arctan'"
             )
+
+    @property
+    def num_chebyshev(self) -> int:
+        """The number of Chebyshev tower terms per feature dimension."""
+        return self._num_chebyshev
+
+    @property
+    def alpha(self) -> float:
+        """The scaling factor of Chebyshev tower."""
+        return self._alpha
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""
+        return self._num_layers
+
+    @property
+    def rotation_gate(self) -> str:
+        """The rotation gate to use."""
+        return self._rotation_gate
+
+    @property
+    def hadamard_start(self) -> bool:
+        """Whether the circuit starts with a layer of Hadamard gates."""
+        return self._hadamard_start
+
+    @property
+    def arrangement(self) -> str:
+        """The arrangement of the layers."""
+        return self._arrangement
+
+    @property
+    def nonlinearity(self) -> str:
+        """The mapping function to use for the feature encoding."""
+        return self._nonlinearity
 
     @property
     def num_parameters(self) -> int:
@@ -90,15 +125,15 @@ class ChebyshevTower(EncodingCircuitBase):
 
         To get the bounds for a specific number of features, use get_feature_bounds().
         """
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
             return np.array([-1.0, 1.0])
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
             return np.array([-np.inf, np.inf])
 
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the Chebyshev Tower encoding."""
-        return self.num_qubits * self.num_layers
+        return self.num_qubits * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -112,13 +147,13 @@ class ChebyshevTower(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["num_chebyshev"] = self.num_chebyshev
-        params["alpha"] = self.alpha
-        params["num_layers"] = self.num_layers
-        params["rotation_gate"] = self.rotation_gate
-        params["hadamard_start"] = self.hadamard_start
-        params["arrangement"] = self.arrangement
-        params["nonlinearity"] = self.nonlinearity
+        params["num_chebyshev"] = self._num_chebyshev
+        params["alpha"] = self._alpha
+        params["num_layers"] = self._num_layers
+        params["rotation_gate"] = self._rotation_gate
+        params["hadamard_start"] = self._hadamard_start
+        params["arrangement"] = self._arrangement
+        params["nonlinearity"] = self._nonlinearity
         return params
 
     def set_params(self, **kwargs) -> ChebyshevTower:
@@ -156,10 +191,10 @@ class ChebyshevTower(EncodingCircuitBase):
             Returns the circuit in Qiskit's QuantumCircuit format
         """
 
-        if self.rotation_gate not in ("rx", "ry", "rz"):
+        if self._rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
 
-        if self.arrangement not in ("block", "alternating"):
+        if self._arrangement not in ("block", "alternating"):
             raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
         num_features = extract_num_features(features)
@@ -174,72 +209,72 @@ class ChebyshevTower(EncodingCircuitBase):
                 QC.cx(i, i + 1)
             return QC
 
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arccos(x)"""
-                return self.alpha * i * np.arccos(x)
+                return self._alpha * i * np.arccos(x)
 
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arctan(x)"""
-                return self.alpha * i * np.arctan(x)
+                return self._alpha * i * np.arctan(x)
 
         QC = QuantumCircuit(self.num_qubits)
 
-        if self.hadamard_start:
+        if self._hadamard_start:
             QC.h(range(self.num_qubits))
 
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             index_offset = 0
             iqubit = 0
             icheb = 1
             # Loops through the data encoding gates
-            if self.arrangement == "block":
+            if self._arrangement == "block":
                 outer = num_features
-                inner = self.num_chebyshev
-            elif self.arrangement == "alternating":
+                inner = self._num_chebyshev
+            elif self._arrangement == "alternating":
                 inner = num_features
-                outer = self.num_chebyshev
+                outer = self._num_chebyshev
             else:
                 raise ValueError("Arrangement must be either 'block' or 'alternating'")
 
             for outer_ in range(outer):
                 for inner_ in range(inner):
-                    if self.rotation_gate.lower() == "rx":
+                    if self._rotation_gate.lower() == "rx":
                         QC.rx(
                             mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
-                    elif self.rotation_gate.lower() == "ry":
+                    elif self._rotation_gate.lower() == "ry":
                         QC.ry(
                             mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
-                    elif self.rotation_gate.lower() == "rz":
+                    elif self._rotation_gate.lower() == "rz":
                         QC.rz(
                             mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
                     else:
                         raise ValueError(
-                            "Rotation gate {} not supported".format(self.rotation_gate)
+                            "Rotation gate {} not supported".format(self._rotation_gate)
                         )
                     iqubit += 1
-                    if self.arrangement == "block":
+                    if self._arrangement == "block":
                         icheb += 1
-                    elif self.arrangement == "alternating":
+                    elif self._arrangement == "alternating":
                         index_offset += 1
 
-                if self.arrangement == "block":
+                if self._arrangement == "block":
                     index_offset += 1
                     icheb = 1
-                elif self.arrangement == "alternating":
+                elif self._arrangement == "alternating":
                     icheb += 1
 
             # Entangling layer
-            if layer + 1 < self.num_layers:
+            if layer + 1 < self._num_layers:
                 QC = entangle_layer(QC)
 
         return QC
