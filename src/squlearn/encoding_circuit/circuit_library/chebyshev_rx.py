@@ -45,30 +45,30 @@ class ChebyshevRx(EncodingCircuitBase):
         nonlinearity: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
-        self.num_layers = num_layers
-        self.closed = closed
-        self.alpha = alpha
-        self.nonlinearity = nonlinearity
-        if self.nonlinearity not in ("arccos", "arctan"):
+        self._num_layers = num_layers
+        self._closed = closed
+        self._alpha = alpha
+        self._nonlinearity = nonlinearity
+        if self._nonlinearity not in ("arccos", "arctan"):
             raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
+                f"Unknown value for nonlinearity: {self._nonlinearity}."
                 " Possible values are 'arccos' and 'arctan'"
             )
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the ChebyshevRx encoding circuit."""
-        return 2 * self.num_qubits * self.num_layers
+        return 2 * self.num_qubits * self._num_layers
 
     @property
     def parameter_bounds(self) -> np.ndarray:
         """The bounds of the trainable parameters of the ChebyshevRx encoding circuit."""
         bounds = np.zeros((self.num_parameters, 2))
         index_offset = 0
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                bounds[index_offset] = [0.0, self.alpha]
+                bounds[index_offset] = [0.0, self._alpha]
                 index_offset += 1
             # Trafo
             for i in range(self.num_qubits):
@@ -94,7 +94,7 @@ class ChebyshevRx(EncodingCircuitBase):
         if len(param) > 0:
             index = self.get_cheb_indices(False)
             features_per_qubit = int(np.ceil(self.num_qubits / num_features))
-            p = np.linspace(0.01, self.alpha, features_per_qubit)
+            p = np.linspace(0.01, self._alpha, features_per_qubit)
 
             for index2 in index:
                 for i, ii in enumerate(index2):
@@ -109,15 +109,35 @@ class ChebyshevRx(EncodingCircuitBase):
 
         To get the bounds for a specific number of features, use get_feature_bounds().
         """
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
             return np.array([-1.0, 1.0])
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
             return np.array([-np.inf, np.inf])
 
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the ChebyshevRx encoding circuit."""
-        return self.num_layers * self.num_qubits
+        return self._num_layers * self.num_qubits
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""
+        return self._num_layers
+
+    @property
+    def closed(self) -> bool:
+        """Whether the last and the first qubit are entangled."""
+        return self._closed
+
+    @property
+    def alpha(self) -> float:
+        """The maximum value of the Chebyshev Tower initial parameters."""
+        return self._alpha
+
+    @property
+    def nonlinearity(self) -> str:
+        """The mapping function for the feature encoding."""
+        return self._nonlinearity
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -131,10 +151,10 @@ class ChebyshevRx(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["num_layers"] = self.num_layers
-        params["closed"] = self.closed
-        params["alpha"] = self.alpha
-        params["nonlinearity"] = self.nonlinearity
+        params["num_layers"] = self._num_layers
+        params["closed"] = self._closed
+        params["alpha"] = self._alpha
+        params["nonlinearity"] = self._nonlinearity
         return params
 
     def set_params(self, **kwargs) -> ChebyshevRx:
@@ -165,7 +185,7 @@ class ChebyshevRx(EncodingCircuitBase):
         """
         cheb_index = []
         index_offset = 0
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
                 cheb_index_layer.append(index_offset)
@@ -204,22 +224,22 @@ class ChebyshevRx(EncodingCircuitBase):
 
         def entangle_layer(QC: QuantumCircuit) -> QuantumCircuit:
             """Creation of a simple nearest neighbor entangling layer"""
-            for i in range(0, self.num_qubits + self.closed - 1, 2):
+            for i in range(0, self.num_qubits + self._closed - 1, 2):
                 QC.cx(i, (i + 1) % self.num_qubits)
 
             if self.num_qubits > 2:
-                for i in range(1, self.num_qubits + self.closed - 1, 2):
+                for i in range(1, self.num_qubits + self._closed - 1, 2):
                     QC.cx(i, (i + 1) % self.num_qubits)
 
             return QC
 
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
 
             def mapping(a, x):
                 """Helper function for returning a*arccos(x)"""
                 return a * np.arccos(x)
 
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
 
             def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
@@ -228,7 +248,7 @@ class ChebyshevRx(EncodingCircuitBase):
         QC = QuantumCircuit(self.num_qubits)
         index_offset = 0
         feature_offset = 0
-        for _ in range(self.num_layers):
+        for _ in range(self._num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(

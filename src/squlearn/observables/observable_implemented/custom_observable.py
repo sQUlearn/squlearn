@@ -46,12 +46,12 @@ class CustomObservable(ObservableBase):
     ) -> None:
         super().__init__(num_qubits)
 
-        self.operator_string = operator_string
-        if isinstance(self.operator_string, str):
-            self.operator_string = [self.operator_string]
-        self.parameterized = parameterized
+        self._operator_string = operator_string
+        if isinstance(self._operator_string, str):
+            self._operator_string = [self._operator_string]
+        self._parameterized = parameterized
 
-        for s in self.operator_string:
+        for s in self._operator_string:
             if len(s) != self.num_qubits:
                 raise ValueError(
                     "Supplied string has not the same size as the number of qubits, "
@@ -62,10 +62,20 @@ class CustomObservable(ObservableBase):
                     raise ValueError("Only Pauli operators I, X, Y, Z are allowed.")
 
     @property
+    def operator_string(self) -> Union[str, list[str], tuple[str]]:
+        """String of operator to measure."""
+        return self._operator_string
+
+    @property
+    def parameterized(self) -> bool:
+        """If True, the operator is parameterized."""
+        return self._parameterized
+
+    @property
     def num_parameters(self):
         """Returns the number of trainable parameters in the custom operator"""
-        if self.parameterized:
-            return len(self.operator_string)
+        if self._parameterized:
+            return len(self._operator_string)
         else:
             return 0
 
@@ -81,8 +91,8 @@ class CustomObservable(ObservableBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["operator_string"] = self.operator_string
-        params["parameterized"] = self.parameterized
+        params["operator_string"] = self._operator_string
+        params["parameterized"] = self._parameterized
         return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
@@ -99,20 +109,20 @@ class CustomObservable(ObservableBase):
         op_list = []
         param_list = []
 
-        if self.parameterized:
+        if self._parameterized:
             nparam = len(parameters)
-            op_list.append(self.operator_string[0])
+            op_list.append(self._operator_string[0])
             param_list.append(parameters[0 % nparam])
 
             ioff = 1
-            for j in range(1, len(self.operator_string)):
-                op_list.append(self.operator_string[j])
+            for j in range(1, len(self._operator_string)):
+                op_list.append(self._operator_string[j])
                 param_list.append(parameters[ioff % nparam])
                 ioff = ioff + 1
             return SparsePauliOp(op_list, param_list)
 
         else:
-            op_list.append(self.operator_string[0])
-            for j in range(1, len(self.operator_string)):
-                op_list.append(self.operator_string[j])
+            op_list.append(self._operator_string[0])
+            for j in range(1, len(self._operator_string)):
+                op_list.append(self._operator_string[j])
             return SparsePauliOp(op_list)

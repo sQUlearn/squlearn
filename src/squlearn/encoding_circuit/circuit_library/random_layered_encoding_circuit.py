@@ -55,10 +55,10 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         feature_probability=0.3,
     ) -> None:
         super().__init__(num_qubits, num_features)
-        self.seed = seed
-        self.min_num_layers = min_num_layers
-        self.max_num_layers = max_num_layers
-        self.feature_probability = feature_probability
+        self._seed = seed
+        self._min_num_layers = min_num_layers
+        self._max_num_layers = max_num_layers
+        self._feature_probability = feature_probability
         self._fm_str = None
 
     def _generate_circuit_string(self, num_features: int) -> str:
@@ -120,17 +120,17 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             r"crz(p;=0*p+1/8*np.pi,{p})",
         ]
 
-        random.seed(self.seed)
+        random.seed(self._seed)
         gates_with_x = [action for action in gates if "(x)" in action]
         weights = [
-            self.feature_probability if "(x)" in action else 1 - self.feature_probability
+            self._feature_probability if "(x)" in action else 1 - self._feature_probability
             for action in gates
         ]
-        num_layers = random.randint(self.min_num_layers, self.max_num_layers)
+        num_layers = random.randint(self._min_num_layers, self._max_num_layers)
         layers = random.choices(gates, k=num_layers, weights=weights)
 
         min_x = (num_features - 1) // self.num_qubits + 1
-        if min_x > self.min_num_layers:
+        if min_x > self._min_num_layers:
             raise ValueError("Minimum number of layers is not enough to encode all features!")
 
         while str(layers).count("(x)") < min_x:
@@ -159,6 +159,26 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
         num_params = layered_encoding_circuit.num_parameters
 
         return (layered_pqc, num_params)
+
+    @property
+    def seed(self) -> int:
+        """The seed for the random number generator."""
+        return self._seed
+
+    @property
+    def min_num_layers(self) -> int:
+        """The minimum number of layers."""
+        return self._min_num_layers
+
+    @property
+    def max_num_layers(self) -> int:
+        """The maximum number of layers."""
+        return self._max_num_layers
+
+    @property
+    def feature_probability(self) -> float:
+        """The probability of a layer containing an encoding gate."""
+        return self._feature_probability
 
     def get_circuit(
         self,
@@ -199,10 +219,10 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["seed"] = self.seed
-        params["min_num_layers"] = self.min_num_layers
-        params["max_num_layers"] = self.max_num_layers
-        params["feature_probability"] = self.feature_probability
+        params["seed"] = self._seed
+        params["min_num_layers"] = self._min_num_layers
+        params["max_num_layers"] = self._max_num_layers
+        params["feature_probability"] = self._feature_probability
         return params
 
     def set_params(self, **params) -> EncodingCircuitBase:

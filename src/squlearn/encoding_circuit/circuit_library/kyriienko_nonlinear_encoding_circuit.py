@@ -79,24 +79,24 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     ) -> None:
         super().__init__(num_qubits, num_features)
 
-        self.num_encoding_layers = num_encoding_layers
-        self.num_variational_layers = num_variational_layers
-        self.variational_arrangement = variational_arrangement
-        self.encoding_style = encoding_style
-        self.block_width = block_width
-        self.block_depth = block_depth
+        self._num_encoding_layers = num_encoding_layers
+        self._num_variational_layers = num_variational_layers
+        self._variational_arrangement = variational_arrangement
+        self._encoding_style = encoding_style
+        self._block_width = block_width
+        self._block_depth = block_depth
         self.alpha = 2.0
-        self.rotation_gate = rotation_gate
+        self._rotation_gate = rotation_gate
         self.num_chebyshev = self.num_qubits
         self.tower = True if encoding_style == "chebyshev_tower" else False
 
-        if self.variational_arrangement not in ("HEA", "ABA"):
+        if self._variational_arrangement not in ("HEA", "ABA"):
             raise ValueError("Arrangement must be either 'HEA' or 'ABA'")
 
         if self.num_qubits < 2:
             raise ValueError("Variational circuit HEE_rzrxrz requires at least two qubits.")
 
-        if self.rotation_gate not in ("rx", "ry", "rz"):
+        if self._rotation_gate not in ("rx", "ry", "rz"):
             raise ValueError("Rotation gate must be either 'rx', 'ry' or 'rz'")
 
     @property
@@ -107,16 +107,51 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the variational circuit."""
-        if self.variational_arrangement == "HEA":
-            num_param = 3 * self.num_qubits * self.num_variational_layers
-        elif self.variational_arrangement == "ABA":
-            num_param = 3 * self.num_qubits * self.block_depth * self.num_variational_layers
+        if self._variational_arrangement == "HEA":
+            num_param = 3 * self.num_qubits * self._num_variational_layers
+        elif self._variational_arrangement == "ABA":
+            num_param = 3 * self.num_qubits * self._block_depth * self._num_variational_layers
         return num_param
 
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the Kyriienko encoding circuit."""
-        return self.num_qubits * self.num_encoding_layers
+        return self.num_qubits * self._num_encoding_layers
+
+    @property
+    def num_encoding_layers(self) -> int:
+        """The number of encoding layers."""
+        return self._num_encoding_layers
+
+    @property
+    def num_variational_layers(self) -> int:
+        """The number of variational layers."""
+        return self._num_variational_layers
+
+    @property
+    def variational_arrangement(self) -> str:
+        """The arrangement of the variational layers."""
+        return self._variational_arrangement
+
+    @property
+    def encoding_style(self) -> str:
+        """The style of the encoding."""
+        return self._encoding_style
+
+    @property
+    def block_width(self) -> int:
+        """The width of each blocks for the ABA arrangement."""
+        return self._block_width
+
+    @property
+    def block_depth(self) -> int:
+        """The depth of each blocks for the ABA arrangement."""
+        return self._block_depth
+
+    @property
+    def rotation_gate(self) -> str:
+        """The rotation gate to use."""
+        return self._rotation_gate
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -130,13 +165,13 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["num_encoding_layers"] = self.num_encoding_layers
-        params["num_variational_layers"] = self.num_variational_layers
-        params["variational_arrangement"] = self.variational_arrangement
-        params["encoding_style"] = self.encoding_style
-        params["block_width"] = self.block_width
-        params["block_depth"] = self.block_depth
-        params["rotation_gate"] = self.rotation_gate
+        params["num_encoding_layers"] = self._num_encoding_layers
+        params["num_variational_layers"] = self._num_variational_layers
+        params["variational_arrangement"] = self._variational_arrangement
+        params["encoding_style"] = self._encoding_style
+        params["block_width"] = self._block_width
+        params["block_depth"] = self._block_depth
+        params["rotation_gate"] = self._rotation_gate
 
         return params
 
@@ -199,18 +234,18 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                                 QC.cx(i, 0)
             return QC, index_offset
 
-        if self.encoding_style == "chebyshev_product":
+        if self._encoding_style == "chebyshev_product":
             QC = LayeredEncodingCircuit(num_qubits=self.num_qubits, num_features=num_features)
             layer = Layer(QC)
-            {"rx": layer.Rx, "ry": layer.Ry, "rz": layer.Rz}[self.rotation_gate](
+            {"rx": layer.Rx, "ry": layer.Ry, "rz": layer.Rz}[self._rotation_gate](
                 "x", encoding=np.arcsin
             )
-            QC.add_layer(layer, num_layers=self.num_encoding_layers)
+            QC.add_layer(layer, num_layers=self._num_encoding_layers)
 
             QC = QC.get_circuit(features, [])
-        elif self.encoding_style in ("chebyshev_tower", "chebyshev_sparse"):
+        elif self._encoding_style in ("chebyshev_tower", "chebyshev_sparse"):
             QC = QuantumCircuit(self.num_qubits)
-            for layer in range(self.num_encoding_layers):
+            for layer in range(self._num_encoding_layers):
                 index_offset_encoding = 0
                 iqubit = 0
                 icheb = 1
@@ -220,7 +255,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
 
                 for outer_ in range(outer):
                     for inner_ in range(inner):
-                        {"rx": QC.rx, "ry": QC.ry, "rz": QC.rz}[self.rotation_gate](
+                        {"rx": QC.rx, "ry": QC.ry, "rz": QC.rz}[self._rotation_gate](
                             mapping(features[index_offset_encoding % num_features], icheb),
                             iqubit % self.num_qubits,
                         )
@@ -229,47 +264,47 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                     icheb = 1 + icheb if self.tower else 1
 
         index_offset_variational = 0
-        if self.variational_arrangement == "HEA":
-            QC = variational_gate_block(QC, self.num_variational_layers, self.num_qubits)[0]
-        elif self.variational_arrangement == "ABA":
-            if self.num_qubits % self.block_width != 0:
+        if self._variational_arrangement == "HEA":
+            QC = variational_gate_block(QC, self._num_variational_layers, self.num_qubits)[0]
+        elif self._variational_arrangement == "ABA":
+            if self.num_qubits % self._block_width != 0:
                 raise ValueError(
-                    f"block_width =  {self.block_width} must be a divisor of the num_qubits = {self.num_qubits}."
+                    f"block_width =  {self._block_width} must be a divisor of the num_qubits = {self.num_qubits}."
                 )
 
-            number_of_blocks = int(np.ceil(self.num_qubits / self.block_width))  # vertical blocks
-            shifting_factor = np.floor(self.block_width / 2)
-            for layer in range(self.num_variational_layers):
+            number_of_blocks = int(np.ceil(self.num_qubits / self._block_width))  # vertical blocks
+            shifting_factor = np.floor(self._block_width / 2)
+            for layer in range(self._num_variational_layers):
                 if layer % 2 == 0:  # even layer
                     for block in range(number_of_blocks):
                         QC, index_offset_variational = variational_gate_block(
                             QC,
-                            self.block_depth,
-                            self.block_width,
-                            int(block * self.block_width),
+                            self._block_depth,
+                            self._block_width,
+                            int(block * self._block_width),
                             index_offset_variational,
                             variational_arrangement="ABA",
                         )
                 else:
                     for block in range(number_of_blocks):
                         if (
-                            shifting_factor + block * self.block_width + self.block_width
+                            shifting_factor + block * self._block_width + self._block_width
                             <= self.num_qubits
                         ):
                             QC, index_offset_variational = variational_gate_block(
                                 QC,
-                                self.block_depth,
-                                self.block_width,
-                                int(shifting_factor + block * self.block_width),
+                                self._block_depth,
+                                self._block_width,
+                                int(shifting_factor + block * self._block_width),
                                 index_offset_variational,
                                 variational_arrangement="ABA",
                             )
                         else:  # if the block is out of the range of the qubits, we need to wrap around
                             QC, index_offset_variational = variational_gate_block(
                                 QC,
-                                self.block_depth,
-                                self.block_width,
-                                int(shifting_factor + block * self.block_width),
+                                self._block_depth,
+                                self._block_width,
+                                int(shifting_factor + block * self._block_width),
                                 index_offset_variational,
                                 variational_arrangement="ABA",
                             )
