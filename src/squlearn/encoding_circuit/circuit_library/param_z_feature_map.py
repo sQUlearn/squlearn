@@ -73,6 +73,11 @@ class ParamZFeatureMap(EncodingCircuitBase):
         """The number of layers of the encoding circuit."""
         return self._num_layers
 
+    @property
+    def entangling(self) -> bool:
+        """Whether entangling gates are added between layers."""
+        return self._entangling
+
     def get_circuit(
         self,
         features: Union[ParameterVector, np.ndarray],

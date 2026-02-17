@@ -298,22 +298,6 @@ class TestLayeredEncodingCircuit:
         with pytest.raises(ValueError):
             circuit.get_circuit(features, [])
 
-    def test_set_params_encoding_circuit_str(self):
-        """Test that set_params correctly sets encoding_circuit_str."""
-        circuit = LayeredEncodingCircuit(num_qubits=4)
-        
-        # Test setting encoding_circuit_str
-        fm_str = "Ry(x;=np.arctan(x),{x})-"
-        circuit.set_params(encoding_circuit_str=fm_str)
-        assert circuit.encoding_circuit_str == fm_str
-        assert circuit.get_params()["encoding_circuit_str"] == fm_str
-        
-        # Verify the circuit can be built with the new string
-        features = ParameterVector("x", 2)
-        params = ParameterVector("p", 4)
-        qc = circuit.get_circuit(features, params)
-        assert qc.num_qubits == 4
-
     def test_set_params_feature_str(self):
         """Test that set_params correctly sets feature_str."""
         circuit = LayeredEncodingCircuit(num_qubits=4)
@@ -335,10 +319,6 @@ class TestLayeredEncodingCircuit:
     def test_properties_are_read_only(self):
         """Test that the properties are read-only and cannot be set directly."""
         circuit = LayeredEncodingCircuit(num_qubits=4)
-        
-        # Test that encoding_circuit_str property is read-only
-        with pytest.raises(AttributeError):
-            circuit.encoding_circuit_str = "test"
         
         # Test that feature_str property is read-only
         with pytest.raises(AttributeError):

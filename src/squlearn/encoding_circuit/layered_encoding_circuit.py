@@ -2146,11 +2146,6 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
         raise ValueError("LayeredPQC is not initialized.")
 
     @property
-    def encoding_circuit_str(self) -> str:
-        """Returns the encoding circuit string"""
-        return self._encoding_circuit_str
-
-    @property
     def feature_str(self) -> str:
         """Returns the feature string"""
         return self._feature_str
@@ -2166,7 +2161,6 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
             "num_features": self._num_features,
             "feature_str": self._feature_str,
             "parameter_str": self._parameter_str,
-            "encoding_circuit_str": self._encoding_circuit_str,
         }
         if deep:
             params.update(self._layered_pqc_params)
