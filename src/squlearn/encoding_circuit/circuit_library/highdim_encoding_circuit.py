@@ -96,9 +96,10 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         """
         The number of layer repetitions.
         
-        Note: If initialized as None, this will be automatically determined
-        during the first call to get_circuit() based on the number of features.
-        This lazy initialization is by design for backward compatibility.
+        Note: If initialized as None, this value will be automatically calculated
+        and set during the first call to get_circuit() based on the number of features.
+        This means get_circuit() will modify the internal state (_num_layers) when 
+        called for the first time. This behavior is maintained for backward compatibility.
         """
         return self._num_layers
 
