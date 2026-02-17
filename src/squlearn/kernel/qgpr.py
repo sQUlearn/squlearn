@@ -104,9 +104,9 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         self._quantum_kernel = quantum_kernel
         self.X_train = None
         self.y_train = None
-        self.sigma = sigma
-        self.normalize_y = normalize_y
-        self.full_regularization = full_regularization
+        self._sigma = sigma
+        self._normalize_y = normalize_y
+        self._full_regularization = full_regularization
 
         self.K_train = None
         self.K_test = None
@@ -166,7 +166,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
             if self._quantum_kernel.is_trainable:
                 self._quantum_kernel.run_optimization(self.X_train, y)
 
-            if self.full_regularization:
+            if self._full_regularization:
                 if self._quantum_kernel._regularization is not None:
                     warnings.warn(
                         f"The regularization of the quantum kernel is set to"
@@ -182,7 +182,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        if self.normalize_y:
+        if self._normalize_y:
             self._y_train_mean = np.mean(y, axis=0)
             self._y_train_std = _handle_zeros_in_scale(np.std(y, axis=0), copy=False)
             self.y_train = (y - self._y_train_mean) / self._y_train_std
@@ -251,12 +251,12 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        if self.full_regularization:
+        if self._full_regularization:
             self.K_train, self.K_testtrain, self.K_test = regularize_full_kernel(
                 self.K_train, self.K_testtrain, self.K_test
             )
 
-        self.K_train += self.sigma * np.identity(self.K_train.shape[0])
+        self.K_train += self._sigma * np.identity(self.K_train.shape[0])
 
         try:
             self._LU, self._piv = lu_factor(self.K_train)
@@ -267,7 +267,7 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         mean, cov = self.calculate_cov_and_mean()
 
         # undo normalization
-        if self.normalize_y:
+        if self._normalize_y:
             mean = self._y_train_std * mean + self._y_train_mean
         if return_std:
             std = np.sqrt(np.diag(cov))
@@ -283,6 +283,21 @@ class QGPR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         v = lu_solve((self._LU, self._piv), self.K_testtrain.T)
         QGP_cov = self.K_test - (self.K_testtrain @ v)
         return QGP_mean, QGP_cov
+
+    @property
+    def sigma(self) -> float:
+        """Hyperparameter for the regularization strength."""
+        return self._sigma
+
+    @property
+    def normalize_y(self) -> bool:
+        """Whether to normalize the target values."""
+        return self._normalize_y
+
+    @property
+    def full_regularization(self) -> bool:
+        """Whether to enable full gram matrix regularization."""
+        return self._full_regularization
 
     def get_params(self, deep: bool = True) -> dict:
         """

@@ -103,7 +103,7 @@ class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
         **kwargs,
     ) -> None:
         self._quantum_kernel = quantum_kernel
-        self.alpha = alpha
+        self._alpha = alpha
         self.X_train = None
         self.k_testtrain = None
         self.k_train = None
@@ -161,7 +161,7 @@ class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
                 "Unknown type of quantum kernel: {}".format(type(self._quantum_kernel))
             )
 
-        self.k_train = self.k_train + self.alpha * np.eye(self.k_train.shape[0])
+        self.k_train = self.k_train + self._alpha * np.eye(self.k_train.shape[0])
 
         # Cholesky decomposition for providing numerical stability
         try:
@@ -203,6 +203,11 @@ class QKRR(BaseEstimator, RegressorMixin, SerializableModelMixin):
 
         prediction = np.dot(self.k_testtrain, self.dual_coeff_)
         return prediction
+
+    @property
+    def alpha(self) -> Union[float, np.ndarray]:
+        """Hyperparameter for the regularization strength."""
+        return self._alpha
 
     def get_params(self, deep: bool = True) -> dict:
         """
