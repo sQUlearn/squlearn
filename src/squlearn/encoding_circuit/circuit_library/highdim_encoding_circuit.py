@@ -93,7 +93,13 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
     @property
     def num_layers(self) -> Union[None, int]:
-        """The number of layer repetitions."""
+        """
+        The number of layer repetitions.
+        
+        Note: If initialized as None, this will be automatically determined
+        during the first call to get_circuit() based on the number of features.
+        This lazy initialization is by design for backward compatibility.
+        """
         return self._num_layers
 
     @property
