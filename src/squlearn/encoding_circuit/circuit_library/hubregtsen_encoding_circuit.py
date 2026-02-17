@@ -49,19 +49,19 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
     ) -> None:
         super().__init__(num_qubits, num_features)
 
-        self.num_layers = num_layers
-        self.closed = closed
-        self.final_encoding = final_encoding
+        self._num_layers = num_layers
+        self._closed = closed
+        self._final_encoding = final_encoding
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the Hubregtsen encoding circuit."""
-        num_param = self.num_qubits * self.num_layers
+        num_param = self.num_qubits * self._num_layers
         if self.num_qubits > 2:
-            if self.closed:
-                num_param += self.num_qubits * self.num_layers
+            if self._closed:
+                num_param += self.num_qubits * self._num_layers
             else:
-                num_param += (self.num_qubits - 1) * self.num_layers
+                num_param += (self.num_qubits - 1) * self._num_layers
         return num_param
 
     @property
@@ -71,14 +71,14 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         bound_array = np.zeros((self.num_parameters, 2))
         # Single theta Ry gates
         index_offset = 0
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             for i in range(self.num_qubits):
                 bound_array[index_offset] = [-np.pi, np.pi]
                 index_offset += 1
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
-                if self.closed:
+                if self._closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
@@ -91,7 +91,22 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the Hubregtsen encoding circuit."""
-        return self.num_qubits * self.num_layers
+        return self.num_qubits * self._num_layers
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""
+        return self._num_layers
+
+    @property
+    def closed(self) -> bool:
+        """Whether the last and the first qubit are entangled."""
+        return self._closed
+
+    @property
+    def final_encoding(self) -> bool:
+        """Whether the encoding is repeated at the end."""
+        return self._final_encoding
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -138,7 +153,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
         QC.h(range(self.num_qubits))
 
         # Loops through the layers
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             # Loops through the data encoding gates
             n_feature_loop = int(np.ceil(num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):
@@ -154,7 +169,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
 
             # Entangled theta CRZ gates
             if self.num_qubits > 2:
-                if self.closed:
+                if self._closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
@@ -163,7 +178,7 @@ class HubregtsenEncodingCircuit(EncodingCircuitBase):
                     QC.crz(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
 
-        if self.final_encoding:
+        if self._final_encoding:
             # Repeat encoding finally to make the previous rotations not redundant
             n_feature_loop = int(np.ceil(num_features / self.num_qubits))
             for i in range(n_feature_loop * self.num_qubits):

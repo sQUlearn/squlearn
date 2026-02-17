@@ -297,3 +297,33 @@ class TestLayeredEncodingCircuit:
 
         with pytest.raises(ValueError):
             circuit.get_circuit(features, [])
+
+    def test_set_params_feature_str(self):
+        """Test that set_params correctly sets feature_str."""
+        circuit = LayeredEncodingCircuit(num_qubits=4)
+
+        # Test setting feature_str
+        circuit.set_params(feature_str="y")
+        assert circuit.feature_str == "y"
+        assert circuit.get_params()["feature_str"] == "y"
+
+    def test_set_params_parameter_str(self):
+        """Test that set_params correctly sets parameter_str."""
+        circuit = LayeredEncodingCircuit(num_qubits=4)
+
+        # Test setting parameter_str
+        circuit.set_params(parameter_str="theta")
+        assert circuit.parameter_str == "theta"
+        assert circuit.get_params()["parameter_str"] == "theta"
+
+    def test_properties_are_read_only(self):
+        """Test that the properties are read-only and cannot be set directly."""
+        circuit = LayeredEncodingCircuit(num_qubits=4)
+
+        # Test that feature_str property is read-only
+        with pytest.raises(AttributeError):
+            circuit.feature_str = "test"
+
+        # Test that parameter_str property is read-only
+        with pytest.raises(AttributeError):
+            circuit.parameter_str = "test"

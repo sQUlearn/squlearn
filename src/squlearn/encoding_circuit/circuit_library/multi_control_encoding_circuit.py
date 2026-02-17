@@ -49,16 +49,31 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         if self.num_qubits < 2:
             raise ValueError("MultiControlEncodingCircuit requires at least two qubits.")
 
-        self.num_layers = num_layers
-        self.closed = closed
-        self.final_encoding = final_encoding
+        self._num_layers = num_layers
+        self._closed = closed
+        self._final_encoding = final_encoding
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""
+        return self._num_layers
+
+    @property
+    def closed(self) -> bool:
+        """Whether the last and the first qubit are entangled."""
+        return self._closed
+
+    @property
+    def final_encoding(self) -> bool:
+        """Whether the encoding is repeated at the end."""
+        return self._final_encoding
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the MultiControlEncodingCircuit encoding circuit."""
-        num_param = 3 * (self.num_qubits - 1) * self.num_layers
-        if self.closed:
-            num_param += 3 * self.num_layers
+        num_param = 3 * (self.num_qubits - 1) * self._num_layers
+        if self._closed:
+            num_param += 3 * self._num_layers
         return num_param
 
     @property
@@ -69,7 +84,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the MultiControlEncodingCircuit."""
-        return self.num_qubits * self.num_layers
+        return self.num_qubits * self._num_layers
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -83,9 +98,9 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["num_layers"] = self.num_layers
-        params["closed"] = self.closed
-        params["final_encoding"] = self.final_encoding
+        params["num_layers"] = self._num_layers
+        params["closed"] = self._closed
+        params["final_encoding"] = self._final_encoding
         return params
 
     def get_circuit(
@@ -118,14 +133,14 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
         index_offset = 0
         feature_offset = 0
 
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             # First ZZ-encoding circuit
             QC.h(range(self.num_qubits))
             for i in range(self.num_qubits):
                 QC.rz(features[feature_offset % num_features], i)
                 feature_offset += 1
 
-            if self.closed:
+            if self._closed:
                 istop = self.num_qubits
             else:
                 istop = self.num_qubits - 1
@@ -139,7 +154,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                 index_offset += 1
 
             if self.num_qubits >= 2:
-                if self.closed:
+                if self._closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
@@ -152,7 +167,7 @@ class MultiControlEncodingCircuit(EncodingCircuitBase):
                     QC.crz(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
 
-        if self.final_encoding:
+        if self._final_encoding:
             for i in range(self.num_qubits):
                 QC.rz(features[feature_offset % num_features], i)
                 feature_offset += 1

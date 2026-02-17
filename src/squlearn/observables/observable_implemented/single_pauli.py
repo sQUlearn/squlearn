@@ -47,18 +47,33 @@ class SinglePauli(ObservableBase):
     ) -> None:
         super().__init__(num_qubits)
 
-        self.qubit = qubit
-        self.op_str = op_str
-        self.parameterized = parameterized
+        self._qubit = qubit
+        self._op_str = op_str
+        self._parameterized = parameterized
 
-        if self.op_str not in ["I", "X", "Y", "Z"]:
+        if self._op_str not in ["I", "X", "Y", "Z"]:
             raise ValueError("Specified operator not supported")
+
+    @property
+    def qubit(self) -> int:
+        """Qubit on which the Pauli operator acts."""
+        return self._qubit
+
+    @property
+    def op_str(self) -> str:
+        """Pauli operator to measure."""
+        return self._op_str
+
+    @property
+    def parameterized(self) -> bool:
+        """If True, the operator is parameterized."""
+        return self._parameterized
 
     @property
     def num_parameters(self):
         """The number of trainable parameters in the single Pauli operator"""
 
-        if self.parameterized:
+        if self._parameterized:
             return 1
         else:
             return 0
@@ -75,9 +90,9 @@ class SinglePauli(ObservableBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["qubit"] = self.qubit
-        params["op_str"] = self.op_str
-        params["parameterized"] = self.parameterized
+        params["qubit"] = self._qubit
+        params["op_str"] = self._op_str
+        params["parameterized"] = self._parameterized
         return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
@@ -92,12 +107,12 @@ class SinglePauli(ObservableBase):
             SparsePauliOp expression of the specified single Pauli operator.
         """
 
-        i = self.qubit
+        i = self._qubit
         if 0 > i or self.num_qubits <= i:
             raise ValueError("Specified qubit out of range")
 
         H = "I" * self.num_qubits
-        if self.parameterized:
-            return SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]], [parameters[0]])
+        if self._parameterized:
+            return SparsePauliOp([H[(i + 1) :] + self._op_str + H[:i]], [parameters[0]])
 
-        return SparsePauliOp([H[(i + 1) :] + self.op_str + H[:i]])
+        return SparsePauliOp([H[(i + 1) :] + self._op_str + H[:i]])
