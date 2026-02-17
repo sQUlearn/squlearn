@@ -95,10 +95,10 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     def num_layers(self) -> Union[None, int]:
         """
         The number of layer repetitions.
-        
+
         Note: If initialized as None, this value will be automatically calculated
         and set during the first call to get_circuit() based on the number of features.
-        This means get_circuit() will modify the internal state (_num_layers) when 
+        This means get_circuit() will modify the internal state (_num_layers) when
         called for the first time. This behavior is maintained for backward compatibility.
         """
         return self._num_layers
