@@ -90,6 +90,47 @@ def _circuit_parameter_shift(
 
         fac = original_gate.params[0].gradient(parameter)
 
+        # Check if the gradient contains the parameter we're differentiating w.r.t. (non-linear parameter)
+        # For parameter shift rule to work, the derivative must not depend on the parameter itself
+        if isinstance(fac, ParameterExpression) and parameter in fac.parameters:
+            # The parameter appears in the gradient expression, but it might be with coefficient 0
+            # (e.g., p[0]*acos(x[0]) has gradient acos(x[0]) + p[0]*0/... where p[0] appears but doesn't affect the value)
+            # We check this by evaluating the gradient at two different values of the parameter
+            try:
+                # Create test values for all parameters in the gradient
+                test_params = {}
+                for param in fac.parameters:
+                    if param == parameter:
+                        test_params[param] = 0.0
+                    else:
+                        test_params[param] = 0.5  # arbitrary value
+                
+                # Evaluate gradient at parameter = 0.0
+                val_0 = float(fac.bind(test_params))
+                
+                # Evaluate gradient at parameter = 1.0
+                test_params[parameter] = 1.0
+                val_1 = float(fac.bind(test_params))
+                
+                # If the gradient changes with the parameter, it's non-linear
+                if not np.isclose(val_0, val_1, rtol=1e-10, atol=1e-10):
+                    raise ValueError(
+                        f"Parameter shift rule cannot be applied to non-linear parameters. "
+                        f"Parameter '{parameter}' appears in a non-linear function in gate "
+                        f"'{original_gate.name}' with parameter expression '{original_gate.params[0]}'. "
+                        f"The gradient '{fac}' depends on the parameter '{parameter}', which violates the "
+                        f"assumptions of the parameter shift rule."
+                    )
+            except (ValueError, ZeroDivisionError):
+                # If we can't evaluate (e.g., division by zero), assume it's non-linear
+                raise ValueError(
+                    f"Parameter shift rule cannot be applied to non-linear parameters. "
+                    f"Parameter '{parameter}' appears in a non-linear function in gate "
+                    f"'{original_gate.name}' with parameter expression '{original_gate.params[0]}'. "
+                    f"The gradient '{fac}' contains the parameter '{parameter}', which may violate the "
+                    f"assumptions of the parameter shift rule."
+                )
+
         # Copy the circuit for the shifted ones
         pshift_circ = copy.deepcopy(circuit)
         mshift_circ = copy.deepcopy(circuit)
