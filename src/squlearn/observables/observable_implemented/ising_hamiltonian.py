@@ -71,47 +71,67 @@ class IsingHamiltonian(ObservableBase):
     ) -> None:
         super().__init__(num_qubits)
 
-        self.I = I
-        self.Z = Z
-        self.X = X
-        self.ZZ = ZZ
+        self._I = I
+        self._Z = Z
+        self._X = X
+        self._ZZ = ZZ
 
-        if self.I not in ["S", "N"]:
+        if self._I not in ["S", "N"]:
             raise ValueError(
                 "Only the characters 'S' and 'N' are" + "supported as characters for I"
             )
 
         if (
-            self.Z not in ["F", "S", "N"]
-            or self.ZZ not in ["F", "S", "N"]
-            or self.ZZ not in ["F", "S", "N"]
+            self._Z not in ["F", "S", "N"]
+            or self._ZZ not in ["F", "S", "N"]
+            or self._ZZ not in ["F", "S", "N"]
         ):
             raise ValueError(
                 "Only the characters 'F','S','N' are" + "supported as characters for Z, ZZ, and X"
             )
 
     @property
+    def I(self) -> str:
+        """Parameter options for identity term."""
+        return self._I
+
+    @property
+    def Z(self) -> str:
+        """Parameter options for Z term."""
+        return self._Z
+
+    @property
+    def X(self) -> str:
+        """Parameter options for X term."""
+        return self._X
+
+    @property
+    def ZZ(self) -> str:
+        """Parameter options for ZZ term."""
+        return self._ZZ
+
+    @property
     def num_parameters(self):
         """Returns the number of free parameters in the observable"""
 
         num_parameters = 0
-        if self.I == "S":
+        if self._I == "S":
             num_parameters += 1
 
-        if self.Z == "S":
+        if self._Z == "S":
             num_parameters += 1
-        elif self.Z == "F":
+        elif self._Z == "F":
             num_parameters += self.num_qubits
 
-        if self.X == "S":
+        if self._X == "S":
             num_parameters += 1
-        elif self.X == "F":
+        elif self._X == "F":
             num_parameters += self.num_qubits
 
         if self.num_qubits > 1:
-            if self.ZZ == "S":
+            if self._ZZ == "S":
                 num_parameters += 1
-            elif self.ZZ == "F":
+            elif self._ZZ == "F":
                 num_parameters += (self.num_qubits * (self.num_qubits - 1)) // 2
 
         return num_parameters
@@ -128,10 +148,10 @@ class IsingHamiltonian(ObservableBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["I"] = self.I
-        params["Z"] = self.Z
-        params["X"] = self.X
-        params["ZZ"] = self.ZZ
+        params["I"] = self._I
+        params["Z"] = self._Z
+        params["X"] = self._X
+        params["ZZ"] = self._ZZ
         return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
@@ -163,37 +183,37 @@ class IsingHamiltonian(ObservableBase):
         op_list = []
         coeff_list = []
 
-        if self.I == "S":
+        if self._I == "S":
             op_list.append("I" * self.num_qubits)
             coeff_list.append(parameters[ioff % nparam])
             ioff += 1
 
-        if self.Z == "S" or self.Z == "F":
+        if self._Z == "S" or self._Z == "F":
             for i in range(self.num_qubits):
                 op_list.append(gen_single_ising_string(i, "Z"))
                 coeff_list.append(parameters[ioff % nparam])
-                if self.Z == "F":
+                if self._Z == "F":
                     ioff += 1
-            if self.Z == "S":
+            if self._Z == "S":
                 ioff += 1
 
-        if self.X == "S" or self.X == "F":
+        if self._X == "S" or self._X == "F":
             for i in range(self.num_qubits):
                 op_list.append(gen_single_ising_string(i, "X"))
                 coeff_list.append(parameters[ioff % nparam])
-                if self.X == "F":
+                if self._X == "F":
                     ioff += 1
-            if self.X == "S":
+            if self._X == "S":
                 ioff += 1
 
-        if self.ZZ == "S" or self.ZZ == "F":
+        if self._ZZ == "S" or self._ZZ == "F":
             for i in range(self.num_qubits):
                 for j in range(i):
                     op_list.append(gen_double_ising_string(i, j))
                     coeff_list.append(parameters[ioff % nparam])
-                    if self.ZZ == "F":
+                    if self._ZZ == "F":
                         ioff += 1
-            if self.ZZ == "S":
+            if self._ZZ == "S":
                 ioff += 1
 
         if len(op_list) == 0:
