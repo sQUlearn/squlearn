@@ -93,16 +93,19 @@ def _circuit_parameter_shift(
         # Check if the gate parameter is a polynomial of degree at most 1 in the parameter
         # For parameter shift rule to work, the parameter must enter linearly: f(p) = a*p + b
         # This means the second derivative must be zero
-        if isinstance(original_gate.params[0], ParameterExpression) and parameter in original_gate.params[0].parameters:
+        if (
+            isinstance(original_gate.params[0], ParameterExpression)
+            and parameter in original_gate.params[0].parameters
+        ):
             # Take the first derivative (this is already computed as 'fac')
             # For a polynomial of degree 1: first derivative is constant (doesn't depend on parameter)
             # For higher degree: first derivative depends on parameter
-            
+
             if isinstance(fac, ParameterExpression) and parameter in fac.parameters:
                 # First derivative contains the parameter - could be degree > 1
                 # Check the second derivative to confirm
                 second_deriv = fac.gradient(parameter)
-                
+
                 # If second derivative is non-zero, it's not degree 1
                 is_degree_one = True
                 if isinstance(second_deriv, ParameterExpression):
@@ -117,7 +120,7 @@ def _circuit_parameter_shift(
                 else:
                     # Second derivative is numeric
                     is_degree_one = abs(float(second_deriv)) < 1e-10
-                
+
                 if not is_degree_one:
                     raise ValueError(
                         f"Parameter shift rule cannot be applied to non-linear parameters. "
