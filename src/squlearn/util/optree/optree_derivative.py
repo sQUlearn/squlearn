@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Union, Set
 import copy
+import sympy as sp
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
@@ -92,42 +93,38 @@ def _circuit_parameter_shift(
 
         # Check if the gate parameter is a polynomial of degree at most 1 in the parameter
         # For parameter shift rule to work, the parameter must enter linearly: f(p) = a*p + b
-        # This means the second derivative must be zero
         if (
             isinstance(original_gate.params[0], ParameterExpression)
             and parameter in original_gate.params[0].parameters
         ):
-            # Take the first derivative (this is already computed as 'fac')
-            # For a polynomial of degree 1: first derivative is constant (doesn't depend on parameter)
-            # For higher degree: first derivative depends on parameter
-
-            if isinstance(fac, ParameterExpression) and parameter in fac.parameters:
-                # First derivative contains the parameter - could be degree > 1
-                # Check the second derivative to confirm
-                second_deriv = fac.gradient(parameter)
-
-                # If second derivative is non-zero, it's not degree 1
-                is_degree_one = True
-                if isinstance(second_deriv, ParameterExpression):
-                    # Second derivative is an expression - evaluate to check if zero
-                    try:
-                        test_vals = {param: 0.3 for param in second_deriv.parameters}
-                        val = abs(float(second_deriv.bind(test_vals)))
-                        is_degree_one = val < 1e-10
-                    except (ValueError, ZeroDivisionError):
-                        # Can't evaluate - assume non-linear
-                        is_degree_one = False
-                else:
-                    # Second derivative is numeric
-                    is_degree_one = abs(float(second_deriv)) < 1e-10
-
-                if not is_degree_one:
+            # Use sympy to check if the expression is a polynomial of degree <= 1
+            try:
+                # Convert to sympy expression
+                sympy_expr = original_gate.params[0].sympify()
+                
+                # Create sympy symbol for the parameter
+                param_symbol = sp.Symbol(str(parameter))
+                
+                # Check if it's a polynomial and get its degree
+                poly = sp.Poly(sympy_expr, param_symbol)
+                degree = poly.degree()
+                
+                if degree > 1:
                     raise ValueError(
                         f"Parameter shift rule cannot be applied to non-linear parameters. "
                         f"Parameter '{parameter}' appears in a non-linear function in gate "
                         f"'{original_gate.name}' with parameter expression '{original_gate.params[0]}'. "
-                        f"The parameter must enter the gate linearly (as a*p + b) for the parameter shift rule to work."
+                        f"The parameter must enter the gate linearly (as a*p + b) for the parameter shift rule to work. "
+                        f"Found polynomial degree {degree} > 1."
                     )
+            except (sp.PolynomialError, sp.GeneratorsNeeded) as e:
+                # If it's not a polynomial (e.g., sin, cos, arccos), it's definitely non-linear
+                raise ValueError(
+                    f"Parameter shift rule cannot be applied to non-linear parameters. "
+                    f"Parameter '{parameter}' appears in a non-polynomial function in gate "
+                    f"'{original_gate.name}' with parameter expression '{original_gate.params[0]}'. "
+                    f"The parameter must enter the gate linearly (as a*p + b) for the parameter shift rule to work."
+                )
 
         # Copy the circuit for the shifted ones
         pshift_circ = copy.deepcopy(circuit)
