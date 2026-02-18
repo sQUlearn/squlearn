@@ -101,14 +101,14 @@ def _circuit_parameter_shift(
             try:
                 # Convert to sympy expression
                 sympy_expr = original_gate.params[0].sympify()
-                
+
                 # Create sympy symbol for the parameter
                 param_symbol = sp.Symbol(str(parameter))
-                
+
                 # Check if it's a polynomial and get its degree
                 poly = sp.Poly(sympy_expr, param_symbol)
                 degree = poly.degree()
-                
+
                 if degree > 1:
                     raise ValueError(
                         f"Parameter shift rule cannot be applied to non-linear parameters. "
