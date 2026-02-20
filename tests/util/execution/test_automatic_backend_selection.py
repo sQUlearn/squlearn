@@ -16,33 +16,21 @@ from squlearn.util.executor import BaseEstimatorV1, BaseEstimatorV2, BaseSampler
 
 import pytest
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
 
 class TestBackendAutoSelection:
     """Test for auto selection of the backend for a given circuit."""
 
-    if QISKIT_SMALLER_1_0:
-        mark = pytest.mark.parametrize(
-            "mode, use_hqaa, true_backend",
-            [
-                ("quality", True, "fake_athens"),
-                ("speed", True, "fake_belem"),
-                ("quality", False, "fake_manila"),
-                ("speed", False, "fake_belem"),
-            ],
-        )
-    else:
-        mark = pytest.mark.parametrize(
-            "mode, use_hqaa, true_backend",
-            [
-                ("quality", True, "fake_manila"),
-                ("speed", True, "fake_belem"),
-                ("quality", False, "fake_manila"),
-                ("speed", False, "fake_belem"),
-            ],
-        )
+    mark = pytest.mark.parametrize(
+        "mode, use_hqaa, true_backend",
+        [
+            ("quality", True, "fake_manila"),
+            ("speed", True, "fake_belem"),
+            ("quality", False, "fake_manila"),
+            ("speed", False, "fake_belem"),
+        ],
+    )
 
     @mark
     def test_auto_select_circuit(self, mode, true_backend, use_hqaa):
@@ -77,26 +65,15 @@ class TestBackendAutoSelection:
         else:
             raise ValueError("Unknown estimator type")
 
-    if QISKIT_SMALLER_1_0:
-        mark = pytest.mark.parametrize(
-            "mode, use_hqaa, true_backend",
-            [
-                ("quality", True, "fake_manila"),
-                ("speed", True, "fake_belem"),
-                ("quality", False, "fake_belem"),
-                ("speed", False, "fake_belem"),
-            ],
-        )
-    else:
-        mark = pytest.mark.parametrize(
-            "mode, use_hqaa, true_backend",
-            [
-                ("quality", True, "fake_manila"),
-                ("speed", True, "fake_belem"),
-                ("quality", False, "fake_manila"),
-                ("speed", False, "fake_belem"),
-            ],
-        )
+    mark = pytest.mark.parametrize(
+        "mode, use_hqaa, true_backend",
+        [
+            ("quality", True, "fake_manila"),
+            ("speed", True, "fake_belem"),
+            ("quality", False, "fake_manila"),
+            ("speed", False, "fake_belem"),
+        ],
+    )
 
     @mark
     def test_auto_select_circuit_parallel(self, mode, true_backend, use_hqaa):
@@ -131,26 +108,15 @@ class TestBackendAutoSelection:
         else:
             raise ValueError("Unknown estimator type")
 
-    if QISKIT_SMALLER_1_0:
-        mark = pytest.mark.parametrize(
-            "mode, true_backend",
-            [
-                ("quality", "fake_manila"),
-                ("speed", "fake_belem"),
-                ("quality_hqaa", "fake_athens"),
-                ("speed_hqaa", "fake_belem"),
-            ],
-        )
-    else:
-        mark = pytest.mark.parametrize(
-            "mode, true_backend",
-            [
-                ("quality", "fake_manila"),
-                ("speed", "fake_belem"),
-                ("quality_hqaa", "fake_manila"),
-                ("speed_hqaa", "fake_belem"),
-            ],
-        )
+    mark = pytest.mark.parametrize(
+        "mode, true_backend",
+        [
+            ("quality", "fake_manila"),
+            ("speed", "fake_belem"),
+            ("quality_hqaa", "fake_athens"),
+            ("speed_hqaa", "fake_belem"),
+        ],
+    )
 
     @mark
     def test_auto_select_qnn(self, mode, true_backend):
