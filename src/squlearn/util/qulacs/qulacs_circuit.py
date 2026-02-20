@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Union, Iterable
-from sympy import lambdify
+from sympy import lambdify, sympify
 
 from qiskit.circuit import QuantumCircuit as QiskitQuantumCircuit
 from qiskit.circuit import ParameterExpression
@@ -306,7 +306,7 @@ class QulacsCircuit:
         for param in circuit.parameters:
             if param.vector.name not in self._circuit_param_names:
                 self._circuit_param_names.append(param.vector.name)
-                self._circuit_symbols_tuple += [p.sympify() for p in param.vector.params]
+                self._circuit_symbols_tuple += [sympify(p.sympify()) for p in param.vector.params]
 
         # Sort the symbols tuple by variable name and index
         def sort_key(item):
@@ -418,7 +418,7 @@ class QulacsCircuit:
         self._observable_symbols_tuple = tuple(
             sum(
                 [
-                    [p.sympify() for p in sort_parameters_after_index(obs.parameters)]
+                    [sympify(p.sympify()) for p in sort_parameters_after_index(obs.parameters)]
                     for obs in observables
                 ],
                 [],
