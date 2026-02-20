@@ -6,7 +6,7 @@ Installation
 Prerequisites
 -------------
 
-sQUlearn requires a recent python3 (>=3.9) installation.
+sQUlearn requires a recent python3 (>=3.10) installation.
 Additionally the following python packages are necessary: ::
 
     bayesian-optimization>=1.4.3,<2,
