@@ -485,14 +485,14 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             if arg_index is None:
                 return np.array([])
             else:
-                deriv = qml.jacobian(func, argnums=arg_index)
+                deriv = qml.jacobian(func, arg_index)
             while order > 0:
                 order -= 1
                 arg_index = argnum_dict[argnum.pop()]
                 if arg_index is None:
                     return np.array([])
                 else:
-                    deriv = qml.jacobian(deriv, argnums=arg_index)
+                    deriv = qml.jacobian(deriv, arg_index)
 
             deriv.hash = hash_func + str(todo_class.argnum)
             value = self._executor.pennylane_execute(deriv, *(eval_tuple))
@@ -568,14 +568,14 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             if arg_index is None:
                 return np.array([[]])
             else:
-                deriv = qml.jacobian(func, argnums=arg_index)
+                deriv = qml.jacobian(func, arg_index)
             while order > 0:
                 order -= 1
                 arg_index = argnum_dict[argnum.pop()]
                 if arg_index is None:
                     return np.array([[]])
                 else:
-                    deriv = qml.jacobian(deriv, argnums=arg_index)
+                    deriv = qml.jacobian(deriv, arg_index)
 
             deriv.hash = hash_func + str(todo_class.argnum)
             value = self._executor.pennylane_execute(deriv, *(eval_tuple))

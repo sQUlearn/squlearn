@@ -277,7 +277,7 @@ class PennyLaneCircuit:
                 pennylane_gate_parameters_dimensions[param.vector.name] += 1
 
         # Get the sympy interface for the parameter expressions
-        symbol_tuple = tuple([p.sympify() for p in circuit.parameters])
+        symbol_tuple = tuple([sympify(p.sympify()) for p in circuit.parameters])
         printer, modules = _get_sympy_interface()
 
         # Iterate over the Qiskit circuit operations
@@ -427,7 +427,7 @@ class PennyLaneCircuit:
         symbol_tuple = tuple(
             sum(
                 [
-                    [p.sympify() for p in sort_parameters_after_index(obs.parameters)]
+                    [sympify(p.sympify()) for p in sort_parameters_after_index(obs.parameters)]
                     for obs in observable
                 ],
                 [],

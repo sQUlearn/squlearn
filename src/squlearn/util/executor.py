@@ -40,59 +40,23 @@ if version.parse(pennylane_version) < version.parse("0.39.0"):
 else:
     from pennylane.devices import QubitDevice
 
-if version.parse(qiskit_version) <= version.parse("0.45.0"):
-    from qiskit.utils import algorithm_globals
 from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BaseEstimator as BaseEstimatorV1,
-        BaseSampler as BaseSamplerV1,
-    )
+from qiskit.primitives import (
+    BaseEstimatorV1,
+    BaseEstimatorV2,
+    BaseSamplerV1,
+    BaseSamplerV2,
+    StatevectorEstimator,
+    StatevectorSampler,
+)
 
-    class BaseEstimatorV2:
-        """Dummy BaseEstimatorV2"""
-
-    class BaseSamplerV2:
-        """Dummy BaseSamplerV2"""
-
-    class StatevectorEstimator:
-        """Dummy StatevectorEstimator"""
-
-    class StatevectorSampler:
-        """Dummy StatevectorSampler"""
-
-    class EstimatorPubLike(object):
-        """Dummy EstimatorPubLike"""
-
-    class EstimatorPub(object):
-        """Dummy EstimatorPub"""
-
-    class SamplerPubLike(object):
-        """Dummy EstimatorPubLike"""
-
-    class SamplerPub(object):
-        """Dummy EstimatorPub"""
-
-else:
-    from qiskit.primitives import (
-        BaseEstimatorV1,
-        BaseEstimatorV2,
-        BaseSamplerV1,
-        BaseSamplerV2,
-        StatevectorEstimator,
-        StatevectorSampler,
-    )
-
-    from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
-    from qiskit.primitives.containers.estimator_pub import EstimatorPub
-    from qiskit.primitives.containers.sampler_pub import SamplerPub
-
+from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 
 if QISKIT_SMALLER_1_2:
 

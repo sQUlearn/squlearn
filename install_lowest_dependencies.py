@@ -35,7 +35,7 @@ else:
 # Function to get exactly the minimal specified version
 def get_lowest_version(dependency_string: str) -> str:
     """Get the lowest version of a dependency."""
-    pattern = re.compile(r"([\w-]+)(?:>=(\d*(?:\.\d*(?:\.\d*)?)?))?")
+    pattern = re.compile(r"([\w-]+)(?:>=(\d*(?:\.\d*(?:\.\d*(?:\.\d*)?)?)?))?")
     match = pattern.match(dependency_string)
     if match:
         groups: Tuple[Optional[str], Optional[str]] = match.groups()
@@ -46,7 +46,14 @@ def get_lowest_version(dependency_string: str) -> str:
 
 
 # Install the main package without dependencies
-subprocess.run([sys.executable, "-m", "pip", "install", ".", "--no-deps"], check=True)
+# Check if uv is available in the current environment
+try:
+    subprocess.run(["uv", "--version"], check=True, capture_output=True)
+    pip_cmd = ["uv", "pip", "install"]
+except (subprocess.CalledProcessError, FileNotFoundError):
+    pip_cmd = [sys.executable, "-m", "pip", "install"]
+
+subprocess.run(pip_cmd + [".", "--no-deps"], check=True)
 
 # Get the lowest version of pennylane
 PENNYLANE_VERSION = None
@@ -58,4 +65,4 @@ for dependency in dependencies:
 dependencies = [get_lowest_version(dependency) for dependency in dependencies]
 if PENNYLANE_VERSION:
     dependencies.append(f"pennylane-lightning=={PENNYLANE_VERSION}")
-subprocess.run([sys.executable, "-m", "pip", "install"] + dependencies, check=True)
+subprocess.run(pip_cmd + dependencies, check=True)

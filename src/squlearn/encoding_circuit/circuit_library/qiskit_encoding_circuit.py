@@ -12,13 +12,13 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
     Wrapper to create sQUlearn encoding circuits from the `Qiskit circuit library
     <https://qiskit.org/documentation/apidoc/circuit_library.html>`_.
 
-    **Example: create a encoding circuit from Qiskit TwoLocal map**
+    **Example: create a encoding circuit from Qiskit n_local map**
 
     .. jupyter-execute::
 
         from squlearn.encoding_circuit import QiskitEncodingCircuit
-        from qiskit.circuit.library import TwoLocal
-        local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+        from qiskit.circuit.library import n_local
+        local = n_local(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
         QiskitEncodingCircuit(local).draw("mpl")
 
 

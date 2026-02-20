@@ -14,46 +14,17 @@ from qiskit.providers import Options
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BaseSampler as BaseSamplerV1,
-    )
-
-    class BaseSamplerV2:
-        """Dummy BaseSamplerV2"""
-
-    class StatevectorSampler:
-        """Dummy StatevectorSampler"""
-
-    class SamplerPubLike:
-        """Dummy SamplerPubLike"""
-
-    class SamplerPub:
-        """Dummy SamplerPub"""
-
-    class BasePrimitiveJob:
-        """Dummy BasePrimitiveJob"""
-
-    class BitArray:
-        """Dummy BitArray"""
-
-    class DataBin:
-        """Dummy DataBin"""
-
-else:
-    from qiskit.primitives import (
-        BaseSamplerV1,
-        BaseSamplerV2,
-        BasePrimitiveJob,
-        StatevectorSampler,
-    )
-    from qiskit.primitives.containers import SamplerPubLike, BitArray, DataBin
-    from qiskit.primitives.containers.sampler_pub import SamplerPub
+from qiskit.primitives import (
+    BaseSamplerV1,
+    BaseSamplerV2,
+    BasePrimitiveJob,
+    StatevectorSampler,
+)
+from qiskit.primitives.containers import SamplerPubLike, BitArray, DataBin
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 
 if QISKIT_SMALLER_1_2:
 
@@ -326,7 +297,7 @@ class ParallelSamplerV1(BaseSamplerV1):
         n_duplications = len(qubit_mapping) // original_qubits
 
         # Initialize the original distribution dictionary
-        original_distribution = {i: 0 for i in range(2**original_qubits)}
+        original_distribution = {}
 
         # Process each outcome in the duplicated results
         for outcome, probability in duplicated_result.items():
@@ -350,7 +321,10 @@ class ParallelSamplerV1(BaseSamplerV1):
                 part_outcome = int(
                     reordered_outcome_str[part_start:part_end][::-1], 2
                 )  # Reverse back to original order
-                original_distribution[part_outcome] += probability / n_duplications
+                if part_outcome in original_distribution:
+                    original_distribution[part_outcome] += probability / n_duplications
+                else:
+                    original_distribution[part_outcome] = probability / n_duplications
 
         # Normalize the distribution
         total_probability = sum(original_distribution.values())
