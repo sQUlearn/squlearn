@@ -136,9 +136,11 @@ class TestExecutorQiskit:
         }
 
         assert executor.shots == assert_dict[execution_key]
+        original_shots = executor.get_shots()
         executor.set_shots(1234)
         assert executor.shots == 1234
         assert executor.get_shots() == 1234
+        executor.set_shots(original_shots)  # Reset to original shots for other tests
 
     @pytest.mark.parametrize(
         "execution_key",
