@@ -326,7 +326,7 @@ class ParallelSamplerV1(BaseSamplerV1):
         n_duplications = len(qubit_mapping) // original_qubits
 
         # Initialize the original distribution dictionary
-        original_distribution = {i: 0 for i in range(2**original_qubits)}
+        original_distribution = {}
 
         # Process each outcome in the duplicated results
         for outcome, probability in duplicated_result.items():
@@ -350,7 +350,10 @@ class ParallelSamplerV1(BaseSamplerV1):
                 part_outcome = int(
                     reordered_outcome_str[part_start:part_end][::-1], 2
                 )  # Reverse back to original order
-                original_distribution[part_outcome] += probability / n_duplications
+                if part_outcome in original_distribution:
+                    original_distribution[part_outcome] += probability / n_duplications
+                else:
+                    original_distribution[part_outcome] = probability / n_duplications
 
         # Normalize the distribution
         total_probability = sum(original_distribution.values())
