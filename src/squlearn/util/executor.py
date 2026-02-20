@@ -58,7 +58,6 @@ from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 
-
 if QISKIT_SMALLER_1_2:
 
     class BackendEstimatorV2:
@@ -2398,10 +2397,8 @@ class Executor:
 
                 if self._estimator is not None and self._sampler is not None:
                     if shots_estimator != shots_sampler:
-                        raise ValueError(
-                            "The number of shots of the given \
-                                        Estimator and Sampler is not equal!"
-                        )
+                        raise ValueError("The number of shots of the given \
+                                        Estimator and Sampler is not equal!")
                 if shots_estimator is None:
                     shots_estimator = 0
                 if shots_sampler is None:
