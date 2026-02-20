@@ -321,7 +321,9 @@ class QulacsCircuit:
         for op in circuit.data:
 
             # mid-circuit measurements and conditions are not supported!
-            if hasattr(op.operation, "condition") or op.operation.name == "measure":
+            if (
+                hasattr(op.operation, "condition") and op.operation.condition is not None
+            ) or op.operation.name == "measure":
                 raise NotImplementedError(
                     "Conditions are not supported in sQUlearn's Qulacs backend."
                 )
