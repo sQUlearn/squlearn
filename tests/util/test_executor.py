@@ -12,20 +12,10 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import IBMBackend, Session
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    from qiskit.primitives import BackendEstimator, BackendSampler, Estimator, Sampler
-
-    QISKIT_PRIMITIVES = {
-        "BackendEstimator": BackendEstimator(Aer.get_backend("aer_simulator")),
-        "BackendSampler": BackendSampler(Aer.get_backend("aer_simulator")),
-        "Estimator": Estimator(),
-        "Sampler": Sampler(),
-    }
-elif QISKIT_SMALLER_1_1:
+if QISKIT_SMALLER_1_1:
     from qiskit.primitives import (
         BackendEstimator,
         BackendSampler,

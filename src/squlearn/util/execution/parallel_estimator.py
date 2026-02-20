@@ -16,44 +16,18 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BaseEstimator as BaseEstimatorV1,
-    )
-
-    class BaseEstimatorV2:
-        """Dummy BaseEstimatorV2"""
-
-    class StatevectorEstimator:
-        """Dummy StatevectorEstimator"""
-
-    class EstimatorPubLike:
-        """Dummy EstimatorPubLike"""
-
-    class EstimatorPub:
-        """Dummy EstimatorPub"""
-
-    class BasePrimitiveJob:
-        """Dummy BasePrimitiveJob"""
-
-    class ObservablesArray:
-        """Dummy ObservablesArray"""
-
-else:
-    from qiskit.primitives import (
-        BaseEstimatorV1,
-        BaseEstimatorV2,
-        BasePrimitiveJob,
-        StatevectorEstimator,
-    )
-    from qiskit.primitives.containers import EstimatorPubLike
-    from qiskit.primitives.containers.estimator_pub import EstimatorPub
-    from qiskit.primitives.containers.observables_array import ObservablesArray
+from qiskit.primitives import (
+    BaseEstimatorV1,
+    BaseEstimatorV2,
+    BasePrimitiveJob,
+    StatevectorEstimator,
+)
+from qiskit.primitives.containers import EstimatorPubLike
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.observables_array import ObservablesArray
 
 if QISKIT_SMALLER_1_2:
 

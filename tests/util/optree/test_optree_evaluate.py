@@ -14,8 +14,6 @@ from qiskit.circuit import ParameterVector
 from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
-
 
 class TestOpTreeEvaluation:
     """Test class for OpTree evaluation"""
@@ -79,14 +77,9 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Estimator
+        from qiskit.primitives import StatevectorEstimator
 
-            estimator = Estimator()
-        else:
-            from qiskit.primitives import StatevectorEstimator
-
-            estimator = StatevectorEstimator(default_precision=0)
+        estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.43879128, 1.0])
 
@@ -117,17 +110,11 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Sampler
+        from qiskit.primitives import StatevectorSampler
 
-            sampler = Sampler()
-            reference_values = np.array([1.43879128, 1.0])
-        else:
-            from qiskit.primitives import StatevectorSampler
-
-            sampler = StatevectorSampler(seed=0, default_shots=5000)
-            # StatevectorSampler does only support sampling, not statevectors
-            reference_values = np.array([1.4524, 1.0102])
+        sampler = StatevectorSampler(seed=0, default_shots=5000)
+        # StatevectorSampler does only support sampling, not statevectors
+        reference_values = np.array([1.4524, 1.0102])
 
         # Check functionality of sampler evaluation
         val = OpTree.evaluate.evaluate_with_sampler(
