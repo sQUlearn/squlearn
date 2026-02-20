@@ -113,7 +113,7 @@ class TestBackendAutoSelection:
         [
             ("quality", "fake_manila"),
             ("speed", "fake_belem"),
-            ("quality_hqaa", "fake_athens"),
+            ("quality_hqaa", "fake_manila"),
             ("speed_hqaa", "fake_belem"),
         ],
     )
