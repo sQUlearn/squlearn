@@ -303,9 +303,9 @@ class PennyLaneCircuit:
                 # Add the condition to the list of conditions
                 pennylane_conditions += [(i, val)] * len(op.operation.params[0].data)
 
-                # Get the qubit map from the if_else statement
+                # Build a map from subcircuit qubit index to parent circuit qubit index
                 qubit_map = {
-                    op.operation.params[0].qubits[i]: op.qubits[i]
+                    i: circuit.find_bit(op.qubits[i]).index
                     for i in range(op.operation.num_qubits)
                 }
 
@@ -317,6 +317,16 @@ class PennyLaneCircuit:
                     _,
                     _,
                 ) = self.build_circuit_instructions(op.operation.params[0])
+
+                # Append the instructions from the if_else body to the main lists,
+                # remapping wire indices from subcircuit space to parent circuit space
+                pennylane_gates.extend(if_else_pennylane_gates)
+                pennylane_gates_parameter_functions.extend(
+                    if_else_pennylane_gates_parameter_functions
+                )
+                pennylane_gates_wires.extend(
+                    [[qubit_map[w] for w in wires] for wires in if_else_pennylane_gates_wires]
+                )
 
             else:
                 # Add the condition None to the list of conditions
@@ -364,7 +374,7 @@ class PennyLaneCircuit:
                     pennylane_gates_wires.append(wires)
                 else:
                     raise NotImplementedError(
-                        f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's PennyLane backend."
+                        f"Gate {op.operation.name} is unfortunately not supported in sQUlearn's PennyLane backend."
                     )
 
         # Return the lists of circuit instructions

@@ -824,8 +824,10 @@ def _evaluate_expectation_from_sampler(
                     ev = results[icirc + offset].expectation_values(operator[iop])
                     exp_val[i] = np.real_if_close(ev, 1e-10)
                 except ValueError as e:
-                    if str(e) == "Empty observable was detected.":
-                        pass
+                    if "Empty observable was detected." in str(e):
+                        # Treat empty observables as having zero expectation value.
+                        # This keeps the default 0.0 in exp_val[i] for this entry.
+                        exp_val[i] = 0.0
                     else:
                         raise e
                 i += 1
