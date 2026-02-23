@@ -7,9 +7,7 @@ from packaging import version
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
-from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
-from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
 from ...util.decompose_to_std import decompose_to_std
 
@@ -27,6 +25,7 @@ from .optree import (
 )
 
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
 if QISKIT_SMALLER_1_2:
 
@@ -36,7 +35,22 @@ if QISKIT_SMALLER_1_2:
 else:
     from qiskit.primitives import BitArray
 
-from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
+if QISKIT_SMALLER_2_0:
+    from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
+else:
+
+    def _pauli_expval_with_variance(counts, paulis):
+        """Dummy function for Qiskit >= 2.0."""
+        pass
+
+
+from ..executor import (
+    QISKIT_SMALLER_2_0,
+    BaseSamplerV1,
+    BaseEstimatorV1,
+    BaseSamplerV2,
+    BaseEstimatorV2,
+)
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
@@ -802,13 +816,19 @@ def _evaluate_expectation_from_sampler(
 
     # Calulate the expectation value with internal Qiskit function
     if primitives_v2:
-        exp_val = np.array(
-            [
-                np.real_if_close(results[icirc + offset].expectation_values(operator[iop]))
-                for icirc, oplist in enumerate(flatted_resort_list)
-                for iop in oplist
-            ]
-        )
+        exp_val = np.zeros(sum(len(sublist) for sublist in flatted_resort_list))
+        i = 0
+        for icirc, oplist in enumerate(flatted_resort_list):
+            for iop in oplist:
+                try:
+                    ev = results[icirc + offset].expectation_values(operator[iop])
+                    exp_val[i] = np.real_if_close(ev, 1e-10)
+                except ValueError as e:
+                    if str(e) == "Empty observable was detected.":
+                        pass
+                    else:
+                        raise e
+                i += 1
     else:
         exp_val = np.array(
             [
@@ -861,6 +881,8 @@ def _transform_operator_to_zbasis(
     """
 
     if QISKIT_SMALLER_1_2:
+        from qiskit.primitives import BackendEstimator
+
         measurement_circuit = BackendEstimator._measurement_circuit
     else:
         from qiskit.primitives.backend_estimator_v2 import (
@@ -990,7 +1012,9 @@ def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
             else:
                 clbits = [circ.find_bit(i)[0] for i in cargs]
             operation = instruction.copy()
-            if instruction.condition:  # to adjust the clbits of c_if
+            if (
+                hasattr(instruction, "condition") and instruction.condition
+            ):  # to adjust the clbits of c_if
                 operation.condition = (
                     Clbit(
                         circ_new.cregs[0],

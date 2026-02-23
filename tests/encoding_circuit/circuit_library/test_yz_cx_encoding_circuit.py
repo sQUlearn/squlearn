@@ -6,6 +6,42 @@ from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatc
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
 from squlearn.util.executor import Executor
+from tests.qiskit_circuit_equivalence import assert_circuits_equal
+
+
+def _build_expected_yz_cx_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    c: float,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    feature_offset = 0
+    num_param = len(parameters)
+    num_features = len(features)
+
+    for layer in range(num_layers):
+        for i in range(num_qubits):
+            angle_ry = (
+                parameters[index_offset % num_param] + c * features[feature_offset % num_features]
+            )
+            QC.ry(angle_ry, i)
+            index_offset += 1
+            angle_rz = (
+                parameters[index_offset % num_param] + c * features[feature_offset % num_features]
+            )
+            QC.rz(angle_rz, i)
+            index_offset += 1
+            feature_offset += 1
+
+        if num_qubits >= 2:
+            # Entanglement depends on odd/even layer
+            for i in range(layer % 2, num_qubits + (1 if closed else 0) - 1, 2):
+                QC.cx(i, (i + 1) % num_qubits)
+    return QC
 
 
 class TestYZ_CX_EncodingCircuit:
@@ -76,3 +112,37 @@ class TestYZ_CX_EncodingCircuit:
 
         with pytest.raises(ValueError):
             circuit.get_circuit(features, params)
+
+    @pytest.mark.parametrize(
+        "num_qubits,num_layers,closed,c",
+        [
+            (2, 1, True, 1.0),
+            (3, 1, False, 2.0),
+            (3, 2, True, 1.5),
+            (4, 2, False, 2.0),
+        ],
+    )
+    def test_yz_cx_get_circuit_matches_ground_truth(self, num_qubits, num_layers, closed, c):
+        circuit = YZ_CX_EncodingCircuit(
+            num_qubits=num_qubits, num_layers=num_layers, closed=closed, c=c
+        )
+
+        num_encoding_slots = circuit.num_encoding_slots
+        num_features = min(2, num_encoding_slots) if num_encoding_slots >= 2 else 1
+        features = np.linspace(-0.9, 0.9, num_features)
+
+        rng = np.random.RandomState(42)
+        parameters = rng.uniform(-np.pi, np.pi, size=circuit.num_parameters)
+
+        qc_actual = circuit.get_circuit(features=features, parameters=parameters)
+
+        qc_expected = _build_expected_yz_cx_circuit(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            c=c,
+            features=features,
+            parameters=parameters,
+        )
+
+        assert_circuits_equal(qc_actual, qc_expected)

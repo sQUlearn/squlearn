@@ -11,7 +11,11 @@ from qiskit.compiler import transpile
 from qulacs import ParametricQuantumCircuit, QuantumCircuit
 from qulacs import GeneralQuantumOperator, PauliOperator
 
-from .qulacs_gates import qiskit_qulacs_gate_dict, qiskit_qulacs_param_gate_dict
+from .qulacs_gates import (
+    qiskit_qulacs_gate_dict,
+    qiskit_qulacs_param_gate_dict,
+    qiskit_qulacs_target,
+)
 from ..decompose_to_std import decompose_to_std
 
 
@@ -52,7 +56,7 @@ class QulacsCircuit:
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
             decompose_to_std(circuit),
-            basis_gates=qiskit_qulacs_gate_dict.keys(),
+            target=qiskit_qulacs_target,
             optimization_level=0,
         )
         self._qiskit_observable = observable
@@ -134,16 +138,16 @@ class QulacsCircuit:
 
         elif isinstance(angle, ParameterVectorElement):
             # Single parameter vector element, no expression
-            func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
+            func_list_element = lambdify(self._circuit_symbols_tuple, angle.sympify())
             func_grad_list_element = [lambda x: 1.0]
             used_parameters = [angle]
 
         elif isinstance(angle, ParameterExpression):
             # Parameter is in a expression (equation)
-            func_list_element = lambdify(self._circuit_symbols_tuple, sympify(angle._symbol_expr))
+            func_list_element = lambdify(self._circuit_symbols_tuple, angle.sympify())
             func_grad_list_element = []
             # loop over the parameters in the expression
-            for param_element in angle._parameter_symbols.keys():
+            for param_element in angle.parameters:
                 used_parameters.append(param_element)
                 # get the gradient of the parameter expression wrt the parameter
                 param_grad = angle.gradient(param_element)
@@ -152,7 +156,7 @@ class QulacsCircuit:
                     func_grad_list_element.append(lambda *arg, param_grad=param_grad: param_grad)
                 else:
                     func_grad_list_element.append(
-                        lambdify(self._circuit_symbols_tuple, sympify(param_grad._symbol_expr))
+                        lambdify(self._circuit_symbols_tuple, param_grad.sympify())
                     )
         else:
             raise ValueError("Unsupported angle type")
@@ -302,9 +306,7 @@ class QulacsCircuit:
         for param in circuit.parameters:
             if param.vector.name not in self._circuit_param_names:
                 self._circuit_param_names.append(param.vector.name)
-                self._circuit_symbols_tuple += [
-                    sympify(p._symbol_expr) for p in param.vector.params
-                ]
+                self._circuit_symbols_tuple += [sympify(p.sympify()) for p in param.vector.params]
 
         # Sort the symbols tuple by variable name and index
         def sort_key(item):
@@ -319,7 +321,9 @@ class QulacsCircuit:
         for op in circuit.data:
 
             # mid-circuit measurements and conditions are not supported!
-            if op.operation.condition is not None or op.operation.name == "measure":
+            if (
+                hasattr(op.operation, "condition") and op.operation.condition is not None
+            ) or op.operation.name == "measure":
                 raise NotImplementedError(
                     "Conditions are not supported in sQUlearn's Qulacs backend."
                 )
@@ -416,7 +420,7 @@ class QulacsCircuit:
         self._observable_symbols_tuple = tuple(
             sum(
                 [
-                    [sympify(p._symbol_expr) for p in sort_parameters_after_index(obs.parameters)]
+                    [sympify(p.sympify()) for p in sort_parameters_after_index(obs.parameters)]
                     for obs in observables
                 ],
                 [],
@@ -442,20 +446,16 @@ class QulacsCircuit:
 
                 if isinstance(c, ParameterVectorElement):
                     # Single parameter vector element
-                    observable_coeff.append(
-                        lambdify(self._observable_symbols_tuple, sympify(c._symbol_expr))
-                    )
+                    observable_coeff.append(lambdify(self._observable_symbols_tuple, c.sympify()))
                     observable_coeff_grad.append([lambda *arg: 1.0])
                     observable_used_parameters.append([c])
 
                 elif isinstance(c, ParameterExpression):
                     # Parameter is in a expression (equation)
-                    observable_coeff.append(
-                        lambdify(self._observable_symbols_tuple, sympify(c._symbol_expr))
-                    )
+                    observable_coeff.append(lambdify(self._observable_symbols_tuple, c.sympify()))
                     func_grad_list_element = []
                     used_parameters_obs_element = []
-                    for param_element in c._parameter_symbols.keys():
+                    for param_element in c.parameters:
                         used_parameters_obs_element.append(param_element)
                         # information about the gradient of the parameter expression
                         # the 1j fixes a bug in qiskit
@@ -472,7 +472,7 @@ class QulacsCircuit:
                             func_grad_list_element.append(
                                 lambdify(
                                     self._observable_symbols_tuple,
-                                    sympify(param_grad._symbol_expr),
+                                    param_grad.sympify(),
                                 )
                             )
                     observable_coeff_grad.append(func_grad_list_element)

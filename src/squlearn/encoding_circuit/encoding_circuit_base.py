@@ -376,7 +376,7 @@ class EncodingCircuitBase(ABC):
                 "If concatenate_features is True, num_circuit_features has to be provided!"
             )
         else:
-            (ec1_num_features, ec2_num_features) = num_circuit_features
+            ec1_num_features, ec2_num_features = num_circuit_features
 
         class ComposedEncodingCircuit(EncodingCircuitBase):
             """

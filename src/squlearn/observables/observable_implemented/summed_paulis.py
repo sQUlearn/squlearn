@@ -57,24 +57,39 @@ class SummedPaulis(ObservableBase):
         include_identity: bool = True,
     ) -> None:
         super().__init__(num_qubits)
-        self.op_str = op_str
-        self.full_sum = full_sum
-        self.include_identity = include_identity
+        self._op_str = op_str
+        self._full_sum = full_sum
+        self._include_identity = include_identity
 
-        for s in self.op_str:
+        for s in self._op_str:
             if s not in ["I", "X", "Y", "Z"]:
                 raise ValueError("Only Pauli operators I, X, Y, Z are allowed.")
+
+    @property
+    def op_str(self) -> Union[str, tuple[str]]:
+        """String of the Pauli operator that is measured."""
+        return self._op_str
+
+    @property
+    def full_sum(self) -> bool:
+        """If False, only one parameter is used for each Pauli operator."""
+        return self._full_sum
+
+    @property
+    def include_identity(self) -> bool:
+        """If True, the identity operator is included in the sum."""
+        return self._include_identity
 
     @property
     def num_parameters(self):
         """Number of trainable parameters in the summed Pauli operator"""
         num_param = 0
-        if self.include_identity:
+        if self._include_identity:
             num_param += 1
-        if self.full_sum:
-            return num_param + len(self.op_str) * self.num_qubits
+        if self._full_sum:
+            return num_param + len(self._op_str) * self.num_qubits
         else:
-            return num_param + len(self.op_str)
+            return num_param + len(self._op_str)
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -88,9 +103,9 @@ class SummedPaulis(ObservableBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["op_str"] = self.op_str
-        params["full_sum"] = self.full_sum
-        params["include_identity"] = self.include_identity
+        params["op_str"] = self._op_str
+        params["full_sum"] = self._full_sum
+        params["include_identity"] = self._include_identity
         return params
 
     def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
@@ -116,18 +131,18 @@ class SummedPaulis(ObservableBase):
         op_list = []
         param_list = []
 
-        if self.include_identity:
+        if self._include_identity:
             op_list.append("I" * self.num_qubits)
             param_list.append(parameters[ioff % nparam])
             ioff += 1
 
-        for op_str in self.op_str:
+        for op_str in self._op_str:
             for i in range(self.num_qubits):
                 op_list.append(gen_string(i, op_str))
                 param_list.append(parameters[ioff % nparam])
-                if self.full_sum:
+                if self._full_sum:
                     ioff += 1
-            if not self.full_sum:
+            if not self._full_sum:
                 ioff += 1
 
         return SparsePauliOp(op_list, np.array(param_list))

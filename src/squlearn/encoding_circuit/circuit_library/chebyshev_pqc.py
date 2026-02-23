@@ -70,27 +70,27 @@ class ChebyshevPQC(EncodingCircuitBase):
         nonlinearity: str = "arccos",
     ) -> None:
         super().__init__(num_qubits, num_features)
-        self.num_layers = num_layers
-        self.closed = closed
-        self.entangling_gate = entangling_gate
-        self.alpha = alpha
-        self.nonlinearity = nonlinearity
-        if self.entangling_gate not in ("crz", "rzz"):
+        self._num_layers = num_layers
+        self._closed = closed
+        self._entangling_gate = entangling_gate
+        self._alpha = alpha
+        self._nonlinearity = nonlinearity
+        if self._entangling_gate not in ("crz", "rzz"):
             raise ValueError("Unknown value for entangling_gate: ", entangling_gate)
-        if self.nonlinearity not in ("arccos", "arctan"):
+        if self._nonlinearity not in ("arccos", "arctan"):
             raise ValueError(
-                f"Unknown value for nonlinearity: {self.nonlinearity}."
+                f"Unknown value for nonlinearity: {self._nonlinearity}."
                 " Possible values are 'arccos' and 'arctan'"
             )
 
     @property
     def num_parameters(self) -> int:
         """The number of trainable parameters of the ChebyshevPQC encoding circuit."""
-        num_param = 2 * self.num_qubits + self.num_qubits * self.num_layers
-        if self.num_qubits > 2 and self.closed:
-            num_param += self.num_qubits * self.num_layers
+        num_param = 2 * self.num_qubits + self.num_qubits * self._num_layers
+        if self.num_qubits > 2 and self._closed:
+            num_param += self.num_qubits * self._num_layers
         else:
-            num_param += (self.num_qubits - 1) * self.num_layers
+            num_param += (self.num_qubits - 1) * self._num_layers
         return num_param
 
     @property
@@ -104,10 +104,10 @@ class ChebyshevPQC(EncodingCircuitBase):
             bounds[index_offset] = [-np.pi, np.pi]
             index_offset += 1
 
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
-                bounds[index_offset] = [0.0, self.alpha]
+                bounds[index_offset] = [0.0, self._alpha]
                 index_offset += 1
 
             for i in range(0, self.num_qubits, 2):
@@ -115,7 +115,7 @@ class ChebyshevPQC(EncodingCircuitBase):
                 index_offset += 1
 
             if self.num_qubits > 2:
-                if self.closed:
+                if self._closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
@@ -147,7 +147,7 @@ class ChebyshevPQC(EncodingCircuitBase):
         if len(param) > 0:
             index = self.get_cheb_indices(False)
             features_per_qubit = int(np.ceil(self.num_qubits / num_features))
-            p = np.linspace(0.01, self.alpha, features_per_qubit)
+            p = np.linspace(0.01, self._alpha, features_per_qubit)
 
             for index2 in index:
                 for i, ii in enumerate(index2):
@@ -162,15 +162,40 @@ class ChebyshevPQC(EncodingCircuitBase):
 
         To get the bounds for a specific number of features, use get_feature_bounds().
         """
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
             return np.array([-1.0, 1.0])
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
             return np.array([-np.inf, np.inf])
 
     @property
     def num_encoding_slots(self) -> int:
         """The number of encoding slots of the ChebyshevPQC encoding circuit."""
-        return self.num_qubits * self.num_layers
+        return self.num_qubits * self._num_layers
+
+    @property
+    def num_layers(self) -> int:
+        """The number of layers of the encoding circuit."""
+        return self._num_layers
+
+    @property
+    def closed(self) -> bool:
+        """Whether the last and the first qubit are entangled."""
+        return self._closed
+
+    @property
+    def entangling_gate(self) -> str:
+        """The entangling gate to use."""
+        return self._entangling_gate
+
+    @property
+    def alpha(self) -> float:
+        """The maximum value of the Chebyshev Tower initial parameters."""
+        return self._alpha
+
+    @property
+    def nonlinearity(self) -> str:
+        """The mapping function for the feature encoding."""
+        return self._nonlinearity
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -184,11 +209,11 @@ class ChebyshevPQC(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["num_layers"] = self.num_layers
-        params["closed"] = self.closed
-        params["entangling_gate"] = self.entangling_gate
-        params["alpha"] = self.alpha
-        params["nonlinearity"] = self.nonlinearity
+        params["num_layers"] = self._num_layers
+        params["closed"] = self._closed
+        params["entangling_gate"] = self._entangling_gate
+        params["alpha"] = self._alpha
+        params["nonlinearity"] = self._nonlinearity
 
         return params
 
@@ -220,7 +245,7 @@ class ChebyshevPQC(EncodingCircuitBase):
         """
         cheb_index = []
         index_offset = self.num_qubits
-        for layer in range(self.num_layers):
+        for layer in range(self._num_layers):
             cheb_index_layer = []
             for i in range(self.num_qubits):
                 cheb_index_layer.append(index_offset)
@@ -230,7 +255,7 @@ class ChebyshevPQC(EncodingCircuitBase):
                 index_offset += 1
 
             if self.num_qubits > 2:
-                if self.closed:
+                if self._closed:
                     istop = self.num_qubits
                 else:
                     istop = self.num_qubits - 1
@@ -260,13 +285,13 @@ class ChebyshevPQC(EncodingCircuitBase):
             Returns the circuit in Qiskit's QuantumCircuit format
         """
 
-        if self.nonlinearity == "arccos":
+        if self._nonlinearity == "arccos":
 
             def mapping(a, x):
                 """Helper function for returning a*arccos(x)"""
                 return a * np.arccos(x)
 
-        elif self.nonlinearity == "arctan":
+        elif self._nonlinearity == "arctan":
 
             def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
@@ -281,9 +306,9 @@ class ChebyshevPQC(EncodingCircuitBase):
         index_offset = 0
         feature_offset = 0
 
-        if self.entangling_gate == "crz":
+        if self._entangling_gate == "crz":
             egate = QC.crz
-        elif self.entangling_gate == "rzz":
+        elif self._entangling_gate == "rzz":
             egate = QC.rzz
         else:
             raise ValueError("Unknown entangling gate")
@@ -293,7 +318,7 @@ class ChebyshevPQC(EncodingCircuitBase):
             QC.ry(parameters[index_offset % num_params], i)
             index_offset += 1
 
-        for _ in range(self.num_layers):
+        for _ in range(self._num_layers):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(
@@ -306,12 +331,12 @@ class ChebyshevPQC(EncodingCircuitBase):
                 index_offset += 1
                 feature_offset += 1
 
-            for i in range(0, self.num_qubits + self.closed - 1, 2):
+            for i in range(0, self.num_qubits + self._closed - 1, 2):
                 egate(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                 index_offset += 1
 
             if self.num_qubits > 2:
-                for i in range(1, self.num_qubits + self.closed - 1, 2):
+                for i in range(1, self.num_qubits + self._closed - 1, 2):
                     egate(parameters[index_offset % num_params], i, (i + 1) % self.num_qubits)
                     index_offset += 1
 

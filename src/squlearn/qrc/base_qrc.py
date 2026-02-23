@@ -17,8 +17,6 @@ else:
         return self._validate_data(*args, **kwargs)
 
 
-from qiskit.quantum_info.random import random_pauli_list
-
 from ..observables.observable_base import ObservableBase
 from ..observables import CustomObservable, SinglePauli
 from ..encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -26,6 +24,8 @@ from ..util import Executor
 from ..qnn.lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
 from ..qnn.lowlevel_qnn import LowLevelQNN
 from ..util.serialization import SerializableModelMixin
+
+from .util.random_pauli_list import random_pauli_list
 
 
 class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
@@ -65,7 +65,7 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
         ml_model: str = "linear",
         ml_model_options: Union[dict, None] = None,
         operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
-        num_operators: int = 100,
+        num_operators: int = None,
         operator_seed: int = 0,
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,
@@ -88,6 +88,19 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
         self.caching = caching
         self._is_lowlevel_qnn_initialized = False
         self._qnn = None
+
+        if self.operators == "random_paulis":
+            if (
+                self.num_operators is not None
+                and self.num_operators > 4**self.encoding_circuit.num_qubits
+            ):
+                raise ValueError(
+                    f"Number of operators ({self.num_operators}) exceeds the maximum possible "
+                    f"({4**self.encoding_circuit.num_qubits}) for the given number of qubits "
+                    f"({self.encoding_circuit.num_qubits})."
+                )
+            elif self.num_operators is None:
+                self.num_operators = min(100, 4**self.encoding_circuit.num_qubits)
 
         self._ml_model = None
         self._initialize_observables()
@@ -152,7 +165,6 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
                     self.encoding_circuit.num_qubits,
                     self.num_operators,
                     seed=self.operator_seed,
-                    phase=False,
                 )
                 self._operators = [
                     CustomObservable(self.encoding_circuit.num_qubits, str(p)) for p in paulis

@@ -1,3 +1,4 @@
+from qiskit.transpiler import Target
 from qulacs import ParametricQuantumCircuit
 from qulacs.gate import Identity, H, X, Y, Z, S, Sdag, T, Tdag, SWAP, CZ, RX, RY, RZ, U1
 
@@ -102,7 +103,6 @@ def qulacs_gate_U1(circuit: ParametricQuantumCircuit, angle: float, index: int) 
 
 # Dictionary of conversion Qiskit gates (from string) to Quilacs gate functions
 qiskit_qulacs_gate_dict = {
-    "i": qulacs_gate_i,
     "h": qulacs_gate_h,
     "x": qulacs_gate_x,
     "y": qulacs_gate_y,
@@ -111,7 +111,6 @@ qiskit_qulacs_gate_dict = {
     "t": qulacs_gate_t,
     "swap": qulacs_gate_swap,
     "cx": qulacs_gate_cnot,
-    "cnot": qulacs_gate_cnot,
     # "cy" does not exist in Qulacs
     "cz": qulacs_gate_cz,
     "sdg": qulacs_gate_sdg,
@@ -126,3 +125,12 @@ qiskit_qulacs_param_gate_dict = {
     "ry": qulacs_param_gate_ry,
     "rz": qulacs_param_gate_rz,
 }
+
+custom_name_mapping = {
+    "i": qulacs_gate_i,
+    "cnot": qulacs_gate_cnot,
+}
+
+qiskit_qulacs_target = Target.from_configuration(
+    basis_gates=qiskit_qulacs_gate_dict.keys(), custom_name_mapping=custom_name_mapping
+)

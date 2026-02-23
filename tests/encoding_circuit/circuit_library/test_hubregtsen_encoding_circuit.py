@@ -6,6 +6,56 @@ from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
+from tests.qiskit_circuit_equivalence import assert_circuits_equal
+
+
+def _build_expected_hubregtsen_circuit(
+    num_qubits: int,
+    num_layers: int,
+    closed: bool,
+    final_encoding: bool,
+    features: np.ndarray,
+    parameters: np.ndarray,
+):
+    QC = QuantumCircuit(num_qubits)
+    index_offset = 0
+    num_features = len(features)
+    num_params = len(parameters)
+
+    # initial Hadamard on all qubits
+    QC.h(range(num_qubits))
+
+    # Layer loops
+    for layer in range(num_layers):
+        n_feature_loop = int(np.ceil(num_features / num_qubits))
+        for i in range(n_feature_loop * num_qubits):
+            if (i // num_qubits) % 2 == 0:
+                QC.rz(features[i % num_features], i % num_qubits)
+            else:
+                QC.rx(features[i % num_features], i % num_qubits)
+
+        # single theta Ry
+        for i in range(num_qubits):
+            QC.ry(parameters[index_offset % num_params], i)
+            index_offset += 1
+
+        # Entangled theta CRZ gates
+        if num_qubits > 2:
+            istop = num_qubits if closed else num_qubits - 1
+            for i in range(istop):
+                QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                index_offset += 1
+
+    # final encoding
+    if final_encoding:
+        n_feature_loop = int(np.ceil(num_features / num_qubits))
+        for i in range(n_feature_loop * num_qubits):
+            if int(np.ceil(i / num_qubits)) % 2 == 0:
+                QC.rz(features[i % num_features], i % num_qubits)
+            else:
+                QC.rx(features[i % num_features], i % num_qubits)
+
+    return QC
 
 
 class TestHubregtsenEncodingCircuit:
@@ -82,3 +132,42 @@ class TestHubregtsenEncodingCircuit:
 
         with pytest.raises(ValueError):
             circuit.get_circuit(features, params)
+
+    @pytest.mark.parametrize(
+        "num_qubits,num_layers,closed,final_encoding",
+        [
+            (2, 1, True, False),
+            (3, 1, False, False),
+            (3, 2, True, True),
+            (4, 2, True, False),
+        ],
+    )
+    def test_hubregtsen_get_circuit_matches_ground_truth(
+        self, num_qubits, num_layers, closed, final_encoding
+    ):
+        circuit = HubregtsenEncodingCircuit(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            final_encoding=final_encoding,
+        )
+
+        num_encoding_slots = circuit.num_encoding_slots
+        num_features = min(2, num_encoding_slots) if num_encoding_slots >= 2 else 1
+        features = np.linspace(-0.9, 0.9, num_features)
+
+        rng = np.random.RandomState(42)
+        parameters = rng.uniform(-np.pi, np.pi, size=circuit.num_parameters)
+
+        qc_actual = circuit.get_circuit(features=features, parameters=parameters)
+
+        qc_expected = _build_expected_hubregtsen_circuit(
+            num_qubits=num_qubits,
+            num_layers=num_layers,
+            closed=closed,
+            final_encoding=final_encoding,
+            features=features,
+            parameters=parameters,
+        )
+
+        assert_circuits_equal(qc_actual, qc_expected)

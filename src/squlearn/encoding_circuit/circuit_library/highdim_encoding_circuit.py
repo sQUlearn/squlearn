@@ -64,22 +64,54 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     ) -> None:
         super().__init__(num_qubits, num_features)
 
-        self.cycling = cycling
-        self.cycling_type = cycling_type
-        self.num_layers = num_layers
-        self.layer_type = layer_type
-        self.entangling_gate = entangling_gate
+        self._cycling = cycling
+        self._cycling_type = cycling_type
+        self._num_layers = num_layers
+        self._layer_type = layer_type
+        self._entangling_gate = entangling_gate
 
-        if self.cycling_type not in ("saw", "hat"):
-            raise ValueError("Unknown cycling type:", self.cycling_type)
+        if self._cycling_type not in ("saw", "hat"):
+            raise ValueError("Unknown cycling type:", self._cycling_type)
 
-        if self.layer_type not in ("columns", "rows"):
-            raise ValueError("Unknown layer type:", self.layer_type)
+        if self._layer_type not in ("columns", "rows"):
+            raise ValueError("Unknown layer type:", self._layer_type)
 
-        if self.entangling_gate not in ("cx", "iswap"):
-            raise ValueError("Unknown entangling gate:", self.entangling_gate)
+        if self._entangling_gate not in ("cx", "iswap"):
+            raise ValueError("Unknown entangling gate:", self._entangling_gate)
 
         self.siswap_gate = _build_siswap_gate()
+
+    @property
+    def cycling(self) -> bool:
+        """Whether the assignment of gates cycles."""
+        return self._cycling
+
+    @property
+    def cycling_type(self) -> str:
+        """The type of cycling used."""
+        return self._cycling_type
+
+    @property
+    def num_layers(self) -> Union[None, int]:
+        """
+        The number of layer repetitions.
+
+        Note: If initialized as None, this value will be automatically calculated
+        and set during the first call to get_circuit() based on the number of features.
+        This means get_circuit() will modify the internal state (_num_layers) when
+        called for the first time. This behavior is maintained for backward compatibility.
+        """
+        return self._num_layers
+
+    @property
+    def layer_type(self) -> str:
+        """The direction in which features are assigned to the gates."""
+        return self._layer_type
+
+    @property
+    def entangling_gate(self) -> str:
+        """The entangling gates used in the entangling layer."""
+        return self._entangling_gate
 
     @property
     def num_parameters(self) -> int:
@@ -89,8 +121,8 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
     @property
     def num_encoding_slots(self) -> Union[int, float]:
         """The number of encoding slots of the HighDim encoding circuit."""
-        if self.num_layers is not None:
-            return 3 * self.num_qubits * self.num_layers
+        if self._num_layers is not None:
+            return 3 * self.num_qubits * self._num_layers
         else:
             return np.inf
 
@@ -106,11 +138,11 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
             Dictionary with hyper-parameters and values.
         """
         params = super().get_params()
-        params["cycling"] = self.cycling
-        params["cycling_type"] = self.cycling_type
-        params["num_layers"] = self.num_layers
-        params["layer_type"] = self.layer_type
-        params["entangling_gate"] = self.entangling_gate
+        params["cycling"] = self._cycling
+        params["cycling_type"] = self._cycling_type
+        params["num_layers"] = self._num_layers
+        params["layer_type"] = self._layer_type
+        params["entangling_gate"] = self._entangling_gate
         return params
 
     def get_circuit(
@@ -131,14 +163,14 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
             The circuit of the high-dimensional encoding circuit
         """
 
-        if self.cycling_type not in ("saw", "hat"):
-            raise ValueError("Unknown layer type:", self.layer_type)
+        if self._cycling_type not in ("saw", "hat"):
+            raise ValueError("Unknown layer type:", self._layer_type)
 
-        if self.layer_type not in ("columns", "rows"):
-            raise ValueError("Unknown layer type:", self.layer_type)
+        if self._layer_type not in ("columns", "rows"):
+            raise ValueError("Unknown layer type:", self._layer_type)
 
-        if self.entangling_gate not in ("cx", "iswap"):
-            raise ValueError("Unknown entangling gate:", self.entangling_gate)
+        if self._entangling_gate not in ("cx", "iswap"):
+            raise ValueError("Unknown entangling gate:", self._entangling_gate)
 
         num_features = extract_num_features(features)
         self._check_feature_encoding_slots(num_features, self.num_encoding_slots)
@@ -148,12 +180,12 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
             """
             Private function which creates a single layer
             """
-            if self.layer_type == "rows":
+            if self._layer_type == "rows":
                 rows = True
-            elif self.layer_type == "columns":
+            elif self._layer_type == "columns":
                 rows = False
             else:
-                raise ValueError("Unknown layer type:", self.layer_type)
+                raise ValueError("Unknown layer type:", self._layer_type)
 
             # Loop through all 3*n_qubit gates in this layer
             for i in range(3 * self.num_qubits):
@@ -165,10 +197,10 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
                 # Determine the index of the feature (x_i)
                 ii = index_offset + i
-                if self.cycling:
-                    if self.cycling_type == "saw":
+                if self._cycling:
+                    if self._cycling_type == "saw":
                         ii = ii % num_features
-                    elif self.cycling_type == "hat":  # todo better name
+                    elif self._cycling_type == "hat":  # todo better name
                         itest = ii % max(num_features + num_features - 2, 1)
                         if itest >= num_features:
                             ii = num_features + num_features - 2 - itest
@@ -229,26 +261,26 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
         QC.h(qubit_list)
 
         # Determine the number of layers of not given
-        if self.num_layers is None:
-            self.num_layers = max(int(num_features / (self.num_qubits * 3)), 2)
+        if self._num_layers is None:
+            self._num_layers = max(int(num_features / (self.num_qubits * 3)), 2)
 
         # Check if all features are represented in the encoding circuit
-        if self.num_layers * self.num_qubits * 3 < num_features:
+        if self._num_layers * self.num_qubits * 3 < num_features:
             raise RuntimeError("Not all features are represented in the encoding circuit!")
 
         # Loop through the layers
         index_offset = 0
-        for i in range(self.num_layers):
+        for i in range(self._num_layers):
             if i != 0:
-                if self.entangling_gate == "iswap":
+                if self._entangling_gate == "iswap":
                     QC = entangle_layer_siswap(QC)
-                elif self.entangling_gate == "cx":
+                elif self._entangling_gate == "cx":
                     QC = entangle_layer_cx(QC)
                 else:
-                    raise ValueError("Unknown entangling gate:", self.entangling_gate)
+                    raise ValueError("Unknown entangling gate:", self._entangling_gate)
             QC = build_layer(QC, features, index_offset)
             index_offset += self.num_qubits * 3
-            if self.cycling is False and index_offset >= num_features:
+            if self._cycling is False and index_offset >= num_features:
                 index_offset = 0
 
         return QC

@@ -85,7 +85,6 @@ class NLL(KernelLossBase):
             np.sum(np.log(np.diagonal(L)))
             + 0.5 * labels.T @ S2
             + 0.5 * len(data) * np.log(2.0 * np.pi)
-        )
-        neg_log_lh = neg_log_lh.reshape(-1)
+        ).reshape(-1)
 
         return neg_log_lh

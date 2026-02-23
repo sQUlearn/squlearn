@@ -94,7 +94,7 @@ class QRCClassifier(BaseQRC, ClassifierMixin):
         ml_model: str = "linear",
         ml_model_options: Union[dict, None] = None,
         operators: Union[ObservableBase, list[ObservableBase], str] = "random_paulis",
-        num_operators: int = 100,
+        num_operators: int = None,
         operator_seed: int = 0,
         param_ini: Union[np.ndarray, None] = None,
         param_op_ini: Union[np.ndarray, None] = None,

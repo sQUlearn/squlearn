@@ -49,7 +49,7 @@ class TestQRCClassifier:
         values = qrc_classifier.predict(X)
 
         referece_values = {
-            "linear": np.array([0, 1, 0, 1, 1, 1]),
+            "linear": np.array([0, 1, 0, 1, 0, 1]),
             "mlp": np.array([0, 1, 0, 1, 0, 1]),
             "kernel": np.array([0, 1, 0, 0, 0, 1]),
         }

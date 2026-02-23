@@ -1,4 +1,6 @@
 import pennylane as qml
+from qiskit.transpiler import Target
+from qiskit.circuit import IfElseOp
 
 
 def RXX(theta, wires):
@@ -16,9 +18,9 @@ def RZZ(theta, wires):
     return qml.PauliRot(theta, "ZZ", wires=wires)
 
 
-def RXZ(theta, wires):
-    """RXZ gate."""
-    return qml.PauliRot(theta, "XZ", wires=wires)
+def RZX(theta, wires):
+    """RZX gate."""
+    return qml.PauliRot(theta, "ZX", wires=wires)
 
 
 def reset(wires):
@@ -52,14 +54,13 @@ def csx(wires):
 
 # Dictionary of conversion Qiskit gates (from string) to PennyLane gates
 qiskit_pennylane_gate_dict = {
-    "i": qml.Identity,
     "h": qml.Hadamard,
     "x": qml.PauliX,
     "y": qml.PauliY,
     "z": qml.PauliZ,
     "s": qml.S,
     "t": qml.T,
-    "toffoli": qml.Toffoli,
+    "ccx": qml.Toffoli,
     "sx": qml.SX,
     "swap": qml.SWAP,
     "iswap": qml.ISWAP,
@@ -72,7 +73,6 @@ qiskit_pennylane_gate_dict = {
     "p": qml.PhaseShift,
     "cp": qml.ControlledPhaseShift,
     "cx": qml.CNOT,
-    "cnot": qml.CNOT,
     "cy": qml.CY,
     "cz": qml.CZ,
     "crx": qml.CRX,
@@ -81,8 +81,7 @@ qiskit_pennylane_gate_dict = {
     "rxx": RXX,
     "ryy": RYY,
     "rzz": RZZ,
-    "rxz": RXZ,
-    "barrier": qml.Barrier,
+    "rzx": RZX,
     "u": qml.U3,
     "measure": qml.measure,
     "reset": reset,
@@ -91,3 +90,16 @@ qiskit_pennylane_gate_dict = {
     "cs": cs,
     "csx": csx,
 }
+
+custom_name_mapping = {
+    "i": qml.Identity,
+    "toffoli": qml.Toffoli,
+    "cnot": qml.CNOT,
+    "barrier": qml.Barrier,
+}
+
+qiskit_pennylane_target = Target.from_configuration(
+    basis_gates=qiskit_pennylane_gate_dict.keys(), custom_name_mapping=custom_name_mapping
+)
+
+qiskit_pennylane_target.add_instruction(IfElseOp, name="if_else")
