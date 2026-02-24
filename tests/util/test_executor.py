@@ -415,7 +415,7 @@ class TestExecutorQulacs:
         """Tests of the default shots and the set_shots method work."""
 
         executor = ExecutorQulacs
-        assert executor.shots == None
+        assert executor.shots is None
 
     @pytest.mark.parametrize(
         "qulacs_execution_func",
