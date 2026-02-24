@@ -25,7 +25,14 @@ from .optree import (
 )
 
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
-QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
+
+from ..executor import (
+    QISKIT_SMALLER_2_0,
+    BaseSamplerV1,
+    BaseEstimatorV1,
+    BaseSamplerV2,
+    BaseEstimatorV2,
+)
 
 if QISKIT_SMALLER_1_2:
 
@@ -40,17 +47,18 @@ if QISKIT_SMALLER_2_0:
 else:
 
     def _pauli_expval_with_variance(counts, paulis):
-        """Dummy function for Qiskit >= 2.0."""
-        pass
+        """Placeholder for Qiskit >= 2.0 when using legacy V1 sampler results.
 
-
-from ..executor import (
-    QISKIT_SMALLER_2_0,
-    BaseSamplerV1,
-    BaseEstimatorV1,
-    BaseSamplerV2,
-    BaseEstimatorV2,
-)
+        For Qiskit 2.x, `_pauli_expval_with_variance` from `backend_estimator` is no longer
+        available in the same form. If this function is reached, it indicates that a
+        legacy (V1) sampler result is being processed with Qiskit >= 2.0, which is not
+        supported by this compatibility layer.
+        """
+        raise NotImplementedError(
+            "Support for evaluating expectation values via `_pauli_expval_with_variance` "
+            "with Qiskit >= 2.0 is not implemented. Ensure that you are not using a V1 "
+            "sampler with Qiskit 2.x, or update the code to use the V2 primitives."
+        )
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):

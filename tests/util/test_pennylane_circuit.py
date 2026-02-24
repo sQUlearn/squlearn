@@ -1,9 +1,6 @@
 """Tests for PennyLaneCircuit, focusing on if_else gate handling."""
 
 import pytest
-import numpy as np
-import pennylane as qml
-import pennylane.numpy as pnp
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import ParameterVector
