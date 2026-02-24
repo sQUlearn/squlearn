@@ -337,8 +337,17 @@ class PennyLaneCircuit:
                 pennylane_gates_wires.extend(if_else_pennylane_gates_wires)
 
             else:
-                # Add the condition None to the list of conditions
-                pennylane_conditions.append(None)
+                # Extract classical condition for non-if_else operations, if any
+                condition = None
+                if hasattr(op.operation, "condition") and op.operation.condition is not None:
+                    classical_bits = op.operation.condition[0]
+                    val = op.operation.condition[1]
+                    if isinstance(classical_bits, Clbit):
+                        bit_index = circuit.find_bit(classical_bits).index
+                    else:
+                        bit_index = [circuit.find_bit(b).index for b in classical_bits]
+                    condition = (bit_index, val)
+                pennylane_conditions.append(condition)
 
                 # Get the parameter tuple of the operation
                 param_tuple = None
