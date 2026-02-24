@@ -321,9 +321,7 @@ class PennyLaneCircuit:
 
                 # Remap the wires from the inner circuit to the outer circuit
                 inner_to_outer_wire = {
-                    inner_circuit.find_bit(inner_qubit).index: circuit.find_bit(
-                        outer_qubit
-                    ).index
+                    inner_circuit.find_bit(inner_qubit).index: circuit.find_bit(outer_qubit).index
                     for inner_qubit, outer_qubit in qubit_map.items()
                 }
                 if_else_pennylane_gates_wires = [
