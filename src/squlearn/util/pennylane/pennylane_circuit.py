@@ -309,6 +309,7 @@ class PennyLaneCircuit:
                     for i in range(op.operation.num_qubits)
                 }
 
+                inner_circuit = op.operation.params[0]
                 (
                     if_else_pennylane_gates,
                     if_else_pennylane_gates_parameter_functions,
@@ -316,7 +317,26 @@ class PennyLaneCircuit:
                     _,
                     _,
                     _,
-                ) = self.build_circuit_instructions(op.operation.params[0])
+                ) = self.build_circuit_instructions(inner_circuit)
+
+                # Remap the wires from the inner circuit to the outer circuit
+                inner_to_outer_wire = {
+                    inner_circuit.find_bit(inner_qubit).index: circuit.find_bit(
+                        outer_qubit
+                    ).index
+                    for inner_qubit, outer_qubit in qubit_map.items()
+                }
+                if_else_pennylane_gates_wires = [
+                    [inner_to_outer_wire[w] for w in wires]
+                    for wires in if_else_pennylane_gates_wires
+                ]
+
+                # Append the instructions from the if_else body to the main lists
+                pennylane_gates.extend(if_else_pennylane_gates)
+                pennylane_gates_parameter_functions.extend(
+                    if_else_pennylane_gates_parameter_functions
+                )
+                pennylane_gates_wires.extend(if_else_pennylane_gates_wires)
 
             else:
                 # Add the condition None to the list of conditions
@@ -364,7 +384,7 @@ class PennyLaneCircuit:
                     pennylane_gates_wires.append(wires)
                 else:
                     raise NotImplementedError(
-                        f"Gate {op.operation.name} is unfortunatly not supported in sQUlearn's PennyLane backend."
+                        f"Gate {op.operation.name} is unfortunately not supported in sQUlearn's PennyLane backend."
                     )
 
         # Return the lists of circuit instructions
