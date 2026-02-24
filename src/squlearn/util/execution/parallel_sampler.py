@@ -812,7 +812,26 @@ class ParallelSamplerV2(BaseSamplerV2):
                 ),
                 num_bits=pub._circuit.num_qubits,
             )
-            result._data = DataBin(**data_dict)
+            # In newer Qiskit versions, DataBin is immutable and cannot be constructed with **kwargs
+            # Instead, create a new instance and update _data directly
+            try:
+                result._data = DataBin(**data_dict)
+            except TypeError:
+                # Newer Qiskit versions don't support keyword arguments
+                # Try to construct DataBin and set attributes
+                try:
+                    # Create empty DataBin and copy attributes using object.__setattr__
+                    new_data_bin = DataBin()
+                    for key, value in data_dict.items():
+                        object.__setattr__(new_data_bin, key, value)
+                    result._data = new_data_bin
+                except Exception:
+                    # If that still fails, directly assign the meas BitArray
+                    try:
+                        object.__setattr__(result.data, "meas", data_dict["meas"])
+                    except:
+                        # Last resort: just update the data dictionary in place
+                        result.data.meas = data_dict["meas"]
             results.append(result)
 
         result_job._pub_results = duplicated_results

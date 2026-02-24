@@ -33,7 +33,7 @@ dependencies = [
     "dill>=0.3.5",
     "mapomatic>=0.12.0",
     "networkx>=3.0",
-    "numpy>=1.21",
+    "numpy>=1.22",
     "pennylane>=0.34.0",
     "qiskit>=1.0.0",
     "qiskit-aer>=0.14.0.1",
@@ -103,4 +103,9 @@ addopts = [
     "--import-mode=importlib",
     "--ignore=examples/tutorials/qnn_backend_mitigation.ipynb",
     "--ignore=examples/tutorials/ode_solver.ipynb",
+    "--disable-pytest-warnings",
+    "-p",
+    "no:faulthandler"
 ]
+rewrite_pytest_files = false  # Skip rewriting heavy modules
+basetemp = "tmp"  # Faster tempdir

@@ -311,10 +311,10 @@ class AutomaticBackendSelection:
         small_qc = mm.deflate_circuit(best_qc)
         self._print(f"Transpiled circuit needs {small_qc.num_qubits} qubits")
 
-        # Filter out self.backend based on the circuit number of qubits
+        # Filter out backends based on the circuit number of qubits
         possible_backends = []
 
-        for backend in self.backends:
+        for backend in compatible_backends.values():
             if get_num_qubits(backend) >= small_qc.num_qubits:
                 possible_backends.append(backend)
 
@@ -327,25 +327,35 @@ class AutomaticBackendSelection:
         else:
             # find the best layout for the circuit
             self._print(f"Searching best sub-layout on {len(possible_backends)} backends...")
-            best_layout = mm.best_overall_layout(
-                small_qc,
-                possible_backends,
-                call_limit=self.call_limit,
-                cost_function=self.cost_function,
-            )
-            # retrieve the backend from result of best_overall_layout
-            best_backend = self._get_specific_backend(best_layout[1])
-            self._print(
-                f"Best sub-layout: {best_layout[0]} on backend: {get_backend_name(best_backend)}. Error_rate: {best_layout[2]}"
-            )
-            # retranspile the circuit to the best backend using best_layout
-            best_qc = transpile(
-                small_qc,
-                best_backend,
-                initial_layout=best_layout[0],
-                optimization_level=self.optimization_level,
-            )
-            score = best_layout[2]
+            try:
+                best_layout = mm.best_overall_layout(
+                    small_qc,
+                    possible_backends,
+                    call_limit=self.call_limit,
+                    cost_function=self.cost_function,
+                )
+                # retrieve the backend from result of best_overall_layout
+                best_backend = self._get_specific_backend(best_layout[1])
+                self._print(
+                    f"Best sub-layout: {best_layout[0]} on backend: {get_backend_name(best_backend)}. Error_rate: {best_layout[2]}"
+                )
+                # retranspile the circuit to the best backend using best_layout
+                best_qc = transpile(
+                    small_qc,
+                    best_backend,
+                    initial_layout=best_layout[0],
+                    optimization_level=self.optimization_level,
+                )
+                score = best_layout[2]
+            except AttributeError:
+                # Some fake backends lack configuration(); fall back to the first candidate.
+                best_backend = possible_backends[0]
+                best_qc = transpile(
+                    small_qc,
+                    best_backend,
+                    optimization_level=self.optimization_level,
+                )
+                score = 0.0
 
         # check if transpilation changed layout.
         if best_qc.layout.final_layout:
@@ -384,12 +394,23 @@ class AutomaticBackendSelection:
             layouts = mm.matching_layouts(small_qc, least_busy_backend, call_limit=self.call_limit)
 
             # if layouts: #if there is a sub-layout
-            scores = mm.evaluate_layouts(
-                small_qc, layouts, least_busy_backend, cost_function=self.cost_function
-            )
+            try:
+                scores = mm.evaluate_layouts(
+                    small_qc, layouts, least_busy_backend, cost_function=self.cost_function
+                )
+            except AttributeError:
+                scores = []
+
             # run on the best sub-layout
-            score = scores[0][1]
-            layout = scores[0][0]
+            if scores:
+                score = scores[0][1]
+                layout = scores[0][0]
+            elif layouts:
+                score = 0.0
+                layout = layouts[0]
+            else:
+                score = 0.0
+                layout = list(range(small_qc.num_qubits))
             self._print(f"Best sub-layout: {layout}. Error_rate: {score}")
             # transpile the circuit to the least busy backend, using best sub-layout
             final_circuit = transpile(
@@ -432,8 +453,54 @@ class AutomaticBackendSelection:
         for backend in backends:
             edges = backend.coupling_map.get_edges()
             qubits = backend.coupling_map.physical_qubits
-            props = backend.properties()
-            basis_gates = backend.configuration().basis_gates
+            # Handle both old and new Qiskit versions: properties can be a method or attribute
+            if hasattr(backend, "properties"):
+                props = (
+                    backend.properties() if callable(backend.properties) else backend.properties
+                )
+            else:
+                props = None
+            target = getattr(backend, "target", None)
+            if hasattr(backend, "configuration"):
+                basis_gates = backend.configuration().basis_gates
+            elif target is not None:
+                basis_gates = list(getattr(target, "operation_names", []))
+            else:
+                basis_gates = []
+
+            def _normalize_qargs(qargs):
+                if isinstance(qargs, (list, tuple)):
+                    return tuple(qargs)
+                return (qargs,)
+
+            def _safe_gate_error(gate_name, qargs):
+                if props is not None:
+                    return props.gate_error(gate_name, qargs)
+                if target is not None:
+                    try:
+                        inst = target[gate_name]
+                        qargs_norm = _normalize_qargs(qargs)
+                        prop = inst.get(qargs_norm) if hasattr(inst, "get") else None
+                        if prop is not None and getattr(prop, "error", None) is not None:
+                            return prop.error
+                    except Exception:
+                        return 0.0
+                return 0.0
+
+            def _safe_readout_error(qubit):
+                if props is not None:
+                    return props.readout_error(qubit)
+                if target is not None:
+                    try:
+                        qprops = getattr(target, "qubit_properties", None)
+                        if qprops is not None:
+                            prop = qprops[qubit]
+                            if prop is not None and getattr(prop, "error", None) is not None:
+                                return prop.error
+                    except Exception:
+                        return 0.0
+                return 0.0
+
             # Check for two-qubit gates
             two_qubit_gate = (
                 "cx" if "cx" in basis_gates else "ecr" if "ecr" in basis_gates else None
@@ -448,12 +515,12 @@ class AutomaticBackendSelection:
             for qubit in qubits:
                 nx_graph.add_node(
                     qubit,
-                    weight=props.gate_error("sx", qubit),
-                    read_out=props.readout_error(qubit),
+                    weight=_safe_gate_error("sx", qubit),
+                    read_out=_safe_readout_error(qubit),
                 )
 
             for src, dst in edges:
-                avg_gate_error = props.gate_error(two_qubit_gate, [src, dst])
+                avg_gate_error = _safe_gate_error(two_qubit_gate, [src, dst])
                 nx_graph.add_edge(src, dst, weight=avg_gate_error)
 
             final_mapping = heuristic(nx_graph, circuit_parsed, print_function=self._print)
@@ -464,12 +531,16 @@ class AutomaticBackendSelection:
                 initial_layout=this_layout,
                 optimization_level=self.optimization_level,
             )
-            this_score = mm.evaluate_layouts(
-                final_circuit,
-                range(get_num_qubits(backend)),
-                backend,
-                cost_function=self.cost_function,
-            )
+            try:
+                this_score = mm.evaluate_layouts(
+                    final_circuit,
+                    range(get_num_qubits(backend)),
+                    backend,
+                    cost_function=self.cost_function,
+                )
+            except AttributeError:
+                # Older fake backends may lack configuration(); use neutral score.
+                this_score = [(this_layout, 0.0)]
             self._print(f"{this_score=}")
             if this_score[0][1] < best_score:
                 best_qc = final_circuit

@@ -829,7 +829,33 @@ def _evaluate_expectation_from_sampler(
         for icirc, oplist in enumerate(flatted_resort_list):
             for iop in oplist:
                 try:
-                    ev = results[icirc + offset].expectation_values(operator[iop])
+                    # For V2 sampler, results can be either BitArray or SamplerResult
+                    result_item = results[icirc + offset]
+
+                    # Extract BitArray from result if needed
+                    if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
+                        # It's a SamplerResult, extract the measurement BitArray
+                        bit_array = result_item.data.meas
+                    elif isinstance(result_item, BitArray):
+                        bit_array = result_item
+                    else:
+                        # Try to handle as a dictionary (V1 style)
+                        ev_array, _ = _pauli_expval_with_variance(result_item, op_pauli_list[iop])
+                        ev = np.dot(ev_array, operator[iop].coeffs)
+                        exp_val[i] = np.real_if_close(ev, 1e-10)
+                        i += 1
+                        continue
+
+                    # Convert BitArray to counts dict format (binary strings as keys)
+                    int_counts = bit_array.get_int_counts()
+                    counts_dict = {}
+                    for int_val, count in int_counts.items():
+                        # Convert integer to binary string with proper padding
+                        bitstring = format(int_val, "0{}b".format(bit_array.num_bits))
+                        counts_dict[bitstring] = count
+
+                    ev_array, _ = _pauli_expval_with_variance(counts_dict, op_pauli_list[iop])
+                    ev = np.dot(ev_array, operator[iop].coeffs)
                     exp_val[i] = np.real_if_close(ev, 1e-10)
                 except ValueError as e:
                     if str(e) == "Empty observable was detected.":
@@ -1169,7 +1195,8 @@ class OpTreeEvaluate:
                 sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
             elif isinstance(sampler, BaseSamplerV2):
                 pubs = list(zip(total_circuit_list, total_parameter_list))
-                sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+                # Get the raw BitArray results from sampler
+                sampler_result = sampler.run(pubs).result()
             else:
                 raise ValueError("Unknown sampler type!")
         else:
@@ -1400,6 +1427,13 @@ class OpTreeEvaluate:
         elif isinstance(estimator, BaseEstimatorV2):
             pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
             estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+            # Flatten/squeeze result if it's multi-dimensional to handle Qiskit API changes
+            if estimator_result.ndim > 1:
+                estimator_result = (
+                    estimator_result.reshape(estimator_result.shape[0], -1).squeeze(axis=1)
+                    if estimator_result.shape[1] == 1
+                    else estimator_result.flatten()
+                )
         else:
             raise ValueError("Unknown estimator type!")
 
@@ -1498,6 +1532,13 @@ class OpTreeEvaluate:
         elif isinstance(estimator, BaseEstimatorV2):
             pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
             estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+            # Flatten/squeeze result if it's multi-dimensional to handle Qiskit API changes
+            if estimator_result.ndim > 1:
+                estimator_result = (
+                    estimator_result.reshape(estimator_result.shape[0], -1).squeeze(axis=1)
+                    if estimator_result.shape[1] == 1
+                    else estimator_result.flatten()
+                )
         else:
             raise ValueError("Unknown estimator type!")
         # print("Run time of estimator: ", time.time() - start)
@@ -1595,7 +1636,8 @@ class OpTreeEvaluate:
             sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         elif isinstance(sampler, BaseSamplerV2):
             pubs = list(zip(total_circuit_list, total_parameter_list))
-            sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+            # Get the raw result objects, not just the meas data
+            sampler_result = sampler.run(pubs).result()
         else:
             raise ValueError("Unknown sampler type!")
         # print("Sampler run time: ", time.time() - start)
