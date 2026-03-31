@@ -896,11 +896,35 @@ def _evaluate_expectation_from_sampler(
         for icirc, oplist in enumerate(flatted_resort_list):
             result_item = results[icirc + offset]
 
+            # Qiskit <2 expects bitstring-keyed counts in backend_estimator helpers,
+            # while Qiskit >=2 uses integer-keyed counts in the local implementation.
             if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
                 bit_array = result_item.data.meas
-                counts_source = bit_array.get_int_counts()
+                if QISKIT_SMALLER_2_0:
+                    if hasattr(bit_array, "get_counts"):
+                        counts_source = bit_array.get_counts()
+                    else:
+                        int_counts = bit_array.get_int_counts()
+                        num_bits = bit_array.num_bits
+                        counts_source = {
+                            format(key, f"0{num_bits}b"): value
+                            for key, value in int_counts.items()
+                        }
+                else:
+                    counts_source = bit_array.get_int_counts()
             elif isinstance(result_item, BitArray):
-                counts_source = result_item.get_int_counts()
+                if QISKIT_SMALLER_2_0:
+                    if hasattr(result_item, "get_counts"):
+                        counts_source = result_item.get_counts()
+                    else:
+                        int_counts = result_item.get_int_counts()
+                        num_bits = result_item.num_bits
+                        counts_source = {
+                            format(key, f"0{num_bits}b"): value
+                            for key, value in int_counts.items()
+                        }
+                else:
+                    counts_source = result_item.get_int_counts()
             else:
                 counts_source = result_item
 

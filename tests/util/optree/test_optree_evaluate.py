@@ -287,6 +287,8 @@ class TestOpTreeEvaluation:
 
     def test_v2_sampler_counts_conversion_once_per_circuit(self):
         """BitArray integer counts are converted only once per circuit result."""
+        if getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("Integer-count optimization is only used for Qiskit >= 2.0")
 
         class FakeMeas:
             def __init__(self):
@@ -314,3 +316,41 @@ class TestOpTreeEvaluation:
             )
 
         assert meas.calls == 1
+
+    def test_v2_sampler_uses_string_counts_on_qiskit_lt2(self):
+        """Qiskit <2 path must pass string-keyed counts into backend helper."""
+        if not getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("String-count compatibility path is only relevant for Qiskit < 2.0")
+
+        class FakeMeas:
+            def __init__(self):
+                self.calls_get_counts = 0
+                self.calls_get_int_counts = 0
+
+            def get_counts(self):
+                self.calls_get_counts += 1
+                return {"00": 3, "11": 7}
+
+            def get_int_counts(self):
+                self.calls_get_int_counts += 1
+                return {0: 3, 3: 7}
+
+        meas = FakeMeas()
+        result_item = SimpleNamespace(data=SimpleNamespace(meas=meas))
+
+        operators = [SparsePauliOp(["Z"])]
+        operator_measurement_list = [[0]]
+
+        def fake_pauli_eval(counts, _paulis):
+            assert all(isinstance(k, str) for k in counts.keys())
+            return np.array([1.0]), np.array([0.0])
+
+        with patch.object(opt_eval, "_pauli_expval_with_variance", side_effect=fake_pauli_eval):
+            _ = opt_eval._evaluate_expectation_from_sampler(
+                operators,
+                [result_item],
+                operator_measurement_list=operator_measurement_list,
+            )
+
+        assert meas.calls_get_counts == 1
+        assert meas.calls_get_int_counts == 0
