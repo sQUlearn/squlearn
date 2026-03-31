@@ -78,8 +78,6 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        from qiskit.primitives import StatevectorEstimator
-
         estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.43879128, 1.0])
@@ -110,8 +108,6 @@ class TestOpTreeEvaluation:
             _create_random_circuits (Tuple[OpTreeList, List[dict]]): The circuits and dictionaries.
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
-
-        from qiskit.primitives import StatevectorSampler
 
         sampler = StatevectorSampler(seed=0, default_shots=5000)
         # StatevectorSampler does only support sampling, not statevectors

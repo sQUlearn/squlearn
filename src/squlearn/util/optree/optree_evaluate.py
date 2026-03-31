@@ -46,19 +46,90 @@ if QISKIT_SMALLER_2_0:
     from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 else:
 
-    def _pauli_expval_with_variance(counts, paulis):
-        """Placeholder for Qiskit >= 2.0 when using legacy V1 sampler results.
+    def _paulis2inds(paulis):
+        """Convert Pauli operators to bit indices for efficient computation.
 
-        For Qiskit 2.x, `_pauli_expval_with_variance` from `backend_estimator` is no longer
-        available in the same form. If this function is reached, it indicates that a
-        legacy (V1) sampler result is being processed with Qiskit >= 2.0, which is not
-        supported by this compatibility layer.
+        Args:
+            paulis: PauliList of Pauli operators
+
+        Returns:
+            numpy array of indices where non-identity Paulis are located
         """
-        raise NotImplementedError(
-            "Support for evaluating expectation values via `_pauli_expval_with_variance` "
-            "with Qiskit >= 2.0 is not implemented. Ensure that you are not using a V1 "
-            "sampler with Qiskit 2.x, or update the code to use the V2 primitives."
-        )
+        inds = np.zeros(len(paulis), dtype=int)
+        for i, pauli in enumerate(paulis):
+            # Extract Z Pauli positions
+            # Note: Pauli string is reversed compared to bit indices
+            pauli_str = str(pauli)
+            num_qubits = len(pauli_str)
+            for j, p in enumerate(pauli_str):
+                if p == "Z":
+                    # Reverse index: leftmost char is highest qubit index
+                    inds[i] |= 1 << (num_qubits - 1 - j)
+        return inds
+
+    def _parity(x):
+        """Compute parity (number of 1 bits mod 2) of an integer.
+
+        Args:
+            x: integer value
+
+        Returns:
+            parity (0 or 1)
+        """
+        x ^= x >> 16
+        x ^= x >> 8
+        x ^= x >> 4
+        x &= 0xF
+        return (0x6996 >> x) & 1
+
+    def _pauli_expval_with_variance(counts, paulis):
+        """Compute Pauli expectation values and variances from measurement counts.
+
+        Re-implementation of Qiskit's private _pauli_expval_with_variance function
+        for Qiskit >= 2.0 compatibility.
+
+        Args:
+            counts: dictionary with bitstring keys and count values, or BitArray
+            paulis: PauliList of Pauli operators
+
+        Returns:
+            tuple of (expectation_values, variances) arrays
+        """
+        size = len(paulis)
+        diag_inds = _paulis2inds(paulis)
+
+        expvals = np.zeros(size, dtype=float)
+        denom = 0  # Total shots for counts dict
+
+        # Handle both dict and BitArray formats
+        if isinstance(counts, dict):
+            items = counts.items()
+        else:
+            # Convert BitArray to counts dict
+            int_counts = counts.get_int_counts() if hasattr(counts, "get_int_counts") else counts
+            items = int_counts.items()
+
+        for bin_outcome, freq in items:
+            if isinstance(bin_outcome, int):
+                # Already an integer
+                outcome = bin_outcome
+            else:
+                # String format - handle space separation as in original
+                split_outcome = bin_outcome.split(" ", 1)[0] if " " in bin_outcome else bin_outcome
+                outcome = int(split_outcome, 2)
+
+            denom += freq
+            for k in range(size):
+                coeff = (-1) ** _parity(diag_inds[k] & outcome)
+                expvals[k] += freq * coeff
+
+        # Divide by total shots
+        if denom > 0:
+            expvals /= denom
+
+        # Compute variance
+        variances = 1 - expvals**2
+        return expvals, variances
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):

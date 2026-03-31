@@ -42,6 +42,7 @@ else:
 
 from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
 
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
@@ -58,7 +59,7 @@ from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 
-if QISKIT_SMALLER_1_2:
+if QISKIT_SMALLER_1_1:
 
     class BackendEstimatorV2:
         """Dummy BackendEstimatorV2"""

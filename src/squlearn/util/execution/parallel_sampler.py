@@ -14,7 +14,7 @@ from qiskit.providers import Options
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
-QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
 QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
 from qiskit.primitives import (
@@ -26,7 +26,7 @@ from qiskit.primitives import (
 from qiskit.primitives.containers import SamplerPubLike, BitArray, DataBin
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 
-if QISKIT_SMALLER_1_2:
+if QISKIT_SMALLER_1_1:
 
     class BackendSamplerV2:
         """Dummy BackendSamplerV2"""
@@ -801,7 +801,9 @@ class ParallelSamplerV2(BaseSamplerV2):
             duplicated_results, pubs, duplicated_pubs, n_dupl_list
         ):
             pub = SamplerPub.coerce(pub, shots=shots)
-            result.metadata["shots"] *= num_parallel
+            # In Qiskit 1.1+, metadata structure changed and 'shots' key may not exist
+            if "shots" in result.metadata:
+                result.metadata["shots"] *= num_parallel
             data_dict = result.data.__dict__
             data_dict["meas"] = BitArray.from_counts(
                 self._recover_original_distribution(
