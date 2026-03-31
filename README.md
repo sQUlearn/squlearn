@@ -63,4 +63,17 @@ For general questions regarding sQUlearn, use the [GitHub Discussions](https://g
 
 This project was supported by the German Federal Ministry of Economic Affairs and Climate Action through the projects AutoQML (grant no. 01MQ22002A) and AQUAS (grant no. 01MQ22003D), as well as the German Federal Ministry of Education and Research through the project H2Giga Degrad-EL3 (grant no. 03HY110D).
 
+## Disclaimer
+
+This software is provided strictly for **research and experimental purposes**. It represents early-stage exploratory work and has not been validated, verified, or tested for any operational, commercial, or production use.
+
+**Technology Readiness Level: TRL 1–3** (Basic principles observed through proof-of-concept)
+
+- No claims are made regarding reliability, accuracy, or fitness for any particular purpose
+- The codebase may be incomplete, unstable, or subject to fundamental changes without notice
+- Results produced by this software are not guaranteed to be reproducible or correct
+- This project exists solely for academic inquiry, algorithmic exploration, and open scientific collaboration
+
+This software is not designed, intended, or suitable for deployment in any real-world system or application. Users assume all responsibility for any use beyond basic research experimentation.
+
 ---
