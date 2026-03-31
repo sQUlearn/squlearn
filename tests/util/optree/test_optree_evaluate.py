@@ -4,6 +4,8 @@ import pytest
 from typing import Tuple, List
 import numpy as np
 from packaging import version
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
@@ -14,6 +16,7 @@ from qiskit.primitives import StatevectorEstimator, StatevectorSampler
 
 from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
+from squlearn.util.optree import optree_evaluate as opt_eval
 
 
 class TestOpTreeEvaluation:
@@ -273,3 +276,41 @@ class TestOpTreeEvaluation:
             dictionaries_combined=True,
         )
         assert np.allclose(val, reference_values2)
+
+    def test_parity_large_integer_width(self):
+        """Parity helper must work for arbitrary-width integers."""
+        if getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("Parity helper override is only used for Qiskit >= 2.0")
+
+        assert opt_eval._parity((1 << 120) | (1 << 5) | 1) == 1
+        assert opt_eval._parity((1 << 120) | (1 << 5)) == 0
+
+    def test_v2_sampler_counts_conversion_once_per_circuit(self):
+        """BitArray integer counts are converted only once per circuit result."""
+
+        class FakeMeas:
+            def __init__(self):
+                self.num_bits = 2
+                self.calls = 0
+
+            def get_int_counts(self):
+                self.calls += 1
+                return {0: 3, 3: 7}
+
+        meas = FakeMeas()
+        result_item = SimpleNamespace(data=SimpleNamespace(meas=meas))
+
+        operators = [SparsePauliOp(["Z"]), SparsePauliOp(["I"])]
+        operator_measurement_list = [[0, 1]]
+
+        def fake_pauli_eval(counts, _paulis):
+            return np.array([1.0]), np.array([0.0])
+
+        with patch.object(opt_eval, "_pauli_expval_with_variance", side_effect=fake_pauli_eval):
+            _ = opt_eval._evaluate_expectation_from_sampler(
+                operators,
+                [result_item],
+                operator_measurement_list=operator_measurement_list,
+            )
+
+        assert meas.calls == 1

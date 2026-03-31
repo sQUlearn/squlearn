@@ -796,7 +796,29 @@ class ParallelSamplerV2(BaseSamplerV2):
         result_job = self._sampler.run(pubs=duplicated_pubs, shots=shots)
 
         duplicated_results = result_job.result()
-        results = []
+
+        def _set_result_data(result_obj, payload):
+            """Set sampler result payload across Qiskit container variants."""
+            try:
+                result_obj._data = DataBin(**payload)
+                return
+            except TypeError:
+                pass
+
+            try:
+                new_data_bin = DataBin()
+                for key, value in payload.items():
+                    object.__setattr__(new_data_bin, key, value)
+                result_obj._data = new_data_bin
+                return
+            except (TypeError, AttributeError):
+                pass
+
+            try:
+                object.__setattr__(result_obj.data, "meas", payload["meas"])
+            except (TypeError, AttributeError):
+                result_obj.data.meas = payload["meas"]
+
         for result, pub, coerced_pub, num_parallel in zip(
             duplicated_results, pubs, duplicated_pubs, n_dupl_list
         ):
@@ -814,27 +836,7 @@ class ParallelSamplerV2(BaseSamplerV2):
                 ),
                 num_bits=pub._circuit.num_qubits,
             )
-            # In newer Qiskit versions, DataBin is immutable and cannot be constructed with **kwargs
-            # Instead, create a new instance and update _data directly
-            try:
-                result._data = DataBin(**data_dict)
-            except TypeError:
-                # Newer Qiskit versions don't support keyword arguments
-                # Try to construct DataBin and set attributes
-                try:
-                    # Create empty DataBin and copy attributes using object.__setattr__
-                    new_data_bin = DataBin()
-                    for key, value in data_dict.items():
-                        object.__setattr__(new_data_bin, key, value)
-                    result._data = new_data_bin
-                except Exception:
-                    # If that still fails, directly assign the meas BitArray
-                    try:
-                        object.__setattr__(result.data, "meas", data_dict["meas"])
-                    except:
-                        # Last resort: just update the data dictionary in place
-                        result.data.meas = data_dict["meas"]
-            results.append(result)
+            _set_result_data(result, data_dict)
 
         result_job._pub_results = duplicated_results
         return result_job

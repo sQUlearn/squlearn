@@ -898,17 +898,9 @@ def _evaluate_expectation_from_sampler(
 
             if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
                 bit_array = result_item.data.meas
-                int_counts = bit_array.get_int_counts()
-                counts_source = {
-                    format(int_val, f"0{bit_array.num_bits}b"): count
-                    for int_val, count in int_counts.items()
-                }
+                counts_source = bit_array.get_int_counts()
             elif isinstance(result_item, BitArray):
-                int_counts = result_item.get_int_counts()
-                counts_source = {
-                    format(int_val, f"0{result_item.num_bits}b"): count
-                    for int_val, count in int_counts.items()
-                }
+                counts_source = result_item.get_int_counts()
             else:
                 counts_source = result_item
 

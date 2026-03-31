@@ -4,6 +4,7 @@ import pytest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import ParameterVector
+from qiskit.quantum_info import SparsePauliOp
 
 from squlearn.util.pennylane.pennylane_circuit import PennyLaneCircuit
 
@@ -101,3 +102,63 @@ class TestPennyLaneCircuitIfElse:
         assert pl_circuit._pennylane_gates_wires[3] == [2]
         assert pl_circuit._pennylane_conditions[2] == (0, True)
         assert pl_circuit._pennylane_conditions[3] == (0, True)
+
+    def test_nested_if_else_combines_conditions(self):
+        """Nested if_else keeps both outer and inner conditions for the inner gate."""
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(2, "c")
+        qc = QuantumCircuit(qr, cr)
+
+        qc.x(0)
+        qc.x(1)
+        qc.measure(0, cr[0])
+        qc.measure(1, cr[1])
+
+        with qc.if_test((cr[0], 1)):
+            with qc.if_test((cr[1], 1)):
+                qc.x(2)
+
+        pl_circuit = PennyLaneCircuit(qc, "probs")
+
+        # The last gate (x on q2) must depend on both conditions.
+        nested_condition = pl_circuit._pennylane_conditions[-1]
+        assert isinstance(nested_condition, list)
+        assert nested_condition == [(0, True), (1, True)]
+
+    def test_barrier_is_ignored_in_conversion(self):
+        """Barrier does not create a PennyLane gate and does not raise during conversion."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.barrier()
+        qc.x(0)
+
+        pl_circuit = PennyLaneCircuit(qc, "probs")
+
+        # Only H and X remain as executable gates.
+        assert len(pl_circuit._pennylane_gates) == 2
+        assert len(pl_circuit._pennylane_conditions) == 2
+
+    def test_parameter_tuple_keeps_all_gate_params(self):
+        """Gate parameter tuples keep all entries, including constant expressions."""
+        p = ParameterVector("p", 1)
+        qc = QuantumCircuit(1)
+        qc.u(0 * p[0], p[0], 0.0, 0)
+
+        pl_circuit = PennyLaneCircuit(qc, "probs")
+        gate_params = pl_circuit._pennylane_gates_param_function[0]
+
+        assert gate_params is not None
+        assert len(gate_params) == 3
+
+    def test_observable_constant_parameter_expression_not_dropped(self):
+        """ParameterExpression coefficients that simplify to constants are retained."""
+        p = ParameterVector("p", 1)
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        observable = 2.0 * SparsePauliOp(["Z"], coeffs=[0 * p[0]]) + SparsePauliOp(
+            ["I"], coeffs=[1.0]
+        )
+
+        pl_circuit = PennyLaneCircuit(qc, observable)
+
+        assert len(pl_circuit._pennylane_obs_param_function) == 2

@@ -366,6 +366,7 @@ class PennyLaneCircuit:
                         if isinstance(param, ParameterExpression):
                             if param.sympify() is None:
                                 param = param._coeff
+                                param_tuple += (param,)
                             else:
                                 symbol_expr = param.sympify()
                                 f = lambdify(
@@ -472,7 +473,7 @@ class PennyLaneCircuit:
             pennylane_obs_param_function_ = []
             for coeff in obs.coeffs:
                 if isinstance(coeff, ParameterExpression):
-                    if coeff.sympify() == None:
+                    if coeff.sympify() is None:
                         coeff = coeff._coeff
                         if isinstance(coeff, np.complex128) or isinstance(coeff, np.complex64):
                             if np.imag(coeff) != 0:
@@ -482,6 +483,7 @@ class PennyLaneCircuit:
                             coeff = float(np.real(coeff))
                         else:
                             coeff = float(coeff)
+                        pennylane_obs_param_function_.append(coeff)
                     else:
                         symbol_expr = coeff.sympify()
                         f = lambdify(symbol_tuple, symbol_expr, modules=modules, printer=printer)
