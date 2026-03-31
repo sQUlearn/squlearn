@@ -51,7 +51,7 @@ dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 dev = [
-    "black",
+    "black[jupyter]",
     "flit",
     "nbmake",
     "pylint",
