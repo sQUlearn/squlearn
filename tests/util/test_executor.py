@@ -285,9 +285,11 @@ class TestExecutorPennyLane:
         }
 
         assert executor.shots == assert_dict[executor_str]
+        original_shots = executor.get_shots()
         executor.set_shots(1234)
         assert executor.shots == 1234
         assert executor.get_shots() == 1234
+        executor.set_shots(original_shots)
 
     @pytest.mark.parametrize(
         "executor_str",

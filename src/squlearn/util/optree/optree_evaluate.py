@@ -76,11 +76,7 @@ else:
         Returns:
             parity (0 or 1)
         """
-        x ^= x >> 16
-        x ^= x >> 8
-        x ^= x >> 4
-        x &= 0xF
-        return (0x6996 >> x) & 1
+        return x.bit_count() & 1
 
     def _pauli_expval_with_variance(counts, paulis):
         """Compute Pauli expectation values and variances from measurement counts.
@@ -898,34 +894,27 @@ def _evaluate_expectation_from_sampler(
         exp_val = np.zeros(sum(len(sublist) for sublist in flatted_resort_list))
         i = 0
         for icirc, oplist in enumerate(flatted_resort_list):
+            result_item = results[icirc + offset]
+
+            if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
+                bit_array = result_item.data.meas
+                int_counts = bit_array.get_int_counts()
+                counts_source = {
+                    format(int_val, f"0{bit_array.num_bits}b"): count
+                    for int_val, count in int_counts.items()
+                }
+            elif isinstance(result_item, BitArray):
+                int_counts = result_item.get_int_counts()
+                counts_source = {
+                    format(int_val, f"0{result_item.num_bits}b"): count
+                    for int_val, count in int_counts.items()
+                }
+            else:
+                counts_source = result_item
+
             for iop in oplist:
                 try:
-                    # For V2 sampler, results can be either BitArray or SamplerResult
-                    result_item = results[icirc + offset]
-
-                    # Extract BitArray from result if needed
-                    if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
-                        # It's a SamplerResult, extract the measurement BitArray
-                        bit_array = result_item.data.meas
-                    elif isinstance(result_item, BitArray):
-                        bit_array = result_item
-                    else:
-                        # Try to handle as a dictionary (V1 style)
-                        ev_array, _ = _pauli_expval_with_variance(result_item, op_pauli_list[iop])
-                        ev = np.dot(ev_array, operator[iop].coeffs)
-                        exp_val[i] = np.real_if_close(ev, 1e-10)
-                        i += 1
-                        continue
-
-                    # Convert BitArray to counts dict format (binary strings as keys)
-                    int_counts = bit_array.get_int_counts()
-                    counts_dict = {}
-                    for int_val, count in int_counts.items():
-                        # Convert integer to binary string with proper padding
-                        bitstring = format(int_val, "0{}b".format(bit_array.num_bits))
-                        counts_dict[bitstring] = count
-
-                    ev_array, _ = _pauli_expval_with_variance(counts_dict, op_pauli_list[iop])
+                    ev_array, _ = _pauli_expval_with_variance(counts_source, op_pauli_list[iop])
                     ev = np.dot(ev_array, operator[iop].coeffs)
                     exp_val[i] = np.real_if_close(ev, 1e-10)
                 except ValueError as e:

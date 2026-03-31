@@ -54,6 +54,7 @@ def csx(wires):
 
 # Dictionary of conversion Qiskit gates (from string) to PennyLane gates
 qiskit_pennylane_gate_dict = {
+    "id": qml.Identity,
     "h": qml.Hadamard,
     "x": qml.PauliX,
     "y": qml.PauliY,
@@ -92,10 +93,9 @@ qiskit_pennylane_gate_dict = {
 }
 
 custom_name_mapping = {
-    "i": qml.Identity,
-    "toffoli": qml.Toffoli,
-    "cnot": qml.CNOT,
-    "barrier": qml.Barrier,
+    "i": "id",
+    "toffoli": "ccx",
+    "cnot": "cx",
 }
 
 qiskit_pennylane_target = Target.from_configuration(

@@ -300,9 +300,6 @@ class PennyLaneCircuit:
                 else:
                     i = [circuit.find_bit(b).index for b in classical_bits]
 
-                # Add the condition to the list of conditions
-                pennylane_conditions += [(i, val)] * len(op.operation.params[0].data)
-
                 # Get the qubit map from the if_else statement
                 qubit_map = {
                     op.operation.params[0].qubits[i]: op.qubits[i]
@@ -314,10 +311,18 @@ class PennyLaneCircuit:
                     if_else_pennylane_gates,
                     if_else_pennylane_gates_parameter_functions,
                     if_else_pennylane_gates_wires,
-                    _,
+                    if_else_pennylane_conditions,
                     _,
                     _,
                 ) = self.build_circuit_instructions(inner_circuit)
+                outer_condition = (i, val)
+                for inner_condition in if_else_pennylane_conditions:
+                    if inner_condition is None:
+                        pennylane_conditions.append(outer_condition)
+                    elif isinstance(inner_condition, list):
+                        pennylane_conditions.append([outer_condition, *inner_condition])
+                    else:
+                        pennylane_conditions.append([outer_condition, inner_condition])
 
                 # Remap the wires from the inner circuit to the outer circuit
                 inner_to_outer_wire = {
@@ -337,6 +342,10 @@ class PennyLaneCircuit:
                 pennylane_gates_wires.extend(if_else_pennylane_gates_wires)
 
             else:
+                # Barrier is a no-op for execution and can be ignored.
+                if op.operation.name == "barrier":
+                    continue
+
                 # Extract classical condition for non-if_else operations, if any
                 condition = None
                 if hasattr(op.operation, "condition") and op.operation.condition is not None:
@@ -407,9 +416,6 @@ class PennyLaneCircuit:
     def build_observable_instructions(self, observable: Union[List[SparsePauliOp], SparsePauliOp]):
         """
         Function to build the instructions for the PennyLane observable from the Qiskit observable.
-
-        This functions converts the Qiskit SparsePauli and parameter expressions to PennyLane
-        compatible Pauli words and functions.
 
         Args:
             observable (Union[List[SparsePauliOp], SparsePauliOp]): Qiskit observable to convert
@@ -570,37 +576,45 @@ class PennyLaneCircuit:
                     else:
                         evaluated_param = None
 
-                    # Treat c_if conditions of the gate (if present)
-                    if self._pennylane_conditions[i] != None:
-                        # Calculate the value of the classical bit(s) involved in the condition
-                        if isinstance(self._pennylane_conditions[i][0], list):
-                            # conditions involving multiple classical bits -> convert to integer
-                            val = 0
-                            for j in range(len(self._pennylane_conditions[i][0])):
-                                val += 2**j * measurements[self._pennylane_conditions[i][0][j]]
-                        else:
-                            val = measurements[self._pennylane_conditions[i][0]]
+                    # Treat c_if and nested if_else conditions (if present)
+                    if self._pennylane_conditions[i] is not None:
+                        condition_list = self._pennylane_conditions[i]
+                        if not isinstance(condition_list, list):
+                            condition_list = [condition_list]
+
+                        combined_condition = None
+                        for condition in condition_list:
+                            if isinstance(condition[0], list):
+                                val = 0
+                                for j in range(len(condition[0])):
+                                    val += 2**j * measurements[condition[0][j]]
+                            else:
+                                val = measurements[condition[0]]
+
+                            this_condition = val == condition[1]
+                            if combined_condition is None:
+                                combined_condition = this_condition
+                            elif isinstance(combined_condition, bool) and isinstance(
+                                this_condition, bool
+                            ):
+                                combined_condition = combined_condition and this_condition
+                            else:
+                                combined_condition = combined_condition & this_condition
 
                         if evaluated_param is not None:
-                            # The case that the gate has parameters
-                            if isinstance(val, int):
-                                # Conditional values are already integers
-                                if val == self._pennylane_conditions[i][1]:
+                            if isinstance(combined_condition, bool):
+                                if combined_condition:
                                     op(*evaluated_param, wires=self._pennylane_gates_wires[i])
                             else:
-                                # Otherwise, pennylane condition
-                                qml.cond(val == self._pennylane_conditions[i][1], op)(
+                                qml.cond(combined_condition, op)(
                                     *evaluated_param, wires=self._pennylane_gates_wires[i]
                                 )
                         else:
-                            # The case that the gate has no parameters
-                            if isinstance(val, int):
-                                # Conditional values are already integers
-                                if val == self._pennylane_conditions[i][1]:
+                            if isinstance(combined_condition, bool):
+                                if combined_condition:
                                     op(wires=self._pennylane_gates_wires[i])
                             else:
-                                # Otherwise, pennylane condition
-                                qml.cond(val == self._pennylane_conditions[i][1], op)(
+                                qml.cond(combined_condition, op)(
                                     wires=self._pennylane_gates_wires[i]
                                 )
                     else:

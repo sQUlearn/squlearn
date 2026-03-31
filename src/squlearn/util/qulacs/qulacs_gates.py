@@ -103,6 +103,7 @@ def qulacs_gate_U1(circuit: ParametricQuantumCircuit, angle: float, index: int) 
 
 # Dictionary of conversion Qiskit gates (from string) to Quilacs gate functions
 qiskit_qulacs_gate_dict = {
+    "id": qulacs_gate_i,
     "h": qulacs_gate_h,
     "x": qulacs_gate_x,
     "y": qulacs_gate_y,
@@ -127,8 +128,8 @@ qiskit_qulacs_param_gate_dict = {
 }
 
 custom_name_mapping = {
-    "i": qulacs_gate_i,
-    "cnot": qulacs_gate_cnot,
+    "i": "id",
+    "cnot": "cx",
 }
 
 qiskit_qulacs_target = Target.from_configuration(
