@@ -49,7 +49,7 @@ def get_lowest_version(dependency_string: str) -> str:
 # Check if uv is available in the current environment
 try:
     subprocess.run(["uv", "--version"], check=True, capture_output=True)
-    pip_cmd = ["uv", "pip", "install"]
+    pip_cmd = ["uv", "pip", "install", "--python", sys.executable]
 except (subprocess.CalledProcessError, FileNotFoundError):
     pip_cmd = [sys.executable, "-m", "pip", "install"]
 
