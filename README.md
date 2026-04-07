@@ -14,7 +14,7 @@ sQUlearn offers scikit-learn compatible high-level interfaces for various kernel
 
 ## Prerequisites
 
-The package requires **at least Python 3.9**.
+The package requires **at least Python 3.10**.
 ## Install sQUlearn
 
 ### Stable Release

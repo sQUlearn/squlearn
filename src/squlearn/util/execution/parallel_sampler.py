@@ -2,62 +2,31 @@ import copy
 from dataclasses import asdict
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import numpy as np
 from packaging import version
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.primitives import Sampler as PrimitiveSamplerV1
 from qiskit.primitives.base import SamplerResult
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import Options
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
-QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BackendSampler as BackendSamplerV1,
-        BaseSampler as BaseSamplerV1,
-    )
+from qiskit.primitives import (
+    BaseSamplerV1,
+    BaseSamplerV2,
+    BasePrimitiveJob,
+    StatevectorSampler,
+)
+from qiskit.primitives.containers import SamplerPubLike, BitArray, DataBin
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 
-    class BaseSamplerV2:
-        """Dummy BaseSamplerV2"""
-
-    class StatevectorSampler:
-        """Dummy StatevectorSampler"""
-
-    class SamplerPubLike:
-        """Dummy SamplerPubLike"""
-
-    class SamplerPub:
-        """Dummy SamplerPub"""
-
-    class BasePrimitiveJob:
-        """Dummy BasePrimitiveJob"""
-
-    class BitArray:
-        """Dummy BitArray"""
-
-    class DataBin:
-        """Dummy DataBin"""
-
-else:
-    from qiskit.primitives import (
-        BackendSampler as BackendSamplerV1,
-        BaseSamplerV1,
-        BaseSamplerV2,
-        BasePrimitiveJob,
-        StatevectorSampler,
-    )
-    from qiskit.primitives.containers import SamplerPubLike, BitArray, DataBin
-    from qiskit.primitives.containers.sampler_pub import SamplerPub
-
-if QISKIT_SMALLER_1_2:
+if QISKIT_SMALLER_1_1:
 
     class BackendSamplerV2:
         """Dummy BackendSamplerV2"""
@@ -67,6 +36,78 @@ else:
     from qiskit.primitives import (
         BackendSamplerV2,
     )
+
+if QISKIT_SMALLER_2_0:
+    # pylint: disable=ungrouped-imports
+    from qiskit.primitives import (
+        BackendSampler as BackendSamplerV1,
+        Sampler as PrimitiveSamplerV1,
+    )
+    from qiskit.primitives.utils import _circuit_key
+else:
+
+    class BackendSamplerV1:
+        """Dummy BackendSamplerV1"""
+
+    class PrimitiveSamplerV1:
+        """Dummy PrimitiveSamplerV1"""
+
+    def _bits_key(bits: tuple, circuit: QuantumCircuit) -> tuple:
+        return tuple(
+            (
+                circuit.find_bit(bit).index,
+                tuple(
+                    (reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers
+                ),
+            )
+            for bit in bits
+        )
+
+    def _format_params(param):
+        if isinstance(param, np.ndarray):
+            return param.data.tobytes()
+        elif isinstance(param, QuantumCircuit):
+            return _circuit_key(param)
+        elif isinstance(param, Iterable):
+            return tuple(param)
+        return param
+
+    def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
+        """Private key function for QuantumCircuit.
+
+        This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+        If key collision is found, please add elements to avoid it.
+
+        Args:
+            circuit: Input quantum circuit.
+            functional: If True, the returned key only includes functional data (i.e. execution related).
+
+        Returns:
+            Composite key for circuit.
+        """
+        functional_key: tuple = (
+            circuit.num_qubits,
+            circuit.num_clbits,
+            circuit.num_parameters,
+            tuple(  # circuit.data
+                (
+                    _bits_key(data.qubits, circuit),  # qubits
+                    _bits_key(data.clbits, circuit),  # clbits
+                    data.operation.name,  # operation.name
+                    tuple(
+                        _format_params(param) for param in data.operation.params
+                    ),  # operation.params
+                )
+                for data in circuit.data
+            ),
+            None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+        )
+        if functional:
+            return functional_key
+        return (
+            circuit.name,
+            *functional_key,
+        )
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
@@ -256,7 +297,7 @@ class ParallelSamplerV1(BaseSamplerV1):
         n_duplications = len(qubit_mapping) // original_qubits
 
         # Initialize the original distribution dictionary
-        original_distribution = {i: 0 for i in range(2**original_qubits)}
+        original_distribution = {}
 
         # Process each outcome in the duplicated results
         for outcome, probability in duplicated_result.items():
@@ -280,7 +321,10 @@ class ParallelSamplerV1(BaseSamplerV1):
                 part_outcome = int(
                     reordered_outcome_str[part_start:part_end][::-1], 2
                 )  # Reverse back to original order
-                original_distribution[part_outcome] += probability / n_duplications
+                if part_outcome in original_distribution:
+                    original_distribution[part_outcome] += probability / n_duplications
+                else:
+                    original_distribution[part_outcome] = probability / n_duplications
 
         # Normalize the distribution
         total_probability = sum(original_distribution.values())
@@ -752,12 +796,36 @@ class ParallelSamplerV2(BaseSamplerV2):
         result_job = self._sampler.run(pubs=duplicated_pubs, shots=shots)
 
         duplicated_results = result_job.result()
-        results = []
+
+        def _set_result_data(result_obj, payload):
+            """Set sampler result payload across Qiskit container variants."""
+            try:
+                result_obj._data = DataBin(**payload)
+                return
+            except TypeError:
+                pass
+
+            try:
+                new_data_bin = DataBin()
+                for key, value in payload.items():
+                    object.__setattr__(new_data_bin, key, value)
+                result_obj._data = new_data_bin
+                return
+            except (TypeError, AttributeError):
+                pass
+
+            try:
+                object.__setattr__(result_obj.data, "meas", payload["meas"])
+            except (TypeError, AttributeError):
+                result_obj.data.meas = payload["meas"]
+
         for result, pub, coerced_pub, num_parallel in zip(
             duplicated_results, pubs, duplicated_pubs, n_dupl_list
         ):
             pub = SamplerPub.coerce(pub, shots=shots)
-            result.metadata["shots"] *= num_parallel
+            # In Qiskit 1.1+, metadata structure changed and 'shots' key may not exist
+            if "shots" in result.metadata:
+                result.metadata["shots"] *= num_parallel
             data_dict = result.data.__dict__
             data_dict["meas"] = BitArray.from_counts(
                 self._recover_original_distribution(
@@ -768,8 +836,7 @@ class ParallelSamplerV2(BaseSamplerV2):
                 ),
                 num_bits=pub._circuit.num_qubits,
             )
-            result._data = DataBin(**data_dict)
-            results.append(result)
+            _set_result_data(result, data_dict)
 
         result_job._pub_results = duplicated_results
         return result_job
