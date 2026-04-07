@@ -4,17 +4,19 @@ import pytest
 from typing import Tuple, List
 import numpy as np
 from packaging import version
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit import ParameterVector
+from qiskit.primitives import StatevectorEstimator, StatevectorSampler
 
 from squlearn.util import OpTree
 from squlearn.util.optree import OpTreeSum, OpTreeList
-
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
+from squlearn.util.optree import optree_evaluate as opt_eval
 
 
 class TestOpTreeEvaluation:
@@ -79,14 +81,7 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Estimator
-
-            estimator = Estimator()
-        else:
-            from qiskit.primitives import StatevectorEstimator
-
-            estimator = StatevectorEstimator(default_precision=0)
+        estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.43879128, 1.0])
 
@@ -117,17 +112,9 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Sampler
-
-            sampler = Sampler()
-            reference_values = np.array([1.43879128, 1.0])
-        else:
-            from qiskit.primitives import StatevectorSampler
-
-            sampler = StatevectorSampler(seed=0, default_shots=5000)
-            # StatevectorSampler does only support sampling, not statevectors
-            reference_values = np.array([1.4524, 1.0102])
+        sampler = StatevectorSampler(seed=0, default_shots=5000)
+        # StatevectorSampler does only support sampling, not statevectors
+        reference_values = np.array([1.4524, 1.0102])
 
         # Check functionality of sampler evaluation
         val = OpTree.evaluate.evaluate_with_sampler(
@@ -153,14 +140,7 @@ class TestOpTreeEvaluation:
             _create_operator_xy (Tuple[OpTreeSum, dict]): The operators and dictionary.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Estimator
-
-            estimator = Estimator()
-        else:
-            from qiskit.primitives import StatevectorEstimator
-
-            estimator = StatevectorEstimator(default_precision=0)
+        estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array([1.09923954, -1.0])
 
@@ -191,17 +171,9 @@ class TestOpTreeEvaluation:
             _create_operator_xy (Tuple[OpTreeSum, dict]): The operators and dictionary.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Sampler
-
-            sampler = Sampler()
-            reference_values = np.array([1.09923954, -1.0])
-        else:
-            from qiskit.primitives import StatevectorSampler
-
-            sampler = StatevectorSampler(seed=0, default_shots=5000)
-            # StatevectorSampler does only support sampling, not statevectors
-            reference_values = np.array([1.1204, -0.9738])
+        sampler = StatevectorSampler(seed=0, default_shots=5000)
+        # StatevectorSampler does only support sampling, not statevectors
+        reference_values = np.array([1.1204, -0.9738])
 
         # Check functionality of evaluation
         with pytest.raises(ValueError):
@@ -241,14 +213,7 @@ class TestOpTreeEvaluation:
             _create_operator_z (Tuple[OpTreeSum, List[dict]]): The operators and dictionaries.
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Estimator
-
-            estimator = Estimator()
-        else:
-            from qiskit.primitives import StatevectorEstimator
-
-            estimator = StatevectorEstimator(default_precision=0)
+        estimator = StatevectorEstimator(default_precision=0)
 
         reference_values = np.array(
             [
@@ -286,26 +251,12 @@ class TestOpTreeEvaluation:
 
         """
 
-        if QISKIT_SMALLER_1_0:
-            from qiskit.primitives import Sampler
-
-            sampler = Sampler()
-            reference_values = np.array(
-                [
-                    [[2.83285403, 2.83285403], [0.93625037, 0.93625037]],
-                    [[2.82638487, 2.82638487], [0.93594971, 0.93594971]],
-                ]
-            )
-            reference_values2 = np.array([[2.83285403, 2.83285403], [0.93594971, 0.93594971]])
-        else:
-            from qiskit.primitives import StatevectorSampler
-
-            sampler = StatevectorSampler(seed=0, default_shots=5000)
-            # StatevectorSampler does only support sampling, not statevectors
-            reference_values = np.array(
-                [[[2.8344, 2.8344], [0.9368, 0.9368]], [[2.8264, 2.8264], [0.93608, 0.93608]]]
-            )
-            reference_values2 = np.array([[2.8344, 2.8344], [0.93608, 0.93608]])
+        sampler = StatevectorSampler(seed=0, default_shots=5000)
+        # StatevectorSampler does only support sampling, not statevectors
+        reference_values = np.array(
+            [[[2.8344, 2.8344], [0.9368, 0.9368]], [[2.8264, 2.8264], [0.93608, 0.93608]]]
+        )
+        reference_values2 = np.array([[2.8344, 2.8344], [0.93608, 0.93608]])
 
         val = OpTree.evaluate.evaluate_with_sampler(
             _create_param_circuits[0],
@@ -325,3 +276,81 @@ class TestOpTreeEvaluation:
             dictionaries_combined=True,
         )
         assert np.allclose(val, reference_values2)
+
+    def test_parity_large_integer_width(self):
+        """Parity helper must work for arbitrary-width integers."""
+        if getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("Parity helper override is only used for Qiskit >= 2.0")
+
+        assert opt_eval._parity((1 << 120) | (1 << 5) | 1) == 1
+        assert opt_eval._parity((1 << 120) | (1 << 5)) == 0
+
+    def test_v2_sampler_counts_conversion_once_per_circuit(self):
+        """BitArray integer counts are converted only once per circuit result."""
+        if getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("Integer-count optimization is only used for Qiskit >= 2.0")
+
+        class FakeMeas:
+            def __init__(self):
+                self.num_bits = 2
+                self.calls = 0
+
+            def get_int_counts(self):
+                self.calls += 1
+                return {0: 3, 3: 7}
+
+        meas = FakeMeas()
+        result_item = SimpleNamespace(data=SimpleNamespace(meas=meas))
+
+        operators = [SparsePauliOp(["Z"]), SparsePauliOp(["I"])]
+        operator_measurement_list = [[0, 1]]
+
+        def fake_pauli_eval(counts, _paulis):
+            return np.array([1.0]), np.array([0.0])
+
+        with patch.object(opt_eval, "_pauli_expval_with_variance", side_effect=fake_pauli_eval):
+            _ = opt_eval._evaluate_expectation_from_sampler(
+                operators,
+                [result_item],
+                operator_measurement_list=operator_measurement_list,
+            )
+
+        assert meas.calls == 1
+
+    def test_v2_sampler_uses_string_counts_on_qiskit_lt2(self):
+        """Qiskit <2 path must pass string-keyed counts into backend helper."""
+        if not getattr(opt_eval, "QISKIT_SMALLER_2_0", False):
+            pytest.skip("String-count compatibility path is only relevant for Qiskit < 2.0")
+
+        class FakeMeas:
+            def __init__(self):
+                self.calls_get_counts = 0
+                self.calls_get_int_counts = 0
+
+            def get_counts(self):
+                self.calls_get_counts += 1
+                return {"00": 3, "11": 7}
+
+            def get_int_counts(self):
+                self.calls_get_int_counts += 1
+                return {0: 3, 3: 7}
+
+        meas = FakeMeas()
+        result_item = SimpleNamespace(data=SimpleNamespace(meas=meas))
+
+        operators = [SparsePauliOp(["Z"])]
+        operator_measurement_list = [[0]]
+
+        def fake_pauli_eval(counts, _paulis):
+            assert all(isinstance(k, str) for k in counts.keys())
+            return np.array([1.0]), np.array([0.0])
+
+        with patch.object(opt_eval, "_pauli_expval_with_variance", side_effect=fake_pauli_eval):
+            _ = opt_eval._evaluate_expectation_from_sampler(
+                operators,
+                [result_item],
+                operator_measurement_list=operator_measurement_list,
+            )
+
+        assert meas.calls_get_counts == 1
+        assert meas.calls_get_int_counts == 0

@@ -16,49 +16,35 @@ class TestRandomLayeredEncodingCircuit:
         and set of parameters.
         """
 
-        reference1 = [
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[0.7853981633974483])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[0.7853981633974483])",
-            "Instruction(name='ry', num_qubits=1, num_clbits=0, params=[ParameterExpression(3.14159265358979*x[0])])",
-            "Instruction(name='ry', num_qubits=1, num_clbits=0, params=[ParameterExpression(3.14159265358979*x[1])])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[2]))])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[3]))])",
-        ]
-        reference2 = [
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[0.7853981633974483])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[0.7853981633974483])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[0.7853981633974483])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[1.5707963267948966])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[1.5707963267948966])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[1.5707963267948966])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[0]))])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[1]))])",
-            "Instruction(name='rz', num_qubits=1, num_clbits=0, params=[ParameterExpression(atan(x[2]))])",
-        ]
-        reference3 = [
-            "Instruction(name='z', num_qubits=1, num_clbits=0, params=[])",
-            "Instruction(name='z', num_qubits=1, num_clbits=0, params=[])",
-            "Instruction(name='z', num_qubits=1, num_clbits=0, params=[])",
-            "Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])",
-            "Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[ParameterVectorElement(x[0])])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[ParameterVectorElement(x[1])])",
-            "Instruction(name='rx', num_qubits=1, num_clbits=0, params=[ParameterVectorElement(x[2])])",
-        ]
+        reference1 = (
+            "     ┌─────────┐┌────────────┐┌────────────────┐\nq_0: ┤ Rz(π/4) ├┤ Ry(π*x[0]) ├┤ Rz("
+            "atan(x[2])) ├\n     ├─────────┤├────────────┤├────────────────┤\nq_1: ┤ Rz(π/4) ├┤ Ry"
+            "(π*x[1]) ├┤ Rz(atan(x[3])) ├\n     └─────────┘└────────────┘└────────────────┘"
+        )
+        reference2 = (
+            "     ┌─────────┐┌─────────┐┌────────────────┐\nq_0: ┤ Rz(π/4) ├┤ Rx(π/2) ├┤ Rz(atan(x"
+            "[0])) ├\n     ├─────────┤├─────────┤├────────────────┤\nq_1: ┤ Rz(π/4) ├┤ Rx(π/2) ├┤ "
+            "Rz(atan(x[1])) ├\n     ├─────────┤├─────────┤├────────────────┤\nq_2: ┤ Rz(π/4) ├┤ Rx"
+            "(π/2) ├┤ Rz(atan(x[2])) ├\n     └─────────┘└─────────┘└────────────────┘"
+        )
+        reference3 = (
+            "     ┌───┐     ┌──────────┐            \nq_0: ┤ Z ├──■──┤ Rx(x[0]) ├────────────\n   "
+            "  ├───┤┌─┴─┐└──────────┘┌──────────┐\nq_1: ┤ Z ├┤ X ├─────■──────┤ Rx(x[1]) ├\n     ├"
+            "───┤└───┘   ┌─┴─┐    ├──────────┤\nq_2: ┤ Z ├────────┤ X ├────┤ Rx(x[2]) ├\n     └───"
+            "┘        └───┘    └──────────┘"
+        )
 
         pqc = RandomLayeredEncodingCircuit(num_qubits=2, max_num_layers=3)
-        x = ParameterVector("x", 4)
-        check_list1 = [str(op[0]) for op in pqc.get_circuit(x, [])]
-        assert check_list1 == reference1
+        check_circuit1 = repr(pqc.draw("text", fold=-1, num_features=4))
+        assert check_circuit1 == reference1
 
         pqc.set_params(num_qubits=3, max_num_layers=3)
-        x = ParameterVector("x", 3)
-        check_list2 = [str(op[0]) for op in pqc.get_circuit(x, [])]
-        assert check_list2 == reference2
+        check_circuit2 = repr(pqc.draw("text", fold=-1, num_features=3))
+        assert check_circuit2 == reference2
 
         pqc.set_params(seed=1234)
-        check_list3 = [str(op[0]) for op in pqc.get_circuit(x, [])]
-        assert check_list3 == reference3
+        check_circuit3 = repr(pqc.draw("text", fold=-1, num_features=3))
+        assert check_circuit3 == reference3
 
     def test_init(self):
         circuit = RandomLayeredEncodingCircuit(

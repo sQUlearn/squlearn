@@ -24,10 +24,6 @@ from pennylane.devices import Device as PennylaneDevice
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import (
-    Estimator as PrimitiveEstimatorV1,
-    Sampler as PrimitiveSamplerV1,
-)
 from qiskit.primitives.base import EstimatorResult, SamplerResult
 from qiskit.providers import JobV1
 from qiskit.providers import Options
@@ -44,64 +40,26 @@ if version.parse(pennylane_version) < version.parse("0.39.0"):
 else:
     from pennylane.devices import QubitDevice
 
-if version.parse(qiskit_version) <= version.parse("0.45.0"):
-    from qiskit.utils import algorithm_globals
 from qiskit_algorithms.utils import algorithm_globals as qiskit_algorithm_globals
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BackendSampler as BackendSamplerV1,
-        BaseEstimator as BaseEstimatorV1,
-        BaseSampler as BaseSamplerV1,
-    )
+from qiskit.primitives import (
+    BaseEstimatorV1,
+    BaseEstimatorV2,
+    BaseSamplerV1,
+    BaseSamplerV2,
+    StatevectorEstimator,
+    StatevectorSampler,
+)
 
-    class BaseEstimatorV2:
-        """Dummy BaseEstimatorV2"""
+from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 
-    class BaseSamplerV2:
-        """Dummy BaseSamplerV2"""
-
-    class StatevectorEstimator:
-        """Dummy StatevectorEstimator"""
-
-    class StatevectorSampler:
-        """Dummy StatevectorSampler"""
-
-    class EstimatorPubLike(object):
-        """Dummy EstimatorPubLike"""
-
-    class EstimatorPub(object):
-        """Dummy EstimatorPub"""
-
-    class SamplerPubLike(object):
-        """Dummy EstimatorPubLike"""
-
-    class SamplerPub(object):
-        """Dummy EstimatorPub"""
-
-else:
-    from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BackendSampler as BackendSamplerV1,
-        BaseEstimatorV1,
-        BaseEstimatorV2,
-        BaseSamplerV1,
-        BaseSamplerV2,
-        StatevectorEstimator,
-        StatevectorSampler,
-    )
-
-    from qiskit.primitives.containers import EstimatorPubLike, SamplerPubLike
-    from qiskit.primitives.containers.estimator_pub import EstimatorPub
-    from qiskit.primitives.containers.sampler_pub import SamplerPub
-
-
-if QISKIT_SMALLER_1_2:
+if QISKIT_SMALLER_1_1:
 
     class BackendEstimatorV2:
         """Dummy BackendEstimatorV2"""
@@ -115,6 +73,28 @@ else:
         BackendEstimatorV2,
         BackendSamplerV2,
     )
+
+if QISKIT_SMALLER_2_0:
+    # pylint: disable=ungrouped-imports
+    from qiskit.primitives import (
+        BackendEstimator as BackendEstimatorV1,
+        BackendSampler as BackendSamplerV1,
+        Estimator as PrimitiveEstimatorV1,
+        Sampler as PrimitiveSamplerV1,
+    )
+else:
+
+    class BackendEstimatorV1:
+        """Dummy BackendEstimatorV1"""
+
+    class BackendSamplerV1:
+        """Dummy BackendSamplerV1"""
+
+    class PrimitiveEstimatorV1:
+        """Dummy PrimitiveEstimatorV1"""
+
+    class PrimitiveSamplerV1:
+        """Dummy PrimitiveSamplerV1"""
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
@@ -3242,7 +3222,7 @@ def check_for_incircuit_measurements(circuit: QuantumCircuit, mode="all"):
 
     for op in circuit.data:
         if mode == "all" or mode == "condition":
-            if op.operation.condition:
+            if hasattr(op.operation, "condition") and op.operation.condition:
                 return True
         if mode == "all" or mode == "clbits":
             if len(op.clbits) > 0:

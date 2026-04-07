@@ -3,13 +3,12 @@ from dataclasses import asdict
 from typing import Callable, Optional, Tuple, Union
 from collections.abc import Iterable
 
+import numpy as np
 from packaging import version
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.compiler import transpile
-from qiskit.primitives import Estimator as PrimitiveEstimatorV1
 from qiskit.primitives.base import EstimatorResult
-from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobV1
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
@@ -17,47 +16,20 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 
-QISKIT_SMALLER_1_0 = version.parse(qiskit_version) < version.parse("1.0.0")
-QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
 
-if QISKIT_SMALLER_1_0:
-    # pylint: disable=ungrouped-imports
-    from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BaseEstimator as BaseEstimatorV1,
-    )
+from qiskit.primitives import (
+    BaseEstimatorV1,
+    BaseEstimatorV2,
+    BasePrimitiveJob,
+    StatevectorEstimator,
+)
+from qiskit.primitives.containers import EstimatorPubLike
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.observables_array import ObservablesArray
 
-    class BaseEstimatorV2:
-        """Dummy BaseEstimatorV2"""
-
-    class StatevectorEstimator:
-        """Dummy StatevectorEstimator"""
-
-    class EstimatorPubLike:
-        """Dummy EstimatorPubLike"""
-
-    class EstimatorPub:
-        """Dummy EstimatorPub"""
-
-    class BasePrimitiveJob:
-        """Dummy BasePrimitiveJob"""
-
-    class ObservablesArray:
-        """Dummy ObservablesArray"""
-
-else:
-    from qiskit.primitives import (
-        BackendEstimator as BackendEstimatorV1,
-        BaseEstimatorV1,
-        BaseEstimatorV2,
-        BasePrimitiveJob,
-        StatevectorEstimator,
-    )
-    from qiskit.primitives.containers import EstimatorPubLike
-    from qiskit.primitives.containers.estimator_pub import EstimatorPub
-    from qiskit.primitives.containers.observables_array import ObservablesArray
-
-if QISKIT_SMALLER_1_2:
+if QISKIT_SMALLER_1_1:
 
     class BackendEstimatorV2:
         """Dummy BackendEstimatorV2"""
@@ -67,6 +39,78 @@ else:
     from qiskit.primitives import (
         BackendEstimatorV2,
     )
+
+if QISKIT_SMALLER_2_0:
+    # pylint: disable=ungrouped-imports
+    from qiskit.primitives import (
+        BackendEstimator as BackendEstimatorV1,
+        Estimator as PrimitiveEstimatorV1,
+    )
+    from qiskit.primitives.utils import _circuit_key
+else:
+
+    class BackendEstimatorV1:
+        """Dummy BackendEstimatorV1"""
+
+    class PrimitiveEstimatorV1:
+        """Dummy PrimitiveEstimatorV1"""
+
+    def _bits_key(bits: tuple, circuit: QuantumCircuit) -> tuple:
+        return tuple(
+            (
+                circuit.find_bit(bit).index,
+                tuple(
+                    (reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers
+                ),
+            )
+            for bit in bits
+        )
+
+    def _format_params(param):
+        if isinstance(param, np.ndarray):
+            return param.data.tobytes()
+        elif isinstance(param, QuantumCircuit):
+            return _circuit_key(param)
+        elif isinstance(param, Iterable):
+            return tuple(param)
+        return param
+
+    def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
+        """Private key function for QuantumCircuit.
+
+        This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+        If key collision is found, please add elements to avoid it.
+
+        Args:
+            circuit: Input quantum circuit.
+            functional: If True, the returned key only includes functional data (i.e. execution related).
+
+        Returns:
+            Composite key for circuit.
+        """
+        functional_key: tuple = (
+            circuit.num_qubits,
+            circuit.num_clbits,
+            circuit.num_parameters,
+            tuple(  # circuit.data
+                (
+                    _bits_key(data.qubits, circuit),  # qubits
+                    _bits_key(data.clbits, circuit),  # clbits
+                    data.operation.name,  # operation.name
+                    tuple(
+                        _format_params(param) for param in data.operation.params
+                    ),  # operation.params
+                )
+                for data in circuit.data
+            ),
+            None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+        )
+        if functional:
+            return functional_key
+        return (
+            circuit.name,
+            *functional_key,
+        )
 
 
 QISKIT_RUNTIME_SMALLER_0_21 = version.parse(ibm_runtime_version) < version.parse("0.21.0")
@@ -659,7 +703,9 @@ class ParallelEstimatorV2(BaseEstimatorV2):
         for result in results:
             if "shots" in result.metadata:
                 result.metadata["shots"] *= num_parallel
-            result.metadata["target_precision"] /= num_parallel**0.5
+            # Only adjust target_precision if it exists in metadata
+            if "target_precision" in result.metadata:
+                result.metadata["target_precision"] /= num_parallel**0.5
         result_job._pub_results = results
         return result_job
 

@@ -14,28 +14,32 @@ from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 from squlearn.qnn import QNNRegressor, QNNClassifier
 from squlearn.qnn.util.training import train_mini_batch, ShotsFromRSTD
 
-executor = Executor()
-
 examples = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
 
 
 class TestSolvemini_batch:
     """Tests for mini-batch gradient descent."""
 
-    pqc = ChebyshevPQC(num_qubits=4, closed=False)
-    cost_op = SummedPaulis(4)
-    ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
-    qnn = LowLevelQNN(pqc, cost_op, executor, 1)
+    @pytest.fixture(scope="class")
+    def qnn_setup(self):
+        """Set up QNN for tests."""
+        executor = Executor()
+        pqc = ChebyshevPQC(num_qubits=4, closed=False)
+        cost_op = SummedPaulis(4)
+        qnn = LowLevelQNN(pqc, cost_op, executor, 1)
+        return qnn, executor
 
-    def test_wrong_optimizer(self):
+    def test_wrong_optimizer(self, qnn_setup):
         """Test for error caused by wrong optimizer type."""
-        param_ini = np.random.rand(self.qnn.num_parameters) * 4
-        param_op_ini = np.ones(self.qnn.num_qubits + 1)
+        qnn, executor = qnn_setup
+        ex_1 = [np.arange(0.1, 0.9, 0.01), np.log(np.arange(0.1, 0.9, 0.01))]
+        param_ini = np.random.rand(qnn.num_parameters) * 4
+        param_op_ini = np.ones(qnn.num_qubits + 1)
         with pytest.raises(TypeError, match="is not supported for mini-batch gradient descent."):
             train_mini_batch(
-                self.qnn,
-                self.ex_1[0],
-                self.ex_1[1],
+                qnn,
+                ex_1[0],
+                ex_1[1],
                 param_ini,
                 param_op_ini,
                 loss=SquaredLoss(),

@@ -83,8 +83,8 @@ It is also possible to utilize the wrapper :class:`QiskitEncodingCircuit` to bui
 .. jupyter-execute::
 
    from squlearn.encoding_circuit import QiskitEncodingCircuit
-   from qiskit.circuit.library import TwoLocal
-   local = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+   from qiskit.circuit.library import n_local
+   local = n_local(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
    QiskitEncodingCircuit(local).draw(output="mpl")
 
 

@@ -3,13 +3,72 @@ import weakref
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
+from packaging import version
 import pennylane as qml
 import pytest
+from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterVector, QuantumCircuit
-from qiskit.primitives import BackendEstimator, BackendSampler, Estimator, Sampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import Aer
 from qiskit_ibm_runtime import IBMBackend, Session
+
+QISKIT_SMALLER_1_1 = version.parse(qiskit_version) < version.parse("1.1.0")
+QISKIT_SMALLER_2_0 = version.parse(qiskit_version) < version.parse("2.0.0")
+
+if QISKIT_SMALLER_1_1:
+    from qiskit.primitives import (
+        BackendEstimator,
+        BackendSampler,
+        Estimator,
+        Sampler,
+        StatevectorEstimator,
+        StatevectorSampler,
+    )
+
+    QISKIT_PRIMITIVES = {
+        "BackendEstimator": BackendEstimator(Aer.get_backend("aer_simulator")),
+        "BackendSampler": BackendSampler(Aer.get_backend("aer_simulator")),
+        "Estimator": Estimator(),
+        "Sampler": Sampler(),
+        "StatevectorEstimator": StatevectorEstimator(),
+        "StatevectorSampler": StatevectorSampler(),
+    }
+elif QISKIT_SMALLER_2_0:
+    from qiskit.primitives import (
+        BackendEstimator,
+        BackendEstimatorV2,
+        BackendSampler,
+        BackendSamplerV2,
+        Estimator,
+        Sampler,
+        StatevectorEstimator,
+        StatevectorSampler,
+    )
+
+    QISKIT_PRIMITIVES = {
+        "BackendEstimator": BackendEstimator(Aer.get_backend("aer_simulator")),
+        "BackendEstimatorV2": BackendEstimatorV2(backend=Aer.get_backend("aer_simulator")),
+        "BackendSampler": BackendSampler(Aer.get_backend("aer_simulator")),
+        "BackendSamplerV2": BackendSamplerV2(backend=Aer.get_backend("aer_simulator")),
+        "Estimator": Estimator(),
+        "Sampler": Sampler(),
+        "StatevectorEstimator": StatevectorEstimator(),
+        "StatevectorSampler": StatevectorSampler(),
+    }
+else:
+    from qiskit.primitives import (
+        BackendEstimatorV2,
+        BackendSamplerV2,
+        StatevectorEstimator,
+        StatevectorSampler,
+    )
+
+    QISKIT_PRIMITIVES = {
+        "BackendEstimatorV2": BackendEstimatorV2(backend=Aer.get_backend("aer_simulator")),
+        "BackendSamplerV2": BackendSamplerV2(backend=Aer.get_backend("aer_simulator")),
+        "StatevectorEstimator": StatevectorEstimator(),
+        "StatevectorSampler": StatevectorSampler(),
+    }
 
 from squlearn.util import Executor
 from squlearn.util.executor import (
@@ -20,38 +79,156 @@ from squlearn.util.executor import (
     SessionContextMisuseWarning,
 )
 from squlearn.util.pennylane import PennyLaneCircuit
+from squlearn.util.qulacs import QulacsCircuit
+from squlearn.util.qulacs.qulacs_execution import (
+    qulacs_evaluate,
+    qulacs_evaluate_statevector,
+    qulacs_evaluate_probabilities,
+)
 
 
-class TestExecutor:
-    @pytest.fixture(scope="module")
-    def ExecutorSampler(self) -> Executor:
-        """Executor with Sampler initialization."""
-        return Executor(Sampler(), seed=0)
+@pytest.mark.parametrize("qpu_parallelization", [None, 3])
+class TestExecutorQiskit:
 
-    @pytest.fixture(scope="module")
-    def ExecutorEstimator(self) -> Executor:
-        """Executor with Estimator initialization."""
-        return Executor(Estimator(), seed=0)
+    execution_dict = {
+        "StatevectorSimulator": "statevector_simulator",
+        "QasmSimulator": "qasm_simulator",
+    }
+    execution_dict.update(QISKIT_PRIMITIVES)
 
-    @pytest.fixture(scope="module")
-    def ExecutorStatevector(self) -> Executor:
-        """Executor with statevector_simulator initialization."""
-        return Executor("statevector_simulator", seed=0)
-
-    @pytest.fixture(scope="module")
-    def ExecutorQasm(self) -> Executor:
-        """Executor with qasm_simulator initialization."""
-        return Executor("qasm_simulator", seed=0)
+    def setup_executor(self, execution, qpu_parallelization=None) -> Executor:
+        """Basic Executor initialization."""
+        return Executor(execution, seed=0, qpu_parallelization=qpu_parallelization)
 
     @pytest.fixture(scope="module")
-    def ExecutorBackendSampler(self) -> Executor:
-        """Executor with BackendSampler initialization."""
-        return Executor(BackendSampler(Aer.get_backend("aer_simulator")), seed=0)
+    def simple_circuit(self):
+        """Creates a simple circuit for testing."""
+        qc = QuantumCircuit(2)
+        qc.x([0, 1])
+        return qc
 
     @pytest.fixture(scope="module")
-    def ExecutorBackendEstimator(self) -> Executor:
-        """Executor with BackendEstimator initialization."""
-        return Executor(BackendEstimator(Aer.get_backend("aer_simulator")), seed=0)
+    def parameterized_circuit(self):
+        x = ParameterVector("x", 2)
+        qc = QuantumCircuit(2)
+        qc.ry(x[0], 0)
+        qc.ry(x[1], 1)
+        return qc
+
+    @pytest.fixture(scope="module")
+    def observable(self):
+        """Creates a simple observable for testing."""
+        return SparsePauliOp("ZZ")
+
+    @pytest.mark.parametrize(
+        "execution_key",
+        execution_dict.keys(),
+    )
+    def test_shots(self, execution_key, qpu_parallelization):
+        """Tests of the default shots and the set_shots method work."""
+
+        executor = self.setup_executor(
+            self.execution_dict[execution_key], qpu_parallelization=qpu_parallelization
+        )
+
+        assert_dict = {
+            "StatevectorSimulator": None,
+            "QasmSimulator": 1024,
+            "BackendEstimator": 1024,
+            "BackendEstimatorV2": 4096,
+            "BackendSampler": 1024,
+            "BackendSamplerV2": 1024,
+            "Estimator": None,
+            "Sampler": None,
+            "StatevectorEstimator": None,
+            "StatevectorSampler": 1024,
+        }
+
+        assert executor.shots == assert_dict[execution_key]
+        original_shots = executor.get_shots()
+        executor.set_shots(1234)
+        assert executor.shots == 1234
+        assert executor.get_shots() == 1234
+        executor.set_shots(original_shots)  # Reset to original shots for other tests
+
+    @pytest.mark.parametrize(
+        "execution_key",
+        execution_dict.keys(),
+    )
+    def test_sampler(self, execution_key, qpu_parallelization, simple_circuit):
+        """Tests the Executor Sampler Primitive"""
+
+        assert_dict = {
+            "StatevectorSimulator": {3: 1.0},
+            "QasmSimulator": {3: 1.0},
+            "BackendEstimator": {3: 1.0},
+            "BackendEstimatorV2": {3: 1.0},
+            "BackendSampler": {3: 1.0},
+            "BackendSamplerV2": {3: 1.0},
+            "Estimator": {3: 1.0},
+            "Sampler": {3: 1.0},
+            "StatevectorEstimator": {3: 1.0},
+            "StatevectorSampler": {3: 1.0},
+        }
+
+        executor = self.setup_executor(
+            self.execution_dict[execution_key], qpu_parallelization=qpu_parallelization
+        )
+        executor.set_shots(100)
+        circuit = simple_circuit.measure_all(inplace=False)
+        sampler = executor.get_sampler()
+        if isinstance(sampler, BaseSamplerV1):
+            res = sampler.run(circuit).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.quasi_dists[0] == assert_dict[execution_key]
+        else:
+            res = sampler.run([(circuit,)]).result()
+            # In Qiskit 1.1+, metadata structure changed and may not contain 'shots'
+            if "shots" in res[0].metadata:
+                assert np.isclose(res[0].metadata["shots"], 100, 1)
+            assert all(
+                np.isclose(value / 100, assert_dict[execution_key][key], 1 / 100)
+                for key, value in res[0].data.meas.get_int_counts().items()
+            )
+
+    @pytest.mark.parametrize(
+        "execution_key",
+        execution_dict.keys(),
+    )
+    def test_executor(self, execution_key, qpu_parallelization, simple_circuit, observable):
+        """Tests the Executor Estimator Primitive"""
+
+        assert_dict = {
+            "StatevectorSimulator": np.array([1.0]),
+            "QasmSimulator": np.array([1.0]),
+            "BackendEstimator": np.array([1.0]),
+            "BackendEstimatorV2": np.array([1.0]),
+            "BackendSampler": np.array([1.0]),
+            "BackendSamplerV2": np.array([1.0]),
+            "Estimator": np.array([1.0]),
+            "Sampler": np.array([1.0]),
+            "StatevectorEstimator": np.array([1.0]),
+            "StatevectorSampler": np.array([1.0]),
+        }
+
+        executor = self.setup_executor(
+            self.execution_dict[execution_key], qpu_parallelization=qpu_parallelization
+        )
+        executor.set_shots(100)
+        estimator = executor.get_estimator()
+        if isinstance(estimator, BaseEstimatorV1):
+            res = estimator.run(simple_circuit, observable).result()
+            assert res.metadata[0]["shots"] == 100
+            assert res.values[0] == assert_dict[execution_key]
+        else:
+            res = estimator.run([(simple_circuit, observable)]).result()
+            # Check target_precision only if it exists in metadata (newer Qiskit versions may not include it)
+            if "target_precision" in res[0].metadata:
+                assert np.isclose(res[0].metadata["target_precision"], 0.1, 0.01)
+            assert np.isclose(res[0].data.evs, assert_dict[execution_key], 0.1)
+
+
+class TestExecutorPennyLane:
 
     @pytest.fixture(scope="module")
     def ExecutorPennyLane(self) -> Executor:
@@ -67,16 +244,6 @@ class TestExecutor:
     def ExecutorPennyLaneDevice(self) -> Executor:
         """Executor with PennyLane initialization."""
         return Executor(qml.device("lightning.qubit", wires=2), seed=0)
-
-    @pytest.fixture(scope="module")
-    def ExecutorParallelSampler(self) -> Executor:
-        """Executor with Sampler initialization."""
-        return Executor(Sampler(), seed=0, qpu_parallelization=3)
-
-    @pytest.fixture(scope="module")
-    def ExecutorParallelEstimator(self) -> Executor:
-        """Executor with Estimator initialization."""
-        return Executor(Estimator(), seed=0, qpu_parallelization=3)
 
     @pytest.fixture(scope="module")
     def simple_circuit(self):
@@ -101,14 +268,6 @@ class TestExecutor:
     @pytest.mark.parametrize(
         "executor_str",
         [
-            "ExecutorSampler",
-            "ExecutorEstimator",
-            "ExecutorStatevector",
-            "ExecutorQasm",
-            "ExecutorBackendSampler",
-            "ExecutorBackendEstimator",
-            "ExecutorParallelSampler",
-            "ExecutorParallelEstimator",
             "ExecutorPennyLane",
             "ExecutorPennyLaneShots",
             "ExecutorPennyLaneDevice",
@@ -120,105 +279,17 @@ class TestExecutor:
         executor = request.getfixturevalue(executor_str)
 
         assert_dict = {
-            "ExecutorSampler": None,
-            "ExecutorEstimator": None,
-            "ExecutorStatevector": None,
-            "ExecutorQasm": 1024,
-            "ExecutorBackendSampler": 1024,
-            "ExecutorBackendEstimator": 1024,
-            "ExecutorParallelSampler": None,
-            "ExecutorParallelEstimator": None,
             "ExecutorPennyLane": None,
             "ExecutorPennyLaneShots": 1024,
             "ExecutorPennyLaneDevice": None,
         }
 
         assert executor.shots == assert_dict[executor_str]
+        original_shots = executor.get_shots()
         executor.set_shots(1234)
         assert executor.shots == 1234
         assert executor.get_shots() == 1234
-
-    @pytest.mark.parametrize(
-        "executor_str",
-        [
-            "ExecutorSampler",
-            "ExecutorEstimator",
-            "ExecutorStatevector",
-            "ExecutorQasm",
-            "ExecutorBackendSampler",
-            "ExecutorBackendEstimator",
-            "ExecutorParallelSampler",
-            "ExecutorParallelEstimator",
-        ],
-    )
-    def test_sampler(self, executor_str, request, simple_circuit):
-        """Tests the Executor Sampler Primitive"""
-
-        assert_dict = {
-            "ExecutorSampler": {3: 1.0},
-            "ExecutorEstimator": {3: 1.0},
-            "ExecutorStatevector": {3: 1.0},
-            "ExecutorQasm": {3: 1.0},
-            "ExecutorBackendSampler": {3: 1.0},
-            "ExecutorBackendEstimator": {3: 1.0},
-            "ExecutorParallelSampler": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
-            "ExecutorParallelEstimator": {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0},
-        }
-
-        executor = request.getfixturevalue(executor_str)
-        executor.set_shots(100)
-        circuit = simple_circuit.measure_all(inplace=False)
-        sampler = executor.get_sampler()
-        if isinstance(sampler, BaseSamplerV1):
-            res = sampler.run(circuit).result()
-            assert res.metadata[0]["shots"] == 100
-            assert res.quasi_dists[0] == assert_dict[executor_str]
-        else:
-            res = sampler.run([(circuit,)]).result()
-            assert np.isclose(res[0].metadata["shots"], 100, 1)
-            assert all(
-                np.isclose(value / 100, assert_dict[executor_str][key], 1 / 100)
-                for key, value in res[0].data.meas.get_int_counts().items()
-            )
-
-    @pytest.mark.parametrize(
-        "executor_str",
-        [
-            "ExecutorSampler",
-            "ExecutorEstimator",
-            "ExecutorStatevector",
-            "ExecutorQasm",
-            "ExecutorBackendSampler",
-            "ExecutorBackendEstimator",
-            "ExecutorParallelSampler",
-            "ExecutorParallelEstimator",
-        ],
-    )
-    def test_executor(self, executor_str, request, simple_circuit, observable):
-        """Tests the Executor Estimator Primitive"""
-
-        assert_dict = {
-            "ExecutorSampler": np.array([1.0]),
-            "ExecutorEstimator": np.array([1.0]),
-            "ExecutorStatevector": np.array([1.0]),
-            "ExecutorQasm": np.array([1.0]),
-            "ExecutorBackendSampler": np.array([1.0]),
-            "ExecutorBackendEstimator": np.array([1.0]),
-            "ExecutorParallelSampler": np.array([1.0]),
-            "ExecutorParallelEstimator": np.array([1.0]),
-        }
-
-        executor = request.getfixturevalue(executor_str)
-        executor.set_shots(100)
-        estimator = executor.get_estimator()
-        if isinstance(estimator, BaseEstimatorV1):
-            res = estimator.run(simple_circuit, observable).result()
-            assert res.metadata[0]["shots"] == 100
-            assert res.values[0] == assert_dict[executor_str]
-        else:
-            res = estimator.run([(simple_circuit, observable)]).result()
-            assert np.isclose(res[0].metadata["target_precision"], 0.1, 0.01)
-            assert np.isclose(res[0].data.evs, assert_dict[executor_str], 0.1)
+        executor.set_shots(original_shots)
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -317,6 +388,90 @@ class TestExecutor:
             circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
         )
         assert np.allclose(assert_dict[executor_str], res)
+
+
+class TestExecutorQulacs:
+
+    @pytest.fixture(scope="module")
+    def ExecutorQulacs(self) -> Executor:
+        """Executor with Qulacs initialization."""
+        return Executor("qulacs", seed=0)
+
+    @pytest.fixture(scope="module")
+    def simple_circuit(self):
+        """Creates a simple circuit for testing."""
+        qc = QuantumCircuit(2)
+        qc.x([0, 1])
+        return qc
+
+    @pytest.fixture(scope="module")
+    def parameterized_circuit(self):
+        x = ParameterVector("x", 2)
+        qc = QuantumCircuit(2)
+        qc.ry(x[0], 0)
+        qc.ry(x[1], 1)
+        return qc
+
+    @pytest.fixture(scope="module")
+    def observable(self):
+        """Creates a simple observable for testing."""
+        return SparsePauliOp("ZZ")
+
+    def test_shots(self, ExecutorQulacs):
+        """Tests of the default shots and the set_shots method work."""
+
+        executor = ExecutorQulacs
+        assert executor.shots is None
+
+    @pytest.mark.parametrize(
+        "qulacs_execution_func",
+        [
+            qulacs_evaluate,
+            qulacs_evaluate_statevector,
+            qulacs_evaluate_probabilities,
+        ],
+    )
+    def test_qulacs_evaluate_simple(
+        self, qulacs_execution_func, ExecutorQulacs, simple_circuit, observable
+    ):
+        """Tests the Qulacs execution of a circuit with an observable return type."""
+
+        assert_dict = {
+            "qulacs_evaluate": 1.0,
+            "qulacs_evaluate_probabilities": np.array([0.0, 0.0, 0.0, 1.0]),
+            "qulacs_evaluate_statevector": np.array([0.0, 0.0, 0.0, 1.0]),
+        }
+
+        executor = ExecutorQulacs
+        circuit = QulacsCircuit(simple_circuit, observable)
+
+        res = executor.qulacs_execute(qulacs_execution_func, circuit)
+        assert np.allclose(assert_dict[qulacs_execution_func.__name__], res)
+
+    @pytest.mark.parametrize(
+        "qulacs_execution_func",
+        [
+            qulacs_evaluate,
+            qulacs_evaluate_statevector,
+            qulacs_evaluate_probabilities,
+        ],
+    )
+    def test_qulacs_evaluate_parameterized(
+        self, qulacs_execution_func, ExecutorQulacs, parameterized_circuit, observable
+    ):
+        """Tests the Qulacs execution of a circuit with an observable return type."""
+
+        assert_dict = {
+            "qulacs_evaluate": 1.0,
+            "qulacs_evaluate_probabilities": np.array([0.0, 0.0, 0.0, 1.0]),
+            "qulacs_evaluate_statevector": np.array([0.0, 0.0, 0.0, 1.0]),
+        }
+
+        executor = ExecutorQulacs
+        circuit = QulacsCircuit(parameterized_circuit, observable)
+
+        res = executor.qulacs_execute(qulacs_execution_func, circuit, x=[np.pi, np.pi])
+        assert np.allclose(assert_dict[qulacs_execution_func.__name__], res)
 
 
 class TestExecutorCleanup:

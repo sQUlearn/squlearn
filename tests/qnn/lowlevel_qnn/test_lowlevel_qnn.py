@@ -3,14 +3,14 @@ import numpy as np
 
 
 from squlearn import Executor
-from squlearn.encoding_circuit import ChebyshevPQC
+from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.observables import SummedPaulis
 from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 
 
 def get_values(framework):
     executor = Executor(framework)
-    pqc = ChebyshevPQC(4, 2)
+    pqc = ParamZFeatureMap(4, 2)
     obs1 = SummedPaulis(4)
     obs2 = SummedPaulis(4)
 

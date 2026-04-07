@@ -7,9 +7,7 @@ from packaging import version
 from qiskit.circuit import QuantumCircuit
 from qiskit import __version__ as qiskit_version
 from qiskit.circuit import ParameterExpression, Clbit
-from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info import SparsePauliOp, PauliList, Pauli
-from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
 from qiskit.primitives.base import SamplerResult
 from ...util.decompose_to_std import decompose_to_std
 
@@ -28,6 +26,14 @@ from .optree import (
 
 QISKIT_SMALLER_1_2 = version.parse(qiskit_version) < version.parse("1.2.0")
 
+from ..executor import (
+    QISKIT_SMALLER_2_0,
+    BaseSamplerV1,
+    BaseEstimatorV1,
+    BaseSamplerV2,
+    BaseEstimatorV2,
+)
+
 if QISKIT_SMALLER_1_2:
 
     class BitArray:
@@ -36,7 +42,90 @@ if QISKIT_SMALLER_1_2:
 else:
     from qiskit.primitives import BitArray
 
-from ..executor import BaseSamplerV1, BaseEstimatorV1, BaseSamplerV2, BaseEstimatorV2
+if QISKIT_SMALLER_2_0:
+    from qiskit.primitives.backend_estimator import _pauli_expval_with_variance
+else:
+
+    def _paulis2inds(paulis):
+        """Convert Pauli operators to bit indices for efficient computation.
+
+        Args:
+            paulis: PauliList of Pauli operators
+
+        Returns:
+            numpy array of indices where non-identity Paulis are located
+        """
+        inds = np.zeros(len(paulis), dtype=int)
+        for i, pauli in enumerate(paulis):
+            # Extract Z Pauli positions
+            # Note: Pauli string is reversed compared to bit indices
+            pauli_str = str(pauli)
+            num_qubits = len(pauli_str)
+            for j, p in enumerate(pauli_str):
+                if p == "Z":
+                    # Reverse index: leftmost char is highest qubit index
+                    inds[i] |= 1 << (num_qubits - 1 - j)
+        return inds
+
+    def _parity(x):
+        """Compute parity (number of 1 bits mod 2) of an integer.
+
+        Args:
+            x: integer value
+
+        Returns:
+            parity (0 or 1)
+        """
+        return x.bit_count() & 1
+
+    def _pauli_expval_with_variance(counts, paulis):
+        """Compute Pauli expectation values and variances from measurement counts.
+
+        Re-implementation of Qiskit's private _pauli_expval_with_variance function
+        for Qiskit >= 2.0 compatibility.
+
+        Args:
+            counts: dictionary with bitstring keys and count values, or BitArray
+            paulis: PauliList of Pauli operators
+
+        Returns:
+            tuple of (expectation_values, variances) arrays
+        """
+        size = len(paulis)
+        diag_inds = _paulis2inds(paulis)
+
+        expvals = np.zeros(size, dtype=float)
+        denom = 0  # Total shots for counts dict
+
+        # Handle both dict and BitArray formats
+        if isinstance(counts, dict):
+            items = counts.items()
+        else:
+            # Convert BitArray to counts dict
+            int_counts = counts.get_int_counts() if hasattr(counts, "get_int_counts") else counts
+            items = int_counts.items()
+
+        for bin_outcome, freq in items:
+            if isinstance(bin_outcome, int):
+                # Already an integer
+                outcome = bin_outcome
+            else:
+                # String format - handle space separation as in original
+                split_outcome = bin_outcome.split(" ", 1)[0] if " " in bin_outcome else bin_outcome
+                outcome = int(split_outcome, 2)
+
+            denom += freq
+            for k in range(size):
+                coeff = (-1) ** _parity(diag_inds[k] & outcome)
+                expvals[k] += freq * coeff
+
+        # Divide by total shots
+        if denom > 0:
+            expvals /= denom
+
+        # Compute variance
+        variances = 1 - expvals**2
+        return expvals, variances
 
 
 def _check_tree_for_matrix_compatibility(element: Union[OpTreeNodeBase, OpTreeLeafBase]):
@@ -802,13 +891,55 @@ def _evaluate_expectation_from_sampler(
 
     # Calulate the expectation value with internal Qiskit function
     if primitives_v2:
-        exp_val = np.array(
-            [
-                np.real_if_close(results[icirc + offset].expectation_values(operator[iop]))
-                for icirc, oplist in enumerate(flatted_resort_list)
-                for iop in oplist
-            ]
-        )
+        exp_val = np.zeros(sum(len(sublist) for sublist in flatted_resort_list))
+        i = 0
+        for icirc, oplist in enumerate(flatted_resort_list):
+            result_item = results[icirc + offset]
+
+            # Qiskit <2 expects bitstring-keyed counts in backend_estimator helpers,
+            # while Qiskit >=2 uses integer-keyed counts in the local implementation.
+            if hasattr(result_item, "data") and hasattr(result_item.data, "meas"):
+                bit_array = result_item.data.meas
+                if QISKIT_SMALLER_2_0:
+                    if hasattr(bit_array, "get_counts"):
+                        counts_source = bit_array.get_counts()
+                    else:
+                        int_counts = bit_array.get_int_counts()
+                        num_bits = bit_array.num_bits
+                        counts_source = {
+                            format(key, f"0{num_bits}b"): value
+                            for key, value in int_counts.items()
+                        }
+                else:
+                    counts_source = bit_array.get_int_counts()
+            elif isinstance(result_item, BitArray):
+                if QISKIT_SMALLER_2_0:
+                    if hasattr(result_item, "get_counts"):
+                        counts_source = result_item.get_counts()
+                    else:
+                        int_counts = result_item.get_int_counts()
+                        num_bits = result_item.num_bits
+                        counts_source = {
+                            format(key, f"0{num_bits}b"): value
+                            for key, value in int_counts.items()
+                        }
+                else:
+                    counts_source = result_item.get_int_counts()
+            else:
+                counts_source = result_item
+
+            for iop in oplist:
+                try:
+                    ev_array, _ = _pauli_expval_with_variance(counts_source, op_pauli_list[iop])
+                    ev = np.dot(ev_array, operator[iop].coeffs)
+                    exp_val[i] = np.real_if_close(ev, 1e-10)
+                except ValueError as e:
+                    if str(e) == "Empty observable was detected.":
+                        # Explicitly set to 0.0 for empty observables.
+                        exp_val[i] = 0.0
+                    else:
+                        raise e
+                i += 1
     else:
         exp_val = np.array(
             [
@@ -861,6 +992,8 @@ def _transform_operator_to_zbasis(
     """
 
     if QISKIT_SMALLER_1_2:
+        from qiskit.primitives import BackendEstimator
+
         measurement_circuit = BackendEstimator._measurement_circuit
     else:
         from qiskit.primitives.backend_estimator_v2 import (
@@ -990,7 +1123,9 @@ def _measure_all_unmeasured(circ_in, final_measurements: bool = False):
             else:
                 clbits = [circ.find_bit(i)[0] for i in cargs]
             operation = instruction.copy()
-            if instruction.condition:  # to adjust the clbits of c_if
+            if (
+                hasattr(instruction, "condition") and instruction.condition
+            ):  # to adjust the clbits of c_if
                 operation.condition = (
                     Clbit(
                         circ_new.cregs[0],
@@ -1136,7 +1271,8 @@ class OpTreeEvaluate:
                 sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
             elif isinstance(sampler, BaseSamplerV2):
                 pubs = list(zip(total_circuit_list, total_parameter_list))
-                sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+                # Get the raw BitArray results from sampler
+                sampler_result = sampler.run(pubs).result()
             else:
                 raise ValueError("Unknown sampler type!")
         else:
@@ -1367,6 +1503,13 @@ class OpTreeEvaluate:
         elif isinstance(estimator, BaseEstimatorV2):
             pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
             estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+            # Flatten/squeeze result if it's multi-dimensional to handle Qiskit API changes
+            if estimator_result.ndim > 1:
+                estimator_result = (
+                    estimator_result.reshape(estimator_result.shape[0], -1).squeeze(axis=1)
+                    if estimator_result.shape[1] == 1
+                    else estimator_result.flatten()
+                )
         else:
             raise ValueError("Unknown estimator type!")
 
@@ -1465,6 +1608,13 @@ class OpTreeEvaluate:
         elif isinstance(estimator, BaseEstimatorV2):
             pubs = list(zip(total_circuit_list, total_operator_list, total_parameter_list))
             estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
+            # Flatten/squeeze result if it's multi-dimensional to handle Qiskit API changes
+            if estimator_result.ndim > 1:
+                estimator_result = (
+                    estimator_result.reshape(estimator_result.shape[0], -1).squeeze(axis=1)
+                    if estimator_result.shape[1] == 1
+                    else estimator_result.flatten()
+                )
         else:
             raise ValueError("Unknown estimator type!")
         # print("Run time of estimator: ", time.time() - start)
@@ -1562,7 +1712,8 @@ class OpTreeEvaluate:
             sampler_result = sampler.run(total_circuit_list, total_parameter_list).result()
         elif isinstance(sampler, BaseSamplerV2):
             pubs = list(zip(total_circuit_list, total_parameter_list))
-            sampler_result = [result.data.meas for result in sampler.run(pubs).result()]
+            # Get the raw result objects, not just the meas data
+            sampler_result = sampler.run(pubs).result()
         else:
             raise ValueError("Unknown sampler type!")
         # print("Sampler run time: ", time.time() - start)
