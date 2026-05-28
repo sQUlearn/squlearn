@@ -498,7 +498,14 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             value = self._executor.pennylane_execute(deriv, *(eval_tuple))
 
         # Convert back to numpy array
-        return np.real_if_close(np.array(value))
+        values = np.array(value)
+        # PennyLane collapses the leading "observable" axis when a multi-output
+        # QNN has only one observable. Restore it so downstream shape logic
+        # (swap_list in _evaluate) sees the (num_obs, ...) layout consistent
+        # with the multi-observable case.
+        if self.multiple_output and self.num_operator == 1:
+            values = values.reshape((1,) + values.shape)
+        return np.real_if_close(values)
 
     def _evaluate_todo_all_x(
         self, todo_class: DirectEvaluation, x: np.array, param: np.array, param_obs: np.array
@@ -584,6 +591,13 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
 
         # Convert back to numpy format
         values = np.array(value)
+        # PennyLane collapses the leading "observable" axis when a multi-output
+        # QNN has only one observable. Restore it so the sum_t bookkeeping below
+        # (which assumes ioff=1 for multiple_output) and the downstream swap_list
+        # in _evaluate see the (num_obs, ...) layout consistent with the
+        # multi-observable case.
+        if self.multiple_output and self.num_operator == 1:
+            values = values.reshape((1,) + values.shape)
         # sum over zero values entries due to dx differentiation
         if todo_class.return_grad_x:
             sum_t = tuple()

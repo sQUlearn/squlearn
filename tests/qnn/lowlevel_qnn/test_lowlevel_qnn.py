@@ -4,7 +4,7 @@ import numpy as np
 
 from squlearn import Executor
 from squlearn.encoding_circuit import ParamZFeatureMap
-from squlearn.observables import SummedPaulis
+from squlearn.observables import SinglePauli, SummedPaulis
 from squlearn.qnn.lowlevel_qnn import LowLevelQNN
 
 
@@ -63,3 +63,28 @@ def test_backends_consistency():
         values_qiskit[qiskit_param_op_key], values_pennylane[pennylane_param_op_key]
     )
     assert np.allclose(values_qiskit[qiskit_param_op_key], values_qulacs[qulacs_param_op_key])
+
+
+@pytest.mark.parametrize("framework", ["pennylane", "qiskit", "qulacs"])
+@pytest.mark.parametrize("n_obs", [1, 2])
+def test_multiple_output_shape_with_n_observables(framework, n_obs):
+    """Regression: a list-of-one observable must produce the same shape contract
+    as a list of multiple observables. PennyLane otherwise collapses the leading
+    "observable" axis when only one measurement is returned, which previously
+    crashed ProjectedQuantumKernel for num_qubits=1 with a single-Pauli measurement.
+    """
+    pqc = ParamZFeatureMap(4, 2)
+    obs = [SinglePauli(4, i, op_str="X") for i in range(n_obs)]
+    llqnn = LowLevelQNN(pqc, obs, executor=Executor(framework), num_features=2)
+
+    np.random.seed(42)
+    x = np.random.rand(5, 2)
+    param = np.random.rand(llqnn.num_parameters)
+
+    assert llqnn.evaluate(x, param, [], "f")["f"].shape == (5, n_obs)
+    assert llqnn.evaluate(x, param, [], "dfdx")["dfdx"].shape == (5, n_obs, 2)
+    assert llqnn.evaluate(x, param, [], "dfdp")["dfdp"].shape == (
+        5,
+        n_obs,
+        llqnn.num_parameters,
+    )
