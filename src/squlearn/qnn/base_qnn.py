@@ -118,6 +118,7 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
         self.shuffle = shuffle
 
         self.opt_param_op = opt_param_op
+        self._maybe_disable_opt_param_op()
 
         self.caching = caching
         self.pretrained = pretrained
@@ -301,7 +302,32 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
         self._is_fitted = False
         self._is_lowlevel_qnn_initialized = not initialize_qnn
 
+        self._maybe_disable_opt_param_op()
+
         return self
+
+    def _maybe_disable_opt_param_op(self) -> None:
+        """Force ``opt_param_op`` off when the observable has no trainable params.
+
+        Optimizing zero parameters is a no-op. Worse, for multi-output QNNs
+        (operator passed as a list), letting the training loop request
+        ``dfdop`` returns an empty (1, 0) sentinel from
+        ``LowLevelQNNPennyLane._evaluate_todo_all_x`` that downstream
+        ``_evaluate`` cannot reshape, crashing with
+        ``ValueError: cannot reshape array of size 0 into shape (k, 1)``.
+
+        Only the ``True -> False`` direction is auto-applied; if the user
+        explicitly disabled observable-parameter optimization, that choice is
+        respected even if the observable does have trainable parameters.
+        """
+        if not self.opt_param_op:
+            return
+        if isinstance(self.operator, list):
+            num_op_parameters = sum(op.num_parameters for op in self.operator)
+        else:
+            num_op_parameters = self.operator.num_parameters
+        if num_op_parameters == 0:
+            self.opt_param_op = False
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """Predict using the QNN.

@@ -8,10 +8,10 @@ from sklearn.datasets import make_regression
 from sklearn.preprocessing import MinMaxScaler
 
 from squlearn import Executor
-from squlearn.observables import SummedPaulis
-from squlearn.encoding_circuit import ChebyshevRx
+from squlearn.observables import SinglePauli, SummedPaulis
+from squlearn.encoding_circuit import ChebyshevPQC, ChebyshevRx
 from squlearn.optimizers import SLSQP, Adam
-from squlearn.qnn import QNNRegressor, MeanSquaredError
+from squlearn.qnn import QNNRegressor, MeanSquaredError, SquaredLoss
 
 
 class TestQNNRegressor:
@@ -241,3 +241,74 @@ class TestQNNRegressor:
         assert instance_loaded._is_fitted
         assert np.allclose(instance_loaded.param, qnn_regressor.param)
         assert np.allclose(instance_loaded.param_op, qnn_regressor.param_op)
+
+    def _make_opt_param_op_qnnr(self, operator, **overrides) -> QNNRegressor:
+        """QNNRegressor with a parameterless-observable-friendly setup.
+
+        Used by the ``opt_param_op`` auto-correction regression tests below.
+        ``ChebyshevPQC`` carries trainable circuit params (so training would
+        request ``dfdp`` and reach the empty-``dfdop`` early-return on the
+        PennyLane backend), and ``Adam`` exercises the SGD/``train_mini_batch``
+        path where the bug originally surfaced.
+        """
+        kwargs = dict(
+            encoding_circuit=ChebyshevPQC(
+                num_qubits=2, num_features=1, num_layers=2
+            ),
+            operator=operator,
+            executor=Executor("pennylane"),
+            loss=SquaredLoss(),
+            optimizer=Adam(options={"lr": 0.05}),
+            batch_size=3,
+            epochs=1,
+            shuffle=False,
+            parameter_seed=0,
+        )
+        kwargs.update(overrides)
+        return QNNRegressor(**kwargs)
+
+    @pytest.mark.parametrize("operator", [
+        [SinglePauli(2, 0, op_str="X")],
+        [SinglePauli(2, 0, op_str="X"), SinglePauli(2, 1, op_str="X")],
+    ], ids=["list_of_1", "list_of_2"])
+    def test_opt_param_op_auto_disabled_at_init(self, data, operator):
+        """Regression: ``opt_param_op`` auto-flips to ``False`` at construction
+        when the observable has no trainable parameters.
+
+        Otherwise training requests ``dfdop`` and crashes with
+        ``ValueError: cannot reshape array of size 0 into shape (k, 1)`` for
+        any multi-output QNN (operator passed as a list).
+        """
+        qnnr = self._make_opt_param_op_qnnr(operator)
+        assert qnnr.opt_param_op is False  # at __init__, not deferred to fit
+        X, y = data
+        # Multi-output regression needs y with matching shape; broadcast the
+        # 1D target across the observable list so fit doesn't fail upstream.
+        y_multi = np.broadcast_to(y[:, None], (y.shape[0], len(operator)))
+        qnnr.fit(X, y_multi)
+        assert qnnr.predict(X).shape == y_multi.shape
+
+    def test_opt_param_op_left_alone_when_obs_has_params(self, data):
+        qnnr = self._make_opt_param_op_qnnr(SummedPaulis(num_qubits=2))
+        assert qnnr.opt_param_op is True
+        X, y = data
+        qnnr.fit(X, y)
+        assert qnnr.opt_param_op is True
+
+    def test_opt_param_op_explicit_false_is_respected(self):
+        """Observable has trainable params, but user explicitly opted out:
+        auto-correction must only ever flip ``True -> False``, never the
+        other direction."""
+        qnnr = self._make_opt_param_op_qnnr(
+            SummedPaulis(num_qubits=2), opt_param_op=False
+        )
+        assert qnnr.opt_param_op is False
+
+    def test_opt_param_op_re_evaluates_in_set_params(self):
+        """Swap a parameterized observable for one with no params via
+        ``set_params``: ``opt_param_op`` must re-evaluate immediately, not
+        wait for the next ``fit``."""
+        qnnr = self._make_opt_param_op_qnnr(SummedPaulis(num_qubits=2))
+        assert qnnr.opt_param_op is True
+        qnnr.set_params(operator=[SinglePauli(2, 0, op_str="X")])
+        assert qnnr.opt_param_op is False
