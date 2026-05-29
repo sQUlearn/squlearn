@@ -251,9 +251,7 @@ class TestQNNClassifier:
         path where the bug originally surfaced.
         """
         kwargs = dict(
-            encoding_circuit=ChebyshevPQC(
-                num_qubits=2, num_features=2, num_layers=2
-            ),
+            encoding_circuit=ChebyshevPQC(num_qubits=2, num_features=2, num_layers=2),
             operator=operator,
             executor=Executor("pennylane"),
             loss=SquaredLoss(),
@@ -266,10 +264,14 @@ class TestQNNClassifier:
         kwargs.update(overrides)
         return QNNClassifier(**kwargs)
 
-    @pytest.mark.parametrize("operator", [
-        [SinglePauli(2, 0, op_str="X")],
-        [SinglePauli(2, 0, op_str="X"), SinglePauli(2, 1, op_str="X")],
-    ], ids=["list_of_1", "list_of_2"])
+    @pytest.mark.parametrize(
+        "operator",
+        [
+            [SinglePauli(2, 0, op_str="X")],
+            [SinglePauli(2, 0, op_str="X"), SinglePauli(2, 1, op_str="X")],
+        ],
+        ids=["list_of_1", "list_of_2"],
+    )
     def test_opt_param_op_auto_disabled_at_init(self, data, operator):
         """Regression: ``opt_param_op`` auto-flips to ``False`` at construction
         when the observable has no trainable parameters.
@@ -295,9 +297,7 @@ class TestQNNClassifier:
         """Observable has trainable params, but user explicitly opted out:
         auto-correction must only ever flip ``True -> False``, never the
         other direction."""
-        qnnc = self._make_opt_param_op_qnnc(
-            SummedPaulis(num_qubits=2), opt_param_op=False
-        )
+        qnnc = self._make_opt_param_op_qnnc(SummedPaulis(num_qubits=2), opt_param_op=False)
         assert qnnc.opt_param_op is False
 
     def test_opt_param_op_re_evaluates_in_set_params(self):
