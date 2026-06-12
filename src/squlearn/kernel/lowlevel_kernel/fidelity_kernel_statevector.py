@@ -74,46 +74,18 @@ class FidelityKernelStatevector:
                 circuit = transpile(enc_circ, target=qiskit_pennylane_target, optimization_level=0)
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
 
-                @lru_cache(maxsize=self._cache_size)
-                def pennylane_circuit_executor(*args, **kwargs):
-                    args_numpy = [np.array(arg) for arg in args]
-                    return self._executor.pennylane_execute(
-                        self._pennylane_circuit, *args_numpy, **kwargs
-                    )
-
-                self._cached_execution = pennylane_circuit_executor
-
             elif self._executor.quantum_framework == "qulacs":
 
                 enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
                 self._qulacs_circuit = QulacsCircuit(enc_circ, None)
-
-                @lru_cache(maxsize=self._cache_size)
-                def qulacs_circuit_executor(*args):
-                    args_numpy = [np.array(arg) for arg in args]
-                    if len(args_numpy) == 0:
-                        return self._executor.qulacs_execute(
-                            qulacs_evaluate_statevector, self._qulacs_circuit
-                        )
-                    elif len(args_numpy) == 1:
-                        return self._executor.qulacs_execute(
-                            qulacs_evaluate_statevector, self._qulacs_circuit, x=args_numpy[0]
-                        )
-                    elif len(args_numpy) == 2:
-                        return self._executor.qulacs_execute(
-                            qulacs_evaluate_statevector,
-                            self._qulacs_circuit,
-                            p=args_numpy[0],
-                            x=args_numpy[1],
-                        )
-
-                self._cached_execution = qulacs_circuit_executor
 
             else:
                 raise RuntimeError(
                     "Quantum framework not supported for FidelityKernelStatevector: "
                     f"{self._executor.quantum_framework}"
                 )
+
+            self._build_cached_execution()
 
         else:
 
@@ -144,46 +116,73 @@ class FidelityKernelStatevector:
                     f"{self._executor.quantum_framework}"
                 )
 
-    def __getstate__(self) -> dict:
-        """Return a picklable representation of the kernel.
+    def _build_cached_execution(self) -> None:
+        """(Re)create the ``lru_cache``-wrapped circuit executor.
 
-        The circuit executor stored in ``self._cached_execution`` is a local
-        closure wrapped in :func:`functools.lru_cache`. Such objects are not
-        picklable: pickle/cloudpickle serialize them *by reference* via the
-        wrapped function's qualname
-        (``FidelityKernelStatevector.__init__.<locals>.qulacs_circuit_executor``),
-        a ``<locals>`` reference that cannot be resolved on load, raising
-        ``AttributeError: Can't get local object ...``.
-
-        The executor (and the qulacs/pennylane circuits) are a pure
-        memoization cache fully determined by the constructor arguments, so we
-        serialize only those arguments together with the assigned parameters
-        and rebuild the kernel in :meth:`__setstate__`.
+        Only statevector kernels use a cached executor (shot-based kernels do
+        not). The closure is rebuilt from the already-constructed circuit
+        object rather than from the executor's framework, so it survives being
+        deserialized onto a different backend executor (see
+        :meth:`__getstate__`/:meth:`__setstate__`).
         """
-        return {
-            "encoding_circuit": self._encoding_circuit,
-            "executor": self._executor,
-            "num_features": self._num_features,
-            "evaluate_duplicates": self._evaluate_duplicates,
-            "cache_size": self._cache_size,
-            "parameters": self._parameters,
-        }
+        if not self._executor.is_statevector:
+            return
+
+        if getattr(self, "_qulacs_circuit", None) is not None:
+
+            @lru_cache(maxsize=self._cache_size)
+            def qulacs_circuit_executor(*args):
+                args_numpy = [np.array(arg) for arg in args]
+                if len(args_numpy) == 0:
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector, self._qulacs_circuit
+                    )
+                elif len(args_numpy) == 1:
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector, self._qulacs_circuit, x=args_numpy[0]
+                    )
+                elif len(args_numpy) == 2:
+                    return self._executor.qulacs_execute(
+                        qulacs_evaluate_statevector,
+                        self._qulacs_circuit,
+                        p=args_numpy[0],
+                        x=args_numpy[1],
+                    )
+
+            self._cached_execution = qulacs_circuit_executor
+
+        elif getattr(self, "_pennylane_circuit", None) is not None:
+
+            @lru_cache(maxsize=self._cache_size)
+            def pennylane_circuit_executor(*args, **kwargs):
+                args_numpy = [np.array(arg) for arg in args]
+                return self._executor.pennylane_execute(
+                    self._pennylane_circuit, *args_numpy, **kwargs
+                )
+
+            self._cached_execution = pennylane_circuit_executor
+
+    def __getstate__(self) -> dict:
+        """Return a picklable copy of the kernel's state.
+
+        ``self._cached_execution`` is a local closure wrapped in
+        :func:`functools.lru_cache`. Such objects are not picklable by
+        reference: pickle/cloudpickle serialize them via the wrapped function's
+        ``<locals>`` qualname
+        (``FidelityKernelStatevector.__init__.<locals>.qulacs_circuit_executor``),
+        which cannot be resolved on load -> ``AttributeError: Can't get local
+        object ...``. It is a pure memoization cache, so we drop it here and
+        rebuild it in :meth:`__setstate__`; every other attribute (including the
+        circuit objects) is preserved unchanged.
+        """
+        state = self.__dict__.copy()
+        state.pop("_cached_execution", None)
+        return state
 
     def __setstate__(self, state: dict) -> None:
-        """Rebuild the kernel from the state produced by :meth:`__getstate__`.
-
-        Re-running ``__init__`` reconstructs the circuits and the cached
-        executor closure for whichever quantum framework was configured; the
-        previously assigned trainable parameters are then restored.
-        """
-        self.__init__(
-            encoding_circuit=state["encoding_circuit"],
-            executor=state["executor"],
-            num_features=state["num_features"],
-            evaluate_duplicates=state["evaluate_duplicates"],
-            cache_size=state["cache_size"],
-        )
-        self._parameters = state["parameters"]
+        """Restore the kernel and rebuild the dropped executor closure."""
+        self.__dict__.update(state)
+        self._build_cached_execution()
 
     @property
     def num_parameters(self) -> int:

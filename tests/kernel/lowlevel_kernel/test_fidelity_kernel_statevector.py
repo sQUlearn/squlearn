@@ -303,28 +303,54 @@ class TestFidelityKernelStatevector:
             k.evaluate_kernel_sv(x, x)
 
 
-@pytest.mark.parametrize("framework", ["qulacs", "pennylane"])
-def test_pickle_roundtrip_preserves_kernel(framework):
-    """A statevector kernel must survive pickling.
-
-    ``_cached_execution`` is an ``lru_cache``-wrapped local closure, which is
-    not picklable by reference; ``__getstate__``/``__setstate__`` rebuild it on
-    load. The restored kernel must produce the same matrix.
-    """
+def _make_statevector_kernel(framework):
     executor = Executor(framework)
     encoding_circuit = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
     kernel = FidelityKernelStatevector(
         encoding_circuit=encoding_circuit, executor=executor, num_features=2
     )
-
     rng = np.random.default_rng(0)
     if kernel.num_parameters > 0:
         kernel.assign_training_parameters(rng.random(kernel.num_parameters))
+    return kernel
 
-    x = rng.random((4, 2))
+
+def test_pickle_roundtrip_preserves_kernel_qulacs():
+    """A qulacs statevector kernel must survive stdlib pickling.
+
+    ``_cached_execution`` is an ``lru_cache``-wrapped local closure that cannot
+    be pickled by reference (the original ``AttributeError: Can't get local
+    object ...``); ``__getstate__``/``__setstate__`` drop and rebuild it. The
+    pennylane circuit holds a sympy lambda that stdlib pickle cannot handle
+    regardless, so that framework is covered by the dill-based ModelPickler
+    serialization tests and by ``test_getstate_setstate_rebuilds_executor``.
+    """
+    kernel = _make_statevector_kernel("qulacs")
+    x = np.random.default_rng(0).random((4, 2))
     expected = kernel.evaluate(x, x)
 
     restored = pickle.loads(pickle.dumps(kernel))
+
+    assert "_cached_execution" in vars(restored)
+    np.testing.assert_allclose(restored.evaluate(x, x), expected)
+
+
+@pytest.mark.parametrize("framework", ["qulacs", "pennylane"])
+def test_getstate_setstate_rebuilds_executor(framework):
+    """__getstate__ drops the unpicklable closure; __setstate__ rebuilds it.
+
+    Exercises the mechanism directly (no pickling), so it covers pennylane too,
+    and confirms the rebuilt kernel reproduces the original kernel matrix.
+    """
+    kernel = _make_statevector_kernel(framework)
+    x = np.random.default_rng(0).random((4, 2))
+    expected = kernel.evaluate(x, x)
+
+    state = kernel.__getstate__()
+    assert "_cached_execution" not in state
+
+    restored = FidelityKernelStatevector.__new__(FidelityKernelStatevector)
+    restored.__setstate__(state)
 
     assert "_cached_execution" in vars(restored)
     np.testing.assert_allclose(restored.evaluate(x, x), expected)
