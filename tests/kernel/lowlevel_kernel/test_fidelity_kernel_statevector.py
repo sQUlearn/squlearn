@@ -1,7 +1,10 @@
+import pickle
 from unittest.mock import MagicMock
 import numpy as np
 import pytest
+from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.kernel.lowlevel_kernel.fidelity_kernel_statevector import FidelityKernelStatevector
+from squlearn.util import Executor
 
 
 def make_executor(is_statevector=True, framework="pennylane", shots=None):
@@ -298,3 +301,32 @@ class TestFidelityKernelStatevector:
         x = np.array([[0.1]])
         with pytest.raises(ValueError):
             k.evaluate_kernel_sv(x, x)
+
+
+@pytest.mark.parametrize("framework", ["qulacs", "pennylane"])
+def test_pickle_roundtrip_preserves_kernel(framework):
+    """A statevector kernel must survive pickling.
+
+    ``_cached_execution`` is an ``lru_cache``-wrapped local closure, which is
+    not picklable by reference; ``__getstate__``/``__setstate__`` rebuild it on
+    load. The restored kernel must produce the same matrix.
+    """
+    executor = Executor(framework)
+    encoding_circuit = ChebyshevPQC(num_qubits=2, num_features=2, num_layers=1)
+    kernel = FidelityKernelStatevector(
+        encoding_circuit=encoding_circuit, executor=executor, num_features=2
+    )
+
+    rng = np.random.default_rng(0)
+    if kernel.num_parameters > 0:
+        kernel.assign_training_parameters(rng.random(kernel.num_parameters))
+
+    x = rng.random((4, 2))
+    expected = kernel.evaluate(x, x)
+
+    restored = pickle.loads(pickle.dumps(kernel))
+
+    assert "_cached_execution" in vars(restored)
+    np.testing.assert_allclose(restored.evaluate(x, x), expected)
+    if kernel._parameters is not None:
+        np.testing.assert_allclose(restored._parameters, kernel._parameters)

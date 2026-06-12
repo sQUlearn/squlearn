@@ -144,6 +144,47 @@ class FidelityKernelStatevector:
                     f"{self._executor.quantum_framework}"
                 )
 
+    def __getstate__(self) -> dict:
+        """Return a picklable representation of the kernel.
+
+        The circuit executor stored in ``self._cached_execution`` is a local
+        closure wrapped in :func:`functools.lru_cache`. Such objects are not
+        picklable: pickle/cloudpickle serialize them *by reference* via the
+        wrapped function's qualname
+        (``FidelityKernelStatevector.__init__.<locals>.qulacs_circuit_executor``),
+        a ``<locals>`` reference that cannot be resolved on load, raising
+        ``AttributeError: Can't get local object ...``.
+
+        The executor (and the qulacs/pennylane circuits) are a pure
+        memoization cache fully determined by the constructor arguments, so we
+        serialize only those arguments together with the assigned parameters
+        and rebuild the kernel in :meth:`__setstate__`.
+        """
+        return {
+            "encoding_circuit": self._encoding_circuit,
+            "executor": self._executor,
+            "num_features": self._num_features,
+            "evaluate_duplicates": self._evaluate_duplicates,
+            "cache_size": self._cache_size,
+            "parameters": self._parameters,
+        }
+
+    def __setstate__(self, state: dict) -> None:
+        """Rebuild the kernel from the state produced by :meth:`__getstate__`.
+
+        Re-running ``__init__`` reconstructs the circuits and the cached
+        executor closure for whichever quantum framework was configured; the
+        previously assigned trainable parameters are then restored.
+        """
+        self.__init__(
+            encoding_circuit=state["encoding_circuit"],
+            executor=state["executor"],
+            num_features=state["num_features"],
+            evaluate_duplicates=state["evaluate_duplicates"],
+            cache_size=state["cache_size"],
+        )
+        self._parameters = state["parameters"]
+
     @property
     def num_parameters(self) -> int:
         """Returns the number of trainable parameters."""
