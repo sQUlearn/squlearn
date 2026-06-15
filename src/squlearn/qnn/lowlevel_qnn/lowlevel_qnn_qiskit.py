@@ -459,7 +459,7 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
             num_qubits_operator = self._observable.num_qubits
 
         self.operator_derivatives = ObservableDerivatives(self._observable)
-        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._num_features)
+        self.pqc_derivatives = EncodingCircuitDerivatives(self._pqc, self._num_features, backend=self._executor.backend)
 
         if self._pqc.num_virtual_qubits != num_qubits_operator:
             raise ValueError("Number of Qubits are not the same!")

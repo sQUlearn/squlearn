@@ -92,6 +92,7 @@ class EncodingCircuitDerivatives:
         encoding_circuit: EncodingCircuitBase,
         num_features: int,
         optree_caching: bool = True,
+        backend = None
     ):
         self.encoding_circuit = encoding_circuit
 
@@ -101,7 +102,7 @@ class EncodingCircuitDerivatives:
         self._circuit = encoding_circuit.get_circuit(self._x, self._p)
 
         self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit)
+        self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit, backend=backend)
 
         self._optree_start = OpTreeCircuit(self._circuit)
 

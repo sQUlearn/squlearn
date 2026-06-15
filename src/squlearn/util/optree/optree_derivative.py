@@ -371,7 +371,7 @@ class OpTreeDerivative:
 
     @staticmethod
     def transpile_to_supported_instructions(
-        circuit: QuantumCircuit, supported_gates: Set[str] = SUPPORTED_GATES
+        circuit: QuantumCircuit, supported_gates: Set[str] = SUPPORTED_GATES, backend=None
     ) -> QuantumCircuit:
         """Function for transpiling a circuit to a supported instruction set for gradient calculation.
 
@@ -385,12 +385,10 @@ class OpTreeDerivative:
 
         unique_ops = set(circuit.count_ops())
         if not unique_ops.issubset(supported_gates):
-            circuit = transpile(
-                circuit,
-                basis_gates=list(supported_gates),
-                optimization_level=0,
-                layout_method="trivial",
-            )
+            if backend is not None:
+                circuit = transpile(circuit, backend=backend, optimization_level=0, layout_method="trivial")
+            else:
+                circuit = transpile(circuit, basis_gates=list(supported_gates), optimization_level=0, layout_method="trivial")
         return circuit
 
     @staticmethod
