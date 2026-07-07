@@ -1,5 +1,5 @@
 import numpy as np
-from qiskit.circuit import ParameterVector
+from qc_executor import Parameters
 from qiskit_algorithms.gradients import LinCombQGT, QFI
 
 import pennylane as qml
@@ -94,9 +94,9 @@ def _get_quantum_fisher_qiskit(
 
     num_features = extract_num_features(x)
 
-    p_ = ParameterVector("p", encoding_circuit.num_parameters)
-    x_ = ParameterVector("x", num_features)
-    circuit = encoding_circuit.get_circuit(x_, p_)
+    p_ = Parameters("p", encoding_circuit.num_parameters)
+    x_ = Parameters("x", num_features)
+    circuit = encoding_circuit.get_circuit(x_, p_).qiskit_circuit
 
     # Adjust input
     x_list, multi_x = adjust_features(x, num_features)
@@ -179,9 +179,9 @@ def _get_quantum_fisher_pennylane(
         Numpy matrix with the QFIM, in case of multiple inputs, the array is nested.
     """
     num_features = extract_num_features(x)
-    parameter_vector = ParameterVector("p", encoding_circuit.num_parameters)
-    feature_vector = ParameterVector("x", num_features)
-    circuit = encoding_circuit.get_circuit(feature_vector, parameter_vector)
+    parameter_vector = Parameters("p", encoding_circuit.num_parameters)
+    feature_vector = Parameters("x", num_features)
+    circuit = encoding_circuit.get_circuit(feature_vector, parameter_vector).qiskit_circuit
 
     # Adjust input
     x_adjusted, multi_x = adjust_features(x, num_features)
@@ -211,9 +211,7 @@ def _get_quantum_fisher_pennylane(
                 fisher_list.append(4.0 * np.array(fisher_func(p_values, x_values)))
 
     elif mode == "px":
-        px_ = ParameterVector(
-            "px", encoding_circuit.num_parameters + encoding_circuit.num_features
-        )
+        px_ = Parameters("px", encoding_circuit.num_parameters + encoding_circuit.num_features)
         dictionary = dict(zip(list(parameter_vector) + list(feature_vector), list(px_)))
         circuit.assign_parameters(dictionary, inplace=True)
         pennylane_circuit = PennyLaneCircuit(circuit, "probs")

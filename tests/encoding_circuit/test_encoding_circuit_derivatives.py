@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qc_executor import QuantumCircuit, Parameters
 from squlearn.encoding_circuit import EncodingCircuitDerivatives
 from squlearn.encoding_circuit.circuit_library.hubregtsen_encoding_circuit import (
     HubregtsenEncodingCircuit,
 )
-from squlearn.util.optree.optree import (
-    OpTree,
+from qc_executor.qiskit.optree import (
     OpTreeCircuit,
     OpTreeList,
     OpTreeElementBase,
@@ -19,16 +18,17 @@ class DummyEncodingCircuit:
         self.num_qubits = num_qubits
         self.num_parameters = num_parameters
 
-    def get_circuit(
-        self, features: ParameterVector, parameters: ParameterVector
-    ) -> QuantumCircuit:
+    def get_circuit(self, features: Parameters, parameters: Parameters) -> QuantumCircuit:
         qc = QuantumCircuit(self.num_qubits)
         # if features / parameters contain entries, use the first of each to create parameterized gates
         if len(features) > 0:
-            qc.rz(features[0], 0 % self.num_qubits)
+            qc.rz(
+                0 % self.num_qubits,
+                features[0],
+            )
         if len(parameters) > 0:
             # use a different qubit index if possible
-            qc.rx(parameters[0], (0 if self.num_qubits == 1 else 1))
+            qc.rx((0 if self.num_qubits == 1 else 1), parameters[0])
         return qc
 
 
@@ -79,12 +79,12 @@ class TestEncodingCircuitDerivatives:
     def test_string_and_vector_derivative_equivalence_dp_dx(self):
         fm_deriv = _build_simple_deriv()
 
-        # dp (string) vs ParameterVector
+        # dp (string) vs Parameters
         dp_str = fm_deriv.get_derivative("dp")
         dp_vec = fm_deriv.get_derivative((fm_deriv.parameter_vector,))
         assert dp_str == dp_vec
 
-        # dx (string) vs Feature ParameterVector
+        # dx (string) vs Feature Parameters
         dx_str = fm_deriv.get_derivative("dx")
         dx_vec = fm_deriv.get_derivative((fm_deriv.feature_vector,))
         assert dx_str == dx_vec
