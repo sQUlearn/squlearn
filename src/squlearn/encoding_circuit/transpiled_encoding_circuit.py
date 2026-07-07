@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union, Callable
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
 
@@ -56,10 +55,12 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._transpile_func = transpile_func
         self._num_features = num_features
 
-        self._x = ParameterVector("x_", self.num_features)
-        self._p = ParameterVector("p_", self._encoding_circuit.num_parameters)
+        self._x = Parameters("x_", self.num_features)
+        self._p = Parameters("p_", self._encoding_circuit.num_parameters)
 
-        self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
+        self._circuit = decompose_to_std(
+            self._encoding_circuit.get_circuit(self._x, self._p).qiskit_circuit
+        )
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
@@ -163,16 +164,16 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Return the circuit of the transpiled encoding circuit
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                                                         from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                                                          from which the gate inputs are obtained
 
         Return:
@@ -182,7 +183,8 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         exchange_dict_p = dict(zip(self._p, parameters))
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
-        return self._transpiled_circuit.assign_parameters(exchange_both)
+        self._transpiled_circuit.assign_parameters(exchange_both, inplace=True)
+        return QuantumCircuit(self._transpiled_circuit.num_qubits, self._transpiled_circuit)
 
 
 def _gen_qubit_mapping(circuit: QuantumCircuit) -> dict:
