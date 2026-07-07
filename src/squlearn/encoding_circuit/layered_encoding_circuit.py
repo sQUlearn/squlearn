@@ -1,12 +1,11 @@
 import re
 import numpy as np
-from typing import List, Union, Callable
+from typing import Union, Callable
 import copy
 
 import sympy as sp
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qc_executor import QuantumCircuit, Parameters
 from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, UGate
 from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
 from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
@@ -55,7 +54,7 @@ class VariableGroup:
 
     def get_param_vector(self):
         """Creates a parameter vector by qiskit"""
-        return ParameterVector(self.variable_name, self.num_variables)
+        return Parameters(self.variable_name, self.num_variables)
 
     def increase_used_number_of_variables(self, number_of_used_variables: int):
         """Increases total number of variables , if size not given
@@ -151,7 +150,7 @@ class _Id_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.id(range(self.num_qubits))
+        QC.qiskit_circuit.id(range(self.num_qubits))
         return QC
 
 
@@ -169,7 +168,7 @@ class _S_conjugate_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.sdg(range(self.num_qubits))
+        QC.qiskit_circuit.sdg(range(self.num_qubits))
         return QC
 
 
@@ -187,7 +186,7 @@ class _T_conjugate_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.tdg(range(self.num_qubits))
+        QC.qiskit_circuit.tdg(range(self.num_qubits))
         return QC
 
 
@@ -219,7 +218,7 @@ class _rot_operation(_operation):
         elif self.default_map and (len(self.variablegroup_tuple) == 1):
             if self.variablegroup_tuple[0].size == None:
                 for qubit in range(self.num_qubits):
-                    QC.append(
+                    QC.qiskit_circuit.append(
                         r_star(
                             var_param_assignment[hash(self.variablegroup_tuple[0])][
                                 self.variablegroup_tuple[0].index
@@ -231,7 +230,7 @@ class _rot_operation(_operation):
                     self.variablegroup_tuple[0].increase_index(1)
             else:
                 for qubit in range(self.num_qubits):
-                    QC.append(
+                    QC.qiskit_circuit.append(
                         r_star(
                             var_param_assignment[hash(self.variablegroup_tuple[0])][
                                 (self.variablegroup_tuple[0].index)
@@ -258,7 +257,7 @@ class _rot_operation(_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.append(r_star(self.map(*buffer_param_vectors_list)), [qubit], [])
+                QC.qiskit_circuit.append(r_star(self.map(*buffer_param_vectors_list)), [qubit], [])
         return QC
 
 
@@ -355,7 +354,7 @@ class _U_operation(_operation):
                         ]
                     )
                 variablegroup.increase_index(1)
-            QC.append(u_gate(*buffer_param_vectors_list), [qubit], [])
+            QC.qiskit_circuit.append(u_gate(*buffer_param_vectors_list), [qubit], [])
         return QC
 
 
@@ -381,12 +380,12 @@ class _two_qubit_operation(_operation):
             if self.ent_strategy == "AA":
                 for first_qubit in range(self.num_qubits - 1):
                     for second_qubit in range(first_qubit + 1, self.num_qubits):
-                        QC.append(gate(), [first_qubit, second_qubit], [])
+                        QC.qiskit_circuit.append(gate(), [first_qubit, second_qubit], [])
             elif self.ent_strategy == "NN":
                 for first_qubit in range(0, self.num_qubits - 1, 2):
-                    QC.append(gate(), [first_qubit, first_qubit + 1], [])
+                    QC.qiskit_circuit.append(gate(), [first_qubit, first_qubit + 1], [])
                 for first_qubit in range(1, self.num_qubits - 1, 2):
-                    QC.append(gate(), [first_qubit, first_qubit + 1], [])
+                    QC.qiskit_circuit.append(gate(), [first_qubit, first_qubit + 1], [])
             else:
                 raise ValueError("Wrong entangling strategy input.")
         elif self.default_map and len(self.variablegroup_tuple) > 2:
@@ -398,7 +397,7 @@ class _two_qubit_operation(_operation):
                 if self.variablegroup_tuple[0].size == None:
                     for first_qubit in range(self.num_qubits - 1):
                         for second_qubit in range(first_qubit + 1, self.num_qubits):
-                            QC.append(
+                            QC.qiskit_circuit.append(
                                 gate(
                                     var_param_assignment[hash(self.variablegroup_tuple[0])][
                                         self.variablegroup_tuple[0].index
@@ -411,7 +410,7 @@ class _two_qubit_operation(_operation):
                 else:
                     for first_qubit in range(self.num_qubits - 1):
                         for second_qubit in range(first_qubit + 1, self.num_qubits):
-                            QC.append(
+                            QC.qiskit_circuit.append(
                                 gate(
                                     var_param_assignment[hash(self.variablegroup_tuple[0])][
                                         self.variablegroup_tuple[0].index
@@ -425,7 +424,7 @@ class _two_qubit_operation(_operation):
             elif self.ent_strategy == "NN":
                 if self.variablegroup_tuple[0].size == None:
                     for first_qubit in range(0, self.num_qubits - 1, 2):
-                        QC.append(
+                        QC.qiskit_circuit.append(
                             gate(
                                 var_param_assignment[hash(self.variablegroup_tuple[0])][
                                     self.variablegroup_tuple[0].index
@@ -436,7 +435,7 @@ class _two_qubit_operation(_operation):
                         )
                         self.variablegroup_tuple[0].increase_index(1)
                     for first_qubit in range(1, self.num_qubits - 1, 2):
-                        QC.append(
+                        QC.qiskit_circuit.append(
                             gate(
                                 var_param_assignment[hash(self.variablegroup_tuple[0])][
                                     self.variablegroup_tuple[0].index
@@ -448,7 +447,7 @@ class _two_qubit_operation(_operation):
                         self.variablegroup_tuple[0].increase_index(1)
                 else:
                     for first_qubit in range(0, self.num_qubits - 1, 2):
-                        QC.append(
+                        QC.qiskit_circuit.append(
                             gate(
                                 var_param_assignment[hash(self.variablegroup_tuple[0])][
                                     self.variablegroup_tuple[0].index
@@ -460,7 +459,7 @@ class _two_qubit_operation(_operation):
                         )
                         self.variablegroup_tuple[0].increase_index(1)
                     for first_qubit in range(1, self.num_qubits - 1, 2):
-                        QC.append(
+                        QC.qiskit_circuit.append(
                             gate(
                                 var_param_assignment[hash(self.variablegroup_tuple[0])][
                                     self.variablegroup_tuple[0].index
@@ -490,7 +489,7 @@ class _two_qubit_operation(_operation):
                                     ]
                                 )
                             variablegroup.increase_index(1)
-                        QC.append(
+                        QC.qiskit_circuit.append(
                             gate(self.map(*buffer_param_vectors_list)),
                             [first_qubit, second_qubit],
                             [],
@@ -510,7 +509,7 @@ class _two_qubit_operation(_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.append(
+                    QC.qiskit_circuit.append(
                         gate(self.map(*buffer_param_vectors_list)),
                         [first_qubit, first_qubit + 1],
                         [],
@@ -529,7 +528,7 @@ class _two_qubit_operation(_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.append(
+                    QC.qiskit_circuit.append(
                         gate(self.map(*buffer_param_vectors_list)),
                         [first_qubit, first_qubit + 1],
                         [],
@@ -688,7 +687,7 @@ class _CU_operation(_two_qubit_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.append(
+                    QC.qiskit_circuit.append(
                         cu_gate(*buffer_param_vectors_list),
                         [first_qubit, second_qubit],
                         [],
@@ -708,7 +707,7 @@ class _CU_operation(_two_qubit_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.append(
+                QC.qiskit_circuit.append(
                     cu_gate(*buffer_param_vectors_list),
                     [first_qubit, first_qubit + 1],
                     [],
@@ -727,7 +726,7 @@ class _CU_operation(_two_qubit_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.append(
+                QC.qiskit_circuit.append(
                     cu_gate(*buffer_param_vectors_list),
                     [first_qubit, first_qubit + 1],
                     [],
@@ -972,14 +971,15 @@ class LayeredPQC:
                 for i in range(operation_layer.num_layers):
                     for op in operation_layer.layer.operation_list:
                         if op.variablegroup_tuple == None:
-                            QC = QC.compose(op.get_circuit())
+                            QC = QC.compose(op.get_circuit(), None)
+                            QC.qiskit_circuit.num_qubits
                         else:
-                            QC = QC.compose(op.get_circuit(var_param_assignment))
+                            QC = QC.compose(op.get_circuit(var_param_assignment), None)
             else:
                 if operation.variablegroup_tuple == None:
-                    QC = QC.compose(operation.get_circuit())
+                    QC = QC.compose(operation.get_circuit(), None)
                 else:
-                    QC = QC.compose(operation.get_circuit(var_param_assignment))
+                    QC = QC.compose(operation.get_circuit(var_param_assignment), None)
         return QC
 
     def H(self):
@@ -1893,16 +1893,16 @@ class ConvertedLayeredEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Returns the circuit of the Layered Encoding Circuit
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                 from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                 from which the gate inputs are obtained
 
         Return:
@@ -2186,16 +2186,16 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Returns the circuit of the Layered Encoding Circuit
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                 from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                 from which the gate inputs are obtained
 
         Return:
