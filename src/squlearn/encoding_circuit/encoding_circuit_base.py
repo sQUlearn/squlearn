@@ -5,10 +5,10 @@ import warnings
 import numpy as np
 from typing import Tuple, Union
 
-from qiskit.circuit import ParameterVector, Parameter
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter
 
 from squlearn.util.data_preprocessing import extract_num_features
+from qc_executor import QuantumCircuit, Parameters
 
 
 class EncodingCircuitBase(ABC):
@@ -93,8 +93,8 @@ class EncodingCircuitBase(ABC):
     @abstractmethod
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Return the encoding circuit as a qiskit QuantumCircuit.
@@ -102,9 +102,9 @@ class EncodingCircuitBase(ABC):
         Checks the matching of the encoding slots with the provided features.
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                 from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                 from which the gate inputs are obtained
 
         Return:
@@ -147,10 +147,10 @@ class EncodingCircuitBase(ABC):
             and num_features is None
             and self.num_encoding_slots is not np.inf
         ):
-            feature_vec = ParameterVector(feature_label, self.num_encoding_slots)
+            feature_vec = Parameters(feature_label, self.num_encoding_slots)
 
         elif num_features or self.num_features:
-            feature_vec = ParameterVector(feature_label, num_features or self.num_features)
+            feature_vec = Parameters(feature_label, num_features or self.num_features)
         else:
             feature_vec = [Parameter(feature_label)]
 
@@ -164,9 +164,9 @@ class EncodingCircuitBase(ABC):
         if hasattr(self, "_build_layered_pqc"):
             self._build_layered_pqc(num_features)
 
-        parameters_vec = ParameterVector(parameter_label, self.num_parameters)
+        parameters_vec = Parameters(parameter_label, self.num_parameters)
 
-        circ = self.get_circuit(feature_vec, parameters_vec)
+        circ = self.get_circuit(feature_vec, parameters_vec).qiskit_circuit
         if decompose:
             circ = circ.decompose()
 
@@ -313,16 +313,16 @@ class EncodingCircuitBase(ABC):
 
             def get_circuit(
                 self,
-                features: Union[ParameterVector, np.ndarray],
-                parameters: Union[ParameterVector, np.ndarray],
+                features: Union[Parameters, np.ndarray],
+                parameters: Union[Parameters, np.ndarray],
             ) -> QuantumCircuit:
                 """
                 Returns the inverse circuit of the encoding circuit
 
                 Args:
-                    features Union[ParameterVector,np.ndarray]: Input vector of the features
+                    features Union[Parameters,np.ndarray]: Input vector of the features
                         from which the gate inputs are obtained
-                    param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                    param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                         from which the gate inputs are obtained
 
                 Return:
@@ -330,7 +330,7 @@ class EncodingCircuitBase(ABC):
                     format
                 """
                 circ = self._encoding_circuit.get_circuit(features, parameters)
-                return circ.inverse()
+                return circ.invert()
 
         return InvertedEncodingCircuit(self)
 
@@ -604,16 +604,16 @@ class EncodingCircuitBase(ABC):
 
             def get_circuit(
                 self,
-                features: Union[ParameterVector, np.ndarray],
-                parameters: Union[ParameterVector, np.ndarray],
+                features: Union[Parameters, np.ndarray],
+                parameters: Union[Parameters, np.ndarray],
             ) -> QuantumCircuit:
                 """
                 Returns the circuit of the composed encoding circuits
 
                 Args:
-                    features Union[ParameterVector,np.ndarray]: Input vector of the features
+                    features Union[Parameters,np.ndarray]: Input vector of the features
                         from which the gate inputs are obtained
-                    param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+                    param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                         from which the gate inputs are obtained
 
                 Return:

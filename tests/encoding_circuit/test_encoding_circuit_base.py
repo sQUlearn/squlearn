@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from squlearn.encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 
