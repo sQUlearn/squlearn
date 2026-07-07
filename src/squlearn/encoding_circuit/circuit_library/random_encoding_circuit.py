@@ -2,8 +2,7 @@ import numpy as np
 from typing import Union
 import random
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qc_executor import QuantumCircuit, Parameters
 
 from qiskit.circuit.library import (
     XGate,
@@ -178,15 +177,15 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         r"""
         Returns the random encoding circuit.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
-            parameters (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            features (Union[Parameters,np.ndarray]): Input vector of the features
+            parameters (Union[Parameters,np.ndarray]): Input vector of the parameters
 
         Return:
             Returns the random encoding circuit in qiskit QuantumCircuit format
@@ -208,7 +207,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                 encoding = available_encodings[self._picked_encodings[parameterized_gate_counter]][
                     0
                 ]
-                qc.append(
+                qc.qiskit_circuit.append(
                     available_gates[gate][0](
                         encoding(
                             features[self._feature_indices[feature_counter]],
@@ -223,7 +222,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
                     parameter_counter = (parameter_counter + 1) % self.num_parameters
                 parameterized_gate_counter += 1
             else:
-                qc.append(available_gates[gate][0](), list(qubits_arg))
+                qc.qiskit_circuit.append(available_gates[gate][0](), list(qubits_arg))
 
         return qc
 

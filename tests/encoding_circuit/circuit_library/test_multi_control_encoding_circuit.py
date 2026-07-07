@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import MultiControlEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -27,33 +27,33 @@ def _build_expected_multi_control_circuit(
         # ZZ encoding: H + Rz(features)
         QC.h(range(num_qubits))
         for i in range(num_qubits):
-            QC.rz(features[feature_offset % num_features], i)
+            QC.rz(i, features[feature_offset % num_features])
             feature_offset += 1
 
         istop = num_qubits if closed else num_qubits - 1
 
         # even pairs: CRx, CRy, CRz
         for i in range(0, istop, 2):
-            QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            QC.crx(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
             index_offset += 1
-            QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            QC.cry(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
             index_offset += 1
-            QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+            QC.crz(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
             index_offset += 1
 
         # odd pairs: CRx, CRy, CRz
         if num_qubits >= 2:
             for i in range(1, istop, 2):
-                QC.crx(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                QC.crx(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
                 index_offset += 1
-                QC.cry(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                QC.cry(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
                 index_offset += 1
-                QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                QC.crz(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
                 index_offset += 1
 
     if final_encoding:
         for i in range(num_qubits):
-            QC.rz(features[feature_offset % num_features], i)
+            QC.rz(i, features[feature_offset % num_features])
             feature_offset += 1
     return QC
 

@@ -1,8 +1,8 @@
-from qiskit import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevRx
 import pytest
 import numpy as np
+from qc_executor import QuantumCircuit
 
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
@@ -43,17 +43,17 @@ def _build_expected_chebyshev_rx_circuit(
     for _ in range(num_layers):
         for i in range(num_qubits):
             QC.rx(
+                i,
                 mapping(
                     parameters[index_offset % len(parameters)],
                     features[feature_offset % len(features)],
                 ),
-                i,
             )
             index_offset += 1
             feature_offset += 1
 
         for i in range(num_qubits):
-            QC.rx(parameters[index_offset % len(parameters)], i)
+            QC.rx(i, parameters[index_offset % len(parameters)])
             index_offset += 1
 
         QC = entangle_layer_local(QC)
@@ -147,7 +147,11 @@ class TestChebyshevRx:
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 
-        used_params = {param for instruction in qc.data for param in instruction.operation.params}
+        used_params = {
+            param
+            for instruction in qc.qiskit_circuit.data
+            for param in instruction.operation.params
+        }
         assert len(used_params) == len(params)
 
         with pytest.raises(EncodingSlotsMismatchError):
