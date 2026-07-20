@@ -1,15 +1,10 @@
-import re
-import numpy as np
-from typing import Union, Callable
 import copy
+import re
+from typing import Callable, Union
 
+import numpy as np
 import sympy as sp
-
-from qc_executor import QuantumCircuit, Parameters
-from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, UGate
-from qiskit.circuit.library import CPhaseGate, CHGate, CXGate, CYGate, CZGate
-from qiskit.circuit.library import SwapGate, CRXGate, CRYGate, CRZGate, RXXGate
-from qiskit.circuit.library import RYYGate, RZXGate, RZZGate, CUGate
+from qc_executor import Parameters, QuantumCircuit
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -33,7 +28,7 @@ class VariableGroup:
         self.variable_name = variable_name
         self.size = size
         self.index = 0
-        if size == None:
+        if size is None:
             self.total_variables_used = 0
 
     def __hash__(self):
@@ -48,7 +43,7 @@ class VariableGroup:
         returns the total number of variables that have been used;
         if number of size counts until infinity, cause size is not given, than return counter, else return size
         """
-        if self.size == None:
+        if self.size is None:
             return self.total_variables_used
         return self.size
 
@@ -61,7 +56,7 @@ class VariableGroup:
         (this is important for initializing the parameter vectors of qiskit with get_number_of_variables)
         Note that it's possible to substract numbers (with negative integers) too.
         """
-        if self.size == None:
+        if self.size is None:
             self.total_variables_used += number_of_used_variables
         pass
 
@@ -97,7 +92,7 @@ class _operation:
         self.num_qubits = num_qubits
         self.variablegroup_tuple = variablegroup_tuple
         self.ent_strategy = None
-        if map == None:
+        if map is None:
             # Default: Set map to x*y (if two arguments given, if there are more than two arguments for one operation without any given map, an error will be raised)
             self.map = lambda x, y: x * y
             self.default_map = True
@@ -150,7 +145,7 @@ class _Id_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.qiskit_circuit.id(range(self.num_qubits))
+        QC.i(range(self.num_qubits))
         return QC
 
 
@@ -168,7 +163,7 @@ class _S_conjugate_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.qiskit_circuit.sdg(range(self.num_qubits))
+        QC.sdag(range(self.num_qubits))
         return QC
 
 
@@ -186,24 +181,24 @@ class _T_conjugate_operation(_operation):
 
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC.qiskit_circuit.tdg(range(self.num_qubits))
+        QC.tdag(range(self.num_qubits))
         return QC
 
 
 class _rot_operation(_operation):
-    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, gate_name: str, map=None):
         super().__init__(num_qubits, variablegroup_tuple, map)
+        self.gate_name = gate_name
 
-    def apply_param_vectors(self, QC, r_star, var_param_assignment):
+    def apply_param_vectors(self, QC: QuantumCircuit, var_param_assignment: dict):
         """
         Applies the param vectors creating a quantum circuit with the given gate.
         Contains an algorithm for Rx, Ry and Rz gates, which distinguish between the following cases:
         First: The user sets no map so a default map is given and the number of variable groups used exceeds 2, than raise an error because the default map needs exactly two arguments.
-        Second: The user sets no map so a default map is given and the number of variable groups used is 1, than apply the r* (stands for rx, ry or rz) gate with the given variable but without the map.
+        Second: The user sets no map so a default map is given and the number of variable groups used is 1, than apply the gate_method (stands for rx, ry or rz) gate with the given variable but without the map.
         Third: The user sets a map with some variable groups or there are exactly 2 variable groups given.
         Args:
             QC: the quantum circuit by qiskit
-            r_star: Stands for r* (rx, ry or rz); a RXGate, RYGate or RZGate (also PhaseGate)
             var_param_assignment: a dictionary, that assigns hash values of variable groups with their parameter vectors (by qiskit)
         Returns:
             QuantumCircuit
@@ -211,42 +206,37 @@ class _rot_operation(_operation):
             ValueError, if the first case occurs.
 
         """
+        gate_method = getattr(QC, self.gate_name)
         if self.default_map and (len(self.variablegroup_tuple) > 2):
             raise ValueError(
                 "There are too many variable groups given without a map. There can only be one or two parameters without any given map."
             )
         elif self.default_map and (len(self.variablegroup_tuple) == 1):
-            if self.variablegroup_tuple[0].size == None:
+            if self.variablegroup_tuple[0].size is None:
                 for qubit in range(self.num_qubits):
-                    QC.qiskit_circuit.append(
-                        r_star(
-                            var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                self.variablegroup_tuple[0].index
-                            ]
-                        ),
-                        [qubit],
-                        [],
+                    gate_method(
+                        qubit,
+                        var_param_assignment[hash(self.variablegroup_tuple[0])][
+                            self.variablegroup_tuple[0].index
+                        ],
                     )
                     self.variablegroup_tuple[0].increase_index(1)
             else:
                 for qubit in range(self.num_qubits):
-                    QC.qiskit_circuit.append(
-                        r_star(
-                            var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                (self.variablegroup_tuple[0].index)
-                                % self.variablegroup_tuple[0].size
-                            ]
-                        ),
-                        [qubit],
-                        [],
-                    )
+                    gate_method(
+                        qubit,
+                        var_param_assignment[hash(self.variablegroup_tuple[0])][
+                            self.variablegroup_tuple[0].index(self.variablegroup_tuple[0].index)
+                            % self.variablegroup_tuple[0].size
+                        ],
+                    ),
                     self.variablegroup_tuple[0].increase_index(1)
         else:
             # So there is either two variable groups given or a given map. In the first case without given map it multiplies the variables together (using of the default map)
             for qubit in range(self.num_qubits):
                 buffer_param_vectors_list = []
                 for variablegroup in self.variablegroup_tuple:
-                    if variablegroup.size == None:
+                    if variablegroup.size is None:
                         buffer_param_vectors_list.append(
                             var_param_assignment[hash(variablegroup)][variablegroup.index]
                         )
@@ -257,13 +247,16 @@ class _rot_operation(_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.qiskit_circuit.append(r_star(self.map(*buffer_param_vectors_list)), [qubit], [])
+                gate_method(qubit, self.map(*buffer_param_vectors_list))
         return QC
 
 
 class _Rx_operation(_rot_operation):
     """class for a Rx operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, "rx", map)
+
     def get_circuit(self, var_param_assignment: dict):
         """
         Args:
@@ -272,13 +265,16 @@ class _Rx_operation(_rot_operation):
             QuantumCircuit (by qiskit)
         """
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RXGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _Ry_operation(_rot_operation):
     """class for a Ry operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, "ry", map)
+
     def get_circuit(self, var_param_assignment: dict):
         """
         Args:
@@ -287,13 +283,16 @@ class _Ry_operation(_rot_operation):
             QuantumCircuit (by qiskit)
         """
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RYGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _Rz_operation(_rot_operation):
     """class for a Rz operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, "rz", map)
+
     def get_circuit(self, var_param_assignment: dict):
         """
         Args:
@@ -302,13 +301,16 @@ class _Rz_operation(_rot_operation):
             QuantumCircuit (by qiskit)
         """
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RZGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _P_operation(_rot_operation):
     """class for a P operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, "p", map)
+
     def get_circuit(self, var_param_assignment: dict):
         """
         Args:
@@ -317,7 +319,7 @@ class _P_operation(_rot_operation):
             QuantumCircuit (by qiskit)
         """
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, PhaseGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
@@ -332,10 +334,10 @@ class _U_operation(_operation):
             QuantumCircuit (by qiskit)
         """
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, UGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
-    def apply_param_vectors(self, QC, u_gate, var_param_assignment):
+    def apply_param_vectors(self, QC: QuantumCircuit, var_param_assignment: dict):
         """
         Applies the param vectors creating a quantum circuit with the given gate.
         works much like the apply_param_vectors function in rot_operation but without maps
@@ -343,7 +345,7 @@ class _U_operation(_operation):
         for qubit in range(self.num_qubits):
             buffer_param_vectors_list = []
             for variablegroup in self.variablegroup_tuple:
-                if variablegroup.size == None:
+                if variablegroup.size is None:
                     buffer_param_vectors_list.append(
                         var_param_assignment[hash(variablegroup)][variablegroup.index]
                     )
@@ -354,7 +356,7 @@ class _U_operation(_operation):
                         ]
                     )
                 variablegroup.increase_index(1)
-            QC.qiskit_circuit.append(u_gate(*buffer_param_vectors_list), [qubit], [])
+            QC.u(qubit, *buffer_param_vectors_list)
         return QC
 
 
@@ -363,11 +365,19 @@ class _two_qubit_operation(_operation):
     parent class for any two-qubit operation
     """
 
-    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+    def __init__(
+        self,
+        num_qubits: int,
+        variablegroup_tuple: tuple,
+        ent_strategy: str,
+        gate_name: str,
+        map=None,
+    ):
         super().__init__(num_qubits, variablegroup_tuple, map)
         self.ent_strategy = ent_strategy
+        self.gate_name = gate_name
 
-    def apply_param_vectors(self, QC, gate, var_param_assignment: dict):
+    def apply_param_vectors(self, QC: QuantumCircuit, var_param_assignment: dict):
         """
         Applies the param vectors creating a quantum circuit with the given gate.
         We have to distinguish between the following cases:
@@ -376,16 +386,18 @@ class _two_qubit_operation(_operation):
         3rd: Variable group is given
         4th: Dimension (size) is finite (or infinite)
         """
-        if self.variablegroup_tuple == None:
+        gate_method = getattr(QC, self.gate_name)
+
+        if self.variablegroup_tuple is None:
             if self.ent_strategy == "AA":
                 for first_qubit in range(self.num_qubits - 1):
                     for second_qubit in range(first_qubit + 1, self.num_qubits):
-                        QC.qiskit_circuit.append(gate(), [first_qubit, second_qubit], [])
+                        gate_method(first_qubit, second_qubit)
             elif self.ent_strategy == "NN":
                 for first_qubit in range(0, self.num_qubits - 1, 2):
-                    QC.qiskit_circuit.append(gate(), [first_qubit, first_qubit + 1], [])
+                    gate_method(first_qubit, first_qubit + 1)
                 for first_qubit in range(1, self.num_qubits - 1, 2):
-                    QC.qiskit_circuit.append(gate(), [first_qubit, first_qubit + 1], [])
+                    gate_method(first_qubit, first_qubit + 1)
             else:
                 raise ValueError("Wrong entangling strategy input.")
         elif self.default_map and len(self.variablegroup_tuple) > 2:
@@ -394,80 +406,68 @@ class _two_qubit_operation(_operation):
             )
         elif self.default_map and len(self.variablegroup_tuple) == 1:
             if self.ent_strategy == "AA":
-                if self.variablegroup_tuple[0].size == None:
+                if self.variablegroup_tuple[0].size is None:
                     for first_qubit in range(self.num_qubits - 1):
                         for second_qubit in range(first_qubit + 1, self.num_qubits):
-                            QC.qiskit_circuit.append(
-                                gate(
-                                    var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                        self.variablegroup_tuple[0].index
-                                    ]
-                                ),
-                                [first_qubit, second_qubit],
-                                [],
+                            gate_method(
+                                first_qubit,
+                                second_qubit,
+                                var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                    self.variablegroup_tuple[0].index
+                                ],
                             )
                             self.variablegroup_tuple[0].increase_index(1)
                 else:
                     for first_qubit in range(self.num_qubits - 1):
                         for second_qubit in range(first_qubit + 1, self.num_qubits):
-                            QC.qiskit_circuit.append(
-                                gate(
-                                    var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                        self.variablegroup_tuple[0].index
-                                        % self.variablegroup_tuple[0].size
-                                    ]
-                                ),
-                                [first_qubit, second_qubit],
-                                [],
+                            gate_method(
+                                first_qubit,
+                                second_qubit,
+                                var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                    self.variablegroup_tuple[0].index
+                                    % self.variablegroup_tuple[0].size
+                                ],
                             )
                             self.variablegroup_tuple[0].increase_index(1)
             elif self.ent_strategy == "NN":
-                if self.variablegroup_tuple[0].size == None:
+                if self.variablegroup_tuple[0].size is None:
                     for first_qubit in range(0, self.num_qubits - 1, 2):
-                        QC.qiskit_circuit.append(
-                            gate(
-                                var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                    self.variablegroup_tuple[0].index
-                                ]
-                            ),
-                            [first_qubit, first_qubit + 1],
-                            [],
+                        gate_method(
+                            first_qubit,
+                            first_qubit + 1,
+                            var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                self.variablegroup_tuple[0].index
+                            ],
                         )
                         self.variablegroup_tuple[0].increase_index(1)
                     for first_qubit in range(1, self.num_qubits - 1, 2):
-                        QC.qiskit_circuit.append(
-                            gate(
-                                var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                    self.variablegroup_tuple[0].index
-                                ]
-                            ),
-                            [first_qubit, first_qubit + 1],
-                            [],
+                        gate_method(
+                            first_qubit,
+                            first_qubit + 1,
+                            var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                self.variablegroup_tuple[0].index
+                            ],
                         )
                         self.variablegroup_tuple[0].increase_index(1)
                 else:
                     for first_qubit in range(0, self.num_qubits - 1, 2):
-                        QC.qiskit_circuit.append(
-                            gate(
-                                var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                    self.variablegroup_tuple[0].index
-                                    % self.variablegroup_tuple[0].size
-                                ]
-                            ),
-                            [first_qubit, first_qubit + 1],
-                            [],
+                        gate_method(
+                            first_qubit,
+                            first_qubit + 1,
+                            var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                self.variablegroup_tuple[0].index
+                                % self.variablegroup_tuple[0].size
+                            ],
                         )
                         self.variablegroup_tuple[0].increase_index(1)
                     for first_qubit in range(1, self.num_qubits - 1, 2):
-                        QC.qiskit_circuit.append(
-                            gate(
-                                var_param_assignment[hash(self.variablegroup_tuple[0])][
-                                    self.variablegroup_tuple[0].index
-                                    % self.variablegroup_tuple[0].size
-                                ]
-                            ),
-                            [first_qubit, first_qubit + 1],
-                            [],
+                        gate_method(
+                            first_qubit,
+                            first_qubit + 1,
+                            var_param_assignment[hash(self.variablegroup_tuple[0])][
+                                self.variablegroup_tuple[0].index
+                                % self.variablegroup_tuple[0].size
+                            ],
                         )
                         self.variablegroup_tuple[0].increase_index(1)
             else:
@@ -478,7 +478,7 @@ class _two_qubit_operation(_operation):
                     for second_qubit in range(first_qubit + 1, self.num_qubits):
                         buffer_param_vectors_list = []
                         for variablegroup in self.variablegroup_tuple:
-                            if variablegroup.size == None:
+                            if variablegroup.size is None:
                                 buffer_param_vectors_list.append(
                                     var_param_assignment[hash(variablegroup)][variablegroup.index]
                                 )
@@ -489,16 +489,14 @@ class _two_qubit_operation(_operation):
                                     ]
                                 )
                             variablegroup.increase_index(1)
-                        QC.qiskit_circuit.append(
-                            gate(self.map(*buffer_param_vectors_list)),
-                            [first_qubit, second_qubit],
-                            [],
+                        gate_method(
+                            first_qubit, second_qubit, self.map(*buffer_param_vectors_list)
                         )
             elif self.ent_strategy == "NN":
                 for first_qubit in range(0, self.num_qubits - 1, 2):
                     buffer_param_vectors_list = []
                     for variablegroup in self.variablegroup_tuple:
-                        if variablegroup.size == None:
+                        if variablegroup.size is None:
                             buffer_param_vectors_list.append(
                                 var_param_assignment[hash(variablegroup)][variablegroup.index]
                             )
@@ -509,15 +507,11 @@ class _two_qubit_operation(_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.qiskit_circuit.append(
-                        gate(self.map(*buffer_param_vectors_list)),
-                        [first_qubit, first_qubit + 1],
-                        [],
-                    )
+                    gate_method(first_qubit, first_qubit + 1, self.map(*buffer_param_vectors_list))
                 for first_qubit in range(1, self.num_qubits - 1, 2):
                     buffer_param_vectors_list = []
                     for variablegroup in self.variablegroup_tuple:
-                        if variablegroup.size == None:
+                        if variablegroup.size is None:
                             buffer_param_vectors_list.append(
                                 var_param_assignment[hash(variablegroup)][variablegroup.index]
                             )
@@ -528,11 +522,7 @@ class _two_qubit_operation(_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.qiskit_circuit.append(
-                        gate(self.map(*buffer_param_vectors_list)),
-                        [first_qubit, first_qubit + 1],
-                        [],
-                    )
+                    gate_method(first_qubit, first_qubit + 1, self.map(*buffer_param_vectors_list))
             else:
                 raise ValueError("Wrong entangling strategy input.")
         return QC
@@ -541,117 +531,156 @@ class _two_qubit_operation(_operation):
 class _CH_entangle_operation(_two_qubit_operation):
     """Default class for a controlled x entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "ch", map)
+
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CHGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CX_entangle_operation(_two_qubit_operation):
     """Default class for a controlled x entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "cx", map)
+
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CXGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CY_entangle_operation(_two_qubit_operation):
     """Default class for a controlled y entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "cy", map)
+
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CYGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CZ_entangle_operation(_two_qubit_operation):
     """Default class for a controlled z entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "cz", map)
+
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CZGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _SWAP_operation(_two_qubit_operation):
     """class for a SWAP operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "swap", map)
+
     def get_circuit(self, var_param_assignment=None):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, SwapGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CRX_operation(_two_qubit_operation):
     """class for a controlled rx entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "crx", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CRXGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CRY_operation(_two_qubit_operation):
     """class for a controlled ry entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "cry", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CRYGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CRZ_operation(_two_qubit_operation):
     """class for a controlled rz entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "crz", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CRZGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _CP_operation(_two_qubit_operation):
     """class for a controlled phase entangling operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "cp", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CPhaseGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _RXX_operation(_two_qubit_operation):
-    """class for a RZX operation"""
+    """class for a RXX operation"""
+
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "rxx", map)
 
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RXXGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _RYY_operation(_two_qubit_operation):
-    """class for a RZX operation"""
+    """class for a RYY operation"""
+
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "ryy", map)
 
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RYYGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _RZX_operation(_two_qubit_operation):
     """class for a RZX operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "rzx", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RZXGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
 class _RZZ_operation(_two_qubit_operation):
     """class for a RZZ operation"""
 
+    def __init__(self, num_qubits: int, variablegroup_tuple: tuple, ent_strategy: str, map=None):
+        super().__init__(num_qubits, variablegroup_tuple, ent_strategy, "rzz", map)
+
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, RZZGate, var_param_assignment)
+        QC = self.apply_param_vectors(QC, var_param_assignment)
         return QC
 
 
@@ -660,10 +689,9 @@ class _CU_operation(_two_qubit_operation):
 
     def get_circuit(self, var_param_assignment: dict):
         QC = QuantumCircuit(self.num_qubits)
-        QC = self.apply_param_vectors(QC, CUGate, var_param_assignment)
-        return QC
+        return self.apply_param_vectors(QC, var_param_assignment)
 
-    def apply_param_vectors(self, QC, cu_gate, var_param_assignment):
+    def apply_param_vectors(self, QC: QuantumCircuit, var_param_assignment: dict):
         """
         Applies the param vectors creating a quantum circuit with the given gate.
         Works much like the apply_param_vectors function in two_qubit_operation, but without distinguishing of maps (or variable groups because is there no variable groups given, it will raise an error).
@@ -676,7 +704,7 @@ class _CU_operation(_two_qubit_operation):
                 for second_qubit in range(first_qubit + 1, self.num_qubits):
                     buffer_param_vectors_list = []
                     for variablegroup in self.variablegroup_tuple:
-                        if variablegroup.size == None:
+                        if variablegroup.size is None:
                             buffer_param_vectors_list.append(
                                 var_param_assignment[hash(variablegroup)][variablegroup.index]
                             )
@@ -687,16 +715,12 @@ class _CU_operation(_two_qubit_operation):
                                 ]
                             )
                         variablegroup.increase_index(1)
-                    QC.qiskit_circuit.append(
-                        cu_gate(*buffer_param_vectors_list),
-                        [first_qubit, second_qubit],
-                        [],
-                    )
+                    QC.cu(first_qubit, second_qubit, *buffer_param_vectors_list)
         elif self.ent_strategy == "NN":
             for first_qubit in range(0, self.num_qubits - 1, 2):
                 buffer_param_vectors_list = []
                 for variablegroup in self.variablegroup_tuple:
-                    if variablegroup.size == None:
+                    if variablegroup.size is None:
                         buffer_param_vectors_list.append(
                             var_param_assignment[hash(variablegroup)][variablegroup.index]
                         )
@@ -707,15 +731,11 @@ class _CU_operation(_two_qubit_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.qiskit_circuit.append(
-                    cu_gate(*buffer_param_vectors_list),
-                    [first_qubit, first_qubit + 1],
-                    [],
-                )
+                QC.cu(first_qubit, first_qubit + 1, *buffer_param_vectors_list)
             for first_qubit in range(1, self.num_qubits - 1, 2):
                 buffer_param_vectors_list = []
                 for variablegroup in self.variablegroup_tuple:
-                    if variablegroup.size == None:
+                    if variablegroup.size is None:
                         buffer_param_vectors_list.append(
                             var_param_assignment[hash(variablegroup)][variablegroup.index]
                         )
@@ -726,11 +746,7 @@ class _CU_operation(_two_qubit_operation):
                             ]
                         )
                     variablegroup.increase_index(1)
-                QC.qiskit_circuit.append(
-                    cu_gate(*buffer_param_vectors_list),
-                    [first_qubit, first_qubit + 1],
-                    [],
-                )
+                QC.cu(first_qubit, first_qubit + 1, *buffer_param_vectors_list)
         else:
             raise ValueError("Wrong entangling strategy input.")
         return QC
@@ -762,7 +778,7 @@ class LayeredPQC:
         self._num_qubits = num_qubits
         self.operation_list = []
         self.variable_groups = variable_groups
-        if variable_groups != None:
+        if variable_groups is not None:
             variable_groups_string_list = []
             variable_name_list = []
             for i in range(len(variable_groups)):
@@ -789,8 +805,8 @@ class LayeredPQC:
             self.operation_list.append(operation)
             for layer_operation in operation.layer.operation_list:
                 variablegroup_tuple = layer_operation.variablegroup_tuple
-                if variablegroup_tuple != None:
-                    if layer_operation.ent_strategy == None:
+                if variablegroup_tuple is not None:
+                    if layer_operation.ent_strategy is None:
                         number_of_variables = self.num_qubits
                     elif layer_operation.ent_strategy == "NN":
                         number_of_variables = self.num_qubits - 1
@@ -809,11 +825,11 @@ class LayeredPQC:
         else:
             self.operation_list.append(operation)
             variablegroup_tuple = operation.variablegroup_tuple
-            if variablegroup_tuple != None:
+            if variablegroup_tuple is not None:
                 # creates the variable_num_list, which gives information about how often a parameter (the variable group) is used in each operation;
                 #   for example in a 5 qubit system with R_x-Layers: There are 5 (number of qubits) R_x-Gates used,
                 #   whereas in nearest neighbour entangling there are only 4 (number of qubits - 1) variables per group used.
-                if operation.ent_strategy == None:
+                if operation.ent_strategy is None:
                     number_of_variables = self.num_qubits
                 elif operation.ent_strategy == "NN":
                     number_of_variables = self.num_qubits - 1
@@ -896,8 +912,8 @@ class LayeredPQC:
                         else:
                             var_group_tuple = operation.variablegroup_tuple
                             operation.num_qubits = value
-                            if var_group_tuple != None:
-                                if operation.ent_strategy == None:
+                            if var_group_tuple is not None:
+                                if operation.ent_strategy is None:
                                     for var_group in var_group_tuple:
                                         var_group.increase_used_number_of_variables(
                                             value - self.num_qubits
@@ -941,7 +957,7 @@ class LayeredPQC:
                     self.operation_list = []
 
                     for var in self.variable_groups:
-                        if var.size == None:
+                        if var.size is None:
                             var.total_variables_used = 0
 
                     self.add_layer(self_layer, value)
@@ -958,7 +974,7 @@ class LayeredPQC:
         """
 
         # To avoid errors, we set the indices of all variable groups to zero first
-        if self.variable_groups != None:
+        if self.variable_groups is not None:
             for i in range(len(self.variable_groups)):
                 self.variable_groups[i].set_index_to_zero()
 
@@ -970,16 +986,20 @@ class LayeredPQC:
                 operation_layer = operation
                 for i in range(operation_layer.num_layers):
                     for op in operation_layer.layer.operation_list:
-                        if op.variablegroup_tuple == None:
-                            QC = QC.compose(op.get_circuit(), None)
-                            QC.qiskit_circuit.num_qubits
+                        if op.variablegroup_tuple is None:
+                            QC = QC.compose(op.get_circuit(), list(range(QC.num_qubits)))
+                            QC.num_qubits
                         else:
-                            QC = QC.compose(op.get_circuit(var_param_assignment), None)
+                            QC = QC.compose(
+                                op.get_circuit(var_param_assignment), list(range(QC.num_qubits))
+                            )
             else:
-                if operation.variablegroup_tuple == None:
-                    QC = QC.compose(operation.get_circuit(), None)
+                if operation.variablegroup_tuple is None:
+                    QC = QC.compose(operation.get_circuit(), list(range(QC.num_qubits)))
                 else:
-                    QC = QC.compose(operation.get_circuit(var_param_assignment), None)
+                    QC = QC.compose(
+                        operation.get_circuit(var_param_assignment), list(range(QC.num_qubits))
+                    )
         return QC
 
     def H(self):
@@ -1025,7 +1045,7 @@ class LayeredPQC:
         Args:
             variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
-        if map == None:
+        if map is None:
             self.add_operation(_Rx_operation(self.num_qubits, variablegroup_tuple))
         else:
             self.add_operation(_Rx_operation(self.num_qubits, variablegroup_tuple, map))
@@ -1037,7 +1057,7 @@ class LayeredPQC:
         Args:
             variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
-        if map == None:
+        if map is None:
             self.add_operation(_Ry_operation(self.num_qubits, variablegroup_tuple))
         else:
             self.add_operation(_Ry_operation(self.num_qubits, variablegroup_tuple, map))
@@ -1049,7 +1069,7 @@ class LayeredPQC:
         Args:
             variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
-        if map == None:
+        if map is None:
             self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple))
         else:
             self.add_operation(_Rz_operation(self.num_qubits, variablegroup_tuple, map))
@@ -1061,7 +1081,7 @@ class LayeredPQC:
         Args:
             variablegroup_tuple:  is a tuple of variable types (x1,x2 etc.)
         """
-        if map == None:
+        if map is None:
             if len(variablegroup_tuple) != 1:
                 raise ValueError("There must be one variable group for a P gate.")
             self.add_operation(_P_operation(self.num_qubits, variablegroup_tuple))
@@ -1078,7 +1098,7 @@ class LayeredPQC:
         map = None
         if isinstance(variablegroup_tuple[0], tuple):
             variablegroup_tuple = variablegroup_tuple[0]
-        if map == None:
+        if map is None:
             if len(variablegroup_tuple) != 3:
                 raise ValueError("There must be three variable groups for a U gate.")
             self.add_operation(_U_operation(self.num_qubits, variablegroup_tuple))
@@ -1262,7 +1282,7 @@ class LayeredPQC:
         """
         if isinstance(variablegroup_tuple[0], tuple):
             variablegroup_tuple = variablegroup_tuple[0]
-        if map != None:
+        if map is not None:
             raise AttributeError("There must be no map for a cu entangling layer.")
         self.add_operation(_CU_operation(self.num_qubits, variablegroup_tuple, ent_strategy, map))
 
@@ -1343,7 +1363,7 @@ class LayeredPQC:
                 closed_brackets = False
                 string_iterator += 1
             elif character_iter == "]":
-                if closed_brackets == True:
+                if closed_brackets:
                     raise ValueError("There are to many closed brackets.")
                 closed_brackets = True
                 encoding_circuit.add_layer(encoding_circuit_active, num_layers=number_of_layers)
@@ -1524,7 +1544,7 @@ class LayeredPQC:
                 if character_iter == "r":
                     function_pointer = None
 
-                if function_pointer != None:
+                if function_pointer is not None:
                     if string_iterator + 2 < len(gate_layers):
                         character_iter_2 = gate_layers[string_iterator + 2]
                         if character_iter_2 == "(":
@@ -2199,7 +2219,7 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
                 from which the gate inputs are obtained
 
         Return:
-            Returns the circuit in qiskit QuantumCircuit format
+            Returns the circuit in qc_executor QuantumCircuit format
         """
         num_features = extract_num_features(features)
         layered_pqc = self._build_layered_pqc(num_features)
@@ -2816,8 +2836,8 @@ class _operation_layer:
         for operation in self.layer.operation_list:
             var_group_tuple = operation.variablegroup_tuple
             operation.num_qubits = value
-            if var_group_tuple != None:
-                if operation.ent_strategy == None:
+            if var_group_tuple is not None:
+                if operation.ent_strategy is None:
                     for var_group in var_group_tuple:
                         var_group.increase_used_number_of_variables(
                             self.num_layers * (value - self.layer.num_qubits)
@@ -2845,8 +2865,8 @@ class _operation_layer:
         num_qubits = self.layer.num_qubits
         for layer_operation in self.layer.operation_list:
             variablegroup_tuple = layer_operation.variablegroup_tuple
-            if variablegroup_tuple != None:
-                if layer_operation.ent_strategy == None:
+            if variablegroup_tuple is not None:
+                if layer_operation.ent_strategy is None:
                     number_of_variables = num_qubits
                 elif layer_operation.ent_strategy == "NN":
                     number_of_variables = num_qubits - 1
