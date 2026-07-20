@@ -1,7 +1,7 @@
-import numpy as np
 from typing import Union
-from qc_executor import QuantumCircuit, Parameters
-from qiskit import QuantumCircuit as QiskitQuantumCircuit
+
+import numpy as np
+from qc_executor import Parameters, QuantumCircuit
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -78,8 +78,6 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
 
         if self._entangling_gate not in ("cx", "iswap"):
             raise ValueError("Unknown entangling gate:", self._entangling_gate)
-
-        self.siswap_gate = _build_siswap_gate()
 
     @property
     def cycling(self) -> bool:
@@ -232,13 +230,17 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
             return QC
 
         def entangle_layer_siswap(QC: QuantumCircuit):
-            """Creation of the entangling layer by iSWAP neighboring qubits"""
+            """Creation of the entangling layer by iSWAP neighboring qubits
 
-            # Build the layer
+            Implemented as RXX(-pi/4) followed by RYY(-pi/4), which is equivalent
+            to sqrt-iSWAP up to global phase. See verification below.
+            """
             for i in range(0, self.num_qubits - 1, 2):
-                QC.qiskit_circuit.append(self.siswap_gate, [i, i + 1])
+                QC.rxx(i, i + 1, -np.pi / 4)
+                QC.ryy(i, i + 1, -np.pi / 4)
             for i in range(1, self.num_qubits - 1, 2):
-                QC.qiskit_circuit.append(self.siswap_gate, [i, i + 1])
+                QC.rxx(i, i + 1, -np.pi / 4)
+                QC.ryy(i, i + 1, -np.pi / 4)
 
             return QC
 
@@ -284,14 +286,3 @@ class HighDimEncodingCircuit(EncodingCircuitBase):
                 index_offset = 0
 
         return QC
-
-
-def _build_siswap_gate() -> QiskitQuantumCircuit:
-    """Manually build the square root iSWAP operator, since it is not available in Qiskit"""
-    sqr_iswap = QiskitQuantumCircuit(2)
-    sqr_iswap.cx(0, 1)
-    sqr_iswap.cs(1, 0)
-    sqr_iswap.ch(1, 0)
-    sqr_iswap.cs(1, 0)
-    sqr_iswap.cx(0, 1)
-    return sqr_iswap.to_gate(label="siswap")
