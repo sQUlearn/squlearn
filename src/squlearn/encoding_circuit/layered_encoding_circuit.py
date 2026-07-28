@@ -226,10 +226,10 @@ class _rot_operation(_operation):
                     gate_method(
                         qubit,
                         var_param_assignment[hash(self.variablegroup_tuple[0])][
-                            self.variablegroup_tuple[0].index(self.variablegroup_tuple[0].index)
+                            self.variablegroup_tuple[0].index
                             % self.variablegroup_tuple[0].size
                         ],
-                    ),
+                    )
                     self.variablegroup_tuple[0].increase_index(1)
         else:
             # So there is either two variable groups given or a given map. In the first case without given map it multiplies the variables together (using of the default map)

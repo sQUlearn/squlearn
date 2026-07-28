@@ -229,6 +229,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
             quantum_circuit.ry(param[0], 0)
             if measurement:
                 quantum_circuit.measure(1, 0)
+                # TODO: classical control flow is yet not supported by the qc-executor
                 with quantum_circuit.if_test((quantum_circuit.clbits[0], 1)):
                     quantum_circuit.x(0)
             else:
@@ -483,6 +484,7 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
                     qc_out.name = qc_name
                     if not gate[4]:
                         i_param += n_params
+                    # TODO: `circuit_to_gate` is qiskit specific. qc-executor should have a similar function to convert a circuit to a gate.
                     total_qc.compose(
                         circuit_to_gate(qc_out),
                         qubits=[
