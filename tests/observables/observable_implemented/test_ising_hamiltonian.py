@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp, Statevector
-
+from qiskit.quantum_info import Statevector
+from qc_executor import QuantumOperator, Parameters
 from squlearn.observables import IsingHamiltonian
 
 
@@ -96,11 +95,11 @@ class TestIsingHamiltonian:
         params = np.array([1.0, 2.0, 3.0])  # nparam = 3, will map cyclically over 10 ops
         pauli = ob.get_pauli(parameters=params)
 
-        assert isinstance(pauli, SparsePauliOp)
-        labels = list(pauli.paulis.to_labels())
+        assert isinstance(pauli, QuantumOperator)
+        labels = list(pauli.paulis)
         assert labels == expected_ops
 
-        coeffs = np.asarray(pauli.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli.coeffs, dtype=complex))
         # expected coefficients constructed by cycling through params in the same order used by implementation
         nparam = len(params)
         expected_coeffs = np.array(
@@ -109,19 +108,19 @@ class TestIsingHamiltonian:
         assert np.allclose(coeffs, expected_coeffs)
 
     def test_get_pauli_parameterized_with_parametervector_preserves_parameters(self):
-        """When passing a ParameterVector, the coeffs should be Parameter objects in the same cyclical order."""
+        """When passing a Parameters, the coeffs should be Parameter objects in the same cyclical order."""
         num_qubits = 4
         ob = IsingHamiltonian(num_qubits=num_qubits, I="S", Z="F", X="N", ZZ="F")
         # build expected ops
         expected_ops = self._expected_operator_sequence(num_qubits, "S", "F", "N", "F")
 
-        # make a ParameterVector shorter than the number of ops to ensure cycling
+        # make a Parameters shorter than the number of ops to ensure cycling
         nparams = 2
-        pvec = ParameterVector("p", nparams)
+        pvec = Parameters("p", nparams)
         pauli = ob.get_pauli(parameters=pvec)
 
-        assert isinstance(pauli, SparsePauliOp)
-        labels = list(pauli.paulis.to_labels())
+        assert isinstance(pauli, QuantumOperator)
+        labels = list(pauli.paulis)
         assert labels == expected_ops
 
     def test_get_pauli_raises_if_no_terms(self):
@@ -159,6 +158,6 @@ class TestIsingHamiltonian:
         state = Statevector.from_instruction(qc)
 
         # Compute expectation value using qiskit (the value under test)
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)

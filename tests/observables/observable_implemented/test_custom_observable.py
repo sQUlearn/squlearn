@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+from qc_executor import QuantumOperator, Parameters
+from qiskit.quantum_info import Statevector
 from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp, Statevector
 
 from squlearn.observables import CustomObservable
 
@@ -47,38 +47,38 @@ class TestCustomObservable:
         assert "parameterized" in params
         assert params["parameterized"] is True
 
-    def test_get_pauli_non_parameterized_returns_sparsepauliop(self):
+    def test_get_pauli_non_parameterized_returns_quantumoperator(self):
         op_strings = ["ZI", "XX"]
         obs = CustomObservable(num_qubits=2, operator_string=op_strings, parameterized=False)
 
         pauli_op = obs.get_pauli()
-        assert isinstance(pauli_op, SparsePauliOp)
+        assert isinstance(pauli_op, QuantumOperator)
 
         # number of terms
-        assert pauli_op.size == len(op_strings)
+        assert pauli_op.num_paulis == len(op_strings)
 
         # paulis labels should match the supplied operator strings
-        labels = list(pauli_op.paulis.to_labels())
+        labels = list(pauli_op.paulis)
         assert labels == op_strings
 
-        coeffs = np.asarray(pauli_op.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))
         assert np.allclose(coeffs, np.ones(len(op_strings)))
 
-    def test_get_pauli_parameterized_with_parameter_vector_has_parameters(self):
+    def test_get_pauli_parameterized_with_parameters_has_parameters(self):
         op_strings = ["ZII", "XXY", "YYY"]
         obs = CustomObservable(num_qubits=3, operator_string=op_strings, parameterized=True)
 
-        # Create a ParameterVector of length 3 (one parameter per operator)
-        pvec = ParameterVector("p", 3)
+        # Create a Parameters of length 3 (one parameter per operator)
+        pvec = Parameters("p", 3)
         pauli_op = obs.get_pauli(parameters=pvec)
 
-        assert isinstance(pauli_op, SparsePauliOp)
-        # The SparsePauliOp should expose the free parameters used in coeffs
-        # and they should match the ParameterVector elements
+        assert isinstance(pauli_op, QuantumOperator)
+        # The QuantumOperator should expose the free parameters used in coeffs
+        # and they should match the Parameters elements
         pauli_params = tuple(pauli_op.parameters)
         assert set(pauli_params) == set(pvec)
 
-        assert pauli_op.size == len(op_strings)
+        assert pauli_op.num_paulis == len(op_strings)
 
     def test_get_pauli_parameterized_with_numpy_params_repeats_params(self):
         # If parameters is a numpy array shorter than operator list, the code repeats them modulo nparam
@@ -89,7 +89,7 @@ class TestCustomObservable:
         params = np.array([2.5])
         pauli_op = obs.get_pauli(parameters=params)
 
-        coeffs = np.asarray(pauli_op.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))
         expected = np.array([2.5, 2.5, 2.5], dtype=float)
         assert np.allclose(coeffs, expected)
 
@@ -101,7 +101,7 @@ class TestCustomObservable:
         params = np.array([1.0, 2.0])  # will be used as [1.0, 2.0, 1.0, 2.0]
         pauli_op = obs.get_pauli(parameters=params)
 
-        coeffs = np.asarray(pauli_op.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))
         expected = np.array([1.0, 2.0, 1.0, 2.0], dtype=float)
         assert np.allclose(coeffs, expected)
 
@@ -140,7 +140,7 @@ class TestCustomObservable:
         state = Statevector.from_instruction(qc)
 
         # Expectation value computed by Qiskit
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)
 
@@ -174,6 +174,6 @@ class TestCustomObservable:
                 qc.x(qubit_index)
 
         state = Statevector.from_instruction(qc)
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)

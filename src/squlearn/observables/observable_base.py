@@ -2,10 +2,7 @@ import numpy as np
 from typing import Union
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp, Pauli
-
-from ..util.optree.optree import OpTreeNodeBase, OpTreeList, OpTreeSum, OpTreeOperator, OpTree
+from qc_executor import Parameters, QuantumOperator
 
 
 class ObservableBase(ABC):
@@ -134,11 +131,11 @@ class ObservableBase(ABC):
                 self._num_all_qubits = self._num_qubits
                 self._qubit_map = np.linspace(0, self._num_qubits - 1, self._num_qubits, dtype=int)
 
-    def get_operator(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
-        """Returns Operator as a SparsePauliOp expression.
+    def get_operator(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
+        """Returns Operator as a QuantumOperator expression.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+            parameters (Union[Parameters, np.ndarray]): Vector of parameters used in
                                                              the operator
         Return:
             StateFn expression of the observable.
@@ -150,69 +147,43 @@ class ObservableBase(ABC):
             return self.get_pauli(parameters)
 
     @abstractmethod
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
         """
-        Returns the PauliOp expression of the observable.
+        Returns the QuantumOperator expression of the observable.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+            parameters (Union[Parameters, np.ndarray]): Vector of parameters used
                                                              in the operator
 
         Returns:
-            Expectation operator in Qiskit's PauliOp class
+            Expectation operator in qc-executor's QuantumOperator class
         """
         raise NotImplementedError
 
-    def get_pauli_mapped(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+    def get_pauli_mapped(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
         """
         Changes the operator to the physical qubits, set by :meth:`set_map`.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used in
+            parameters (Union[Parameters, np.ndarray]): Vector of parameters used in
                                                              the operator
 
         Return:
-            Expectation operator in Qiskit's SprasePauliOp class with qubits mapped to
+            Expectation operator in qc-executor's QuantumOperator class with qubits mapped to
             physical ones
         """
 
-        def map_operator(operator):
-            if isinstance(operator, OpTreeNodeBase):
-                children_list = [map_operator(op) for op in operator.children]
-
-                # Rebuild the tree with the new children and factors (copy part)
-                if isinstance(operator, OpTreeSum):
-                    return OpTreeSum(children_list, operator.factor, operator.operation)
-                elif isinstance(operator, OpTreeList):
-                    return OpTreeList(children_list, operator.factor, operator.operation)
-                else:
-                    raise ValueError("Wrong Type in operator: ", type(operator))
-            elif isinstance(operator, (SparsePauliOp, OpTreeOperator)):
-                op = operator
-                if isinstance(op, OpTreeOperator):
-                    op = op.operator
-
-                op_list = []
-                for op_ in op.paulis:
-                    blank = Pauli("I" * self._num_all_qubits)
-                    for i, p in enumerate(op_):
-                        blank[self._qubit_map[i]] = p
-                    op_list.append(blank)
-                return SparsePauliOp(op_list, op.coeffs)
-
-            else:
-                raise ValueError("Wrong Type in operator: ", type(operator))
-
-        return map_operator(self.get_pauli(parameters))
+        operator = self.get_pauli(parameters)
+        return operator.apply_layout(list(self._qubit_map))
 
     def __str__(self):
         """Return a string representation of the ObservableBase."""
-        p = ParameterVector("p", self.num_parameters)
+        p = Parameters("p", self.num_parameters)
         return str(self.get_operator(p))
 
     def __repr__(self):
         """Return a string representation of the ObservableBase."""
-        p = ParameterVector("p", self.num_parameters)
+        p = Parameters("p", self.num_parameters)
         return repr(self.get_operator(p))
 
     def __add__(self, x):
@@ -346,23 +317,23 @@ class ObservableBase(ABC):
                     axis=0,
                 )
 
-            def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """Returns the PauliOp expression of the added observable.
+            def get_pauli(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
+                """Returns the QuantumOperator expression of the added observable.
 
                 Args:
-                    parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+                    parameters (Union[Parameters, np.ndarray]): Vector of parameters used
                                                                      in the operator
 
                 Return:
-                    PauliOp: Expectation operator in Qiskit's PauliOp class
+                    QuantumOperator: Expectation operator in qc-executor's QuantumOperator class
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return OpTree.simplify(paulis_op + paulis_op)
+                    return (paulis_op + paulis_op).simplify()
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return OpTree.simplify(paulis_op1 + paulis_op2)
+                    return (paulis_op1 + paulis_op2).simplify()
 
         return AddedObservable(self, x)
 
@@ -465,22 +436,22 @@ class ObservableBase(ABC):
                 else:
                     return self._op1.num_parameters + self._op2.num_parameters
 
-            def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]):
-                """Returns the PauliOp expression of the multiplied observable.
+            def get_pauli(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
+                """Returns the QuantumOperator expression of the multiplied observable.
 
                 Args:
-                    parameters (Union[ParameterVector, np.ndarray]): Vector of parameters used
+                    parameters (Union[Parameters, np.ndarray]): Vector of parameters used
                                                                      in the operator
 
                 Return:
-                    PauliOp: Expectation operator in Qiskit's PauliOp class
+                    QuantumOperator: Expectation operator in qc-executor's QuantumOperator class
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return OpTree.simplify(paulis_op.compose(paulis_op))
+                    return paulis_op.compose(paulis_op).simplify()
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return OpTree.simplify(paulis_op1.compose(paulis_op2))
+                    return (paulis_op1.compose(paulis_op2)).simplify()
 
         return MultipliedObservable(self, x)

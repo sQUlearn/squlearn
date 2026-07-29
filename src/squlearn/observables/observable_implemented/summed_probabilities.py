@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -103,16 +102,16 @@ class SummedProbabilities(ObservableBase):
         params["include_identity"] = self._include_identity
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray] = None) -> QuantumOperator:
         """
-        Function for generating the PauliOp expression of the summed probabilities operator.
+        Function for generating the QuantumOperator expression of the summed probabilities operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+            parameters (Union[Parameters, np.ndarray]): Parameters of the summed
                 probabilities operator.
 
         Returns:
-            PauliOp expression of the specified summed probabilities operator.
+            QuantumOperator expression of the specified summed probabilities operator.
         """
 
         nparam = len(parameters)
@@ -142,4 +141,4 @@ class SummedProbabilities(ObservableBase):
             if self._full_sum:
                 ioff += 1
 
-        return SparsePauliOp(op_list, coeff_list)
+        return QuantumOperator(op_list, coeff_list)

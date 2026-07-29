@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -95,16 +94,16 @@ class SinglePauli(ObservableBase):
         params["parameterized"] = self._parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
         """
-        Function for generating the SparsePauliOp expression of the single Pauli operator.
+        Function for generating the QuantumOperator expression of the single Pauli operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
+            parameters (Union[Parameters, np.ndarray]): Parameters of the single
                                                              Pauli operator.
 
         Return:
-            SparsePauliOp expression of the specified single Pauli operator.
+            QuantumOperator expression of the specified single Pauli operator.
         """
 
         i = self._qubit
@@ -113,6 +112,6 @@ class SinglePauli(ObservableBase):
 
         H = "I" * self.num_qubits
         if self._parameterized:
-            return SparsePauliOp([H[(i + 1) :] + self._op_str + H[:i]], [parameters[0]])
+            return QuantumOperator([H[(i + 1) :] + self._op_str + H[:i]], [parameters[0]])
 
-        return SparsePauliOp([H[(i + 1) :] + self._op_str + H[:i]])
+        return QuantumOperator([H[(i + 1) :] + self._op_str + H[:i]])

@@ -226,8 +226,7 @@ class _rot_operation(_operation):
                     gate_method(
                         qubit,
                         var_param_assignment[hash(self.variablegroup_tuple[0])][
-                            self.variablegroup_tuple[0].index
-                            % self.variablegroup_tuple[0].size
+                            self.variablegroup_tuple[0].index % self.variablegroup_tuple[0].size
                         ],
                     )
                     self.variablegroup_tuple[0].increase_index(1)
