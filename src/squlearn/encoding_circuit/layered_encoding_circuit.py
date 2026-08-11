@@ -187,6 +187,12 @@ class _T_conjugate_operation(_operation):
 
 class _rot_operation(_operation):
     def __init__(self, num_qubits: int, variablegroup_tuple: tuple, gate_name: str, map=None):
+        if gate_name not in QuantumCircuit.available_gates():
+            raise ValueError(
+                f"'{gate_name}' is not a recognized gate name. "
+                f"Available gates: {sorted(QuantumCircuit.available_gates())}"
+            )
+
         super().__init__(num_qubits, variablegroup_tuple, map)
         self.gate_name = gate_name
 
@@ -198,8 +204,8 @@ class _rot_operation(_operation):
         Second: The user sets no map so a default map is given and the number of variable groups used is 1, than apply the gate_method (stands for rx, ry or rz) gate with the given variable but without the map.
         Third: The user sets a map with some variable groups or there are exactly 2 variable groups given.
         Args:
-            QC: the quantum circuit by qiskit
-            var_param_assignment: a dictionary, that assigns hash values of variable groups with their parameter vectors (by qiskit)
+            QC: the quantum circuit by qc-executor
+            var_param_assignment: a dictionary, that assigns hash values of variable groups with their parameter vectors (by qc-executor)
         Returns:
             QuantumCircuit
         Raises:
@@ -372,6 +378,11 @@ class _two_qubit_operation(_operation):
         gate_name: str,
         map=None,
     ):
+        if self.gate_name not in QuantumCircuit.available_gates():
+            raise ValueError(
+                f"'{self.gate_name}' is not a recognized gate name. "
+                f"Available gates: {sorted(QuantumCircuit.available_gates())}"
+            )
         super().__init__(num_qubits, variablegroup_tuple, map)
         self.ent_strategy = ent_strategy
         self.gate_name = gate_name
@@ -987,7 +998,6 @@ class LayeredPQC:
                     for op in operation_layer.layer.operation_list:
                         if op.variablegroup_tuple is None:
                             QC = QC.compose(op.get_circuit(), list(range(QC.num_qubits)))
-                            QC.num_qubits
                         else:
                             QC = QC.compose(
                                 op.get_circuit(var_param_assignment), list(range(QC.num_qubits))
