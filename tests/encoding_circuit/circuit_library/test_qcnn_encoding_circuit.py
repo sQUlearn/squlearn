@@ -1,8 +1,6 @@
 import pytest
 import numpy as np
 from qc_executor import QuantumCircuit
-from qiskit import QuantumCircuit as QiskitQuantumCircuit
-from sympy import Q
 from squlearn.encoding_circuit import QCNNEncodingCircuit
 from squlearn.observables.observable_base import ObservableBase
 
@@ -128,7 +126,7 @@ class TestQCNNEncodingCircuit:
 
     def test_build_circuit(self):
         circuit = QCNNEncodingCircuit(num_qubits=0, default=False)
-        pool_qc = QiskitQuantumCircuit(2)
+        pool_qc = QuantumCircuit(2)
 
         input_list = [[0, 1], [2, 3]]
         output_list = [[0], [2]]
@@ -139,7 +137,7 @@ class TestQCNNEncodingCircuit:
 
     def test_build_circuit_empty_output_list(self):
         circuit = QCNNEncodingCircuit(num_qubits=0, default=False)
-        pool_qc = QiskitQuantumCircuit(2)
+        pool_qc = QuantumCircuit(2)
 
         circuit._operations_list = [["Pool", pool_qc, "Pool", False, [], []]]
 
@@ -148,7 +146,7 @@ class TestQCNNEncodingCircuit:
 
     def test_build_circuit_raises_when_output_list_larger_than_final(self):
         circuit = QCNNEncodingCircuit(num_qubits=0, default=False)
-        pool_qc = QiskitQuantumCircuit(2)
+        pool_qc = QuantumCircuit(2)
 
         input_list = [[0, 1], [2, 3]]
         output_list = [[0], [2, 3]]
