@@ -184,7 +184,7 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
         self._transpiled_circuit.assign_parameters(exchange_both, inplace=True)
-        return QuantumCircuit(self._transpiled_circuit.num_qubits, self._transpiled_circuit)
+        return QuantumCircuit.from_qiskit(self._transpiled_circuit)
 
 
 def _gen_qubit_mapping(circuit: QuantumCircuit) -> dict:
