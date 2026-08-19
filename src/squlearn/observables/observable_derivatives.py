@@ -1,17 +1,16 @@
-from qiskit.circuit import ParameterVector, ParameterExpression
-from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.circuit import ParameterExpression
 from typing import Union
 import numpy as np
 
 from .observable_base import ObservableBase
 from ..util.data_preprocessing import adjust_parameters
+from qc_executor import Parameter, Parameters, QuantumOperator
 
-from ..util.optree.optree import (
+from qc_executor.qiskit.optree import (
     OpTreeElementBase,
+    OpTreeOperator,
     OpTreeSum,
     OpTreeList,
-    OpTreeOperator,
     OpTree,
 )
 
@@ -79,7 +78,7 @@ class ObservableDerivatives:
     -----------
 
     Attributes:
-        parameter_vector (ParameterVector): Parameter vector used in the observable
+        parameter_vector (Parameters): Parameter vector used in the observable
         num_parameters (int): Total number of trainable parameters in the observable
         num_operators (int): Number operators in case of multiple observables
 
@@ -101,8 +100,8 @@ class ObservableDerivatives:
             # 1d output by a single expectation-operator
             self.multiple_output = False
             self._num_operators = 1
-            self._parameter_vector = ParameterVector("p_op", observable.num_parameters)
-            optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector))
+            self._parameter_vector = Parameters("p_op", observable.num_parameters)
+            optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector).qiskit_operator)
         else:
             # multi dimensional output by multiple Expectation-operators
             observable_list = []
@@ -113,11 +112,11 @@ class ObservableDerivatives:
                 for op in self._observable:
                     n_oper = n_oper + op.num_parameters
 
-                self._parameter_vector = ParameterVector("p_op", n_oper)
+                self._parameter_vector = Parameters("p_op", n_oper)
                 ioff = 0
                 for op in self._observable:
                     observable_list.append(
-                        OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]))
+                        OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]).qiskit_operator)
                     )
                     ioff = ioff + op.num_parameters
                 optree = OpTreeList(observable_list)
@@ -140,9 +139,8 @@ class ObservableDerivatives:
             Differentiated observable in OpTree format
         """
         if isinstance(derivative, str):
-            # todo change with replaced operator
             if derivative == "I":
-                measure_op = OpTreeOperator(SparsePauliOp("I" * self._observable.num_qubits))
+                measure_op = OpTreeOperator(QuantumOperator(self._observable.num_qubits).qiskit_operator)
             elif derivative == "O":
                 measure_op = self.get_operator()
             elif derivative == "OO":
@@ -249,9 +247,14 @@ class ObservableDerivatives:
 
             def recursive_squaring(op):
                 if isinstance(op, OpTreeOperator):
-                    return OpTreeOperator(op.operator.power(2))
-                elif isinstance(op, SparsePauliOp):
-                    return op.operator.power(2)
+                    squared = QuantumOperator(_native_operator=op.operator).compose(
+                        QuantumOperator(_native_operator=op.operator)
+                    ).simplify()
+                    return OpTreeOperator(squared.qiskit_operator)
+                elif isinstance(op, QuantumOperator):
+                    return QuantumOperator(_native_operator=op.qiskit_operator).compose(
+                        QuantumOperator(_native_operator=op.qiskit_operator)
+                    ).simplify()
                 elif isinstance(op, OpTreeSum):
                     return OpTreeSum(
                         [recursive_squaring(child) for child in op.children],
@@ -318,14 +321,14 @@ class ObservableDerivatives:
 
 
 def operator_differentiation(
-    optree: OpTreeElementBase, parameters: Union[ParameterVector, list, ParameterExpression]
+    optree: OpTreeElementBase, parameters: Union[Parameters, list, ParameterExpression]
 ) -> OpTreeElementBase:
     """Function for differentiating a given observable w.r.t. to its parameters
 
     Args:
         optree (OpTreeElementBase): optree structure of the observable, can also be a
                                             list of observables
-        parameters: Union[ParameterVector, list, ParameterExpression]: Parameters that are used for
+        parameters: Union[Parameters, list, ParameterExpression]: Parameters that are used for
                                                                        the differentiation.
     Returns:
         Differentiated observable as an OpTree
@@ -334,7 +337,7 @@ def operator_differentiation(
     if parameters == None or parameters == []:
         return None
 
-    if isinstance(parameters, ParameterVectorElement):
+    if isinstance(parameters, Parameter):
         parameters = [parameters]
 
     # If no parameters are given -> return empty list
