@@ -20,7 +20,7 @@ from ...util.data_preprocessing import (
 )
 from ...util import Executor
 
-from ...util.optree.optree import OpTreeList, OpTreeCircuit, OpTree
+from qc_executor.qiskit.optree import OpTreeList, OpTreeCircuit, OpTree
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 

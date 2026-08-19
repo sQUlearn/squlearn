@@ -35,6 +35,8 @@ from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
+from qc_executor.qiskit import QiskitExecutor
+
 if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
 else:
@@ -1148,6 +1150,33 @@ class Executor:
     def session(self) -> Session:
         """Returns the session that is used in the executor."""
         return self._session
+
+    @property
+    def as_qc_executor(self) -> QiskitExecutor:
+        """Returns a ``qc_executor.QiskitExecutor`` mirroring this executor's backend/shots/seed.
+
+        Only supported for ``quantum_framework == "qiskit"``. The instance is cached and
+        rebuilt whenever the backend or shot count changes (see :meth:`set_backend` and
+        :meth:`set_shots`).
+        """
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError(
+                "as_qc_executor is only supported for the qiskit quantum_framework, "
+                f"not '{self.quantum_framework}'."
+            )
+        cache_key = (self._backend, self._shots, self._set_seed_for_primitive)
+        if getattr(self, "_qc_executor_cache_key", None) != cache_key:
+            if self._backend is None or (self._shots is None and self.is_statevector):
+                qc_backend = "statevector"
+            else:
+                qc_backend = self._backend
+            self._qc_executor = QiskitExecutor(
+                backend=qc_backend,
+                shots=self._shots,
+                seed=self._set_seed_for_primitive,
+            )
+            self._qc_executor_cache_key = cache_key
+        return self._qc_executor
 
     def _estimator_v1(self) -> BaseEstimatorV1:
         """Returns the Estimator V1 primitive that is used for the execution.

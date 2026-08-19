@@ -10,6 +10,7 @@ from ...util import Executor
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
+from .lowlevel_qnn_unified import LowLevelQNNUnified
 
 
 class LowLevelQNN:
@@ -38,7 +39,7 @@ class LowLevelQNN:
         post_processing: Callable = None,
         *args,
         **kwargs,
-    ) -> Union[LowLevelQNNPennyLane, LowLevelQNNQiskit, LowLevelQNNQulacs]:
+    ) -> Union[LowLevelQNNPennyLane, LowLevelQNNUnified, LowLevelQNNQulacs]:
 
         if executor.quantum_framework == "pennylane":
             if "primitive" in kwargs:
@@ -55,7 +56,7 @@ class LowLevelQNN:
                 **kwargs,
             )
         elif executor.quantum_framework == "qiskit":
-            return LowLevelQNNQiskit(
+            return LowLevelQNNUnified(
                 parameterized_quantum_circuit,
                 observable,
                 executor,
