@@ -36,6 +36,7 @@ from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
 from qc_executor.qiskit import QiskitExecutor
+from qc_executor.pennylane import PennyLaneExecutor
 
 if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
@@ -1152,31 +1153,44 @@ class Executor:
         return self._session
 
     @property
-    def as_qc_executor(self) -> QiskitExecutor:
-        """Returns a ``qc_executor.QiskitExecutor`` mirroring this executor's backend/shots/seed.
+    def as_qc_executor(self) -> Union[QiskitExecutor, PennyLaneExecutor]:
+        """Returns a ``qc_executor`` executor mirroring this executor's backend/shots/seed.
 
-        Only supported for ``quantum_framework == "qiskit"``. The instance is cached and
-        rebuilt whenever the backend or shot count changes (see :meth:`set_backend` and
-        :meth:`set_shots`).
+        Supported for ``quantum_framework in ("qiskit", "pennylane")``. The instance is cached
+        and rebuilt whenever the backend/device or shot count changes (see :meth:`set_backend`
+        and :meth:`set_shots`).
         """
-        if self.quantum_framework != "qiskit":
+        if self.quantum_framework == "qiskit":
+            cache_key = (self._backend, self._shots, self._set_seed_for_primitive)
+            if getattr(self, "_qc_executor_cache_key", None) != cache_key:
+                if self._backend is None or (self._shots is None and self.is_statevector):
+                    # Exact statevector simulation: use qc_executor's StatevectorEstimator
+                    # shortcut. Passing the raw Aer backend instead would build a
+                    # BackendEstimatorV2, which samples with shots even for shots=None.
+                    qc_backend = "statevector"
+                else:
+                    qc_backend = self._backend
+                self._qc_executor = QiskitExecutor(
+                    backend=qc_backend,
+                    shots=self._shots,
+                    seed=self._set_seed_for_primitive,
+                )
+                self._qc_executor_cache_key = cache_key
+            return self._qc_executor
+        elif self.quantum_framework == "pennylane":
+            # PennyLaneExecutor forbids passing shots/seed alongside a Device instance -
+            # they must live on the device itself, which is exactly where squlearn's own
+            # set_shots() already puts them (see below), so no extra kwargs are needed here.
+            cache_key = (self._pennylane_device,)
+            if getattr(self, "_qc_executor_cache_key", None) != cache_key:
+                self._qc_executor = PennyLaneExecutor(backend=self._pennylane_device)
+                self._qc_executor_cache_key = cache_key
+            return self._qc_executor
+        else:
             raise RuntimeError(
-                "as_qc_executor is only supported for the qiskit quantum_framework, "
-                f"not '{self.quantum_framework}'."
+                "as_qc_executor is only supported for the qiskit and pennylane "
+                f"quantum_frameworks, not '{self.quantum_framework}'."
             )
-        cache_key = (self._backend, self._shots, self._set_seed_for_primitive)
-        if getattr(self, "_qc_executor_cache_key", None) != cache_key:
-            if self._backend is None or (self._shots is None and self.is_statevector):
-                qc_backend = "statevector"
-            else:
-                qc_backend = self._backend
-            self._qc_executor = QiskitExecutor(
-                backend=qc_backend,
-                shots=self._shots,
-                seed=self._set_seed_for_primitive,
-            )
-            self._qc_executor_cache_key = cache_key
-        return self._qc_executor
 
     def _estimator_v1(self) -> BaseEstimatorV1:
         """Returns the Estimator V1 primitive that is used for the execution.

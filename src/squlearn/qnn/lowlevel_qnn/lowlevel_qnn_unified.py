@@ -1,6 +1,7 @@
 """Unified low-level QNN implementation delegating first-order evaluation to qc_executor."""
 
 from typing import Callable, Union
+from warnings import warn
 
 import numpy as np
 
@@ -13,12 +14,19 @@ from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tu
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+
+# Frameworks for which Executor.as_qc_executor (and therefore the native f/dfdx/dfdp/dfdop
+# path) is available. Frameworks not in this set always go through the fallback engine.
+_NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane"})
 
 
 class LowLevelQNNUnified(LowLevelQNNBase):
-    """Low-level Qiskit QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop`` directly through
-    ``qc_executor`` (no ``OpTree`` construction), and falls back to :class:`LowLevelQNNQiskit`
-    for every other requested derivative (``dfdxdx``, ``laplace``, ``var``, ...).
+    """Low-level QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop`` directly through
+    ``qc_executor`` (no ``OpTree`` construction) for frameworks it supports, and falls back to
+    the legacy framework-specific engine (:class:`LowLevelQNNQiskit`, :class:`LowLevelQNNPennyLane`,
+    ...) for every other requested derivative (``dfdxdx``, ``laplace``, ``var``, ...) as well as
+    for frameworks qc_executor does not yet cover.
 
     Args:
         pqc (EncodingCircuitBase): The parameterized quantum circuit.
@@ -29,9 +37,10 @@ class LowLevelQNNUnified(LowLevelQNNBase):
             dict after evaluate.
         caching (bool): Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
-        primitive (str): Primitive selection. Only forwarded to the fallback engine (used for
-            derivatives beyond ``f``/``dfdx``/``dfdp``/``dfdop``), since ``qc_executor`` has no
-            equivalent per-call primitive selection.
+        primitive (str): Qiskit-only primitive selection. Only forwarded to the fallback engine
+            (used for derivatives beyond ``f``/``dfdx``/``dfdp``/``dfdop``), since ``qc_executor``
+            has no equivalent per-call primitive selection. Ignored (with a warning) for
+            frameworks that don't support it, matching the old per-framework classes.
     """
 
     _NATIVE_KEYS = frozenset({"f", "dfdx", "dfdp", "dfdop"})
@@ -48,10 +57,15 @@ class LowLevelQNNUnified(LowLevelQNNBase):
     ) -> None:
         self._num_features = num_features
         self.caching = caching
-        self._primitive = primitive
         self._fallback_engine = None
+        self._framework = executor.quantum_framework
 
-        if not executor.backend_chosen:
+        if self._framework == "pennylane" and primitive is not None:
+            warn("Primitive argument is not supported for PennyLane. Ignoring...")
+            primitive = None
+        self._primitive = primitive
+
+        if self._framework == "qiskit" and not executor.backend_chosen:
             executor.select_backend(parameterized_quantum_circuit, num_features)
 
         super().__init__(parameterized_quantum_circuit, observable, executor, post_processing)
@@ -97,19 +111,32 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         self.result_container = {}
 
     @property
-    def _fallback(self) -> LowLevelQNNQiskit:
-        """Lazily-constructed legacy engine, used for every derivative order/kind not covered
-        by the native qc_executor path (``dfdxdx``, ``laplace``, ``var``, ...)."""
+    def _fallback(self) -> Union[LowLevelQNNQiskit, LowLevelQNNPennyLane]:
+        """Lazily-constructed legacy, framework-specific engine. Used for every derivative
+        order/kind not covered by the native qc_executor path (``dfdxdx``, ``laplace``, ``var``,
+        ...), and for every key at all when the framework has no qc_executor bridge yet."""
         if self._fallback_engine is None:
-            self._fallback_engine = LowLevelQNNQiskit(
-                self._pqc,
-                self._observable,
-                self._executor,
-                self._num_features,
-                post_processing=None,
-                caching=self.caching,
-                primitive=self._primitive,
-            )
+            if self._framework == "qiskit":
+                self._fallback_engine = LowLevelQNNQiskit(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                    primitive=self._primitive,
+                )
+            elif self._framework == "pennylane":
+                self._fallback_engine = LowLevelQNNPennyLane(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                )
+            else:
+                raise RuntimeError(f"Unsupported quantum framework: {self._framework}")
         return self._fallback_engine
 
     def get_params(self, deep: bool = True) -> dict:
@@ -347,8 +374,11 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         param_op: Union[float, np.ndarray],
         *values,
     ) -> dict:
-        native_keys = [v for v in values if isinstance(v, str) and v in self._NATIVE_KEYS]
-        fallback_keys = [v for v in values if not (isinstance(v, str) and v in self._NATIVE_KEYS)]
+        if self._framework in _NATIVE_FRAMEWORKS:
+            native_keys = [v for v in values if isinstance(v, str) and v in self._NATIVE_KEYS]
+        else:
+            native_keys = []
+        fallback_keys = [v for v in values if v not in native_keys]
 
         result = {}
         if native_keys:
