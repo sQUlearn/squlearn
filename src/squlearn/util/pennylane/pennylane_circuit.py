@@ -8,6 +8,8 @@ from qiskit.circuit import Clbit
 from qiskit.compiler import transpile
 from qiskit.quantum_info import SparsePauliOp
 
+from qc_executor import QuantumOperator
+
 import pennylane as qml
 import pennylane.numpy as pnp
 import pennylane.pauli as pauli
@@ -140,6 +142,17 @@ class PennyLaneCircuit:
             target=qiskit_pennylane_target,
             optimization_level=0,
         )
+
+        # Unwrap qc_executor's QuantumOperator to the underlying SparsePauliOp: the
+        # isinstance(..., SparsePauliOp) checks below (and build_observable_instructions,
+        # which reaches into SparsePauliOp-only internals like `_pauli_list`) predate the
+        # observable migration and don't recognize QuantumOperator as a Qiskit observable.
+        if isinstance(observable, QuantumOperator):
+            observable = observable.qiskit_operator
+        elif isinstance(observable, list) and all(
+            isinstance(obs, QuantumOperator) for obs in observable
+        ):
+            observable = [obs.qiskit_operator for obs in observable]
 
         self._qiskit_observable = observable
         self._num_qubits = self._qiskit_circuit.num_qubits

@@ -37,6 +37,7 @@ from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureErro
 
 from qc_executor.qiskit import QiskitExecutor
 from qc_executor.pennylane import PennyLaneExecutor
+from qc_executor.qulacs import QulacsExecutor
 
 if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
@@ -1153,12 +1154,12 @@ class Executor:
         return self._session
 
     @property
-    def as_qc_executor(self) -> Union[QiskitExecutor, PennyLaneExecutor]:
+    def as_qc_executor(self) -> Union[QiskitExecutor, PennyLaneExecutor, QulacsExecutor]:
         """Returns a ``qc_executor`` executor mirroring this executor's backend/shots/seed.
 
-        Supported for ``quantum_framework in ("qiskit", "pennylane")``. The instance is cached
-        and rebuilt whenever the backend/device or shot count changes (see :meth:`set_backend`
-        and :meth:`set_shots`).
+        Supported for ``quantum_framework in ("qiskit", "pennylane", "qulacs")``. The instance
+        is cached and rebuilt whenever the backend/device or shot count changes (see
+        :meth:`set_backend` and :meth:`set_shots`).
         """
         if self.quantum_framework == "qiskit":
             cache_key = (self._backend, self._shots, self._set_seed_for_primitive)
@@ -1186,9 +1187,19 @@ class Executor:
                 self._qc_executor = PennyLaneExecutor(backend=self._pennylane_device)
                 self._qc_executor_cache_key = cache_key
             return self._qc_executor
+        elif self.quantum_framework == "qulacs":
+            # Qulacs has no backend concept and only supports exact statevector simulation
+            # (squlearn's own set_shots() already rejects a nonzero shots value for it).
+            cache_key = (self._shots, self._set_seed_for_primitive)
+            if getattr(self, "_qc_executor_cache_key", None) != cache_key:
+                self._qc_executor = QulacsExecutor(
+                    shots=self._shots, seed=self._set_seed_for_primitive
+                )
+                self._qc_executor_cache_key = cache_key
+            return self._qc_executor
         else:
             raise RuntimeError(
-                "as_qc_executor is only supported for the qiskit and pennylane "
+                "as_qc_executor is only supported for the qiskit, pennylane and qulacs "
                 f"quantum_frameworks, not '{self.quantum_framework}'."
             )
 

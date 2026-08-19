@@ -15,10 +15,11 @@ from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tu
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 
 # Frameworks for which Executor.as_qc_executor (and therefore the native f/dfdx/dfdp/dfdop
 # path) is available. Frameworks not in this set always go through the fallback engine.
-_NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane"})
+_NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
 
 
 class LowLevelQNNUnified(LowLevelQNNBase):
@@ -60,8 +61,12 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         self._fallback_engine = None
         self._framework = executor.quantum_framework
 
-        if self._framework == "pennylane" and primitive is not None:
-            warn("Primitive argument is not supported for PennyLane. Ignoring...")
+        _framework_labels = {"pennylane": "PennyLane", "qulacs": "Qulacs"}
+        if self._framework in _framework_labels and primitive is not None:
+            warn(
+                f"Primitive argument is not supported for {_framework_labels[self._framework]}. "
+                "Ignoring..."
+            )
             primitive = None
         self._primitive = primitive
 
@@ -111,7 +116,7 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         self.result_container = {}
 
     @property
-    def _fallback(self) -> Union[LowLevelQNNQiskit, LowLevelQNNPennyLane]:
+    def _fallback(self) -> Union[LowLevelQNNQiskit, LowLevelQNNPennyLane, LowLevelQNNQulacs]:
         """Lazily-constructed legacy, framework-specific engine. Used for every derivative
         order/kind not covered by the native qc_executor path (``dfdxdx``, ``laplace``, ``var``,
         ...), and for every key at all when the framework has no qc_executor bridge yet."""
@@ -128,6 +133,15 @@ class LowLevelQNNUnified(LowLevelQNNBase):
                 )
             elif self._framework == "pennylane":
                 self._fallback_engine = LowLevelQNNPennyLane(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                )
+            elif self._framework == "qulacs":
+                self._fallback_engine = LowLevelQNNQulacs(
                     self._pqc,
                     self._observable,
                     self._executor,
