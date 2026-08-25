@@ -101,7 +101,9 @@ class ObservableDerivatives:
             self.multiple_output = False
             self._num_operators = 1
             self._parameter_vector = Parameters("p_op", observable.num_parameters)
-            optree = OpTreeOperator(self._observable.get_operator(self._parameter_vector).qiskit_operator)
+            optree = OpTreeOperator(
+                self._observable.get_operator(self._parameter_vector).qiskit_operator
+            )
         else:
             # multi dimensional output by multiple Expectation-operators
             observable_list = []
@@ -116,7 +118,9 @@ class ObservableDerivatives:
                 ioff = 0
                 for op in self._observable:
                     observable_list.append(
-                        OpTreeOperator(op.get_operator(self._parameter_vector[ioff:]).qiskit_operator)
+                        OpTreeOperator(
+                            op.get_operator(self._parameter_vector[ioff:]).qiskit_operator
+                        )
                     )
                     ioff = ioff + op.num_parameters
                 optree = OpTreeList(observable_list)
@@ -140,7 +144,9 @@ class ObservableDerivatives:
         """
         if isinstance(derivative, str):
             if derivative == "I":
-                measure_op = OpTreeOperator(QuantumOperator(self._observable.num_qubits).qiskit_operator)
+                measure_op = OpTreeOperator(
+                    QuantumOperator(self._observable.num_qubits).qiskit_operator
+                )
             elif derivative == "O":
                 measure_op = self.get_operator()
             elif derivative == "OO":
@@ -247,14 +253,18 @@ class ObservableDerivatives:
 
             def recursive_squaring(op):
                 if isinstance(op, OpTreeOperator):
-                    squared = QuantumOperator(_native_operator=op.operator).compose(
+                    squared = (
                         QuantumOperator(_native_operator=op.operator)
-                    ).simplify()
+                        .compose(QuantumOperator(_native_operator=op.operator))
+                        .simplify()
+                    )
                     return OpTreeOperator(squared.qiskit_operator)
                 elif isinstance(op, QuantumOperator):
-                    return QuantumOperator(_native_operator=op.qiskit_operator).compose(
+                    return (
                         QuantumOperator(_native_operator=op.qiskit_operator)
-                    ).simplify()
+                        .compose(QuantumOperator(_native_operator=op.qiskit_operator))
+                        .simplify()
+                    )
                 elif isinstance(op, OpTreeSum):
                     return OpTreeSum(
                         [recursive_squaring(child) for child in op.children],
