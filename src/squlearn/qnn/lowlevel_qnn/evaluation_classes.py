@@ -1,19 +1,18 @@
 from typing import Union, List
 import numpy as np
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametervector import ParameterVectorElement
+from qc_executor import Parameter, Parameters
 
 
 class EvaluationBase:
     """Base class for evaluation of derivatives of the QNN
 
     Args:
-        key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative for
+        key (Union[str, tuple, Parameter, Parameters]): Key of the derivative for
                                                                           the value dictionary
     """
 
-    def __init__(self, key: Union[str, tuple, ParameterVector, ParameterVectorElement]):
+    def __init__(self, key: Union[str, tuple, Parameter, Parameters]):
         self.key = key
 
 
@@ -21,7 +20,7 @@ class DirectEvaluation(EvaluationBase):
     """Container class for evaluation of derivatives of the QNN
 
     Args:
-        key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative for
+        key (Union[str, tuple, Parameter, Parameters]): Key of the derivative for
                                                                           the value dictionary
         order (int): Order of the derivative
         argnum (Union[None, List[int]]): List of which arguments (x,param,param_obs) to
@@ -35,7 +34,7 @@ class DirectEvaluation(EvaluationBase):
 
     def __init__(
         self,
-        key: Union[str, tuple, ParameterVector, ParameterVectorElement],
+        key: Union[str, tuple, Parameter, Parameters],
         order: int = 0,
         argnum: Union[None, List[int]] = None,
         return_grad_param: bool = False,
@@ -56,7 +55,7 @@ class PostProcessingEvaluation(EvaluationBase):
     """Container class for the post processing evaluation of derivatives of the QNN
 
     Args:
-        key (Union[str, tuple, ParameterVector, ParameterVectorElement]): Key of the derivative
+        key (Union[str, tuple, Parameter, Parameters]): Key of the derivative
                                                                           for the value dictionary
         evaluation_tuple (tuple): Tuple of direct_evaluation objects that are used for evaluating
                                   the values that are used in the post processing
@@ -65,7 +64,7 @@ class PostProcessingEvaluation(EvaluationBase):
 
     def __init__(
         self,
-        key: Union[str, tuple, ParameterVector, ParameterVectorElement],
+        key: Union[str, tuple, Parameter, Parameters],
         evaluation_tuple: tuple,
         evaluation_function: callable,
     ):
@@ -80,8 +79,8 @@ def get_evaluation_class(
         tuple,
         DirectEvaluation,
         PostProcessingEvaluation,
-        ParameterVector,
-        ParameterVectorElement,
+        Parameter,
+        Parameters,
     ],
     not_implemented: Union[None, List[str]] = None,
 ) -> Union[DirectEvaluation, PostProcessingEvaluation]:
@@ -89,7 +88,7 @@ def get_evaluation_class(
 
     Args:
         val (Union[str, tuple, direct_evaluation, post_processing_evaluation,
-                ParameterVector, ParameterVectorElement]): Input string or evaluation object
+                Parameter, Parameters]): Input string or evaluation object
 
     Returns:
         Associated Expec object
@@ -205,7 +204,7 @@ def get_evaluation_class(
             raise ValueError("Unknown input string:", val)
     elif isinstance(val, tuple):
         return get_direct_evaluation_from_tuple(val)
-    elif isinstance(val, ParameterVectorElement) or isinstance(val, ParameterVector):
+    elif isinstance(val, Parameters) or isinstance(val, Parameter):
         evaluation = get_direct_evaluation_from_tuple((val,))
         evaluation.key = val  # Replace it to remove tuple structure
         return evaluation
@@ -371,10 +370,10 @@ def get_direct_evaluation_from_tuple(
     Function for generating the evaluation object from a tuple
 
     Handles derivatives of the QNN output with respect to a tuple of
-    ParameterVector and ParameterVectorElement
+    Parameter and Parameters
 
     Args:
-        todo (tuple): Tuple of ParameterVector and ParameterVectorElement entries that
+        todo (tuple): Tuple of Parameter and Parameters entries that
                         define the derivative
 
     Returns:
@@ -383,7 +382,7 @@ def get_direct_evaluation_from_tuple(
     """
 
     # Generate direct evaluation object for the derivative
-    # in case of a single ParameterVectorElement, post processing is needed
+    # in case of a single Parameters, post processing is needed
     return_grad_param = False
     return_grad_param_obs = False
     return_grad_x = False
@@ -393,12 +392,12 @@ def get_direct_evaluation_from_tuple(
     pick_list = []
 
     for sub_val in todo:
-        if isinstance(sub_val, ParameterVector) or isinstance(sub_val, ParameterVectorElement):
+        if isinstance(sub_val, Parameter) or isinstance(sub_val, Parameters):
             # Increase order of derivative
             order += 1
             # Generate list for picking the single elements in post processing
             # and the tuple for the direct evaluation
-            if isinstance(sub_val, ParameterVectorElement):
+            if isinstance(sub_val, Parameters):
                 val_tuple += (sub_val.vector,)
                 pick_list.append(sub_val.index)
             else:

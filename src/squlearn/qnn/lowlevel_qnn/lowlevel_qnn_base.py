@@ -4,8 +4,7 @@ from unittest import result
 import numpy as np
 import copy
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametervector import ParameterVectorElement
+from qc_executor import Parameter, Parameters
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -79,8 +78,8 @@ class LowLevelQNNBase(abc.ABC):
         param_obs: Union[float, np.ndarray],
         *values: Union[
             str,
-            ParameterVector,
-            ParameterVectorElement,
+            Parameter,
+            Parameters,
             tuple,
         ],
     ) -> dict:
@@ -119,8 +118,8 @@ class LowLevelQNNBase(abc.ABC):
         param_obs: Union[float, np.ndarray],
         *values: Union[
             str,
-            ParameterVector,
-            ParameterVectorElement,
+            Parameter,
+            Parameters,
             tuple,
         ],
     ) -> dict:

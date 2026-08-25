@@ -2,8 +2,8 @@ import numpy as np
 from typing import Callable, Union
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector, ParameterExpression
-from qiskit.circuit.parametervector import ParameterVectorElement
+from qiskit.circuit import ParameterExpression
+from qc_executor import Parameter, Parameters
 
 from ...observables.observable_base import ObservableBase
 from ...observables.observable_derivatives import ObservableDerivatives
@@ -15,7 +15,6 @@ from ...encoding_circuit.transpiled_encoding_circuit import TranspiledEncodingCi
 from ...util.data_preprocessing import (
     adjust_features,
     adjust_parameters,
-    extract_num_features,
     to_tuple,
 )
 from ...util import Executor
@@ -31,9 +30,9 @@ class Expec:
     """Data structure that holds the set-up of derivative of the expectation value.
 
     Args:
-        wave_function (Union[str, tuple, ParameterVectorElement]): Describes the wave function or
-            its derivative. If tuple or ParameterVectorElement the differentiation with respect to
-            the parameters in the tuple or with respect to the ParameterVectorElement is considered
+        wave_function (Union[str, tuple, Parameter]): Describes the wave function or
+            its derivative. If tuple or Parameter the differentiation with respect to
+            the parameters in the tuple or with respect to the Parameter is considered
         observable (str): String for the expectation value observable (``"O"``, ``"OO"``,
             ``"dop"``, ``"dopdop"``, ``"var"``).
         label (str): Label that is used for displaying or in the value dict of the QNN class.
@@ -42,7 +41,7 @@ class Expec:
 
     def __init__(
         self,
-        wave_function: Union[str, tuple, ParameterVectorElement],
+        wave_function: Union[str, tuple, Parameter],
         observable: str,
         label: str = "",
     ):
@@ -50,11 +49,11 @@ class Expec:
         self.operator = observable
         self.label = label
 
-    def __var_to_str(self, val: Union[str, tuple, ParameterExpression, ParameterVector]) -> str:
+    def __var_to_str(self, val: Union[str, tuple, ParameterExpression, Parameters]) -> str:
         """Converter for variables to string.
 
         Args:
-            val (Union[str, tuple, ParameterExpression, ParameterVector]): Input that is converted
+            val (Union[str, tuple, ParameterExpression, Parameters]): Input that is converted
                 to string
 
         Returns:
@@ -63,7 +62,7 @@ class Expec:
         """
         if isinstance(val, ParameterExpression):
             out_str = str(val.name)
-        elif isinstance(val, ParameterVector):
+        elif isinstance(val, Parameters):
             out_str = str(val.name)
         elif isinstance(val, tuple):
             out_str = "("
@@ -199,7 +198,7 @@ class Expec:
 
         # Split the derivative tuple into the circuit and observable part
         for i in val:
-            if isinstance(i, ParameterVector) or isinstance(i, ParameterVectorElement):
+            if isinstance(i, Parameters) or isinstance(i, Parameter):
                 if "p_op" in i.name:
                     observable_tuple += (i,)
                 elif "p" in i.name:
@@ -222,11 +221,11 @@ class Expec:
         return cls(circuit_tuple, observable_tuple, label)
 
     @classmethod
-    def from_parameter_vector(cls, val: ParameterVectorElement, operator: str = "O"):
+    def from_parameter_vector(cls, val: Parameter, operator: str = "O"):
         """Creates an Expec object from an inputted parameter
 
         Args:
-            val (ParameterVectorElement): Parameter that is used in the differentiation.
+            val (Parameter): Parameter that is used in the differentiation.
             operator (str): String for the operator, default='O'.
 
         Returns
@@ -235,11 +234,11 @@ class Expec:
         return cls.from_tuple((val,), operator, val)
 
     @classmethod
-    def from_parameter(cls, val: ParameterVectorElement, operator: str = "O"):
+    def from_parameter(cls, val: Parameter, operator: str = "O"):
         """Creates an Expec object from an inputted parameter
 
         Args:
-            val (ParameterVectorElement): Parameter that is used in the differentiation.
+            val (Parameter): Parameter that is used in the differentiation.
             operator (str): String for the operator, default='O'.
 
         Returns
@@ -252,7 +251,7 @@ class Expec:
         """Creates an Expec object from an inputted value
 
         Args:
-            val (Union[Expec,str,tuple,ParameterVectorElement]): value that defines the derivative
+            val (Union[Expec,str,tuple,Parameter]): value that defines the derivative
 
         Returns
             Associated Expec object
@@ -264,9 +263,9 @@ class Expec:
             return cls.from_string(val)
         elif isinstance(val, tuple):
             return cls.from_tuple(val)
-        elif isinstance(val, ParameterVector):
+        elif isinstance(val, Parameters):
             return cls.from_parameter_vector(val)
-        elif isinstance(val, ParameterVectorElement):
+        elif isinstance(val, Parameter):
             return cls.from_parameter(val)
         else:
             raise TypeError("Unsupported type:", type(val))
@@ -298,9 +297,9 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         num_operator (int): Number of outputs
         num_parameters_observable (int): Number of trainable parameters of the expectation value operator
         multiple_output (bool): True if multiple outputs are used
-        parameters (ParameterVector): Parameter vector of the PQC
-        features (ParameterVector): Feature vector of the PQC
-        parameters_operator (ParameterVector): Parameter vector of the cost operator
+        parameters (Parameters): Parameter vector of the PQC
+        features (Parameters): Feature vector of the PQC
+        parameters_operator (Parameters): Parameter vector of the cost operator
 
     Methods:
     --------
@@ -541,17 +540,17 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         return self.operator_derivatives.multiple_output
 
     @property
-    def parameters(self) -> ParameterVector:
+    def parameters(self) -> Parameters:
         """Return the parameter vector of the PQC."""
         return self.pqc_derivatives.parameter_vector
 
     @property
-    def features(self) -> ParameterVector:
+    def features(self) -> Parameters:
         """Return the feature vector of the PQC."""
         return self.pqc_derivatives.feature_vector
 
     @property
-    def parameters_operator(self) -> ParameterVector:
+    def parameters_operator(self) -> Parameters:
         """Return the parameter vector of the cost operator."""
         return self.operator_derivatives.parameter_vector
 
@@ -878,8 +877,8 @@ class LowLevelQNNQiskit(LowLevelQNNBase):
         *values: Union[
             str,
             Expec,
-            ParameterVector,
-            ParameterVectorElement,
+            Parameters,
+            Parameter,
             tuple,
         ],
     ) -> dict:
