@@ -11,9 +11,9 @@ class CustomObservable(ObservableBase):
     Class for defining a custom observable.
 
     The operator is supplied as a string of Pauli operators, e.g. ``operator_string='ZI'`` for
-    a two qubit operator with a Z operator on the second qubit.
-    Note that the index of the qubits is reversed, i.e. the first qubit is the last character
-    in the string, similar to the Qiskit computational state numbering.
+    a two qubit operator with a Z operator on the first qubit.
+    Qubit ``q`` is character ``q`` of the string, i.e. the first qubit is the first
+    (leftmost) character.
 
     Multiple operators that are summed can be specified by a list of strings, e.g.
     ``operator_string=['ZZ', 'XX']``.

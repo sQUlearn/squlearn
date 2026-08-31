@@ -40,7 +40,7 @@ class TestSummedPaulis:
 
     def _gen_string(self, num_qubits, i, op_str):
         H = "I" * num_qubits
-        return H[(i + 1) :] + op_str + H[:i]
+        return H[:i] + op_str + H[(i + 1) :]
 
     def test_get_pauli_full_sum_labels_and_coeffs(self):
         num_qubits = 2

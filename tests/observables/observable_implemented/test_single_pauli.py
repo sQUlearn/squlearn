@@ -56,7 +56,7 @@ class TestSinglePauli:
 
         labels = list(pauli_op.paulis)
         H = "I" * num_qubits
-        expected_label = H[(qubit + 1) :] + "Z" + H[:qubit]
+        expected_label = H[:qubit] + "Z" + H[(qubit + 1) :]
         assert labels == [expected_label]
 
         coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))

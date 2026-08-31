@@ -110,7 +110,7 @@ class SingleProbability(ObservableBase):
         if 0 > i or self.num_qubits <= i:
             raise ValueError("Specified qubit out of range")
         I = "I" * self.num_qubits
-        Z = I[(i + 1) :] + "Z" + I[:i]
+        Z = I[:i] + "Z" + I[(i + 1) :]
 
         if self._parameterized:
             coeff = 0.5 * parameters[0]

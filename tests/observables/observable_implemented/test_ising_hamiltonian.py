@@ -13,14 +13,14 @@ class TestIsingHamiltonian:
 
         def gen_double_ising_string(i, j):
             H = "I" * num_qubits
-            H = H[i + 1 :] + "Z" + H[:i]
+            H = H[:i] + "Z" + H[i + 1 :]
             if i != j:
-                H = H[: num_qubits - j - 1] + "Z" + H[num_qubits - j :]
+                H = H[:j] + "Z" + H[j + 1 :]
             return H
 
         def gen_single_ising_string(i, s):
             H = "I" * num_qubits
-            H = H[i + 1 :] + s + H[:i]
+            H = H[:i] + s + H[i + 1 :]
             return H
 
         op_list = []

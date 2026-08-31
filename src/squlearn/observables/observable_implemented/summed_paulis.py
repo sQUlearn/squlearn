@@ -121,7 +121,7 @@ class SummedPaulis(ObservableBase):
 
         def gen_string(i, op_str):
             H = "I" * self.num_qubits
-            H = H[i + 1 :] + op_str + H[:i]
+            H = H[:i] + op_str + H[i + 1 :]
             return H
 
         nparam = len(parameters)

@@ -112,6 +112,6 @@ class SinglePauli(ObservableBase):
 
         H = "I" * self.num_qubits
         if self._parameterized:
-            return QuantumOperator([H[(i + 1) :] + self._op_str + H[:i]], [parameters[0]])
+            return QuantumOperator([H[:i] + self._op_str + H[(i + 1) :]], [parameters[0]])
 
-        return QuantumOperator([H[(i + 1) :] + self._op_str + H[:i]])
+        return QuantumOperator([H[:i] + self._op_str + H[(i + 1) :]])

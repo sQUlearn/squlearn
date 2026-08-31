@@ -126,7 +126,7 @@ class SummedProbabilities(ObservableBase):
         ioff = 1
         for i in range(self.num_qubits):
             I = "I" * self.num_qubits
-            Z = I[(i + 1) :] + "Z" + I[:i]
+            Z = I[:i] + "Z" + I[(i + 1) :]
 
             if self._one_state:
                 op_list.append(I)

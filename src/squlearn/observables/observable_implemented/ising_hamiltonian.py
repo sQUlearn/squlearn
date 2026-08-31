@@ -166,14 +166,14 @@ class IsingHamiltonian(ObservableBase):
 
         def gen_double_ising_string(i, j):
             H = "I" * self.num_qubits
-            H = H[i + 1 :] + "Z" + H[:i]
+            H = H[:i] + "Z" + H[i + 1 :]
             if i != j:
-                H = H[: self.num_qubits - j - 1] + "Z" + H[self.num_qubits - j :]
+                H = H[:j] + "Z" + H[j + 1 :]
             return H
 
         def gen_single_ising_string(i, str):
             H = "I" * self.num_qubits
-            H = H[i + 1 :] + str + H[:i]
+            H = H[:i] + str + H[i + 1 :]
             return H
 
         nparam = len(parameters)
