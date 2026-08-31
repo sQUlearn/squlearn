@@ -71,13 +71,15 @@ class FidelityKernelStatevector:
             enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
 
             if self._executor.quantum_framework == "pennylane":
-                circuit = transpile(enc_circ, target=qiskit_pennylane_target, optimization_level=0)
+                circuit = transpile(
+                    enc_circ.qiskit_circuit, target=qiskit_pennylane_target, optimization_level=0
+                )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
 
             elif self._executor.quantum_framework == "qulacs":
 
                 enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-                self._qulacs_circuit = QulacsCircuit(enc_circ, None)
+                self._qulacs_circuit = QulacsCircuit(enc_circ.qiskit_circuit, None)
 
             else:
                 raise RuntimeError(
@@ -104,7 +106,9 @@ class FidelityKernelStatevector:
                 enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
 
                 circuit = enc_circ1.compose(enc_circ2.inverse())
-                circuit = transpile(circuit, target=qiskit_pennylane_target, optimization_level=0)
+                circuit = transpile(
+                    circuit.qiskit_circuit, target=qiskit_pennylane_target, optimization_level=0
+                )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "probs")
             elif self._executor.quantum_framework == "qulacs":
                 raise NotImplementedError(

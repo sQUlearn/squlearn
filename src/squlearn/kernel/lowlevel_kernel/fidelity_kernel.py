@@ -377,13 +377,13 @@ class FidelityKernel(KernelMatrixBase):
                     if self._executor.is_statevector:
                         if self._parameter_vector is None:
                             self._quantum_kernel = FidelityStatevectorKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=self._enc_circ.qiskit_circuit,
                                 shots=self._executor.get_shots(),
                                 enforce_psd=False,
                             )
                         else:
                             self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=self._enc_circ.qiskit_circuit,
                                 training_parameters=self._parameter_vector,
                                 shots=self._executor.get_shots(),
                                 enforce_psd=False,
@@ -398,14 +398,14 @@ class FidelityKernel(KernelMatrixBase):
                         fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
                         if self._parameter_vector is None:
                             self._quantum_kernel = FidelityQuantumKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=self._enc_circ.qiskit_circuit,
                                 fidelity=fidelity,
                                 evaluate_duplicates=self._evaluate_duplicates,
                                 enforce_psd=False,
                             )
                         else:
                             self._quantum_kernel = TrainableFidelityQuantumKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=self._enc_circ.qiskit_circuit,
                                 fidelity=fidelity,
                                 training_parameters=self._parameter_vector,
                                 evaluate_duplicates=self._evaluate_duplicates,
