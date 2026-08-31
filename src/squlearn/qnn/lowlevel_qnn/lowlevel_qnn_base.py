@@ -4,7 +4,8 @@ from unittest import result
 import numpy as np
 import copy
 
-from qc_executor import Parameter, Parameters
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase

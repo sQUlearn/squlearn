@@ -4,10 +4,11 @@ import numpy as np
 
 from .observable_base import ObservableBase
 from ..util.data_preprocessing import adjust_parameters
-from qc_executor import Parameter, Parameters, QuantumOperator
+from qc_executor import Parameters, QuantumOperator
+from qc_executor.parameters import Parameter
 
+from qc_executor.qiskit.optree.optree import OpTreeElementBase
 from qc_executor.qiskit.optree import (
-    OpTreeElementBase,
     OpTreeOperator,
     OpTreeSum,
     OpTreeList,

@@ -3,7 +3,8 @@ import numpy as np
 
 from qc_executor import QuantumOperator
 
-from qc_executor import Parameter, Parameters
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .evaluation_classes import DirectEvaluation, PostProcessingEvaluation, get_evaluation_class

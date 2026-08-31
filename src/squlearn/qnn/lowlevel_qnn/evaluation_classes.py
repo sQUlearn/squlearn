@@ -1,7 +1,8 @@
 from typing import Union, List
 import numpy as np
 
-from qc_executor import Parameter, Parameters
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 
 class EvaluationBase:

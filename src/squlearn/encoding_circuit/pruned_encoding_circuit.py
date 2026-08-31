@@ -1,5 +1,6 @@
 import numpy as np
-from qc_executor import Parameter, Parameters, QuantumCircuit
+from qc_executor import Parameters, QuantumCircuit
+from qc_executor.parameters import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 import warnings

@@ -21,6 +21,13 @@ from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 # path) is available. Frameworks not in this set always go through the fallback engine.
 _NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
 
+# Frameworks whose qc_executor backend cannot bind a shared "p_op" vector across a
+# List[QuantumOperatorBase] where each entry only owns a different slice of it: they require
+# the array passed under a vector-style key to match that *specific* observable's own
+# parameter count exactly, not the length of the full, shared vector. Qiskit's backend
+# handles the list natively and is left on the faster, single-call path.
+_LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS = frozenset({"pennylane", "qulacs"})
+
 
 class LowLevelQNNUnified(LowLevelQNNBase):
     """Low-level QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop`` directly through
@@ -295,31 +302,56 @@ class LowLevelQNNUnified(LowLevelQNNBase):
 
     def _compute_native(self, key: str, parameters: dict):
         qc_exec = self._executor.as_qc_executor
+        if self.multiple_output and (
+            # "dfdop" always needs it: each observable only contributes a gradient for its
+            # own "p_op" slice, and qc_executor's list-observable collapse assumes every
+            # list entry produces a result of the same shape - it can't zero-pad the rest.
+            key == "dfdop"
+            # The other keys need it only for backends that can't bind a shared "p_op"
+            # vector across list entries owning different-sized slices of it.
+            or self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
+        ):
+            return self._compute_native_per_observable(key, parameters)
         if key == "f":
             return qc_exec.expectation_value(
                 self._native_circuit, self._native_observable, **parameters
             )
-        if key == "dfdop" and self.multiple_output:
-            # Each observable in the list only owns a slice of the shared "p_op" vector.
-            # qc_executor's automatic list-observable collapse assumes every list entry
-            # produces a result of the same shape, which fails here since the per-observable
-            # "p_op" slices have different lengths. Loop per observable instead and place
-            # each result into its slice; everywhere else df_i/dp_op_j is zero by construction.
-            full = np.zeros((self.num_operator, self.num_parameters_observable))
-            for i, (obs, (ioff, n)) in enumerate(
-                zip(self._native_observable, self._observable_p_op_slices)
-            ):
-                if n == 0:
-                    continue
-                value = qc_exec.expectation_value_derivatives(
-                    self._native_circuit, obs, "p_op", **parameters
-                )
-                full[i, ioff : ioff + n] = np.asarray(value, dtype=float).reshape(n)
-            return full
         derivative_param = {"dfdx": "x", "dfdp": "p", "dfdop": "p_op"}[key]
         return qc_exec.expectation_value_derivatives(
             self._native_circuit, self._native_observable, derivative_param, **parameters
         )
+
+    def _compute_native_per_observable(self, key: str, parameters: dict) -> np.ndarray:
+        """Evaluate ``key`` for each observable individually."""
+        qc_exec = self._executor.as_qc_executor
+        needs_local_p_op_slice = self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
+        out = np.zeros(self._trailing_shape(key), dtype=float)
+        for i, (obs, (ioff, n)) in enumerate(
+            zip(self._native_observable, self._observable_p_op_slices)
+        ):
+            if key == "dfdop" and n == 0:
+                # Observable i owns no "p_op" parameters at all - df_i/dp_op_j stays 0 for
+                # every j, including the j's belonging to i's own (empty) slice.
+                continue
+            obs_parameters = dict(parameters)
+            if needs_local_p_op_slice:
+                obs_parameters["p_op"] = parameters["p_op"][ioff : ioff + n]
+            if key == "f":
+                out[i] = qc_exec.expectation_value(self._native_circuit, obs, **obs_parameters)
+            elif key == "dfdop":
+                value = qc_exec.expectation_value_derivatives(
+                    self._native_circuit, obs, "p_op", **obs_parameters
+                )
+                # df_i/dp_op_j is 0 by construction for every j outside observable i's own
+                # slice - only that slice of row i is filled in.
+                out[i, ioff : ioff + n] = np.asarray(value, dtype=float).reshape(n)
+            else:
+                derivative_param = {"dfdx": "x", "dfdp": "p"}[key]
+                value = qc_exec.expectation_value_derivatives(
+                    self._native_circuit, obs, derivative_param, **obs_parameters
+                )
+                out[i] = np.asarray(value, dtype=float).reshape(-1)
+        return out
 
     def _evaluate_native(
         self,

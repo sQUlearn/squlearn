@@ -2,7 +2,8 @@ from typing import Callable, Union
 import numpy as np
 import copy
 
-from qc_executor import Parameter, Parameters
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 import pennylane as qml
 import pennylane.numpy as pnp
@@ -173,17 +174,17 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         return self._multiple_output
 
     @property
-    def parameters(self) -> Parameter:
+    def parameters(self) -> Parameters:
         """Return the parameter vector of the PQC."""
         return self._param
 
     @property
-    def features(self) -> Parameter:
+    def features(self) -> Parameters:
         """Return the feature vector of the PQC."""
         return self._x
 
     @property
-    def parameters_operator(self) -> Parameter:
+    def parameters_operator(self) -> Parameters:
         """Return the parameter vector of the cost operator."""
         return self._param_obs
 
@@ -376,7 +377,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._multiple_output = False
             self._num_operators = 1
             self._num_parameters_observable = self._observable.num_parameters
-            self._param_obs = Parameter("param_obs", self._num_parameters_observable)
+            self._param_obs = Parameters("param_obs", self._num_parameters_observable)
             self._qiskit_observable = self._observable.get_operator(self._param_obs)
             self._qiskit_observable_squared = (
                 QuantumOperator(_native_operator=self._qiskit_observable.qiskit_operator)
@@ -390,7 +391,7 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
             self._num_parameters_observable = 0
             for obs in self._observable:
                 self._num_parameters_observable += obs.num_parameters
-            self._param_obs = Parameter("param_obs", self._num_parameters_observable)
+            self._param_obs = Parameters("param_obs", self._num_parameters_observable)
             self._qiskit_observable = []
             self._qiskit_observable_squared = []
             ioff = 0
@@ -416,8 +417,8 @@ class LowLevelQNNPennyLane(LowLevelQNNBase):
         if isinstance(self._pqc, LayeredEncodingCircuit):
             self._pqc._build_layered_pqc(num_features)
 
-        self._x = Parameter("x", num_features)
-        self._param = Parameter("param", self._pqc.num_parameters)
+        self._x = Parameters("x", num_features)
+        self._param = Parameters("param", self._pqc.num_parameters)
         self._qiskit_circuit = decompose_to_std(
             self._pqc.get_circuit(self._x, self._param).qiskit_circuit
         )

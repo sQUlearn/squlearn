@@ -3,7 +3,8 @@ from typing import Callable, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qc_executor import Parameter, Parameters
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from ...observables.observable_base import ObservableBase
 from ...observables.observable_derivatives import ObservableDerivatives

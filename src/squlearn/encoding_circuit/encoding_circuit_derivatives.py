@@ -1,12 +1,13 @@
 import numpy as np
 from typing import Union
 
-from qc_executor import Parameters, Parameter
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from .encoding_circuit_base import EncodingCircuitBase
 
+from qc_executor.qiskit.optree.optree import OpTreeElementBase
 from qc_executor.qiskit.optree import (
-    OpTreeElementBase,
     OpTreeCircuit,
     OpTreeSum,
     OpTreeList,
