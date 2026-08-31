@@ -398,7 +398,7 @@ def get_direct_evaluation_from_tuple(
             order += 1
             # Generate list for picking the single elements in post processing
             # and the tuple for the direct evaluation
-            if isinstance(sub_val, Parameters):
+            if isinstance(sub_val, Parameter):
                 val_tuple += (sub_val.vector,)
                 pick_list.append(sub_val.index)
             else:

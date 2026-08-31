@@ -20,7 +20,14 @@ def get_values(framework):
     param = np.random.rand(2, llqnn.num_parameters)
     param_pbs = np.random.rand(2, llqnn.num_parameters_observable)
 
-    return llqnn.evaluate(
+    # Each framework's llqnn owns its own Parameters vector (e.g. "p" for qiskit, "param"
+    # for pennylane), so the tuple key for "gradient w.r.t. the first PQC/observable
+    # parameter" is a different object per framework - keep it alongside the result dict
+    # instead of trying to relocate it positionally from the far side of the call.
+    param_key = (llqnn.parameters[0],)
+    param_op_key = (llqnn.parameters_operator[0],)
+
+    values = llqnn.evaluate(
         [[0.1, 0.2], [0.3, 0.4]],
         param,
         param_pbs,
@@ -28,33 +35,22 @@ def get_values(framework):
         "dfdp",
         "dfdx",
         "var",
-        (llqnn.parameters[0],),
-        (llqnn.parameters_operator[0],),
+        param_key,
+        param_op_key,
     )
+    return values, param_key, param_op_key
 
 
 def test_backends_consistency():
     """Tests that different derivatives computed with different frameworks are consistent."""
 
-    values_qiskit = get_values("qiskit")
-    values_pennylane = get_values("pennylane")
-    values_qulacs = get_values("qulacs")
+    values_qiskit, qiskit_param_key, qiskit_param_op_key = get_values("qiskit")
+    values_pennylane, pennylane_param_key, pennylane_param_op_key = get_values("pennylane")
+    values_qulacs, qulacs_param_key, qulacs_param_op_key = get_values("qulacs")
 
     for k in ["f", "dfdp", "dfdx", "var"]:
         assert np.allclose(values_qiskit[k], values_pennylane[k])
         assert np.allclose(values_qiskit[k], values_qulacs[k])
-
-    qiskit_keys = sorted(list(values_qiskit.keys()), key=str)
-    pennylane_keys = sorted(list(values_pennylane.keys()), key=str)
-    qulacs_keys = sorted(list(values_qulacs.keys()), key=str)
-
-    qiskit_param_key = qiskit_keys[0]
-    pennylane_param_key = pennylane_keys[2]
-    qulacs_param_key = qulacs_keys[2]
-
-    qiskit_param_op_key = qiskit_keys[1]
-    pennylane_param_op_key = pennylane_keys[3]
-    qulacs_param_op_key = qulacs_keys[3]
 
     assert np.allclose(values_qiskit[qiskit_param_key], values_pennylane[pennylane_param_key])
     assert np.allclose(values_qiskit[qiskit_param_key], values_qulacs[qulacs_param_key])
