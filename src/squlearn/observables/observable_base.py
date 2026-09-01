@@ -43,12 +43,14 @@ class ObservableBase(ABC):
             num_all_qubits (int): The total number of qubits in the system.
         """
 
+        # Validate before assigning: a rejected map used to leave the observable
+        # holding the invalid values, so the next get_pauli_mapped acted on them.
+        if num_all_qubits < self._num_qubits:
+            raise ValueError("""Number of qubits in the system is smaller than the number
+                                of qubits in the observable.""")
         self._qubit_map = qubit_map
         self._num_all_qubits = num_all_qubits
         self._is_mapped = True
-        if self._num_all_qubits < self._num_qubits:
-            raise ValueError("""Number of qubits in the system is smaller than the number
-                                of qubits in the observable.""")
 
     @property
     def is_mapped(self):

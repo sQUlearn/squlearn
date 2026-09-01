@@ -146,7 +146,7 @@ class ObservableDerivatives:
         if isinstance(derivative, str):
             if derivative == "I":
                 measure_op = OpTreeOperator(
-                    QuantumOperator(self._observable.num_qubits).qiskit_operator
+                    QuantumOperator(num_qubits=self._observable.num_qubits).qiskit_operator
                 )
             elif derivative == "O":
                 measure_op = self.get_operator()

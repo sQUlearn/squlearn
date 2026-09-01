@@ -163,7 +163,7 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
         # Renumber x vector
         used_old_x = [x for x in self._x_base if x in used_param]
-        self._pruned_features = [x.index for x in self._x_base if x not in used_param].sort()
+        self._pruned_features = sorted(x.index for x in self._x_base if x not in used_param)
 
         self._x = Parameters("x_", len(used_old_x))
         exchange_dict_x = dict(zip(used_old_x, self._x))
