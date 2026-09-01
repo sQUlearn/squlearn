@@ -378,9 +378,9 @@ class _two_qubit_operation(_operation):
         gate_name: str,
         map=None,
     ):
-        if self.gate_name not in QuantumCircuit.available_gates():
+        if gate_name not in QuantumCircuit.available_gates():
             raise ValueError(
-                f"'{self.gate_name}' is not a recognized gate name. "
+                f"'{gate_name}' is not a recognized gate name. "
                 f"Available gates: {sorted(QuantumCircuit.available_gates())}"
             )
         super().__init__(num_qubits, variablegroup_tuple, map)
