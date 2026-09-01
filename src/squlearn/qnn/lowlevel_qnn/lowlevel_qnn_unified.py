@@ -9,6 +9,7 @@ from qc_executor import Parameters
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
 from ...util import Executor
 from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
 
@@ -81,6 +82,9 @@ class LowLevelQNNUnified(LowLevelQNNBase):
             executor.select_backend(parameterized_quantum_circuit, num_features)
 
         super().__init__(parameterized_quantum_circuit, observable, executor, post_processing)
+
+        if isinstance(self._pqc, LayeredEncodingCircuit):
+            self._pqc._build_layered_pqc(num_features)
 
         self._x = Parameters("x", num_features)
         self._p = Parameters("p", self._pqc.num_parameters)
