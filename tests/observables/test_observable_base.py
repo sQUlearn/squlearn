@@ -11,7 +11,7 @@ class DummyOb(ObservableBase):
         self._num_parameters = num_parameters
 
     def get_pauli(self, parameters):
-        return QuantumOperator("ZZ", 1.0)
+        return QuantumOperator(["ZZ"], [1.0])
 
     @property
     def num_parameters(self):

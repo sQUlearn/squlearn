@@ -120,8 +120,8 @@ class TestCustomObservable:
         """Test that CustomObservable returns the expected expectation value on basis states."""
         num_qubits = 2
 
-        # Observable: Z on qubit 1 + Z on qubit 0
-        # (Pauli string ordering: left char = qubit 1, right char = qubit 0)
+        # Observable: Z on qubit 0 + Z on qubit 1
+        # (Pauli string ordering: left char = qubit 0, right char = qubit 1)
         ob = CustomObservable(
             num_qubits=num_qubits,
             operator_string=["ZI", "IZ"],
@@ -132,8 +132,8 @@ class TestCustomObservable:
 
         # Prepare computational basis state
         qc = QuantumCircuit(num_qubits)
-        for pos, bit in enumerate(basis_state):
-            qubit_index = num_qubits - pos - 1
+        
+        for qubit_index, bit in enumerate(basis_state):
             if bit == "1":
                 qc.x(qubit_index)
 
@@ -168,8 +168,7 @@ class TestCustomObservable:
         pauli = ob.get_pauli(parameters=params)
 
         qc = QuantumCircuit(num_qubits)
-        for pos, bit in enumerate(basis_state):
-            qubit_index = num_qubits - pos - 1
+        for qubit_index, bit in enumerate(basis_state):
             if bit == "1":
                 qc.x(qubit_index)
 
