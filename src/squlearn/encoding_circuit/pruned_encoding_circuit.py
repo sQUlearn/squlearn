@@ -190,7 +190,9 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         exchange_both = exchange_dict_x
         exchange_both.update(exchange_dict_p)
         self._pruned_circuit.assign_parameters(exchange_both, inplace=True)
-        return QuantumCircuit(self._pruned_circuit.num_qubits, self._pruned_circuit)
+        return QuantumCircuit(
+            self._pruned_circuit.num_qubits, _native_circuit=self._pruned_circuit
+        )
 
     def get_feature_bounds(self, num_features: int) -> np.ndarray:
         """Returns the feature bounds expanded for a given number of features."""

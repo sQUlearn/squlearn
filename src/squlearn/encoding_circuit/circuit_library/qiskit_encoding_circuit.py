@@ -202,9 +202,13 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
                     "The number of parameters {} does not match!".format(len(parameters))
                 )
         elif self._mode.lower() == "empty":
-            return QuantumCircuit(self._qiskit_circuit.num_qubits, self._qiskit_circuit)
+            return QuantumCircuit(
+                self._qiskit_circuit.num_qubits, _native_circuit=self._qiskit_circuit
+            )
         else:
             raise ValueError("The type {} is not supported!".format(self._mode))
 
         self._qiskit_circuit.assign_parameters(dictionary, inplace=True)
-        return QuantumCircuit(self._qiskit_circuit.num_qubits, self._qiskit_circuit)
+        return QuantumCircuit(
+            self._qiskit_circuit.num_qubits, _native_circuit=self._qiskit_circuit
+        )
