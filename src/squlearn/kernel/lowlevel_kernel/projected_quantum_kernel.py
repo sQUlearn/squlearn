@@ -13,9 +13,6 @@ from sklearn.gaussian_process.kernels import (
     PairwiseKernel,
 )
 
-from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
-
-
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor

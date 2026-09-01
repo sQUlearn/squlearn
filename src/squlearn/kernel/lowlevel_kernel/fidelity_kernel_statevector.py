@@ -4,9 +4,10 @@ from typing import Union
 from functools import lru_cache
 import numpy as np
 
-from qiskit.circuit import ParameterVector
 from qiskit.compiler import transpile
 from qiskit_algorithms.utils import algorithm_globals
+
+from qc_executor.parameters import Parameters
 
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
@@ -62,9 +63,9 @@ class FidelityKernelStatevector:
             # Mode 1 for statevector: calculate the statevector of the quantum circuit
             # and use it to calculate the fidelity as the overlap of the two states.
 
-            x = ParameterVector("x", self._num_features)
+            x = Parameters("x", self._num_features)
             if self.num_parameters > 0:
-                self._parameter_vector = ParameterVector("p", self.num_parameters)
+                self._parameter_vector = Parameters("p", self.num_parameters)
             else:
                 self._parameter_vector = None
 
@@ -77,8 +78,6 @@ class FidelityKernelStatevector:
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
 
             elif self._executor.quantum_framework == "qulacs":
-
-                enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
                 self._qulacs_circuit = QulacsCircuit(enc_circ.qiskit_circuit, None)
 
             else:
@@ -95,17 +94,17 @@ class FidelityKernelStatevector:
             # of the quantum circuit U(x)U(x)'
 
             if self._executor.quantum_framework == "pennylane":
-                x1 = ParameterVector("x1", self._num_features)
-                x2 = ParameterVector("x2", self._num_features)
+                x1 = Parameters("x1", self._num_features)
+                x2 = Parameters("x2", self._num_features)
                 if self.num_parameters > 0:
-                    self._parameter_vector = ParameterVector("p", self.num_parameters)
+                    self._parameter_vector = Parameters("p", self.num_parameters)
                 else:
                     self._parameter_vector = None
 
                 enc_circ1 = self._encoding_circuit.get_circuit(x1, self._parameter_vector)
                 enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
 
-                circuit = enc_circ1.compose(enc_circ2.inverse())
+                circuit = enc_circ1.compose(enc_circ2.invert())
                 circuit = transpile(
                     circuit.qiskit_circuit, target=qiskit_pennylane_target, optimization_level=0
                 )
