@@ -119,11 +119,12 @@ class SummedProbabilities(ObservableBase):
         op_list = []
         coeff_list = []
 
+        ioff = 0
         if self._include_identity:
             op_list.append("I" * self.num_qubits)
-            coeff_list.append(parameters[0 % nparam])
+            coeff_list.append(parameters[ioff % nparam])
+            ioff += 1
 
-        ioff = 1
         for i in range(self.num_qubits):
             I = "I" * self.num_qubits
             Z = I[:i] + "Z" + I[(i + 1) :]
