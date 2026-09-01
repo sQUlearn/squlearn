@@ -1171,6 +1171,11 @@ class Executor:
                     qc_backend = "statevector"
                 else:
                     qc_backend = self._backend
+
+                    if self._set_seed_for_primitive is not None and hasattr(
+                        qc_backend, "set_options"
+                    ):
+                        qc_backend.set_options(seed_simulator=self._set_seed_for_primitive)
                 self._qc_executor = QiskitExecutor(
                     backend=qc_backend,
                     shots=self._shots,
