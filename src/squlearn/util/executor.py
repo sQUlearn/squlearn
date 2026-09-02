@@ -2867,6 +2867,11 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
             return self._executor.estimator.options
         return None
 
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
+
 
 class ExecutorSamplerV2(BaseSamplerV2):
     """
@@ -2910,6 +2915,11 @@ class ExecutorSamplerV2(BaseSamplerV2):
         if hasattr(self._executor.sampler, "options"):
             return self._executor.sampler.options
         return None
+
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
 
 
 class ExecutorEstimatorV1(BaseEstimatorV1):
@@ -3036,6 +3046,11 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
         self._executor.estimator.set_options(**fields)
         self._executor._options_estimator = self._executor.estimator.options
 
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
+
 
 class ExecutorSamplerV1(BaseSamplerV1):
     """
@@ -3143,6 +3158,11 @@ class ExecutorSamplerV1(BaseSamplerV1):
         This method will be called automatically if a session is restarted.
         """
         self._executor.clear_sampler_cache()
+
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
 
 
 class ExecutorEstimator:
