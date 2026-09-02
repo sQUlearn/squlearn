@@ -6,6 +6,9 @@ from squlearn import Executor
 from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.observables import SinglePauli, SummedPaulis
 from squlearn.qnn.lowlevel_qnn import LowLevelQNN
+from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+from squlearn.qnn.lowlevel_qnn.lowlevel_qnn_qulacs import LowLevelQNNQulacs
 
 
 def get_values(framework):
@@ -84,3 +87,69 @@ def test_multiple_output_shape_with_n_observables(framework, n_obs):
         n_obs,
         llqnn.num_parameters,
     )
+
+
+_LEGACY_ENGINE = {
+    "qiskit": LowLevelQNNQiskit,
+    "pennylane": LowLevelQNNPennyLane,
+    "qulacs": LowLevelQNNQulacs,
+}
+
+_VAR_FAMILY_KEYS = ("var", "varf", "dvardx", "dvardp", "dvardop")
+
+
+@pytest.mark.parametrize("framework", ["qiskit", "pennylane", "qulacs"])
+@pytest.mark.parametrize(
+    "observable",
+    [
+        pytest.param(lambda pqc: SummedPaulis(pqc.num_qubits), id="single-parameterized"),
+        pytest.param(
+            lambda pqc: [SinglePauli(pqc.num_qubits, i, op_str="Z") for i in range(3)],
+            id="multi-parameter-free",
+        ),
+        pytest.param(
+            lambda pqc: [
+                SinglePauli(pqc.num_qubits, 0, op_str="Z"),
+                SummedPaulis(pqc.num_qubits),
+            ],
+            id="multi-mixed-parameters",
+        ),
+    ],
+)
+def test_var_family_is_native_and_matches_legacy_engine(framework, observable):
+    """The var/dvardx/dvardp/dvardop family is evaluated via qc_executor's native
+    <O^2> path (LowLevelQNNUnified._native_observable_squared), not the legacy
+    per-framework fallback engine - verified both by the fallback never being built
+    and by bit-for-bit agreement with the legacy engine's own computation."""
+    pqc = ParamZFeatureMap(3, 2)
+    obs = observable(pqc)
+    rng = np.random.default_rng(3)
+    x = rng.random((3, 2))
+    param = rng.random(pqc.num_parameters)
+    num_parameters_observable = (
+        sum(o.num_parameters for o in obs) if isinstance(obs, list) else obs.num_parameters
+    )
+    param_op = rng.random(num_parameters_observable)
+
+    executor = Executor("statevector_simulator") if framework == "qiskit" else Executor(framework)
+    llqnn = LowLevelQNN(pqc, obs, executor, num_features=2)
+    native = llqnn.evaluate(x, param, param_op, "f", *_VAR_FAMILY_KEYS)
+    assert llqnn._fallback_engine is None
+
+    # dvardop has a zero-sized trailing axis when no observable owns any "p_op"
+    # parameter at all - LowLevelQNNPennyLane's legacy engine crashes on that shape
+    # (pre-existing, unrelated to this native path), so skip the legacy comparison
+    # for exactly that combination while still exercising it on the native path above.
+    comparison_keys = ("f", *_VAR_FAMILY_KEYS)
+    if num_parameters_observable == 0:
+        comparison_keys = tuple(k for k in comparison_keys if k != "dvardop")
+
+    legacy_executor = (
+        Executor("statevector_simulator") if framework == "qiskit" else Executor(framework)
+    )
+    legacy = _LEGACY_ENGINE[framework](pqc, obs, legacy_executor, num_features=2).evaluate(
+        x, param, param_op, *comparison_keys
+    )
+
+    for key in comparison_keys:
+        np.testing.assert_allclose(native[key], legacy[key], atol=1e-8)

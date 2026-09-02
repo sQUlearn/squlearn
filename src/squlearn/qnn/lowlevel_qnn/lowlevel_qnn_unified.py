@@ -5,7 +5,7 @@ from warnings import warn
 
 import numpy as np
 
-from qc_executor import Parameters
+from qc_executor import Parameters, QuantumOperator
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -17,8 +17,9 @@ from .lowlevel_qnn_base import LowLevelQNNBase
 from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
 from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
+from .evaluation_classes import eval_var, eval_dvardx, eval_dvardp, eval_dvardop
 
-# Frameworks for which Executor.as_qc_executor (and therefore the native f/dfdx/dfdp/dfdop
+# Frameworks for which Executor.as_qc_executor (and therefore the native evaluation
 # path) is available. Frameworks not in this set always go through the fallback engine.
 _NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
 
@@ -29,13 +30,58 @@ _NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
 # handles the list natively and is left on the faster, single-call path.
 _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS = frozenset({"pennylane", "qulacs"})
 
+# Maps every native key to the observable attribute it is measured against and the
+# qc_executor derivative parameter it needs ("x"/"p"/"p_op", or None for the plain
+# expectation value). The "fcc"* keys are expectation values of the *squared* observable
+# <O^2> - the "var" family below is expressed entirely in terms of these plus the plain
+# "f"/"dfdx"/"dfdp"/"dfdop" values, so it needs no derivative order beyond 1.
+_NATIVE_KEY_INFO = {
+    "f": ("_native_observable", None),
+    "dfdx": ("_native_observable", "x"),
+    "dfdp": ("_native_observable", "p"),
+    "dfdop": ("_native_observable", "p_op"),
+    "fcc": ("_native_observable_squared", None),
+    "dfccdx": ("_native_observable_squared", "x"),
+    "dfccdp": ("_native_observable_squared", "p"),
+    "dfccdop": ("_native_observable_squared", "p_op"),
+}
+
+# Trailing-shape dimension for each derivative key, as an attribute name resolved on the
+# instance (num_features/num_parameters/num_parameters_observable). "f"/"fcc" have no
+# derivative axis and are handled separately in _trailing_shape.
+_NATIVE_KEY_TRAILING_DIM_ATTR = {
+    "dfdx": "num_features",
+    "dfccdx": "num_features",
+    "dfdp": "num_parameters",
+    "dfccdp": "num_parameters",
+    "dfdop": "num_parameters_observable",
+    "dfccdop": "num_parameters_observable",
+}
+
+# "var"/"varf" and their gradients are pure post-processing of expectation values of the
+# observable and its square: var = <O^2> - <O>^2. Maps each requested key to the native
+# keys it needs and the (reused, not reimplemented) post-processing function that combines
+# them - the same functions the legacy per-framework engines use for the same purpose.
+_VAR_FAMILY = {
+    "var": (("f", "fcc"), eval_var),
+    "varf": (("f", "fcc"), eval_var),
+    "dvardx": (("f", "dfccdx", "dfdx"), eval_dvardx),
+    "dvarfdx": (("f", "dfccdx", "dfdx"), eval_dvardx),
+    "dvardp": (("f", "dfccdp", "dfdp"), eval_dvardp),
+    "dvarfdp": (("f", "dfccdp", "dfdp"), eval_dvardp),
+    "dvardop": (("f", "dfccdop", "dfdop"), eval_dvardop),
+    "dvarfdop": (("f", "dfccdop", "dfdop"), eval_dvardop),
+}
+
 
 class LowLevelQNNUnified(LowLevelQNNBase):
-    """Low-level QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop`` directly through
-    ``qc_executor`` (no ``OpTree`` construction) for frameworks it supports, and falls back to
+    """Low-level QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop``, the corresponding
+    values of the squared observable (``fcc``/``dfccdx``/``dfccdp``/``dfccdop``), and the
+    ``var``/``dvardx``/``dvardp``/``dvardop`` family derived from those, directly through
+    ``qc_executor`` (no ``OpTree`` construction) for frameworks it supports. Falls back to
     the legacy framework-specific engine (:class:`LowLevelQNNQiskit`, :class:`LowLevelQNNPennyLane`,
-    ...) for every other requested derivative (``dfdxdx``, ``laplace``, ``var``, ...) as well as
-    for frameworks qc_executor does not yet cover.
+    ...) for every other requested derivative (``dfdxdx``, ``laplace``, ...) as well as for
+    frameworks qc_executor does not yet cover.
 
     Args:
         pqc (EncodingCircuitBase): The parameterized quantum circuit.
@@ -47,12 +93,12 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         caching (bool): Caching of the result for each `x`, `param`, `param_op` combination
             (default = True)
         primitive (str): Qiskit-only primitive selection. Only forwarded to the fallback engine
-            (used for derivatives beyond ``f``/``dfdx``/``dfdp``/``dfdop``), since ``qc_executor``
+            (used for derivatives beyond the native keys listed above), since ``qc_executor``
             has no equivalent per-call primitive selection. Ignored (with a warning) for
             frameworks that don't support it, matching the old per-framework classes.
     """
 
-    _NATIVE_KEYS = frozenset({"f", "dfdx", "dfdp", "dfdop"})
+    _NATIVE_KEYS = frozenset(_NATIVE_KEY_INFO)
 
     def __init__(
         self,
@@ -121,8 +167,23 @@ class LowLevelQNNUnified(LowLevelQNNBase):
                 self._observable_p_op_slices.append((ioff, obs.num_parameters))
                 ioff += obs.num_parameters
             self._native_observable = native_observables
+            # <O^2> for the "var" family (see _VAR_FAMILY). Composing an observable with
+            # itself reuses the same p_op Parameter objects on both sides, so simplify()
+            # cannot introduce new parameter symbols beyond the ones already in
+            # _observable_p_op_slices
+            self._native_observable_squared = [
+                QuantumOperator(_native_operator=obs.qiskit_operator)
+                .compose(QuantumOperator(_native_operator=obs.qiskit_operator))
+                .simplify()
+                for obs in self._native_observable
+            ]
         else:
             self._native_observable = self._observable.get_operator(self._p_op)
+            self._native_observable_squared = (
+                QuantumOperator(_native_operator=self._native_observable.qiskit_operator)
+                .compose(QuantumOperator(_native_operator=self._native_observable.qiskit_operator))
+                .simplify()
+            )
 
         self.result_container = {}
 
@@ -292,57 +353,53 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         before the derivative axis)."""
         multi = self.multiple_output
         n_op = self.num_operator
-        if key == "f":
+        if key in ("f", "fcc"):
             return (n_op,) if multi else ()
-        if key == "dfdx":
-            d = self.num_features
-        elif key == "dfdp":
-            d = self.num_parameters
-        elif key == "dfdop":
-            d = self.num_parameters_observable
-        else:
-            raise ValueError(f"Unknown native key: {key}")
+        try:
+            d = getattr(self, _NATIVE_KEY_TRAILING_DIM_ATTR[key])
+        except KeyError:
+            raise ValueError(f"Unknown native key: {key}") from None
         return (n_op, d) if multi else (d,)
 
     def _compute_native(self, key: str, parameters: dict):
         qc_exec = self._executor.as_qc_executor
+        observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
+        observable = getattr(self, observable_attr)
         if self.multiple_output and (
-            # "dfdop" always needs it: each observable only contributes a gradient for its
-            # own "p_op" slice, and qc_executor's list-observable collapse assumes every
-            # list entry produces a result of the same shape - it can't zero-pad the rest.
-            key == "dfdop"
+            # A "*dop" key always needs it: each observable only contributes a gradient
+            # for its own "p_op" slice, and qc_executor's list-observable collapse
+            # assumes every list entry produces a result of the same shape - it can't
+            # zero-pad the rest.
+            derivative_param == "p_op"
             # The other keys need it only for backends that can't bind a shared "p_op"
             # vector across list entries owning different-sized slices of it.
             or self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
         ):
             return self._compute_native_per_observable(key, parameters)
-        if key == "f":
-            return qc_exec.expectation_value(
-                self._native_circuit, self._native_observable, **parameters
-            )
-        derivative_param = {"dfdx": "x", "dfdp": "p", "dfdop": "p_op"}[key]
+        if derivative_param is None:
+            return qc_exec.expectation_value(self._native_circuit, observable, **parameters)
         return qc_exec.expectation_value_derivatives(
-            self._native_circuit, self._native_observable, derivative_param, **parameters
+            self._native_circuit, observable, derivative_param, **parameters
         )
 
     def _compute_native_per_observable(self, key: str, parameters: dict) -> np.ndarray:
         """Evaluate ``key`` for each observable individually."""
         qc_exec = self._executor.as_qc_executor
+        observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
+        observable_list = getattr(self, observable_attr)
         needs_local_p_op_slice = self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
         out = np.zeros(self._trailing_shape(key), dtype=float)
-        for i, (obs, (ioff, n)) in enumerate(
-            zip(self._native_observable, self._observable_p_op_slices)
-        ):
-            if key == "dfdop" and n == 0:
+        for i, (obs, (ioff, n)) in enumerate(zip(observable_list, self._observable_p_op_slices)):
+            if derivative_param == "p_op" and n == 0:
                 # Observable i owns no "p_op" parameters at all - df_i/dp_op_j stays 0 for
                 # every j, including the j's belonging to i's own (empty) slice.
                 continue
             obs_parameters = dict(parameters)
             if needs_local_p_op_slice:
                 obs_parameters["p_op"] = parameters["p_op"][ioff : ioff + n]
-            if key == "f":
+            if derivative_param is None:
                 out[i] = qc_exec.expectation_value(self._native_circuit, obs, **obs_parameters)
-            elif key == "dfdop":
+            elif derivative_param == "p_op":
                 value = qc_exec.expectation_value_derivatives(
                     self._native_circuit, obs, "p_op", **obs_parameters
                 )
@@ -350,7 +407,6 @@ class LowLevelQNNUnified(LowLevelQNNBase):
                 # slice - only that slice of row i is filled in.
                 out[i, ioff : ioff + n] = np.asarray(value, dtype=float).reshape(n)
             else:
-                derivative_param = {"dfdx": "x", "dfdp": "p"}[key]
                 value = qc_exec.expectation_value_derivatives(
                     self._native_circuit, obs, derivative_param, **obs_parameters
                 )
@@ -426,13 +482,24 @@ class LowLevelQNNUnified(LowLevelQNNBase):
     ) -> dict:
         if self._framework in _NATIVE_FRAMEWORKS:
             native_keys = [v for v in values if isinstance(v, str) and v in self._NATIVE_KEYS]
+            var_keys = [v for v in values if isinstance(v, str) and v in _VAR_FAMILY]
         else:
             native_keys = []
-        fallback_keys = [v for v in values if v not in native_keys]
+            var_keys = []
+        fallback_keys = [v for v in values if v not in native_keys and v not in var_keys]
+
+        # "var" and its gradients need nothing beyond the plain expectation value and its
+        # first derivatives (see _VAR_FAMILY) - fold their dependencies into the same
+        # native batch call instead of evaluating them separately.
+        underlying = {dep for key in var_keys for dep in _VAR_FAMILY[key][0]}
+        combined_native_keys = sorted(set(native_keys) | underlying)
 
         result = {}
-        if native_keys:
-            result.update(self._evaluate_native(x, param, param_op, native_keys))
+        if combined_native_keys:
+            result.update(self._evaluate_native(x, param, param_op, combined_native_keys))
+        for key in var_keys:
+            _, evaluation_function = _VAR_FAMILY[key]
+            result[key] = evaluation_function(result)
         if fallback_keys:
             result.update(self._fallback._evaluate(x, param, param_op, *fallback_keys))
 
