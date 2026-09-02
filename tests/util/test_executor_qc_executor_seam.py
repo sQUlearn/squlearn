@@ -60,9 +60,9 @@ def test_as_qc_executor_rebuilds_after_set_backend():
 
 
 def test_native_qnn_evaluation_matches_direct_statevector_path():
-    """Expectation values evaluated through the injected-primitive seam
-    (as_qc_executor) must match qc_executor's direct statevector path
-    bit-for-bit."""
+    """Expectation values and their first-order derivatives evaluated through
+    the injected-primitive seam (as_qc_executor) must match qc_executor's
+    direct statevector path bit-for-bit."""
     pqc = ParamZFeatureMap(3, 2)
     obs = SummedPaulis(3)
     rng = np.random.default_rng(3)
@@ -81,7 +81,13 @@ def test_native_qnn_evaluation_matches_direct_statevector_path():
     direct = QiskitExecutor(backend="statevector")
 
     for i, x_i in enumerate(x):
-        expected = direct.expectation_value(
-            circuit, operator, x=x_i.tolist(), p=param.tolist(), p_op=param_op.tolist()
-        )
-        assert np.isclose(seam["f"][i], expected, atol=1e-12)
+        call_kwargs = dict(x=x_i.tolist(), p=param.tolist(), p_op=param_op.tolist())
+
+        expected_f = direct.expectation_value(circuit, operator, **call_kwargs)
+        assert np.isclose(seam["f"][i], expected_f, atol=1e-12)
+
+        for key, derivative_param in (("dfdx", "x"), ("dfdp", "p"), ("dfdop", "p_op")):
+            expected = direct.expectation_value_derivatives(
+                circuit, operator, derivative_param, **call_kwargs
+            )
+            assert np.allclose(seam[key][i], np.asarray(expected).reshape(-1), atol=1e-12)
