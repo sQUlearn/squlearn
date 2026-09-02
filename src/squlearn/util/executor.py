@@ -1155,32 +1155,27 @@ class Executor:
 
     @property
     def as_qc_executor(self) -> Union[QiskitExecutor, PennyLaneExecutor, QulacsExecutor]:
-        """Returns a ``qc_executor`` executor mirroring this executor's backend/shots/seed.
+        """Returns a ``qc_executor`` executor mirroring this executor's backend/shots.
 
         Supported for ``quantum_framework in ("qiskit", "pennylane", "qulacs")``. The instance
-        is cached and rebuilt whenever the backend/device or shot count changes (see
-        :meth:`set_backend` and :meth:`set_shots`).
+        is cached and rebuilt whenever the backend/device, shot count, or underlying primitive
+        changes (see :meth:`set_backend` and :meth:`set_shots`).
         """
         if self.quantum_framework == "qiskit":
-            cache_key = (self._backend, self._shots, self._set_seed_for_primitive)
+            # Injecting this executor's own estimator - rather than the raw backend - lets
+            # qc_executor's evaluations run through this executor's retry, result caching,
+            # session handling and per-call seeding instead of bypassing them.
+            cache_key = (self._backend, self._shots, id(self._estimator))
             if getattr(self, "_qc_executor_cache_key", None) != cache_key:
-                if self._backend is None or (self._shots is None and self.is_statevector):
-                    # Exact statevector simulation: use qc_executor's StatevectorEstimator
-                    # shortcut. Passing the raw Aer backend instead would build a
-                    # BackendEstimatorV2, which samples with shots even for shots=None.
-                    qc_backend = "statevector"
-                else:
-                    qc_backend = self._backend
-
-                    if self._set_seed_for_primitive is not None and hasattr(
-                        qc_backend, "set_options"
-                    ):
-                        qc_backend.set_options(seed_simulator=self._set_seed_for_primitive)
-                self._qc_executor = QiskitExecutor(
-                    backend=qc_backend,
-                    shots=self._shots,
-                    seed=self._set_seed_for_primitive,
-                )
+                self._qc_executor = QiskitExecutor(backend=self.get_estimator(), shots=self._shots)
+                if self._backend is not None:
+                    # qc_executor only ISA-transpiles for a primitive-injected backend when
+                    # it recognizes real IBM Quantum hardware, not fake backends - which
+                    # enforce the same basis-gate/coupling-map constraints in simulation.
+                    # TODO: fix in qc_executor (fake backends should set _isa_transpile in
+                    # its primitive-injection branch, like they already do in its
+                    # backend-object branch) and drop this private-attribute workaround.
+                    self._qc_executor._isa_transpile = True
                 self._qc_executor_cache_key = cache_key
             return self._qc_executor
         elif self.quantum_framework == "pennylane":
