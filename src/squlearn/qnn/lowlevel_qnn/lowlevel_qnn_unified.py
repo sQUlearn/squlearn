@@ -19,8 +19,9 @@ from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
 from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
 from .evaluation_classes import eval_var, eval_dvardx, eval_dvardp, eval_dvardop
 
-# Frameworks for which Executor.as_qc_executor (and therefore the native evaluation
-# path) is available. Frameworks not in this set always go through the fallback engine.
+# Frameworks for which Executor.expectation_value/expectation_value_derivatives
+# (and therefore the native evaluation path) are available. Frameworks not in this
+# set always go through the fallback engine.
 _NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
 
 # Frameworks whose qc_executor backend cannot bind a shared "p_op" vector across a
@@ -362,7 +363,6 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         return (n_op, d) if multi else (d,)
 
     def _compute_native(self, key: str, parameters: dict):
-        qc_exec = self._executor.as_qc_executor
         observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
         observable = getattr(self, observable_attr)
         if self.multiple_output and (
@@ -377,14 +377,13 @@ class LowLevelQNNUnified(LowLevelQNNBase):
         ):
             return self._compute_native_per_observable(key, parameters)
         if derivative_param is None:
-            return qc_exec.expectation_value(self._native_circuit, observable, **parameters)
-        return qc_exec.expectation_value_derivatives(
+            return self._executor.expectation_value(self._native_circuit, observable, **parameters)
+        return self._executor.expectation_value_derivatives(
             self._native_circuit, observable, derivative_param, **parameters
         )
 
     def _compute_native_per_observable(self, key: str, parameters: dict) -> np.ndarray:
         """Evaluate ``key`` for each observable individually."""
-        qc_exec = self._executor.as_qc_executor
         observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
         observable_list = getattr(self, observable_attr)
         needs_local_p_op_slice = self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
@@ -398,16 +397,16 @@ class LowLevelQNNUnified(LowLevelQNNBase):
             if needs_local_p_op_slice:
                 obs_parameters["p_op"] = parameters["p_op"][ioff : ioff + n]
             if derivative_param is None:
-                out[i] = qc_exec.expectation_value(self._native_circuit, obs, **obs_parameters)
+                out[i] = self._executor.expectation_value(self._native_circuit, obs, **obs_parameters)
             elif derivative_param == "p_op":
-                value = qc_exec.expectation_value_derivatives(
+                value = self._executor.expectation_value_derivatives(
                     self._native_circuit, obs, "p_op", **obs_parameters
                 )
                 # df_i/dp_op_j is 0 by construction for every j outside observable i's own
                 # slice - only that slice of row i is filled in.
                 out[i, ioff : ioff + n] = np.asarray(value, dtype=float).reshape(n)
             else:
-                value = qc_exec.expectation_value_derivatives(
+                value = self._executor.expectation_value_derivatives(
                     self._native_circuit, obs, derivative_param, **obs_parameters
                 )
                 out[i] = np.asarray(value, dtype=float).reshape(-1)

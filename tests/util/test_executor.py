@@ -1,6 +1,5 @@
 import gc
-import weakref
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 from packaging import version
@@ -474,6 +473,44 @@ class TestExecutorQulacs:
         assert np.allclose(assert_dict[qulacs_execution_func.__name__], res)
 
 
+class _FakeQcExecutor:
+    """Stand-in for the qc_executor.QiskitExecutor instance an Executor owns
+    as self._qc_executor under the new architecture: qc_executor is the sole owner of
+    backend resolution, primitive construction, session lifecycle and
+    execution - sQUlearn no longer holds a session of its own, so cleanup is
+    entirely qc_executor's __del__ firing once the Executor (and therefore
+    its only reference to this instance) is garbage collected. Needs a real
+    __del__ - a MagicMock's is unreliable - so tests can verify that.
+    """
+
+    def __init__(self, mock_session=None, backend=None):
+        self._mock_session = mock_session
+        self.session = mock_session
+        self.backend = backend
+        self.remote = True
+        self.ibm_quantum = True
+        self.raw_estimator = MagicMock()
+        self.raw_sampler = MagicMock()
+        self.estimator = self.raw_estimator
+        self.sampler = self.raw_sampler
+        self.shots = None
+
+    def create_session(self):
+        self.session = self._mock_session
+
+    def close_session(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
+    def __del__(self):
+        if self.session is not None:
+            try:
+                self.session.close()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+
 class TestExecutorCleanup:
     """
     Tests for the automatic cleanup of the session when the Executor is garbage collected.
@@ -505,70 +542,59 @@ class TestExecutorCleanup:
 
     def test_non_ibm_no_cleanup(self):
         """
-        Verifies that no cleanup is performed when the backend is not an IBMBackend.
+        Verifies that construction/deletion for a non-Qiskit framework doesn't
+        raise - there is no session concept to clean up at all.
         """
         executor = Executor("pennylane")
-        assert not hasattr(executor, "_finalizer")
         del executor
         gc.collect()
 
-    @patch.object(Executor, "_cleanup_session")
-    def test_finalizer_triggers_cleanup(self, mock_cleanup, ibm_backend, mock_session):
+    def test_preexisting_session_cleanup(self, mock_session):
         """
-        Verifies that the finalizer triggers the cleanup of the session.
+        Verifies that the cleanup of the session is performed even if it was
+        created before the Executor object (a directly injected Session).
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            executor = Executor(ibm_backend)
-            with pytest.warns(SessionContextMisuseWarning):
-                executor.create_session()
-            del executor
-            gc.collect()
-            mock_cleanup.assert_called_once()
-
-    @patch.object(Executor, "_cleanup_session")
-    def test_preexisting_session_cleanup(self, mock_cleanup, mock_session):
-        """
-        Verifies that the cleanup of the session is performed even if it was created before the Executor object.
-        """
-        executor = Executor(mock_session)
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session),
+        ):
+            executor = Executor(mock_session)
+        # Exiting the patch drops its own return_value reference; the only
+        # remaining reference to the fake qc_executor is executor's own, so
+        # deleting executor is what triggers its __del__.
         del executor
         gc.collect()
-        mock_cleanup.assert_called_once()
-
-    def test_cleanup_logic(self, mock_session, ibm_backend):
-        """
-        Verifies that _cleanup_session calls close_session.
-        """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            executor = Executor(ibm_backend)
-            with pytest.warns(SessionContextMisuseWarning):
-                executor.create_session()
-            # pylint: disable=protected-access
-            session_ref = weakref.ref(executor._session)
-            Executor._cleanup_session(session_ref)  # Direct call
-            mock_session.close.assert_called_once()
-            executor = None
-            Executor._cleanup_session(session_ref)
+        mock_session.close.assert_called_once()
 
     def test_normal_creation_deletion_closes_session(self, ibm_backend, mock_session):
         """
         Verifies that the session is closed after normal creation and deletion of the Executor object.
         """
         mock_session.reset_mock()
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            mock_session.close.assert_not_called()
+        mock_session.close.assert_not_called()
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             executor = Executor(ibm_backend)
             with pytest.warns(SessionContextMisuseWarning):
                 executor.create_session()
-            del executor
-            gc.collect()
-            mock_session.close.assert_called_once()
+        # Exiting the patch drops its own return_value reference; the only
+        # remaining reference to the fake qc_executor is executor's own,
+        # so deleting executor is what triggers its __del__.
+        del executor
+        gc.collect()
+        mock_session.close.assert_called_once()
 
     def test_preexisting_session_is_closed_on_deletion(self, mock_session):
         """
         Verifies that the session is closed after deletion of the Executor object when a pre-existing session is provided.
         """
-        executor = Executor(mock_session)
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session),
+        ):
+            executor = Executor(mock_session)
         del executor
         gc.collect()
         mock_session.close.assert_called_once()
@@ -577,7 +603,10 @@ class TestExecutorCleanup:
         """
         Verifies that the context manager closes the session.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             with Executor(ibm_backend) as executor:
                 executor.create_session()
             mock_session.close.assert_called_once()
@@ -588,7 +617,10 @@ class TestExecutorCleanup:
         """
         Verifies that the context manager closes the session even when an exception is raised.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             try:
                 with Executor(ibm_backend) as executor:
                     executor.create_session()
@@ -604,7 +636,10 @@ class TestExecutorCleanup:
         """
         Verifies that the session is closed even when a Python-side failure (e.g. OOM failure) occurs.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             try:
                 executor = Executor(ibm_backend)
                 with pytest.warns(SessionContextMisuseWarning):
@@ -614,5 +649,7 @@ class TestExecutorCleanup:
                 pass
             finally:
                 del executor
-            gc.collect()
-            mock_session.close.assert_called_once()
+        # Exiting the patch drops its own return_value reference before we
+        # collect, so executor's was the only strong reference left.
+        gc.collect()
+        mock_session.close.assert_called_once()

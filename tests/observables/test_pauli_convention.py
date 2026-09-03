@@ -39,7 +39,7 @@ def _excite(qubits) -> QuantumCircuit:
 @pytest.mark.parametrize("excited_qubit", range(NUM_QUBITS))
 def test_single_pauli_z_addresses_physical_qubit(framework, excited_qubit):
     """SinglePauli(qubit=i) must measure Z on the physically excited qubit i, not its mirror."""
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
     circuit = _excite([excited_qubit])
     operator = SinglePauli(NUM_QUBITS, excited_qubit, op_str="Z").get_pauli(np.array([]))
 
@@ -56,7 +56,7 @@ def test_single_pauli_z_addresses_physical_qubit(framework, excited_qubit):
 @pytest.mark.parametrize("measured_qubit", range(NUM_QUBITS))
 def test_single_probability_addresses_physical_qubit(framework, excited_qubit, measured_qubit):
     """SingleProbability(qubit=i) must report P(|1>) for physical qubit i only."""
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
     circuit = _excite([excited_qubit])
     operator = SingleProbability(NUM_QUBITS, measured_qubit, one_state=True).get_pauli(
         np.array([])
@@ -86,7 +86,7 @@ def test_ising_hamiltonian_zz_term_addresses_physical_qubits(framework, i, j):
     of the two qubits the term addresses, regardless of what the other one is. Doing this
     for both i and j together pins down the addressed pair to exactly {i, j}.
     """
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
 
     ob = IsingHamiltonian(NUM_QUBITS, I="N", Z="N", X="N", ZZ="F")
     pairs = [(a, b) for a in range(NUM_QUBITS) for b in range(a)]
@@ -108,7 +108,7 @@ def test_custom_observable_label_addresses_physical_qubit(framework, excited_qub
     """A user's Pauli string is passed through unchanged, so its leftmost character
     must land on qubit 0. This is the only observable whose convention is visible in
     the public API, which is why it needs pinning down explicitly."""
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
     label = "I" * excited_qubit + "Z" + "I" * (NUM_QUBITS - excited_qubit - 1)
     operator = CustomObservable(NUM_QUBITS, label).get_pauli(np.array([]))
 
@@ -130,7 +130,7 @@ def test_summed_paulis_weights_address_physical_qubits(framework, excited_qubit)
     A uniform weighting is invariant under mirroring and would catch nothing, which
     is exactly why the pre-existing SummedPaulis tests never saw the bug.
     """
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
 
     ob = SummedPaulis(NUM_QUBITS, op_str="Z", full_sum=True, include_identity=False)
     weight = np.zeros(ob.num_parameters)
@@ -153,7 +153,7 @@ def test_summed_probabilities_weights_address_physical_qubits(
 ):
     """SummedProbabilities with a single unit weight must report P(|1>) of exactly
     that physical qubit."""
-    executor = Executor(framework).as_qc_executor
+    executor = Executor(framework)
 
     ob = SummedProbabilities(
         NUM_QUBITS, one_state=True, full_sum=True, include_identity=False
