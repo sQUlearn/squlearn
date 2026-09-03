@@ -35,6 +35,7 @@ from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
 
+from qc_executor import Executor as QcExecutorFactory
 from qc_executor.qiskit import QiskitExecutor
 from qc_executor.pennylane import PennyLaneExecutor
 from qc_executor.qulacs import QulacsExecutor
@@ -1167,7 +1168,9 @@ class Executor:
             # session handling and per-call seeding instead of bypassing them.
             cache_key = (self._backend, self._shots, id(self._estimator))
             if getattr(self, "_qc_executor_cache_key", None) != cache_key:
-                self._qc_executor = QiskitExecutor(backend=self.get_estimator(), shots=self._shots)
+                self._qc_executor = QcExecutorFactory.create(
+                    self.get_estimator(), shots=self._shots
+                )
                 if self._backend is not None:
                     # qc_executor only ISA-transpiles for a primitive-injected backend when
                     # it recognizes real IBM Quantum hardware, not fake backends - which
@@ -1184,7 +1187,7 @@ class Executor:
             # set_shots() already puts them (see below), so no extra kwargs are needed here.
             cache_key = (self._pennylane_device,)
             if getattr(self, "_qc_executor_cache_key", None) != cache_key:
-                self._qc_executor = PennyLaneExecutor(backend=self._pennylane_device)
+                self._qc_executor = QcExecutorFactory.create(self._pennylane_device)
                 self._qc_executor_cache_key = cache_key
             return self._qc_executor
         elif self.quantum_framework == "qulacs":
@@ -1192,8 +1195,8 @@ class Executor:
             # (squlearn's own set_shots() already rejects a nonzero shots value for it).
             cache_key = (self._shots, self._set_seed_for_primitive)
             if getattr(self, "_qc_executor_cache_key", None) != cache_key:
-                self._qc_executor = QulacsExecutor(
-                    shots=self._shots, seed=self._set_seed_for_primitive
+                self._qc_executor = QcExecutorFactory.create(
+                    "qulacs", shots=self._shots, seed=self._set_seed_for_primitive
                 )
                 self._qc_executor_cache_key = cache_key
             return self._qc_executor
