@@ -152,8 +152,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         self._x = Parameters("x", num_features)
         self._param = Parameters("param", self._pqc.num_parameters)
         self._qiskit_circuit = decompose_to_std(
-            self._pqc.get_circuit(self._x, self._param).qiskit_circuit
-        )
+            self._pqc.get_circuit(self._x, self._param)
+        ).qiskit_circuit
 
         # Qulacs Circuit data structure of the QNN
         self._qulacs_circuit = QulacsCircuit(self._qiskit_circuit, self._qiskit_observable)

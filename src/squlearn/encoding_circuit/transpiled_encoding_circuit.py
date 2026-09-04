@@ -59,8 +59,8 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._p = Parameters("p_", self._encoding_circuit.num_parameters)
 
         self._circuit = decompose_to_std(
-            self._encoding_circuit.get_circuit(self._x, self._p).qiskit_circuit
-        )
+            self._encoding_circuit.get_circuit(self._x, self._p)
+        ).qiskit_circuit
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)

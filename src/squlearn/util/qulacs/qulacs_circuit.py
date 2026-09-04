@@ -9,6 +9,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.compiler import transpile
 
 from qc_executor import QuantumOperator
+from qc_executor import QuantumCircuit as QcExecutorQuantumCircuit
 
 from qulacs import ParametricQuantumCircuit, QuantumCircuit
 from qulacs import GeneralQuantumOperator, PauliOperator
@@ -57,7 +58,7 @@ class QulacsCircuit:
 
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
-            decompose_to_std(circuit),
+            decompose_to_std(QcExecutorQuantumCircuit.from_qiskit(circuit)).qiskit_circuit,
             target=qiskit_qulacs_target,
             optimization_level=0,
         )

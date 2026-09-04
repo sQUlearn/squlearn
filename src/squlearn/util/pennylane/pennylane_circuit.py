@@ -9,6 +9,7 @@ from qiskit.compiler import transpile
 from qiskit.quantum_info import SparsePauliOp
 
 from qc_executor import QuantumOperator
+from qc_executor import QuantumCircuit as QcExecutorQuantumCircuit
 
 import pennylane as qml
 import pennylane.numpy as pnp
@@ -138,7 +139,7 @@ class PennyLaneCircuit:
 
         # Transpile circuit to supported basis gates and expand blocks automatically
         self._qiskit_circuit = transpile(
-            decompose_to_std(circuit),
+            decompose_to_std(QcExecutorQuantumCircuit.from_qiskit(circuit)).qiskit_circuit,
             target=qiskit_pennylane_target,
             optimization_level=0,
         )
