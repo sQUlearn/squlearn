@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -103,16 +102,16 @@ class SummedProbabilities(ObservableBase):
         params["include_identity"] = self._include_identity
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray] = None) -> QuantumOperator:
         """
-        Function for generating the PauliOp expression of the summed probabilities operator.
+        Function for generating the QuantumOperator expression of the summed probabilities operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+            parameters (Union[Parameters, np.ndarray]): Parameters of the summed
                 probabilities operator.
 
         Returns:
-            PauliOp expression of the specified summed probabilities operator.
+            QuantumOperator expression of the specified summed probabilities operator.
         """
 
         nparam = len(parameters)
@@ -120,14 +119,15 @@ class SummedProbabilities(ObservableBase):
         op_list = []
         coeff_list = []
 
+        ioff = 0
         if self._include_identity:
             op_list.append("I" * self.num_qubits)
-            coeff_list.append(parameters[0 % nparam])
+            coeff_list.append(parameters[ioff % nparam])
+            ioff += 1
 
-        ioff = 1
         for i in range(self.num_qubits):
             I = "I" * self.num_qubits
-            Z = I[(i + 1) :] + "Z" + I[:i]
+            Z = I[:i] + "Z" + I[(i + 1) :]
 
             if self._one_state:
                 op_list.append(I)
@@ -142,4 +142,4 @@ class SummedProbabilities(ObservableBase):
             if self._full_sum:
                 ioff += 1
 
-        return SparsePauliOp(op_list, coeff_list)
+        return QuantumOperator(op_list, coeff_list)

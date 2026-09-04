@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -95,23 +94,23 @@ class SingleProbability(ObservableBase):
         params["parameterized"] = self._parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray] = None) -> QuantumOperator:
         """
-        Function for generating the SparsePauliOp expression of the single probability operator.
+        Function for generating the QuantumOperator expression of the single probability operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the single
+            parameters (Union[Parameters, np.ndarray]): Parameters of the single
                                                              probability operator.
 
         Return:
-            SparsePauliOp expression of the specified single probability operator.
+            QuantumOperator expression of the specified single probability operator.
         """
 
         i = self._qubit
         if 0 > i or self.num_qubits <= i:
             raise ValueError("Specified qubit out of range")
         I = "I" * self.num_qubits
-        Z = I[(i + 1) :] + "Z" + I[:i]
+        Z = I[:i] + "Z" + I[(i + 1) :]
 
         if self._parameterized:
             coeff = 0.5 * parameters[0]
@@ -119,7 +118,7 @@ class SingleProbability(ObservableBase):
             coeff = 0.5
 
         if self._one_state:
-            return SparsePauliOp([I, Z], [coeff, -coeff])
+            return QuantumOperator([I, Z], [coeff, -coeff])
 
         else:
-            return SparsePauliOp([I, Z], [coeff, coeff])
+            return QuantumOperator([I, Z], [coeff, coeff])

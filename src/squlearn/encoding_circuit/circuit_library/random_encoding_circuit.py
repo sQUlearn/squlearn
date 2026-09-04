@@ -2,34 +2,7 @@ import numpy as np
 from typing import Union
 import random
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
-
-from qiskit.circuit.library import (
-    XGate,
-    YGate,
-    ZGate,
-    HGate,
-    SGate,
-    TGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CHGate,
-    SwapGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    PhaseGate,
-    CPhaseGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    RXXGate,
-    RYYGate,
-    RZZGate,
-    RZXGate,
-)
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -69,29 +42,29 @@ default_encoding_weights = {
 
 # Available gates with number of qubits and parameterized
 available_gates = {
-    "x": (XGate, 1, False),
-    "y": (YGate, 1, False),
-    "z": (ZGate, 1, False),
-    "h": (HGate, 1, False),
-    "s": (SGate, 1, False),
-    "t": (TGate, 1, False),
-    "cx": (CXGate, 2, False),
-    "cy": (CYGate, 2, False),
-    "cz": (CZGate, 2, False),
-    "ch": (CHGate, 2, False),
-    "swap": (SwapGate, 2, False),
-    "rx": (RXGate, 1, True),
-    "ry": (RYGate, 1, True),
-    "rz": (RZGate, 1, True),
-    "p": (PhaseGate, 1, True),
-    "cp": (CPhaseGate, 2, True),
-    "crx": (CRXGate, 2, True),
-    "cry": (CRYGate, 2, True),
-    "crz": (CRZGate, 2, True),
-    "rxx": (RXXGate, 2, True),
-    "ryy": (RYYGate, 2, True),
-    "rzz": (RZZGate, 2, True),
-    "rzx": (RZXGate, 2, True),
+    "x": (1, False),
+    "y": (1, False),
+    "z": (1, False),
+    "h": (1, False),
+    "s": (1, False),
+    "t": (1, False),
+    "cx": (2, False),
+    "cy": (2, False),
+    "cz": (2, False),
+    "ch": (2, False),
+    "swap": (2, False),
+    "rx": (1, True),
+    "ry": (1, True),
+    "rz": (1, True),
+    "p": (1, True),
+    "cp": (2, True),
+    "crx": (2, True),
+    "cry": (2, True),
+    "crz": (2, True),
+    "rxx": (2, True),
+    "ryy": (2, True),
+    "rzz": (2, True),
+    "rzx": (2, True),
 }
 
 # Different encodings for the parameters and features
@@ -110,7 +83,7 @@ feature_encodings = [e for e in available_encodings.keys() if "x" in available_e
 # List of encodings with parameters
 parameter_encodings = [e for e in available_encodings.keys() if "p" in available_encodings[e][1]]
 # List of parameterized gates
-parameterized_gates = [k for k in available_gates.keys() if available_gates[k][2]]
+parameterized_gates = [k for k in available_gates.keys() if available_gates[k][1]]
 
 
 class RandomEncodingCircuit(EncodingCircuitBase):
@@ -178,15 +151,15 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         r"""
         Returns the random encoding circuit.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
-            parameters (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            features (Union[Parameters,np.ndarray]): Input vector of the features
+            parameters (Union[Parameters,np.ndarray]): Input vector of the parameters
 
         Return:
             Returns the random encoding circuit in qiskit QuantumCircuit format
@@ -201,29 +174,29 @@ class RandomEncodingCircuit(EncodingCircuitBase):
         parameter_counter = 0
         parameterized_gate_counter = 0
         for igate, gate in enumerate(self._picked_gates):
-            is_parameterized = available_gates[gate][2]
+            is_parameterized = available_gates[gate][1]
             qubits_arg = self._picked_qubits[igate]
+            gate_method = getattr(qc, gate)
             # switch between parameterized and non-parameterized gates
             if is_parameterized:
                 encoding = available_encodings[self._picked_encodings[parameterized_gate_counter]][
                     0
                 ]
-                qc.append(
-                    available_gates[gate][0](
-                        encoding(
-                            features[self._feature_indices[feature_counter]],
-                            parameters[parameter_counter % self.num_parameters],
-                        ),
+                gate_method(
+                    *qubits_arg,
+                    encoding(
+                        features[self._feature_indices[feature_counter]],
+                        parameters[parameter_counter % self.num_parameters],
                     ),
-                    list(qubits_arg),
                 )
+
                 if self._picked_encodings[parameterized_gate_counter] in feature_encodings:
                     feature_counter += 1
                 if self._picked_encodings[parameterized_gate_counter] in parameter_encodings:
                     parameter_counter = (parameter_counter + 1) % self.num_parameters
                 parameterized_gate_counter += 1
             else:
-                qc.append(available_gates[gate][0](), list(qubits_arg))
+                gate_method(*qubits_arg)
 
         return qc
 
@@ -335,7 +308,7 @@ class RandomEncodingCircuit(EncodingCircuitBase):
 
         # Qubit asignments for the gates
         self._picked_qubits = [
-            tuple(random.sample(range(self.num_qubits), available_gates[gate][1]))
+            tuple(random.sample(range(self.num_qubits), available_gates[gate][0]))
             for gate in self._picked_gates
         ]
         self._num_parameters = sum(

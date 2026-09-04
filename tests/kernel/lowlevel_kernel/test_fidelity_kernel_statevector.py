@@ -124,7 +124,7 @@ class TestFidelityKernelStatevector:
             [0.44],
         ]
         k._evaluate_duplicates = "off_diagonal"
-        # parameter_vector present -> arguments include (params, x1, x2)
+        # parameter_vector present -> arguments include (params, xy)
         mat = k.evaluate_kernel_shots(x, y)
         # Mat should be filled with our kernel entries at corresponding positions
         assert mat.shape == (2, 2)

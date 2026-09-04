@@ -4,9 +4,10 @@ from typing import Union
 from functools import lru_cache
 import numpy as np
 
-from qiskit.circuit import ParameterVector
 from qiskit.compiler import transpile
 from qiskit_algorithms.utils import algorithm_globals
+
+from qc_executor.parameters import Parameters
 
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util.executor import Executor
@@ -62,22 +63,22 @@ class FidelityKernelStatevector:
             # Mode 1 for statevector: calculate the statevector of the quantum circuit
             # and use it to calculate the fidelity as the overlap of the two states.
 
-            x = ParameterVector("x", self._num_features)
+            x = Parameters("x", self._num_features)
             if self.num_parameters > 0:
-                self._parameter_vector = ParameterVector("p", self.num_parameters)
+                self._parameter_vector = Parameters("p", self.num_parameters)
             else:
                 self._parameter_vector = None
 
             enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
 
             if self._executor.quantum_framework == "pennylane":
-                circuit = transpile(enc_circ, target=qiskit_pennylane_target, optimization_level=0)
+                circuit = transpile(
+                    enc_circ.qiskit_circuit, target=qiskit_pennylane_target, optimization_level=0
+                )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "state")
 
             elif self._executor.quantum_framework == "qulacs":
-
-                enc_circ = self._encoding_circuit.get_circuit(x, self._parameter_vector)
-                self._qulacs_circuit = QulacsCircuit(enc_circ, None)
+                self._qulacs_circuit = QulacsCircuit(enc_circ.qiskit_circuit, None)
 
             else:
                 raise RuntimeError(
@@ -90,21 +91,33 @@ class FidelityKernelStatevector:
         else:
 
             # Mode 2 for shot based: calculate the |0> probabilities
-            # of the quantum circuit U(x)U(x)'
+            # of the quantum circuit U(y)^-1 U(x) |0>
 
             if self._executor.quantum_framework == "pennylane":
-                x1 = ParameterVector("x1", self._num_features)
-                x2 = ParameterVector("x2", self._num_features)
+                # Composed on the EncodingCircuitBase level, not via qc_executor's own
+                # compose()/invert() (both squash or misplace circuit parameters).
+                #
+                # NOTE: EncodingCircuitBase.inverse() itself still delegates to
+                # qc_executor.QuantumCircuit.invert(), which passes its own circuit to
+                # the num_clbits constructor argument and always raises CircuitError.
+                # This branch is unreachable until that's fixed - tracked by the
+                # pending qc_executor IR refactor. Left in this (already-correct) form
+                # so it starts working without further changes once that lands.
+                composed_circuit = self._encoding_circuit.compose(
+                    self._encoding_circuit.inverse(),
+                    concatenate_features=True,
+                    num_circuit_features=(self._num_features, self._num_features),
+                )
+                x = Parameters("x", 2 * self._num_features)
                 if self.num_parameters > 0:
-                    self._parameter_vector = ParameterVector("p", self.num_parameters)
+                    self._parameter_vector = Parameters("p", self.num_parameters)
                 else:
                     self._parameter_vector = None
 
-                enc_circ1 = self._encoding_circuit.get_circuit(x1, self._parameter_vector)
-                enc_circ2 = self._encoding_circuit.get_circuit(x2, self._parameter_vector)
-
-                circuit = enc_circ1.compose(enc_circ2.inverse())
-                circuit = transpile(circuit, target=qiskit_pennylane_target, optimization_level=0)
+                enc_circ = composed_circuit.get_circuit(x, self._parameter_vector)
+                circuit = transpile(
+                    enc_circ.qiskit_circuit, target=qiskit_pennylane_target, optimization_level=0
+                )
                 self._pennylane_circuit = PennyLaneCircuit(circuit, "probs")
             elif self._executor.quantum_framework == "qulacs":
                 raise NotImplementedError(
@@ -297,14 +310,16 @@ class FidelityKernelStatevector:
                     y_list = np.vstack((y_list, y_j))
                     indices.append((i, j))
 
+        xy_list = np.hstack((x_list, y_list))
+
         if self._parameter_vector is not None:
             if self._parameters is None:
                 raise ValueError(
                     "Parameters have to been set with assign_parameters or as initial parameters!"
                 )
-            arguments = [(self._parameters, x1, x2) for x1, x2 in zip(y_list, x_list)]
+            arguments = [(self._parameters, xy) for xy in xy_list]
         else:
-            arguments = [(x1, x2) for x1, x2 in zip(y_list, x_list)]
+            arguments = [(xy,) for xy in xy_list]
 
         circuits = [self._pennylane_circuit] * len(arguments)
         all_probs = self._executor.pennylane_execute_batched(circuits, arguments)

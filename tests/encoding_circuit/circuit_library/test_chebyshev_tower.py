@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevTower
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -62,11 +62,11 @@ def _build_expected_chebyshev_tower(
                 angle = mapping(features[index_offset % len(features)], icheb)
                 target = iqubit % num_qubits
                 if rotation_gate.lower() == "rx":
-                    QC.rx(angle, target)
+                    QC.rx(target, angle)
                 elif rotation_gate.lower() == "ry":
-                    QC.ry(angle, target)
+                    QC.ry(target, angle)
                 elif rotation_gate.lower() == "rz":
-                    QC.rz(angle, target)
+                    QC.rz(target, angle)
                 else:
                     raise ValueError("Rotation gate {} not supported".format(rotation_gate))
                 iqubit += 1

@@ -1,0 +1,508 @@
+"""Unified low-level QNN implementation delegating first-order evaluation to qc_executor."""
+
+from typing import Callable, Union
+from warnings import warn
+
+import numpy as np
+
+from qc_executor import Parameters, QuantumOperator
+
+from ...observables.observable_base import ObservableBase
+from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
+from ...encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
+from ...util import Executor
+from ...util.data_preprocessing import adjust_features, adjust_parameters, to_tuple
+
+from .lowlevel_qnn_base import LowLevelQNNBase
+from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
+from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
+from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
+from .evaluation_classes import eval_var, eval_dvardx, eval_dvardp, eval_dvardop
+
+# Frameworks for which Executor.expectation_value/expectation_value_derivatives
+# (and therefore the native evaluation path) are available. Frameworks not in this
+# set always go through the fallback engine.
+_NATIVE_FRAMEWORKS = frozenset({"qiskit", "pennylane", "qulacs"})
+
+# Frameworks whose qc_executor backend cannot bind a shared "p_op" vector across a
+# List[QuantumOperatorBase] where each entry only owns a different slice of it: they require
+# the array passed under a vector-style key to match that *specific* observable's own
+# parameter count exactly, not the length of the full, shared vector. Qiskit's backend
+# handles the list natively and is left on the faster, single-call path.
+_LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS = frozenset({"pennylane", "qulacs"})
+
+# Maps every native key to the observable attribute it is measured against and the
+# qc_executor derivative parameter it needs ("x"/"p"/"p_op", or None for the plain
+# expectation value). The "fcc"* keys are expectation values of the *squared* observable
+# <O^2> - the "var" family below is expressed entirely in terms of these plus the plain
+# "f"/"dfdx"/"dfdp"/"dfdop" values, so it needs no derivative order beyond 1.
+_NATIVE_KEY_INFO = {
+    "f": ("_native_observable", None),
+    "dfdx": ("_native_observable", "x"),
+    "dfdp": ("_native_observable", "p"),
+    "dfdop": ("_native_observable", "p_op"),
+    "fcc": ("_native_observable_squared", None),
+    "dfccdx": ("_native_observable_squared", "x"),
+    "dfccdp": ("_native_observable_squared", "p"),
+    "dfccdop": ("_native_observable_squared", "p_op"),
+}
+
+# Trailing-shape dimension for each derivative key, as an attribute name resolved on the
+# instance (num_features/num_parameters/num_parameters_observable). "f"/"fcc" have no
+# derivative axis and are handled separately in _trailing_shape.
+_NATIVE_KEY_TRAILING_DIM_ATTR = {
+    "dfdx": "num_features",
+    "dfccdx": "num_features",
+    "dfdp": "num_parameters",
+    "dfccdp": "num_parameters",
+    "dfdop": "num_parameters_observable",
+    "dfccdop": "num_parameters_observable",
+}
+
+# "var"/"varf" and their gradients are pure post-processing of expectation values of the
+# observable and its square: var = <O^2> - <O>^2. Maps each requested key to the native
+# keys it needs and the (reused, not reimplemented) post-processing function that combines
+# them - the same functions the legacy per-framework engines use for the same purpose.
+_VAR_FAMILY = {
+    "var": (("f", "fcc"), eval_var),
+    "varf": (("f", "fcc"), eval_var),
+    "dvardx": (("f", "dfccdx", "dfdx"), eval_dvardx),
+    "dvarfdx": (("f", "dfccdx", "dfdx"), eval_dvardx),
+    "dvardp": (("f", "dfccdp", "dfdp"), eval_dvardp),
+    "dvarfdp": (("f", "dfccdp", "dfdp"), eval_dvardp),
+    "dvardop": (("f", "dfccdop", "dfdop"), eval_dvardop),
+    "dvarfdop": (("f", "dfccdop", "dfdop"), eval_dvardop),
+}
+
+
+class LowLevelQNNUnified(LowLevelQNNBase):
+    """Low-level QNN that evaluates ``f``/``dfdx``/``dfdp``/``dfdop``, the corresponding
+    values of the squared observable (``fcc``/``dfccdx``/``dfccdp``/``dfccdop``), and the
+    ``var``/``dvardx``/``dvardp``/``dvardop`` family derived from those, directly through
+    ``qc_executor`` (no ``OpTree`` construction) for frameworks it supports. Falls back to
+    the legacy framework-specific engine (:class:`LowLevelQNNQiskit`, :class:`LowLevelQNNPennyLane`,
+    ...) for every other requested derivative (``dfdxdx``, ``laplace``, ...) as well as for
+    frameworks qc_executor does not yet cover.
+
+    Args:
+        pqc (EncodingCircuitBase): The parameterized quantum circuit.
+        observable (Union[ObservableBase, list]): The observable(s) to measure.
+        executor (Executor): The executor for the quantum circuit.
+        num_features (int): Dimension of the input features.
+        post_processing (Callable): Optional post processing function operating on the result
+            dict after evaluate.
+        caching (bool): Caching of the result for each `x`, `param`, `param_op` combination
+            (default = True)
+        primitive (str): Qiskit-only primitive selection. Only forwarded to the fallback engine
+            (used for derivatives beyond the native keys listed above), since ``qc_executor``
+            has no equivalent per-call primitive selection. Ignored (with a warning) for
+            frameworks that don't support it, matching the old per-framework classes.
+    """
+
+    _NATIVE_KEYS = frozenset(_NATIVE_KEY_INFO)
+
+    def __init__(
+        self,
+        parameterized_quantum_circuit: EncodingCircuitBase,
+        observable: Union[ObservableBase, list],
+        executor: Executor,
+        num_features: int,
+        post_processing: Callable = None,
+        caching=True,
+        primitive: Union[str, None] = None,
+    ) -> None:
+        self._num_features = num_features
+        self.caching = caching
+        self._fallback_engine = None
+        self._framework = executor.quantum_framework
+
+        _framework_labels = {"pennylane": "PennyLane", "qulacs": "Qulacs"}
+        if self._framework in _framework_labels and primitive is not None:
+            warn(
+                f"Primitive argument is not supported for {_framework_labels[self._framework]}. "
+                "Ignoring..."
+            )
+            primitive = None
+        self._primitive = primitive
+
+        if self._framework == "qiskit" and not executor.backend_chosen:
+            executor.select_backend(parameterized_quantum_circuit, num_features)
+
+        super().__init__(parameterized_quantum_circuit, observable, executor, post_processing)
+
+        if isinstance(self._pqc, LayeredEncodingCircuit):
+            self._pqc._build_layered_pqc(num_features)
+
+        self._x = Parameters("x", num_features)
+        self._p = Parameters("p", self._pqc.num_parameters)
+
+        # No TranspiledEncodingCircuit/set_map involved here (unlike LowLevelQNNQiskit):
+        # qc_executor.QiskitExecutor performs its own ISA transpilation lazily at execution
+        # time, so the observable is kept in the pqc's own (untransposed) qubit numbering.
+        if isinstance(self._observable, list):
+            num_qubits_operator = 0
+            n_op_params = 0
+            for obs in self._observable:
+                num_qubits_operator = max(num_qubits_operator, obs.num_qubits)
+                n_op_params += obs.num_parameters
+        else:
+            num_qubits_operator = self._observable.num_qubits
+            n_op_params = self._observable.num_parameters
+
+        if self._pqc.num_qubits != num_qubits_operator:
+            raise ValueError("Number of Qubits are not the same!")
+        self._num_qubits = self._pqc.num_qubits
+
+        self._p_op = Parameters("p_op", n_op_params)
+
+        self._native_circuit = self._pqc.get_circuit(self._x, self._p)
+        if isinstance(self._observable, list):
+            native_observables = []
+            # (offset, length) of each observable's own slice within the shared "p_op"
+            # vector - needed because qc_executor's list-observable derivative collapse
+            # cannot handle observables that own different numbers of "p_op" elements.
+            self._observable_p_op_slices = []
+            ioff = 0
+            for obs in self._observable:
+                native_observables.append(obs.get_operator(self._p_op[ioff:]))
+                self._observable_p_op_slices.append((ioff, obs.num_parameters))
+                ioff += obs.num_parameters
+            self._native_observable = native_observables
+            # <O^2> for the "var" family (see _VAR_FAMILY). Composing an observable with
+            # itself reuses the same p_op Parameter objects on both sides, so simplify()
+            # cannot introduce new parameter symbols beyond the ones already in
+            # _observable_p_op_slices
+            self._native_observable_squared = [
+                QuantumOperator(_native_operator=obs.qiskit_operator)
+                .compose(QuantumOperator(_native_operator=obs.qiskit_operator))
+                .simplify()
+                for obs in self._native_observable
+            ]
+        else:
+            self._native_observable = self._observable.get_operator(self._p_op)
+            self._native_observable_squared = (
+                QuantumOperator(_native_operator=self._native_observable.qiskit_operator)
+                .compose(QuantumOperator(_native_operator=self._native_observable.qiskit_operator))
+                .simplify()
+            )
+
+        self.result_container = {}
+
+    @property
+    def _fallback(self) -> Union[LowLevelQNNQiskit, LowLevelQNNPennyLane, LowLevelQNNQulacs]:
+        """Lazily-constructed legacy, framework-specific engine. Used for every derivative
+        order/kind not covered by the native qc_executor path (``dfdxdx``, ``laplace``, ``var``,
+        ...), and for every key at all when the framework has no qc_executor bridge yet."""
+        if self._fallback_engine is None:
+            if self._framework == "qiskit":
+                self._fallback_engine = LowLevelQNNQiskit(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                    primitive=self._primitive,
+                )
+            elif self._framework == "pennylane":
+                self._fallback_engine = LowLevelQNNPennyLane(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                )
+            elif self._framework == "qulacs":
+                self._fallback_engine = LowLevelQNNQulacs(
+                    self._pqc,
+                    self._observable,
+                    self._executor,
+                    self._num_features,
+                    post_processing=None,
+                    caching=self.caching,
+                )
+            else:
+                raise RuntimeError(f"Unsupported quantum framework: {self._framework}")
+        return self._fallback_engine
+
+    def get_params(self, deep: bool = True) -> dict:
+        """Returns the dictionary of the hyper-parameters of the QNN.
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0__``, ``op1__``, etc.
+        """
+        params = dict(num_qubits=self.num_qubits)
+        params["primitive"] = self._primitive
+
+        if deep:
+            params.update(self._pqc.get_params())
+            if isinstance(self._observable, list):
+                for i, oper in enumerate(self._observable):
+                    for key, value in oper.get_params().items():
+                        if key != "num_qubits":
+                            params["op" + str(i) + "__" + key] = value
+            else:
+                params.update(self._observable.get_params())
+        return params
+
+    def set_params(self, **params) -> None:
+        """Sets the hyper-parameters of the QNN.
+
+        In case of multiple outputs, the hyper-parameters of the operator are prefixed
+        with ``op0__``, ``op1__``, etc.
+        """
+        valid_params = self.get_params(deep=True)
+        for key in params:
+            if key not in valid_params:
+                raise ValueError(
+                    f"Invalid parameter {key!r}. Valid parameters are {sorted(valid_params)!r}."
+                )
+
+        if "primitive" in params:
+            self._primitive = params["primitive"]
+            if self._fallback_engine is not None:
+                self._fallback_engine.set_params(primitive=params["primitive"])
+            params.pop("primitive")
+
+        dict_pqc = {key: value for key, value in params.items() if key in self._pqc.get_params()}
+        if dict_pqc:
+            self._pqc.set_params(**dict_pqc)
+
+        if isinstance(self._observable, list):
+            for i, oper in enumerate(self._observable):
+                prefix = "op" + str(i) + "__"
+                dict_operator = {
+                    key.split("__", 1)[1]: value
+                    for key, value in params.items()
+                    if key.startswith(prefix)
+                }
+                if dict_operator:
+                    oper.set_params(**dict_operator)
+        else:
+            dict_operator = {
+                key: value for key, value in params.items() if key in self._observable.get_params()
+            }
+            if dict_operator:
+                self._observable.set_params(**dict_operator)
+
+    def set_shots(self, num_shots: int) -> None:
+        """Sets the number of shots for the next evaluations."""
+        self._executor.set_shots(num_shots)
+
+    def get_shots(self) -> int:
+        """Getter for the number of shots."""
+        return self._executor.get_shots()
+
+    def reset_shots(self) -> None:
+        """Resets the number of shots to the initial ones."""
+        self._executor.reset_shots()
+
+    @property
+    def num_qubits(self) -> int:
+        """Return the number of qubits of the QNN."""
+        return self._num_qubits
+
+    @property
+    def num_features(self) -> int:
+        """Return the dimension of the features of the PQC."""
+        return self._num_features
+
+    @property
+    def num_parameters(self) -> int:
+        """Return the number of trainable parameters of the PQC."""
+        return self._pqc.num_parameters
+
+    @property
+    def num_operator(self) -> int:
+        """Return the number of outputs."""
+        return len(self._observable) if isinstance(self._observable, list) else 1
+
+    @property
+    def num_parameters_observable(self) -> int:
+        """Return the number of trainable parameters of the expectation value operator."""
+        return len(self._p_op)
+
+    @property
+    def multiple_output(self) -> bool:
+        """Return true if multiple outputs are used."""
+        return isinstance(self._observable, list)
+
+    # NOTE: these intentionally return the *fallback* engine's parameter vectors, not the
+    # native self._x/self._p/self._p_op used for the qc_executor path. Tuple-based derivative
+    # specs built from these (e.g. `llqnn.parameters[0]`) are only ever evaluated through the
+    # fallback (native keys are plain strings, see _evaluate), and the fallback's OpTree
+    # differentiation matches parameters by object identity - it must see its own vectors.
+    @property
+    def parameters(self) -> Parameters:
+        """Return the parameter vector of the PQC."""
+        return self._fallback.parameters
+
+    @property
+    def features(self) -> Parameters:
+        """Return the feature vector of the PQC."""
+        return self._fallback.features
+
+    @property
+    def parameters_operator(self) -> Parameters:
+        """Return the parameter vector of the cost operator."""
+        return self._fallback.parameters_operator
+
+    def _trailing_shape(self, key: str) -> tuple:
+        """Shape of a single evaluation's result for `key`, excluding the x/param/param_op
+        batch axes (matches the axis convention of :class:`LowLevelQNNQiskit`: output axis
+        before the derivative axis)."""
+        multi = self.multiple_output
+        n_op = self.num_operator
+        if key in ("f", "fcc"):
+            return (n_op,) if multi else ()
+        try:
+            d = getattr(self, _NATIVE_KEY_TRAILING_DIM_ATTR[key])
+        except KeyError:
+            raise ValueError(f"Unknown native key: {key}") from None
+        return (n_op, d) if multi else (d,)
+
+    def _compute_native(self, key: str, parameters: dict):
+        observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
+        observable = getattr(self, observable_attr)
+        if self.multiple_output and (
+            # A "*dop" key always needs it: each observable only contributes a gradient
+            # for its own "p_op" slice, and qc_executor's list-observable collapse
+            # assumes every list entry produces a result of the same shape - it can't
+            # zero-pad the rest.
+            derivative_param == "p_op"
+            # The other keys need it only for backends that can't bind a shared "p_op"
+            # vector across list entries owning different-sized slices of it.
+            or self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
+        ):
+            return self._compute_native_per_observable(key, parameters)
+        if derivative_param is None:
+            return self._executor.expectation_value(self._native_circuit, observable, **parameters)
+        return self._executor.expectation_value_derivatives(
+            self._native_circuit, observable, derivative_param, **parameters
+        )
+
+    def _compute_native_per_observable(self, key: str, parameters: dict) -> np.ndarray:
+        """Evaluate ``key`` for each observable individually."""
+        observable_attr, derivative_param = _NATIVE_KEY_INFO[key]
+        observable_list = getattr(self, observable_attr)
+        needs_local_p_op_slice = self._framework in _LIST_OBSERVABLE_NEEDS_PER_OBSERVABLE_CALLS
+        out = np.zeros(self._trailing_shape(key), dtype=float)
+        for i, (obs, (ioff, n)) in enumerate(zip(observable_list, self._observable_p_op_slices)):
+            if derivative_param == "p_op" and n == 0:
+                # Observable i owns no "p_op" parameters at all - df_i/dp_op_j stays 0 for
+                # every j, including the j's belonging to i's own (empty) slice.
+                continue
+            obs_parameters = dict(parameters)
+            if needs_local_p_op_slice:
+                obs_parameters["p_op"] = parameters["p_op"][ioff : ioff + n]
+            if derivative_param is None:
+                out[i] = self._executor.expectation_value(self._native_circuit, obs, **obs_parameters)
+            elif derivative_param == "p_op":
+                value = self._executor.expectation_value_derivatives(
+                    self._native_circuit, obs, "p_op", **obs_parameters
+                )
+                # df_i/dp_op_j is 0 by construction for every j outside observable i's own
+                # slice - only that slice of row i is filled in.
+                out[i, ioff : ioff + n] = np.asarray(value, dtype=float).reshape(n)
+            else:
+                value = self._executor.expectation_value_derivatives(
+                    self._native_circuit, obs, derivative_param, **obs_parameters
+                )
+                out[i] = np.asarray(value, dtype=float).reshape(-1)
+        return out
+
+    def _evaluate_native(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_op: Union[float, np.ndarray],
+        keys: list,
+    ) -> dict:
+        x_inp, multi_x = adjust_features(x, self.num_features)
+        param_inp, multi_param = adjust_parameters(param, self.num_parameters)
+        param_op_inp, multi_param_op = adjust_parameters(param_op, self.num_parameters_observable)
+
+        caching_tuple = None
+        cached = {}
+        if self.caching:
+            caching_tuple = (
+                to_tuple(x),
+                to_tuple(param),
+                to_tuple(param_op),
+                (self._executor.shots is None),
+            )
+            cached = self.result_container.get(caching_tuple, {})
+
+        out = {}
+        for key in keys:
+            if key in cached:
+                out[key] = cached[key]
+                continue
+
+            trailing = self._trailing_shape(key)
+            arr = np.zeros((len(x_inp), len(param_inp), len(param_op_inp)) + trailing, dtype=float)
+            if 0 not in trailing:
+                # A zero-sized trailing axis (e.g. dfdop with no observable parameters at
+                # all) has nothing to fill in - qc_executor has no "empty" result to return.
+                for ix, x_vec in enumerate(x_inp):
+                    for ip, p_vec in enumerate(param_inp):
+                        for iop, p_op_vec in enumerate(param_op_inp):
+                            value = self._compute_native(
+                                key, {"x": x_vec, "p": p_vec, "p_op": p_op_vec}
+                            )
+                            arr[ix, ip, iop, ...] = np.asarray(value, dtype=float).reshape(
+                                trailing
+                            )
+
+            final_shape = []
+            if multi_x:
+                final_shape.append(len(x_inp))
+            if multi_param:
+                final_shape.append(len(param_inp))
+            if multi_param_op:
+                final_shape.append(len(param_op_inp))
+            final_shape += list(trailing)
+
+            out[key] = arr.reshape(final_shape) if final_shape else float(arr.reshape(()))
+            cached[key] = out[key]
+
+        if self.caching:
+            self.result_container[caching_tuple] = cached
+
+        return out
+
+    def _evaluate(
+        self,
+        x: Union[float, np.ndarray],
+        param: Union[float, np.ndarray],
+        param_op: Union[float, np.ndarray],
+        *values,
+    ) -> dict:
+        if self._framework in _NATIVE_FRAMEWORKS:
+            native_keys = [v for v in values if isinstance(v, str) and v in self._NATIVE_KEYS]
+            var_keys = [v for v in values if isinstance(v, str) and v in _VAR_FAMILY]
+        else:
+            native_keys = []
+            var_keys = []
+        fallback_keys = [v for v in values if v not in native_keys and v not in var_keys]
+
+        # "var" and its gradients need nothing beyond the plain expectation value and its
+        # first derivatives (see _VAR_FAMILY) - fold their dependencies into the same
+        # native batch call instead of evaluating them separately.
+        underlying = {dep for key in var_keys for dep in _VAR_FAMILY[key][0]}
+        combined_native_keys = sorted(set(native_keys) | underlying)
+
+        result = {}
+        if combined_native_keys:
+            result.update(self._evaluate_native(x, param, param_op, combined_native_keys))
+        for key in var_keys:
+            _, evaluation_function = _VAR_FAMILY[key]
+            result[key] = evaluation_function(result)
+        if fallback_keys:
+            result.update(self._fallback._evaluate(x, param, param_op, *fallback_keys))
+
+        result["x"] = x
+        result["param"] = param
+        result["param_op"] = param_op
+        return result

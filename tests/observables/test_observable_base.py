@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator
 from squlearn.observables.observable_base import ObservableBase
 
 
@@ -11,7 +11,7 @@ class DummyOb(ObservableBase):
         self._num_parameters = num_parameters
 
     def get_pauli(self, parameters):
-        return SparsePauliOp.from_list([("ZZ", 1.0)])
+        return QuantumOperator(["ZZ"], [1.0])
 
     @property
     def num_parameters(self):
@@ -59,9 +59,9 @@ class TestObservableBase:
 
     def test_get_pauli_mapped(self, ob: DummyOb):
         mapped = ob.get_pauli_mapped([0, 1])
-        assert isinstance(mapped, SparsePauliOp)
+        assert isinstance(mapped, QuantumOperator)
         assert mapped.num_qubits == 2
-        assert mapped.to_list() == [("ZZ", 1.0)]
+        assert list(zip(mapped.paulis, mapped.coeffs)) == [("ZZ", 1.0)]
 
 
 class TestAddedObservable:

@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
 from ..encoding_circuit_base import EncodingCircuitBase
@@ -80,16 +79,16 @@ class ParamZFeatureMap(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Returns the circuit of the parameterized Z feature map.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+            features (Union[Parameters,np.ndarray]): Input vector of the features
                                                           from which the gate inputs are obtained.
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            param_vec (Union[Parameters,np.ndarray]): Input vector of the parameters
                                                            from which the gate inputs are obtained.
 
         Return:
@@ -108,8 +107,8 @@ class ParamZFeatureMap(EncodingCircuitBase):
                 if i < self._num_qubits:
                     circuit.h(i)
                 circuit.p(
-                    parameters[index_offset % num_params] * features[i % num_features],
                     i % self._num_qubits,
+                    parameters[index_offset % num_params] * features[i % num_features],
                 )
                 index_offset += 1
 

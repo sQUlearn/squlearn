@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import Statevector
+from qc_executor import QuantumOperator
 
 from squlearn.observables import SummedPaulis
 
@@ -39,7 +40,7 @@ class TestSummedPaulis:
 
     def _gen_string(self, num_qubits, i, op_str):
         H = "I" * num_qubits
-        return H[(i + 1) :] + op_str + H[:i]
+        return H[:i] + op_str + H[(i + 1) :]
 
     def test_get_pauli_full_sum_labels_and_coeffs(self):
         num_qubits = 2
@@ -52,7 +53,7 @@ class TestSummedPaulis:
         params = np.arange(1, nparams + 1, dtype=float)
         pauli = ob.get_pauli(parameters=params)
 
-        assert isinstance(pauli, SparsePauliOp)
+        assert isinstance(pauli, QuantumOperator)
 
         # build expected operator labels in same order as implementation:
         expected_ops = []
@@ -64,11 +65,11 @@ class TestSummedPaulis:
             for i in range(num_qubits):
                 expected_ops.append(self._gen_string(num_qubits, i, op))
 
-        labels = list(pauli.paulis.to_labels())
+        labels = list(pauli.paulis)
         assert labels == expected_ops
 
         # coefficients should equal the provided params in order
-        coeffs = np.asarray(pauli.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli.coeffs, dtype=complex))
         assert np.allclose(coeffs, params)
 
     def test_get_pauli_non_full_sum_repeats_coeffs_per_op_str(self):
@@ -85,7 +86,7 @@ class TestSummedPaulis:
         params = np.array([10.0, 20.0])
         pauli = ob.get_pauli(parameters=params)
 
-        labels = list(pauli.paulis.to_labels())
+        labels = list(pauli.paulis)
         # expected ordering: for each op_str in order, append that op for each qubit
         expected_ops = []
         for op in op_str:
@@ -93,7 +94,7 @@ class TestSummedPaulis:
                 expected_ops.append(self._gen_string(num_qubits, i, op))
         assert labels == expected_ops
 
-        coeffs = np.asarray(pauli.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli.coeffs, dtype=complex))
         # expected coeffs: [10 repeated 3 times, then 20 repeated 3 times]
         expected_coeffs = np.concatenate(
             [np.full(num_qubits, params[i]) for i in range(len(params))]
@@ -114,12 +115,12 @@ class TestSummedPaulis:
             [1.0, 2.0]
         )  # first for identity, second for Z (since full_sum False)
         pa_with = ob_with_id.get_pauli(parameters=params_with)
-        labels_with = list(pa_with.paulis.to_labels())
+        labels_with = list(pa_with.paulis)
         assert labels_with[0] == "I" * num_qubits  # identity first
 
         params_without = np.array([2.0])
         pa_without = ob_without_id.get_pauli(parameters=params_without)
-        labels_without = list(pa_without.paulis.to_labels())
+        labels_without = list(pa_without.paulis)
         # first label should be the Z operator on qubit 0 (per generator order)
         assert labels_without[0] != "I" * num_qubits
 
@@ -160,6 +161,6 @@ class TestSummedPaulis:
         state = Statevector.from_instruction(qc)
 
         # Expectation value from Qiskit
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)

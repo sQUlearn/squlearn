@@ -1,15 +1,12 @@
 "Low-level QNN Factory."
 
 from typing import Callable, Union
-from warnings import warn
 
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...util import Executor
 
-from .lowlevel_qnn_pennylane import LowLevelQNNPennyLane
-from .lowlevel_qnn_qiskit import LowLevelQNNQiskit
-from .lowlevel_qnn_qulacs import LowLevelQNNQulacs
+from .lowlevel_qnn_unified import LowLevelQNNUnified
 
 
 class LowLevelQNN:
@@ -38,37 +35,10 @@ class LowLevelQNN:
         post_processing: Callable = None,
         *args,
         **kwargs,
-    ) -> Union[LowLevelQNNPennyLane, LowLevelQNNQiskit, LowLevelQNNQulacs]:
+    ) -> LowLevelQNNUnified:
 
-        if executor.quantum_framework == "pennylane":
-            if "primitive" in kwargs:
-                if kwargs["primitive"] is not None:
-                    warn("Primitive argument is not supported for PennyLane. Ignoring...")
-                kwargs.pop("primitive")
-            return LowLevelQNNPennyLane(
-                parameterized_quantum_circuit,
-                observable,
-                executor,
-                num_features,
-                post_processing,
-                *args,
-                **kwargs,
-            )
-        elif executor.quantum_framework == "qiskit":
-            return LowLevelQNNQiskit(
-                parameterized_quantum_circuit,
-                observable,
-                executor,
-                num_features,
-                post_processing,
-                *args,
-                **kwargs,
-            )
-        elif executor.quantum_framework == "qulacs":
-            if "primitive" in kwargs:
-                warn("Primitive argument is not supported for Qulacs. Ignoring...")
-                kwargs.pop("primitive")
-            return LowLevelQNNQulacs(
+        if executor.quantum_framework in ("qiskit", "pennylane", "qulacs"):
+            return LowLevelQNNUnified(
                 parameterized_quantum_circuit,
                 observable,
                 executor,

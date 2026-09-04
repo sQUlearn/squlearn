@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import Statevector
+from qc_executor import QuantumOperator
 
 from squlearn.observables import SummedProbabilities
 
@@ -45,7 +46,7 @@ class TestSummedProbability:
 
     def test_get_pauli(self, ob: SummedProbabilities):
         pauli = ob.get_pauli(np.array([0.5]))
-        assert isinstance(pauli, SparsePauliOp)
+        assert isinstance(pauli, QuantumOperator)
 
     @pytest.mark.parametrize(
         "basis_state, expected_exp_val",
@@ -82,7 +83,7 @@ class TestSummedProbability:
         state = Statevector.from_instruction(qc)
 
         # compute expectation by qiskit
-        exp_val = float(state.expectation_value(pauli).real)
+        exp_val = float(state.expectation_value(pauli.qiskit_operator).real)
 
         assert np.isclose(exp_val, expected_exp_val)
 
@@ -117,6 +118,6 @@ class TestSummedProbability:
                 qc.x(qubit_index)
 
         state = Statevector.from_instruction(qc)
-        exp_val = float(state.expectation_value(pauli).real)
+        exp_val = float(state.expectation_value(pauli.qiskit_operator).real)
 
         assert np.isclose(exp_val, expected_exp_val)

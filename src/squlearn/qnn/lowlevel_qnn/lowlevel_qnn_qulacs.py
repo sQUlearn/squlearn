@@ -1,8 +1,10 @@
 from typing import Callable, List, Union
 import numpy as np
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametervector import ParameterVectorElement
+from qc_executor import QuantumOperator
+
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from .lowlevel_qnn_base import LowLevelQNNBase
 from .evaluation_classes import DirectEvaluation, PostProcessingEvaluation, get_evaluation_class
@@ -46,9 +48,9 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         num_operator (int): Number of outputs
         num_parameters_observable (int): Number of trainable parameters of the expectation value operator
         multiple_output (bool): True if multiple outputs are used
-        parameters (ParameterVector): Parameter vector of the PQC
-        features (ParameterVector): Feature vector of the PQC
-        parameters_operator (ParameterVector): Parameter vector of the cost operator
+        parameters (Parameters): Parameter vector of the PQC
+        features (Parameters): Feature vector of the PQC
+        parameters_operator (Parameters): Parameter vector of the cost operator
 
     Methods:
     --------
@@ -106,9 +108,13 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             self._multiple_output = False
             self._num_operators = 1
             self._num_parameters_observable = self._observable.num_parameters
-            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
+            self._param_obs = Parameters("param_obs", self._num_parameters_observable)
             self._qiskit_observable = self._observable.get_operator(self._param_obs)
-            self._qiskit_observable_squared = self._qiskit_observable.power(2).simplify()
+            self._qiskit_observable_squared = (
+                QuantumOperator(_native_operator=self._qiskit_observable.qiskit_operator)
+                .compose(QuantumOperator(_native_operator=self._qiskit_observable.qiskit_operator))
+                .simplify()
+            )
         elif isinstance(self._observable, list):
             # Multiple outputs, multiple observables
             self._multiple_output = True
@@ -116,14 +122,20 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             self._num_parameters_observable = 0
             for obs in self._observable:
                 self._num_parameters_observable += obs.num_parameters
-            self._param_obs = ParameterVector("param_obs", self._num_parameters_observable)
+            self._param_obs = Parameters("param_obs", self._num_parameters_observable)
             self._qiskit_observable = []
             self._qiskit_observable_squared = []
             ioff = 0
             for obs in self._observable:
                 self._qiskit_observable.append(obs.get_operator(self._param_obs[ioff:]))
                 self._qiskit_observable_squared.append(
-                    self._qiskit_observable[-1].power(2).simplify()
+                    QuantumOperator(_native_operator=self._qiskit_observable[-1].qiskit_operator)
+                    .compose(
+                        QuantumOperator(
+                            _native_operator=self._qiskit_observable[-1].qiskit_operator
+                        )
+                    )
+                    .simplify()
                 )
                 ioff = ioff + obs.num_parameters
         else:
@@ -137,9 +149,11 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             self._pqc._build_layered_pqc(num_features)
 
         # Parameter vectors for the PQC and the observable
-        self._x = ParameterVector("x", num_features)
-        self._param = ParameterVector("param", self._pqc.num_parameters)
-        self._qiskit_circuit = decompose_to_std(self._pqc.get_circuit(self._x, self._param))
+        self._x = Parameters("x", num_features)
+        self._param = Parameters("param", self._pqc.num_parameters)
+        self._qiskit_circuit = decompose_to_std(
+            self._pqc.get_circuit(self._x, self._param)
+        ).qiskit_circuit
 
         # Qulacs Circuit data structure of the QNN
         self._qulacs_circuit = QulacsCircuit(self._qiskit_circuit, self._qiskit_observable)
@@ -244,17 +258,17 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
         return self._multiple_output
 
     @property
-    def parameters(self) -> ParameterVector:
+    def parameters(self) -> Parameters:
         """Return the parameter vector of the PQC."""
         return self._param
 
     @property
-    def features(self) -> ParameterVector:
+    def features(self) -> Parameters:
         """Return the feature vector of the PQC."""
         return self._x
 
     @property
-    def parameters_operator(self) -> ParameterVector:
+    def parameters_operator(self) -> Parameters:
         """Return the parameter vector of the cost operator."""
         return self._param_obs
 
@@ -267,8 +281,8 @@ class LowLevelQNNQulacs(LowLevelQNNBase):
             str,
             DirectEvaluation,
             PostProcessingEvaluation,
-            ParameterVector,
-            ParameterVectorElement,
+            Parameters,
+            Parameter,
             tuple,
         ],
     ) -> dict:

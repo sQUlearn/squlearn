@@ -3,8 +3,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -202,16 +201,16 @@ class ChebyshevRx(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Returns the circuit of the ChebyshevRx encoding circuit
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                 from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                 from which the gate inputs are obtained
 
         Return:
@@ -252,17 +251,17 @@ class ChebyshevRx(EncodingCircuitBase):
             # Chebyshev encoding circuit
             for i in range(self.num_qubits):
                 QC.rx(
+                    i,
                     mapping(
                         parameters[index_offset % num_params],
                         features[feature_offset % num_features],
                     ),
-                    i,
                 )
                 index_offset += 1
                 feature_offset += 1
             # Trafo
             for i in range(self.num_qubits):
-                QC.rx(parameters[index_offset % num_params], i)
+                QC.rx(i, parameters[index_offset % num_params])
                 index_offset += 1
             QC = entangle_layer(QC)
 

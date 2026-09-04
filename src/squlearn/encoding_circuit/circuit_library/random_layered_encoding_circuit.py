@@ -1,7 +1,7 @@
 import random
 from typing import Union
 import numpy as np
-from qiskit.circuit import ParameterVector, QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -182,15 +182,15 @@ class RandomLayeredEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray] = None,
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray] = None,
     ) -> QuantumCircuit:
         r"""
         Returns the quantum circuit of the Random Layered encoding circuit.
 
         Args:
-            features (Union[ParameterVector, np.ndarray]): The input features.
-            parameters (Union[ParameterVector, np.ndarray]): The trainable parameters of the
+            features (Union[Parameters, np.ndarray]): The input features.
+            parameters (Union[Parameters, np.ndarray]): The trainable parameters of the
                                                              circuit (not used, since there are
                                                              no free parameters).
 

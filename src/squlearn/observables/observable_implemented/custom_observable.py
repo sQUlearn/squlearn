@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -12,9 +11,9 @@ class CustomObservable(ObservableBase):
     Class for defining a custom observable.
 
     The operator is supplied as a string of Pauli operators, e.g. ``operator_string='ZI'`` for
-    a two qubit operator with a Z operator on the second qubit.
-    Note that the index of the qubits is reversed, i.e. the first qubit is the last character
-    in the string, similar to the Qiskit computational state numbering.
+    a two qubit operator with a Z operator on the first qubit.
+    Qubit ``q`` is character ``q`` of the string, i.e. the first qubit is the first
+    (leftmost) character.
 
     Multiple operators that are summed can be specified by a list of strings, e.g.
     ``operator_string=['ZZ', 'XX']``.
@@ -95,15 +94,15 @@ class CustomObservable(ObservableBase):
         params["parameterized"] = self._parameterized
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray] = None) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray] = None) -> QuantumOperator:
         """
-        Function for generating the SparsePauliOp expression of the custom operator.
+        Function for generating the QuantumOperator expression of the custom operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the custom operator.
+            parameters (Union[Parameters, np.ndarray]): Parameters of the custom operator.
 
         Returns:
-            SparsePauliOp expression of the specified custom operator.
+            QuantumOperator expression of the specified custom operator.
         """
 
         op_list = []
@@ -119,10 +118,10 @@ class CustomObservable(ObservableBase):
                 op_list.append(self._operator_string[j])
                 param_list.append(parameters[ioff % nparam])
                 ioff = ioff + 1
-            return SparsePauliOp(op_list, param_list)
+            return QuantumOperator(op_list, param_list)
 
         else:
             op_list.append(self._operator_string[0])
             for j in range(1, len(self._operator_string)):
                 op_list.append(self._operator_string[j])
-            return SparsePauliOp(op_list)
+            return QuantumOperator(op_list)

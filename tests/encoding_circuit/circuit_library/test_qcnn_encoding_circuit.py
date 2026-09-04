@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn.encoding_circuit import QCNNEncodingCircuit
 from squlearn.observables.observable_base import ObservableBase
 
@@ -66,7 +66,7 @@ class TestQCNNEncodingCircuit:
         assert qc.num_qubits == 2
 
         # circuit should contain some gates (count_ops gives a dict of operations)
-        ops = qc.count_ops()
+        ops = qc.qiskit_circuit.count_ops()
         total_ops = sum(ops.values()) if ops else 0
         assert total_ops > 0, "Returned circuit appears empty (no gates found)."
 

@@ -1,12 +1,18 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametervector import ParameterVectorElement
+from qc_executor import Parameters
+from qc_executor.parameters import Parameter
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.optree.optree import OpTreeElementBase, OpTreeCircuit, OpTreeSum, OpTreeList, OpTree
+from qc_executor.qiskit.optree.optree import OpTreeElementBase
+from qc_executor.qiskit.optree import (
+    OpTreeCircuit,
+    OpTreeSum,
+    OpTreeList,
+    OpTree,
+)
 
 from ..util.data_preprocessing import adjust_features, adjust_parameters
 
@@ -19,7 +25,7 @@ class EncodingCircuitDerivatives:
     by utilizing the parameter-shift rule.
     The derivatives can be obtained by the method :meth:`get_derivative`.
     The type of derivative can be specified by either a string (see table below)
-    or a ParameterVector or (a list) of ParameterElements that can be accessed
+    or a Parameters or (a list) of ParameterElements that can be accessed
     via :meth:`feature_vector` or :meth:`parameter_vector`, respectively.
 
     .. list-table:: Strings that are recognized by the :meth:`get_derivative` method
@@ -95,13 +101,15 @@ class EncodingCircuitDerivatives:
     ):
         self.encoding_circuit = encoding_circuit
 
-        self._x = ParameterVector("x", num_features)
-        self._p = ParameterVector("p", self.encoding_circuit.num_parameters)
+        self._x = Parameters("x", num_features)
+        self._p = Parameters("p", self.encoding_circuit.num_parameters)
 
         self._circuit = encoding_circuit.get_circuit(self._x, self._p)
 
-        self._instruction_set = list(set(self._circuit.count_ops()))
-        self._circuit = OpTree.derivative.transpile_to_supported_instructions(self._circuit)
+        self._instruction_set = list(set(self._circuit.qiskit_circuit.count_ops()))
+        self._circuit = OpTree.derivative.transpile_to_supported_instructions(
+            self._circuit.qiskit_circuit
+        )
 
         self._optree_start = OpTreeCircuit(self._circuit)
 
@@ -206,13 +214,13 @@ class EncodingCircuitDerivatives:
                 return circ
 
     @property
-    def parameter_vector(self) -> ParameterVector:
-        """Parameter ParameterVector ``p`` utilized in the encoding circuit circuit."""
+    def parameter_vector(self) -> Parameters:
+        """Parameter Parameters ``p`` utilized in the encoding circuit circuit."""
         return self._p
 
     @property
-    def feature_vector(self) -> ParameterVector:
-        """Feature ParameterVector ``x`` utilized in the encoding circuit circuit."""
+    def feature_vector(self) -> Parameters:
+        """Feature Parameters ``x`` utilized in the encoding circuit circuit."""
         return self._x
 
     @property
@@ -229,7 +237,7 @@ class EncodingCircuitDerivatives:
         self, optree: OpTreeElementBase, features: np.ndarray, parameters: np.ndarray
     ) -> OpTreeElementBase:
         """
-        Assigns numerical values to the ParameterVector elements of the encoding circuit.
+        Assigns numerical values to the Parameters elements of the encoding circuit.
 
         Args:
             optree (OperatorBase): OpTree object to be assigned.
@@ -284,21 +292,21 @@ class EncodingCircuitDerivatives:
     def _optree_differentiation(
         self,
         optree: OpTreeElementBase,
-        parameters: Union[list, tuple, ParameterVectorElement, ParameterVector],
+        parameters: Union[list, tuple, Parameter, Parameters],
     ) -> OpTreeElementBase:
         """
         Routine for the automatic differentiation based on qiskit routines
 
         Args:
             optree : Input OpTree expression
-            params (list | ParameterVector): variables which are used in the
+            params (list | Parameters): variables which are used in the
                                                 differentiation (have to be the same type )
         Returns:
             OpTree structure of the differentiated input optree
         """
 
         # Make list if input is not a list
-        if isinstance(parameters, ParameterVectorElement):
+        if isinstance(parameters, Parameter):
             parameters = [parameters]
         if isinstance(parameters, tuple):
             parameters = list(parameters)
