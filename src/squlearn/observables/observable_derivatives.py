@@ -5,7 +5,9 @@ import numpy as np
 from .observable_base import ObservableBase
 from ..util.data_preprocessing import adjust_parameters
 from qc_executor import Parameters, QuantumOperator
+from qc_executor.base.operator_base import QuantumOperatorBase
 from qc_executor.parameters import Parameter
+from qc_executor.qiskit import QiskitOperator
 
 from qc_executor.qiskit.optree.optree import OpTreeElementBase
 from qc_executor.qiskit.optree import (
@@ -254,18 +256,13 @@ class ObservableDerivatives:
 
             def recursive_squaring(op):
                 if isinstance(op, OpTreeOperator):
-                    squared = (
-                        QuantumOperator(_native_operator=op.operator)
-                        .compose(QuantumOperator(_native_operator=op.operator))
-                        .simplify()
-                    )
+                    # OpTree leaves still carry a raw SparsePauliOp; import it into
+                    # the IR so the squaring happens in the shared representation.
+                    operator = QiskitOperator.from_quantum_operator(op.operator)
+                    squared = operator.compose(operator).simplify()
                     return OpTreeOperator(squared.qiskit_operator)
-                elif isinstance(op, QuantumOperator):
-                    return (
-                        QuantumOperator(_native_operator=op.qiskit_operator)
-                        .compose(QuantumOperator(_native_operator=op.qiskit_operator))
-                        .simplify()
-                    )
+                elif isinstance(op, QuantumOperatorBase):
+                    return op.compose(op).simplify()
                 elif isinstance(op, OpTreeSum):
                     return OpTreeSum(
                         [recursive_squaring(child) for child in op.children],

@@ -5,7 +5,7 @@ from typing import Callable, Union
 
 import numpy as np
 
-from qc_executor import Parameters, QuantumOperator
+from qc_executor import Parameters
 from qc_executor.parameters import Parameter
 
 from ...observables.observable_base import ObservableBase
@@ -240,18 +240,13 @@ class LowLevelQNN:
             # cannot introduce new parameter symbols beyond the ones already in
             # _observable_p_op_slices
             self._native_observable_squared = [
-                QuantumOperator(_native_operator=obs.qiskit_operator)
-                .compose(QuantumOperator(_native_operator=obs.qiskit_operator))
-                .simplify()
-                for obs in self._native_observable
+                obs.compose(obs).simplify() for obs in self._native_observable
             ]
         else:
             self._native_observable = self._observable.get_operator(self._p_op)
-            self._native_observable_squared = (
-                QuantumOperator(_native_operator=self._native_observable.qiskit_operator)
-                .compose(QuantumOperator(_native_operator=self._native_observable.qiskit_operator))
-                .simplify()
-            )
+            self._native_observable_squared = self._native_observable.compose(
+                self._native_observable
+            ).simplify()
 
         self.result_container = {}
 

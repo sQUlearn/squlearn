@@ -77,7 +77,11 @@ from squlearn.util.executor import (
     BaseSamplerV2,
     SessionContextMisuseWarning,
 )
-from qc_executor import QuantumCircuit as QcExecutorQuantumCircuit, QuantumOperator
+from qc_executor import (
+    Parameters as QcExecutorParameters,
+    QuantumCircuit as QcExecutorQuantumCircuit,
+    QuantumOperator,
+)
 
 
 @pytest.mark.parametrize("qpu_parallelization", [None, 3])
@@ -241,22 +245,22 @@ class TestExecutorPennyLane:
     @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
-        qc = QuantumCircuit(2)
+        qc = QcExecutorQuantumCircuit(2)
         qc.x([0, 1])
         return qc
 
     @pytest.fixture(scope="module")
     def parameterized_circuit(self):
-        x = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
-        qc.ry(x[0], 0)
-        qc.ry(x[1], 1)
+        x = QcExecutorParameters("x", 2)
+        qc = QcExecutorQuantumCircuit(2)
+        qc.ry(0, x[0])
+        qc.ry(1, x[1])
         return qc
 
     @pytest.fixture(scope="module")
     def observable(self):
         """Creates a simple observable for testing."""
-        return SparsePauliOp("ZZ")
+        return QuantumOperator(["ZZ"], [1.0])
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -297,9 +301,7 @@ class TestExecutorPennyLane:
         successor to the removed Executor.pennylane_execute()."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = QcExecutorQuantumCircuit.from_qiskit(simple_circuit)
-
-        res = executor.probabilities(circuit)
+        res = executor.probabilities(simple_circuit)
         assert res == {3: 1.0}
 
     @pytest.mark.parametrize(
@@ -314,10 +316,7 @@ class TestExecutorPennyLane:
         """Executor.expectation_value() through the native qc_executor path."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = QcExecutorQuantumCircuit.from_qiskit(simple_circuit)
-        op = QuantumOperator(_native_operator=observable)
-
-        res = executor.expectation_value(circuit, op)
+        res = executor.expectation_value(simple_circuit, observable)
         assert np.isclose(res, 1.0)
 
     @pytest.mark.parametrize(
@@ -333,12 +332,10 @@ class TestExecutorPennyLane:
         successor to the removed Executor.pennylane_execute_batched()."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = QcExecutorQuantumCircuit.from_qiskit(parameterized_circuit)
-
         # cutoff filters the floating-point residuals RY(pi) leaves on the other basis
         # states (~1e-33), unlike the exact-X-gate case test_pennylane_probs compares
         # against directly.
-        res = executor.probabilities(circuit, x=[[np.pi, np.pi]] * 4, cutoff=1e-6)
+        res = executor.probabilities(parameterized_circuit, x=[[np.pi, np.pi]] * 4, cutoff=1e-6)
         assert res == [{3: 1.0}] * 4
 
     @pytest.mark.parametrize(
@@ -355,10 +352,7 @@ class TestExecutorPennyLane:
         """Executor.expectation_value() batched over a parameter-set axis (WP-11)."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = QcExecutorQuantumCircuit.from_qiskit(parameterized_circuit)
-        op = QuantumOperator(_native_operator=observable)
-
-        res = executor.expectation_value(circuit, op, x=[[np.pi, np.pi]] * 4)
+        res = executor.expectation_value(parameterized_circuit, observable, x=[[np.pi, np.pi]] * 4)
         assert np.allclose(res, [1.0] * 4)
 
 
@@ -372,22 +366,22 @@ class TestExecutorQulacs:
     @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
-        qc = QuantumCircuit(2)
+        qc = QcExecutorQuantumCircuit(2)
         qc.x([0, 1])
         return qc
 
     @pytest.fixture(scope="module")
     def parameterized_circuit(self):
-        x = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
-        qc.ry(x[0], 0)
-        qc.ry(x[1], 1)
+        x = QcExecutorParameters("x", 2)
+        qc = QcExecutorQuantumCircuit(2)
+        qc.ry(0, x[0])
+        qc.ry(1, x[1])
         return qc
 
     @pytest.fixture(scope="module")
     def observable(self):
         """Creates a simple observable for testing."""
-        return SparsePauliOp("ZZ")
+        return QuantumOperator(["ZZ"], [1.0])
 
     def test_shots(self, ExecutorQulacs):
         """Tests of the default shots and the set_shots method work."""
@@ -399,28 +393,21 @@ class TestExecutorQulacs:
         """Executor.expectation_value() through the native qc_executor path -
         the successor to the removed Executor.qulacs_execute()."""
         executor = ExecutorQulacs
-        circuit = QcExecutorQuantumCircuit.from_qiskit(simple_circuit)
-        op = QuantumOperator(_native_operator=observable)
-
-        result = executor.expectation_value(circuit, op)
+        result = executor.expectation_value(simple_circuit, observable)
 
         assert np.isclose(result, 1.0)
 
     def test_statevector_simple(self, ExecutorQulacs, simple_circuit):
         """Executor.statevector() through the native qc_executor path."""
         executor = ExecutorQulacs
-        circuit = QcExecutorQuantumCircuit.from_qiskit(simple_circuit)
-
-        result = executor.statevector(circuit)
+        result = executor.statevector(simple_circuit)
 
         assert np.allclose(result, [0.0, 0.0, 0.0, 1.0])
 
     def test_probabilities_simple(self, ExecutorQulacs, simple_circuit):
         """Executor.probabilities() through the native qc_executor path."""
         executor = ExecutorQulacs
-        circuit = QcExecutorQuantumCircuit.from_qiskit(simple_circuit)
-
-        result = executor.probabilities(circuit)
+        result = executor.probabilities(simple_circuit)
 
         assert result == {3: 1.0}
 
@@ -428,18 +415,13 @@ class TestExecutorQulacs:
         self, ExecutorQulacs, parameterized_circuit, observable
     ):
         executor = ExecutorQulacs
-        circuit = QcExecutorQuantumCircuit.from_qiskit(parameterized_circuit)
-        op = QuantumOperator(_native_operator=observable)
-
-        result = executor.expectation_value(circuit, op, x=[np.pi, np.pi])
+        result = executor.expectation_value(parameterized_circuit, observable, x=[np.pi, np.pi])
 
         assert np.isclose(result, 1.0)
 
     def test_statevector_parameterized(self, ExecutorQulacs, parameterized_circuit):
         executor = ExecutorQulacs
-        circuit = QcExecutorQuantumCircuit.from_qiskit(parameterized_circuit)
-
-        result = executor.statevector(circuit, x=[np.pi, np.pi])
+        result = executor.statevector(parameterized_circuit, x=[np.pi, np.pi])
 
         assert np.allclose(result, [0.0, 0.0, 0.0, 1.0])
 
