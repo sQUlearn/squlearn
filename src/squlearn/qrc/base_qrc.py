@@ -165,8 +165,13 @@ class BaseQRC(BaseEstimator, SerializableModelMixin, ABC):
                     self.num_operators,
                     seed=self.operator_seed,
                 )
+                # random_pauli_list draws its strings in Qiskit's order, the rightmost character
+                # acting on qubit 0. Observables read the leftmost character as qubit 0, so
+                # the strings are reversed: the same operator_seed keeps yielding the same
+                # operators (and the same feature order) as before that convention changed.
                 self._operators = [
-                    CustomObservable(self.encoding_circuit.num_qubits, str(p)) for p in paulis
+                    CustomObservable(self.encoding_circuit.num_qubits, str(p)[::-1])
+                    for p in paulis
                 ]
             elif self.operators == "single_paulis":
                 # Generate single qubit Pauli operators

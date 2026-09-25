@@ -8,6 +8,8 @@ import numpy as np
 from qc_executor import Parameters
 from qc_executor.parameters import Parameter
 
+from ...util.operator_utils import square_operator
+
 from ...observables.observable_base import ObservableBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from ...encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
@@ -236,17 +238,15 @@ class LowLevelQNN:
                 ioff += obs.num_parameters
             self._native_observable = native_observables
             # <O^2> for the "var" family (see _VAR_FAMILY). Composing an observable with
-            # itself reuses the same p_op Parameter objects on both sides, so simplify()
+            # itself reuses the same p_op Parameter objects on both sides, so squaring
             # cannot introduce new parameter symbols beyond the ones already in
             # _observable_p_op_slices
             self._native_observable_squared = [
-                obs.compose(obs).simplify() for obs in self._native_observable
+                square_operator(obs) for obs in self._native_observable
             ]
         else:
             self._native_observable = self._observable.get_operator(self._p_op)
-            self._native_observable_squared = self._native_observable.compose(
-                self._native_observable
-            ).simplify()
+            self._native_observable_squared = square_operator(self._native_observable)
 
         self.result_container = {}
 
@@ -623,6 +623,8 @@ class LowLevelQNN:
             obs_parameters = dict(parameters)
             if needs_local_p_op_slice:
                 obs_parameters["p_op"] = parameters["p_op"][ioff : ioff + n]
+            elif "p_op" in obs_parameters:
+                obs_parameters["p_op"] = self._p_op_prefix(obs, parameters["p_op"])
             if derivative_param is None:
                 out[i] = self._executor.expectation_value(
                     self._native_circuit, obs, **obs_parameters
@@ -663,6 +665,23 @@ class LowLevelQNN:
                 out[i] = np.asarray(value, dtype=float).reshape(-1)
         return out
 
+    @staticmethod
+    def _p_op_prefix(observable, p_op) -> np.ndarray:
+        """Cut the shared ``p_op`` vector down to what ``observable`` actually references.
+
+        qc_executor's Qiskit executor resolves a parameter by its global index and expects
+        exactly ``highest referenced index + 1`` values, so an observable that only uses
+        the first entries of the shared vector must not be handed the whole of it.
+        """
+        referenced = [
+            parameter.index
+            for parameter in observable.parameters
+            if parameter.vector_name == "p_op"
+        ]
+        needed = max(referenced) + 1 if referenced else 0
+        p_op = np.asarray(p_op)
+        return p_op[:, :needed] if p_op.ndim == 2 else p_op[:needed]
+
     def _compute_native_batched(self, key, parameters: dict, batch_size: int) -> np.ndarray:
         """Same contract as :meth:`_compute_native`, but exactly one of
         ``parameters["x"]``/``["p"]``/``["p_op"]`` is a 2D batch (shape
@@ -701,9 +720,10 @@ class LowLevelQNN:
                 self._native_circuit, observable, derivative_param, **parameters
             )
         raw = np.asarray(raw, dtype=float)
-        if self.multiple_output:
-            # observable is a list: qc_executor's axis convention is (n_op, batch, ...) -
-            # move batch to the front to match this method's contract.
+        if self.multiple_output and derivative_param is None:
+            # observable is a list: qc_executor's expectation_value returns (n_op, batch) -
+            # move batch to the front to match this method's contract. Its derivatives
+            # already come as (batch, n_op, ...), so they must be left alone.
             raw = np.moveaxis(raw, 1, 0)
         # A multi-element derivative_param may still carry a structurally size-1 axis
         # from OpTree's differentiation machinery - reshape absorbs it.
@@ -751,6 +771,8 @@ class LowLevelQNN:
                     if p_op_val.ndim == 2
                     else p_op_val[ioff : ioff + n]
                 )
+            elif "p_op" in obs_parameters:
+                obs_parameters["p_op"] = self._p_op_prefix(obs, parameters["p_op"])
             dest_shape = out[:, i].shape  # (batch_size,) + dims
             if derivative_param is None:
                 raw = self._executor.expectation_value(self._native_circuit, obs, **obs_parameters)

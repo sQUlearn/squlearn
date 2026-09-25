@@ -7,8 +7,20 @@ import sympy as sp
 from qc_executor import Parameters, QuantumCircuit
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.circuit_utils import compose_keep_parameters
+from squlearn.util.symbolic_math import symbolic_aware
 
 from .encoding_circuit_base import EncodingCircuitBase
+
+#: NumPy function names that differ from SymPy's, for the string encoding of gates.
+_NUMPY_TO_SYMPY = {
+    "arccos": sp.acos,
+    "arcsin": sp.asin,
+    "arctan": sp.atan,
+    "arccosh": sp.acosh,
+    "arcsinh": sp.asinh,
+    "arctanh": sp.atanh,
+}
 
 
 class VariableGroup:
@@ -97,7 +109,9 @@ class _operation:
             self.map = lambda x, y: x * y
             self.default_map = True
         else:
-            self.map = map
+            # A NumPy function such as np.arccos cannot take the SymPy symbols the circuit
+            # is built with; swap in its symbolic-aware counterpart.
+            self.map = symbolic_aware(map)
             self.default_map = False
 
     def get_circuit(self, var_param_assignment: dict):
@@ -997,17 +1011,23 @@ class LayeredPQC:
                 for i in range(operation_layer.num_layers):
                     for op in operation_layer.layer.operation_list:
                         if op.variablegroup_tuple is None:
-                            QC = QC.compose(op.get_circuit(), list(range(QC.num_qubits)))
+                            QC = compose_keep_parameters(
+                                QC, op.get_circuit(), list(range(QC.num_qubits))
+                            )
                         else:
-                            QC = QC.compose(
-                                op.get_circuit(var_param_assignment), list(range(QC.num_qubits))
+                            QC = compose_keep_parameters(
+                                QC,
+                                op.get_circuit(var_param_assignment),
+                                list(range(QC.num_qubits)),
                             )
             else:
                 if operation.variablegroup_tuple is None:
-                    QC = QC.compose(operation.get_circuit(), list(range(QC.num_qubits)))
+                    QC = compose_keep_parameters(
+                        QC, operation.get_circuit(), list(range(QC.num_qubits))
+                    )
                 else:
-                    QC = QC.compose(
-                        operation.get_circuit(var_param_assignment), list(range(QC.num_qubits))
+                    QC = compose_keep_parameters(
+                        QC, operation.get_circuit(var_param_assignment), list(range(QC.num_qubits))
                     )
         return QC
 
@@ -1318,11 +1338,15 @@ class LayeredPQC:
             # Create symbols for each variable
             symbols = [sp.Symbol(arg) for arg in arg_names]
 
-            # Parse the map_string into a SymPy expression
-            expr = sp.sympify(map_string, evaluate=False)
+            # Parse the map_string into a SymPy expression. NumPy's inverse-function names
+            # are unknown to SymPy (it would build an undefined ``arccos``), so map them
+            # onto the SymPy functions.
+            expr = sp.sympify(map_string, locals=_NUMPY_TO_SYMPY, evaluate=False)
 
-            # Create the function
-            callable_function = sp.lambdify(symbols, expr, modules=np)
+            # Compile against SymPy, not NumPy: the function is called with qc_executor
+            # Parameters (SymPy symbols) as well as with numbers, and NumPy's ufuncs only
+            # accept the latter.
+            callable_function = sp.lambdify(symbols, expr, modules="sympy")
 
             return callable_function
 

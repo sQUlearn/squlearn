@@ -5,6 +5,7 @@ import random
 from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos, arctan
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -73,10 +74,10 @@ available_encodings = {
     "x": (lambda x, p: x, "x"),
     "p_times_x": (lambda x, p: x * p, "px"),
     "pi_times_x": (lambda x, p: np.pi * x, "x"),
-    "arctan_x": (lambda x, p: np.arctan(x), "x"),
-    "p_times_arctan_x": (lambda x, p: p * np.arctan(x), "px"),
-    "arccos_x": (lambda x, p: np.arccos(x), "x"),
-    "p_times_arccos_x": (lambda x, p: p * np.arccos(x), "px"),
+    "arctan_x": (lambda x, p: arctan(x), "x"),
+    "p_times_arctan_x": (lambda x, p: p * arctan(x), "px"),
+    "arccos_x": (lambda x, p: arccos(x), "x"),
+    "p_times_arccos_x": (lambda x, p: p * arccos(x), "px"),
 }
 # List of encodings with features
 feature_encodings = [e for e in available_encodings.keys() if "x" in available_encodings[e][1]]

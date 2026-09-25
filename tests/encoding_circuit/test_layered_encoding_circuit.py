@@ -7,6 +7,7 @@ from squlearn.encoding_circuit.layered_encoding_circuit import Layer
 from squlearn.kernel import FidelityKernel
 from squlearn import Executor
 from squlearn.kernel import QGPR
+from squlearn.util.symbolic_math import arccos
 
 
 class TestLayeredEncodingCircuit:
@@ -40,7 +41,7 @@ class TestLayeredEncodingCircuit:
 
         # Test the I gate
         lfm.I()
-        expected_circuit.qiskit_circuit.id(range(4))
+        expected_circuit.i(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
         # Test the S gate
@@ -50,7 +51,7 @@ class TestLayeredEncodingCircuit:
 
         # Test the Sdg gate
         lfm.S_conjugate()
-        expected_circuit.qiskit_circuit.sdg(range(4))
+        expected_circuit.sdag(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
         # Test the T gate
@@ -60,7 +61,7 @@ class TestLayeredEncodingCircuit:
 
         # Test the Tdg gate
         lfm.T_conjugate()
-        expected_circuit.qiskit_circuit.tdg(range(4))
+        expected_circuit.tdag(range(4))
         assert str(lfm.get_circuit([], [])) == str(expected_circuit)
 
         kernel = FidelityKernel(lfm, Executor()).evaluate(np.array([[]]), np.array([[]]))
@@ -77,33 +78,33 @@ class TestLayeredEncodingCircuit:
         # Test the RX gate
         lfm.Rx("p", encoding=np.arccos)
         for i in range(4):
-            expected_circuit.rx(i, np.arccos(p[i]))
+            expected_circuit.rx(i, arccos(p[i]))
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the RY gate
         lfm.Ry("p", encoding=np.arccos)
         for i in range(4):
-            expected_circuit.ry(i, np.arccos(p[i + 4]))
+            expected_circuit.ry(i, arccos(p[i + 4]))
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the RZ gate
         lfm.Rz("p", encoding=np.arccos)
         for i in range(4):
-            expected_circuit.rz(i, np.arccos(p[i + 8]))
+            expected_circuit.rz(i, arccos(p[i + 8]))
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the Phase gate
         lfm.P("p", encoding=np.arccos)
         for i in range(4):
-            expected_circuit.p(i, np.arccos(p[i + 12]))
+            expected_circuit.p(i, arccos(p[i + 12]))
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
 
         # Test the U gate
         lfm.U(("x", "x", "x"))
         ioff = 0
         for i in range(4):
-            expected_circuit.qiskit_circuit.u(x[ioff % 2], x[(ioff + 1) % 2], x[(ioff + 2) % 2], i)
+            expected_circuit.u(i, x[ioff % 2], x[(ioff + 1) % 2], x[(ioff + 2) % 2])
             ioff += 3
 
         assert str(lfm.get_circuit(x, p)) == str(expected_circuit)
@@ -141,7 +142,7 @@ class TestLayeredEncodingCircuit:
             lfm.swap,
         ]
         qiskit_list = [
-            expected_circuit.qiskit_circuit.ch,
+            expected_circuit.ch,
             expected_circuit.cx,
             expected_circuit.cy,
             expected_circuit.cz,
@@ -164,18 +165,18 @@ class TestLayeredEncodingCircuit:
         """Test the parameterized entangling gates of the LayeredEncodingCircuit."""
 
         def add_NN(gate_function, p, offset=0):
-            gate_function(0, 1, np.arccos(p[offset]))
-            gate_function(2, 3, np.arccos(p[offset + 1]))
-            gate_function(1, 2, np.arccos(p[offset + 2]))
+            gate_function(0, 1, arccos(p[offset]))
+            gate_function(2, 3, arccos(p[offset + 1]))
+            gate_function(1, 2, arccos(p[offset + 2]))
             return offset + 3
 
         def add_AA(gate_function, p, offset=0):
-            gate_function(0, 1, np.arccos(p[offset]))
-            gate_function(0, 2, np.arccos(p[offset + 1]))
-            gate_function(0, 3, np.arccos(p[offset + 2]))
-            gate_function(1, 2, np.arccos(p[offset + 3]))
-            gate_function(1, 3, np.arccos(p[offset + 4]))
-            gate_function(2, 3, np.arccos(p[offset + 5]))
+            gate_function(0, 1, arccos(p[offset]))
+            gate_function(0, 2, arccos(p[offset + 1]))
+            gate_function(0, 3, arccos(p[offset + 2]))
+            gate_function(1, 2, arccos(p[offset + 3]))
+            gate_function(1, 3, arccos(p[offset + 4]))
+            gate_function(2, 3, arccos(p[offset + 5]))
             return offset + 6
 
         # Create a LayeredEncodingCircuit with 2 layers and 3 features per layer

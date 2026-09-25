@@ -3,6 +3,7 @@ from typing import Union
 
 from qc_executor import Parameters
 from qc_executor.parameters import Parameter
+from qc_executor.qiskit._sympy_bridge import to_qiskit_params
 
 from .encoding_circuit_base import EncodingCircuitBase
 
@@ -266,6 +267,10 @@ class EncodingCircuitDerivatives:
             todo_list.append(pp)
             param_list.append(self._p)
             multi_list.append(multi_p)
+
+        # The OpTree holds a Qiskit circuit, so the assignment is keyed by the matching
+        # Qiskit parameters rather than by qc_executor's SymPy ones.
+        param_list = [to_qiskit_params(list(params)) for params in param_list]
 
         # Recursive construction of the assignment dictionary and list structure
         def rec_assign(dic, todo_list, param_list, multi_list):

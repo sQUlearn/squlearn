@@ -3,6 +3,7 @@ from typing import Union
 from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos
 
 from ..encoding_circuit_base import EncodingCircuitBase
 from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
@@ -194,7 +195,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""
-            return self.alpha * i * np.arccos(x)
+            return self.alpha * i * arccos(x)
 
         def variational_gate_block(
             QC,

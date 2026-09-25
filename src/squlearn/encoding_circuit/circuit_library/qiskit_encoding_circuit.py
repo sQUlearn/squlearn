@@ -175,7 +175,8 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
                 from which the gate inputs are obtained.
 
         Return:
-            The circuit of the Qiskit Encoding Circuit with the assigned parameters.
+            The circuit of the Qiskit Encoding Circuit with the assigned parameters,
+            imported into a framework-independent ``qc_executor.QuantumCircuit``.
         """
 
         if self._mode.lower() == "both":
@@ -202,13 +203,9 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
                     "The number of parameters {} does not match!".format(len(parameters))
                 )
         elif self._mode.lower() == "empty":
-            return QuantumCircuit(
-                self._qiskit_circuit.num_qubits, _native_circuit=self._qiskit_circuit
-            )
+            return QuantumCircuit.from_qiskit(self._qiskit_circuit)
         else:
             raise ValueError("The type {} is not supported!".format(self._mode))
 
         self._qiskit_circuit.assign_parameters(dictionary, inplace=True)
-        return QuantumCircuit(
-            self._qiskit_circuit.num_qubits, _native_circuit=self._qiskit_circuit
-        )
+        return QuantumCircuit.from_qiskit(self._qiskit_circuit)

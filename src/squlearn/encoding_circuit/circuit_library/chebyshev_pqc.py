@@ -5,6 +5,7 @@ from typing import Union
 
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos, arctan
 
 from ..encoding_circuit_base import EncodingCircuitBase
 from qc_executor import QuantumCircuit, Parameters
@@ -288,13 +289,13 @@ class ChebyshevPQC(EncodingCircuitBase):
 
             def mapping(a, x):
                 """Helper function for returning a*arccos(x)"""
-                return a * np.arccos(x)
+                return a * arccos(x)
 
         elif self._nonlinearity == "arctan":
 
             def mapping(a, x):
                 """Helper function for returning a*arctan(x)"""
-                return a * np.arctan(x)
+                return a * arctan(x)
 
         num_features = extract_num_features(features)
         num_params = len(parameters)

@@ -8,6 +8,7 @@ from typing import Tuple, Union
 from qiskit.circuit import Parameter
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.circuit_utils import compose_keep_parameters
 from qc_executor import QuantumCircuit, Parameters
 
 
@@ -97,7 +98,7 @@ class EncodingCircuitBase(ABC):
         parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
-        Return the encoding circuit as a qiskit QuantumCircuit.
+        Return the encoding circuit as a framework-independent qc_executor circuit.
 
         Checks the matching of the encoding slots with the provided features.
 
@@ -108,7 +109,8 @@ class EncodingCircuitBase(ABC):
                 from which the gate inputs are obtained
 
         Return:
-            Returns the circuit in qiskit QuantumCircuit format
+            Returns the circuit as a ``qc_executor.QuantumCircuit``, which runs on every
+            backend.
         """
 
         raise NotImplementedError()
@@ -664,7 +666,7 @@ class EncodingCircuitBase(ABC):
                     parameters_c2,  # Only line that changes, to include the new features
                 )
 
-                return circ1.compose(circ2, range(self.ec1.num_qubits))
+                return compose_keep_parameters(circ1, circ2, range(self.ec1.num_qubits))
 
             def draw(
                 self,

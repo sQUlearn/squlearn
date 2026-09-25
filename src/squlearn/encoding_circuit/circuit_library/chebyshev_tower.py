@@ -6,6 +6,7 @@ from typing import Union
 from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos, arctan
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -212,13 +213,13 @@ class ChebyshevTower(EncodingCircuitBase):
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arccos(x)"""
-                return self._alpha * i * np.arccos(x)
+                return self._alpha * i * arccos(x)
 
         elif self._nonlinearity == "arctan":
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arctan(x)"""
-                return self._alpha * i * np.arctan(x)
+                return self._alpha * i * arctan(x)
 
         QC = QuantumCircuit(self.num_qubits)
 
