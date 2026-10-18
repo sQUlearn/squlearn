@@ -35,6 +35,7 @@ dependencies = [
     "networkx>=3.0",
     "numpy>=1.22",
     "pennylane>=0.34.0",
+    "qc-executor>=0.2.0",
     "qiskit>=1.0.0,<3.0.0",
     "qiskit-aer>=0.14.0.1",
     "qiskit-algorithms>=0.3.0",
