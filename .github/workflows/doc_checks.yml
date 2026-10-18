@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QISKIT_SETTINGS: ${{github.workspace}}/docs/qiskit_settings.conf
+      # Several wheels bundle their own libgomp; without extra static TLS the import fails on Linux.
+      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=2048
 
     steps:
 
