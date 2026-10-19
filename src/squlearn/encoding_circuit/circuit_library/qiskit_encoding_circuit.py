@@ -207,5 +207,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
         else:
             raise ValueError("The type {} is not supported!".format(self._mode))
 
-        self._qiskit_circuit.assign_parameters(dictionary, inplace=True)
-        return QuantumCircuit.from_qiskit(self._qiskit_circuit)
+        # Qiskit cannot bind qc_executor's symbolic parameters, so bind on the imported circuit.
+        values = {str(param): value for param, value in dictionary.items()}
+        circuit = QuantumCircuit.from_qiskit(self._qiskit_circuit)
+        return circuit.assign_parameters({p: values[str(p)] for p in circuit.parameters})
