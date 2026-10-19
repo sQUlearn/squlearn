@@ -2018,15 +2018,18 @@ class LayeredEncodingCircuit(EncodingCircuitBase):
     **Create a layered encoding circuit with non-linear input encoding**
 
     It is also possible to define a non-linear function for encoding variables in gates by
-    supplying a function for the encoding as the second argument
+    supplying a function for the encoding as the second argument. Since the circuit is built
+    with symbolic parameters, custom functions must use symbolic-aware functions
+    (e.g. from :mod:`squlearn.util.symbolic_math` or ``sympy``) instead of ``np.*`` calls.
+    Passing a NumPy function directly, e.g. ``encoding=np.arccos``, is still supported.
 
     .. jupyter-execute::
 
-        import numpy as np
         from squlearn.encoding_circuit import LayeredEncodingCircuit
+        from squlearn.util.symbolic_math import arccos
 
         def func(a,b):
-            return a*np.arccos(b)
+            return a*arccos(b)
 
         encoding_circuit = LayeredEncodingCircuit(num_qubits=4)
         encoding_circuit.H()
