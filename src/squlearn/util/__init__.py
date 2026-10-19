@@ -1,4 +1,4 @@
 from .executor import Executor
-from .optree import OpTree
+from qc_executor.qiskit.optree import OpTree
 
 __all__ = ["Executor", "OpTree"]

@@ -72,7 +72,7 @@ class TestShotsFromRSTD:
         y_train = np.abs(x_train).ravel()
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
-        reference = np.array([-0.09867318, -0.14080412, -0.1864203, -0.22726776, -0.24570661])
+        reference = np.array([-0.15819602, -0.14412536, -0.13352883, -0.1154779, -0.08921877])
         assert np.allclose(test, reference, atol=1e-3)
 
     def test_qnn_training_two_outputs(self):
@@ -95,13 +95,16 @@ class TestShotsFromRSTD:
         y_train = np.hstack([np.abs(x_train), np.square(x_train)])
         qnn.fit(x_train, y_train)
         test = qnn.predict(x_train)
+        # Seeded shot noise: the values follow the order of the simulator calls (the two
+        # outputs are evaluated per observable), so they are re-recorded whenever that changes.
+        # Same order of magnitude as the single-output case: |prediction - exact| <= 0.15.
         reference = np.array(
             [
-                [-0.10152712, -0.15280509],
-                [-0.14254195, -0.19631623],
-                [-0.19140704, -0.24552197],
-                [-0.23021383, -0.28467866],
-                [-0.24711364, -0.30817718],
+                [-0.18914158, -0.2523052],
+                [-0.16733768, -0.23335893],
+                [-0.14210792, -0.20549897],
+                [-0.11562582, -0.17826571],
+                [-0.08366181, -0.1482722],
             ]
         )
 

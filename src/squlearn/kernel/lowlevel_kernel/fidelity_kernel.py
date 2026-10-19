@@ -10,7 +10,8 @@ from qiskit_machine_learning.kernels import (
     TrainableFidelityStatevectorKernel,
 )
 from qiskit_algorithms.state_fidelities import ComputeUncompute
-from qiskit.circuit import ParameterVector
+
+from qc_executor.parameters import Parameters
 
 from .kernel_matrix_base import KernelMatrixBase
 from ...encoding_circuit.encoding_circuit_base import EncodingCircuitBase
@@ -19,6 +20,25 @@ from ...util.data_preprocessing import convert_to_float64, extract_num_features
 
 from .fidelity_kernel_expectation_value import FidelityKernelExpectationValue
 from .fidelity_kernel_statevector import FidelityKernelStatevector
+
+
+def _training_parameters(qiskit_circuit) -> list:
+    """Return the trainable ("p") parameters of a converted encoding circuit.
+
+    Ordered by the index inside the vector rather than by the circuit's own
+    parameter order, which sorts plain Qiskit ``Parameter`` objects
+    lexicographically and would place ``p[10]`` before ``p[2]``.
+
+    Args:
+        qiskit_circuit (QuantumCircuit): The Qiskit circuit to read from.
+
+    Returns:
+        The ``p[i]`` parameter objects of the circuit, in index order.
+    """
+    return sorted(
+        (prm for prm in qiskit_circuit.parameters if prm.name.startswith("p[")),
+        key=lambda prm: int(prm.name.split("[")[1].rstrip("]")),
+    )
 
 
 class FidelityKernel(KernelMatrixBase):
@@ -339,7 +359,7 @@ class FidelityKernel(KernelMatrixBase):
 
             # Do all the nessacary initialization logic here
             if self.num_parameters > 0:
-                self._parameter_vector = ParameterVector("p", self.num_parameters)
+                self._parameter_vector = Parameters("p", self.num_parameters)
             else:
                 self._parameter_vector = None
             if self._use_expectation:
@@ -362,7 +382,7 @@ class FidelityKernel(KernelMatrixBase):
                 elif self._executor.quantum_framework == "qiskit":
 
                     # Underscore necessary to avoid name conflicts with the Qiskit quantum kernel
-                    self._feature_vector = ParameterVector("x_", num_features)
+                    self._feature_vector = Parameters("x_", num_features)
 
                     self._enc_circ = self._encoding_circuit.get_circuit(
                         self._feature_vector, self._parameter_vector
@@ -374,17 +394,19 @@ class FidelityKernel(KernelMatrixBase):
                             self._enc_circ, num_features
                         )
 
+                    qiskit_circ = self._enc_circ.qiskit_circuit
+
                     if self._executor.is_statevector:
                         if self._parameter_vector is None:
                             self._quantum_kernel = FidelityStatevectorKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=qiskit_circ,
                                 shots=self._executor.get_shots(),
                                 enforce_psd=False,
                             )
                         else:
                             self._quantum_kernel = TrainableFidelityStatevectorKernel(
-                                feature_map=self._enc_circ,
-                                training_parameters=self._parameter_vector,
+                                feature_map=qiskit_circ,
+                                training_parameters=_training_parameters(qiskit_circ),
                                 shots=self._executor.get_shots(),
                                 enforce_psd=False,
                             )
@@ -398,16 +420,16 @@ class FidelityKernel(KernelMatrixBase):
                         fidelity = ComputeUncompute(sampler=self._executor.get_sampler())
                         if self._parameter_vector is None:
                             self._quantum_kernel = FidelityQuantumKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=qiskit_circ,
                                 fidelity=fidelity,
                                 evaluate_duplicates=self._evaluate_duplicates,
                                 enforce_psd=False,
                             )
                         else:
                             self._quantum_kernel = TrainableFidelityQuantumKernel(
-                                feature_map=self._enc_circ,
+                                feature_map=qiskit_circ,
                                 fidelity=fidelity,
-                                training_parameters=self._parameter_vector,
+                                training_parameters=_training_parameters(qiskit_circ),
                                 evaluate_duplicates=self._evaluate_duplicates,
                                 enforce_psd=False,
                             )

@@ -23,7 +23,7 @@ def _compute_expected_fidelity_matrix(num_qubits: int, X: np.ndarray):
     psi_list = []
     for i in range(len(X)):
         circ = pqc.get_circuit(features=np.asarray(X[i]), parameters=params)
-        sv = Statevector.from_instruction(circ)
+        sv = Statevector.from_instruction(circ.qiskit_circuit)
         psi_list.append(sv.data)
 
     n = len(psi_list)

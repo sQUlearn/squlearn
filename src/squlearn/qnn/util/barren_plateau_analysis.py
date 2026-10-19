@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from ..lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
+from ..lowlevel_qnn import LowLevelQNN
 
 from ...util.data_preprocessing import adjust_parameters
 
@@ -9,7 +9,7 @@ from ...util.data_preprocessing import adjust_parameters
 
 
 def calc_var_dg(
-    qnn: LowLevelQNNBase,
+    qnn: LowLevelQNN,
     x,
     param_op,
     n_sample=100,
@@ -23,7 +23,7 @@ def calc_var_dg(
     Calculates the variance and the mean of the gradient of the given qnn.
 
     Args:
-        qnn (LowLevelQNNBase): QNN object from which the variance of the gradient is calculated
+        qnn (LowLevelQNN): QNN object from which the variance of the gradient is calculated
         x : Single value or array of the x values of the QNN
         param_op : Values of the cost-operator
         n_sample = 100 : Number of samples considered for the variance computation of the gradient

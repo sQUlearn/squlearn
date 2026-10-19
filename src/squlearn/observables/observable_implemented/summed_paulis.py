@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qc_executor import QuantumOperator, Parameters
 
 from ..observable_base import ObservableBase
 
@@ -108,21 +107,21 @@ class SummedPaulis(ObservableBase):
         params["include_identity"] = self._include_identity
         return params
 
-    def get_pauli(self, parameters: Union[ParameterVector, np.ndarray]) -> SparsePauliOp:
+    def get_pauli(self, parameters: Union[Parameters, np.ndarray]) -> QuantumOperator:
         """
-        Function for generating the PauliOp expression of the summed Paulis operator.
+        Function for generating the QuantumOperator expression of the summed Paulis operator.
 
         Args:
-            parameters (Union[ParameterVector, np.ndarray]): Parameters of the summed
+            parameters (Union[Parameters, np.ndarray]): Parameters of the summed
                                                              Paulis operator.
 
         Return:
-            PauliOp expression of the specified summed Paulis operator.
+            QuantumOperator expression of the specified summed Paulis operator.
         """
 
         def gen_string(i, op_str):
             H = "I" * self.num_qubits
-            H = H[i + 1 :] + op_str + H[:i]
+            H = H[:i] + op_str + H[i + 1 :]
             return H
 
         nparam = len(parameters)
@@ -145,4 +144,4 @@ class SummedPaulis(ObservableBase):
             if not self._full_sum:
                 ioff += 1
 
-        return SparsePauliOp(op_list, np.array(param_list))
+        return QuantumOperator(op_list, param_list)

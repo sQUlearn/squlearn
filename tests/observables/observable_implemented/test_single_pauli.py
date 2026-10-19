@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import Statevector
+from qc_executor import QuantumOperator, Parameters
 
 from squlearn.observables import SinglePauli
 
@@ -33,16 +33,16 @@ class TestSinglePauli:
         sp = SinglePauli(num_qubits=num_qubits, qubit=qubit, op_str="X", parameterized=False)
 
         pauli_op = sp.get_pauli(parameters=np.array([]))
-        assert isinstance(pauli_op, SparsePauliOp)
+        assert isinstance(pauli_op, QuantumOperator)
 
         # build expected label using the same slicing logic as implementation
         H = "I" * num_qubits
         expected_label = H[(qubit + 1) :] + "X" + H[:qubit]
-        labels = list(pauli_op.paulis.to_labels())
+        labels = list(pauli_op.paulis)
         assert labels == [expected_label]
 
         # non-parameterized coefficients default to 1
-        coeffs = np.asarray(pauli_op.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))
         assert np.allclose(coeffs, np.array([1.0]))
 
     def test_get_pauli_parameterized_with_numpy_parameter(self):
@@ -52,14 +52,14 @@ class TestSinglePauli:
         sp = SinglePauli(num_qubits=num_qubits, qubit=qubit, op_str="Z", parameterized=True)
 
         pauli_op = sp.get_pauli(parameters=np.array([value]))
-        assert isinstance(pauli_op, SparsePauliOp)
+        assert isinstance(pauli_op, QuantumOperator)
 
-        labels = list(pauli_op.paulis.to_labels())
+        labels = list(pauli_op.paulis)
         H = "I" * num_qubits
-        expected_label = H[(qubit + 1) :] + "Z" + H[:qubit]
+        expected_label = H[:qubit] + "Z" + H[(qubit + 1) :]
         assert labels == [expected_label]
 
-        coeffs = np.asarray(pauli_op.coeffs, dtype=float)
+        coeffs = np.real(np.asarray(pauli_op.coeffs, dtype=complex))
         assert np.allclose(coeffs, np.array([value]))
 
     def test_get_pauli_parameterized_with_parameter_vector(self):
@@ -67,9 +67,9 @@ class TestSinglePauli:
         qubit = 3
         sp = SinglePauli(num_qubits=num_qubits, qubit=qubit, op_str="Y", parameterized=True)
 
-        pvec = ParameterVector("p", 1)
+        pvec = Parameters("p", 1)
         pauli_op = sp.get_pauli(parameters=pvec)
-        assert isinstance(pauli_op, SparsePauliOp)
+        assert isinstance(pauli_op, QuantumOperator)
 
         coeffs = pauli_op.coeffs
         assert len(coeffs) == 1
@@ -116,7 +116,7 @@ class TestSinglePauli:
                 qc.x(q)
 
         state = Statevector.from_instruction(qc)
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)
 
@@ -145,6 +145,6 @@ class TestSinglePauli:
                 qc.x(q)
 
         state = Statevector.from_instruction(qc)
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, 0.0)

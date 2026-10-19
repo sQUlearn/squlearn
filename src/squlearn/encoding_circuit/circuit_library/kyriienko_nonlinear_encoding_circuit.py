@@ -1,10 +1,9 @@
 import numpy as np
 from typing import Union
-
-from qiskit.circuit import ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos
 
 from ..encoding_circuit_base import EncodingCircuitBase
 from ..layered_encoding_circuit import LayeredEncodingCircuit, Layer
@@ -177,15 +176,15 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Generates and returns the circuit of the KyriienkoEncodingCircuit
 
         Args:
-            features (Union[ParameterVector, np.ndarray]): The features to encode
-            parameters (Union[ParameterVector, np.ndarray]): The parameters of the encoding circuit
+            features (Union[Parameters, np.ndarray]): The features to encode
+            parameters (Union[Parameters, np.ndarray]): The parameters of the encoding circuit
 
         Returns:
             QuantumCircuit: The encoding circuit
@@ -196,7 +195,7 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
 
         def mapping(x, i):
             """Non-linear mapping for x: alpha*i*arccos(x)"""
-            return self.alpha * i * np.arccos(x)
+            return self.alpha * i * arccos(x)
 
         def variational_gate_block(
             QC,
@@ -216,9 +215,9 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                 for i in range(qubit_starting_index, num_qubits):
                     if i >= self.num_qubits:
                         i -= self.num_qubits
-                    QC.rz(parameters[index_offset], i)
-                    QC.rx(parameters[index_offset + 1], i)
-                    QC.rz(parameters[index_offset + 2], i)
+                    QC.rz(i, parameters[index_offset])
+                    QC.rx(i, parameters[index_offset + 1])
+                    QC.rz(i, parameters[index_offset + 2])
                     index_offset += 3
                 if variational_arrangement == "HEA":
                     for start in (0, 1):
@@ -256,8 +255,8 @@ class KyriienkoEncodingCircuit(EncodingCircuitBase):
                 for outer_ in range(outer):
                     for inner_ in range(inner):
                         {"rx": QC.rx, "ry": QC.ry, "rz": QC.rz}[self._rotation_gate](
-                            mapping(features[index_offset_encoding % num_features], icheb),
                             iqubit % self.num_qubits,
+                            mapping(features[index_offset_encoding % num_features], icheb),
                         )
                         iqubit += 1
                         index_offset_encoding += 1

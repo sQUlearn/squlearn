@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 from squlearn import Executor
 from squlearn.encoding_circuit import RandomEncodingCircuit
-from qiskit.circuit import ParameterVector
+
 
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
@@ -49,22 +49,22 @@ class TestRandomEncodingCircuit:
 
         # _gen_random_config must be called explictly to ensure the property num_parameters is available
         pqc = RandomEncodingCircuit(num_qubits=2, seed=2)
-        x = ParameterVector("x", 4)
+        x = Parameters("x", 4)
         pqc._gen_random_config(seed=2, num_features=len(x))
-        p = ParameterVector("p", pqc.num_parameters)
+        p = Parameters("p", pqc.num_parameters)
         check_circuit1 = repr(pqc.draw("text", fold=-1, num_features=4))
         assert check_circuit1 == reference1
 
         pqc.set_params(num_qubits=3, min_gates=3, max_gates=5)
-        x = ParameterVector("x", 3)
+        x = Parameters("x", 3)
         pqc._gen_random_config(seed=2, num_features=len(x))
-        p = ParameterVector("p", pqc.num_parameters)
+        p = Parameters("p", pqc.num_parameters)
         check_circuit2 = repr(pqc.draw("text", fold=-1, num_features=3))
         assert check_circuit2 == reference2
 
         pqc.set_params(seed=1234)
         pqc._gen_random_config(seed=1234, num_features=len(x))
-        p = ParameterVector("p", pqc.num_parameters)
+        p = Parameters("p", pqc.num_parameters)
         check_circuit3 = repr(pqc.draw("text", fold=-1, num_features=3))
         assert check_circuit3 == reference3
 

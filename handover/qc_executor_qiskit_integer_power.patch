@@ -1,0 +1,75 @@
+From d3a65108404696d0ecdfa557e530cbe25a9b76d1 Mon Sep 17 00:00:00 2001
+From: Dennis Kleinhans <dennis.kleinhans@ipa.fraunhofer.de>
+Date: Fri, 25 Sep 2026 09:42:16 +0200
+Subject: [PATCH] Write integer powers out as multiplications in the Qiskit
+ bridge
+
+Qiskit 2.5.0 mis-binds a sum of powers: for ParameterExpressions,
+`p0**2 + p1**2` evaluates as `(p0 + p1)**2`, while `p0*p0 + p1*p1` is
+right. The bridge emitted `**` for every SymPy Pow, so any parametrized
+observable or angle containing a sum of squares silently gave wrong
+expectation values on the Qiskit backend only, e.g. the square of a
+weighted observable, sum_i c_i**2 on the identity term.
+
+Integer exponents from 2 to 16 are now multiplied out; other exponents
+keep `**`. The tests cover the failing shapes (sum of squares, squares
+plus cross term, cubes) and the unchanged path beyond the limit.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+---
+ src/qc_executor/qiskit/_sympy_bridge.py | 14 +++++++++++++-
+ tests/qiskit/test_sympy_bridge.py       |  6 ++++++
+ 2 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/src/qc_executor/qiskit/_sympy_bridge.py b/src/qc_executor/qiskit/_sympy_bridge.py
+index f8f34d1..f19a52c 100644
+--- a/src/qc_executor/qiskit/_sympy_bridge.py
++++ b/src/qc_executor/qiskit/_sympy_bridge.py
+@@ -100,6 +100,10 @@ class QiskitParameterFactory:
+         return self._vectors
+ 
+ 
++#: Largest integer power written out as repeated multiplication; higher ones use ``**``.
++_MAX_EXPANDED_POWER = 16
++
++
+ def _rebuild(expr: sp.Basic, factory: QiskitParameterFactory) -> Any:
+     """Recursively rebuild a SymPy expression using Qiskit arithmetic."""
+     # Constants first: this covers Integer, Float, Rational, pi, E and any
+@@ -153,7 +157,15 @@ def _rebuild(expr: sp.Basic, factory: QiskitParameterFactory) -> Any:
+             raise UnsupportedExpressionError(
+                 f"Qiskit parameters do not support symbolic exponents: {expr}"
+             )
+-        return _rebuild(base, factory) ** float(exponent)
++        operand = _rebuild(base, factory)
++        if exponent.is_Integer and 2 <= int(exponent) <= _MAX_EXPANDED_POWER:
++            # Multiplied out rather than raised: Qiskit's ParameterExpression ``**`` mis-binds
++            # a sum of powers - in Qiskit 2.5.0 ``p0**2 + p1**2`` evaluates as ``(p0 + p1)**2``.
++            result = operand
++            for _ in range(int(exponent) - 1):
++                result = result * operand
++            return result
++        return operand ** float(exponent)
+ 
+     raise UnsupportedExpressionError(
+         f"Cannot translate {type(expr).__name__} to a Qiskit parameter expression: {expr}"
+diff --git a/tests/qiskit/test_sympy_bridge.py b/tests/qiskit/test_sympy_bridge.py
+index 12c2bb1..6af7b34 100644
+--- a/tests/qiskit/test_sympy_bridge.py
++++ b/tests/qiskit/test_sympy_bridge.py
+@@ -28,6 +28,12 @@ ROUND_TRIP_CASES = [
+     ("sum", X[0] + X[1]),
+     ("product", P[0] * X[0]),
+     ("square", X[0] ** 2),
++    # Qiskit 2.5.0 evaluates ``x0**2 + x1**2`` as ``(x0 + x1)**2``.
++    ("sum_of_squares", X[0] ** 2 + X[1] ** 2),
++    ("squares_and_cross_term", X[0] ** 2 + X[1] ** 2 + 2 * X[0] * X[1]),
++    ("weighted_squares", P[0] * X[0] ** 2 + X[1] ** 2),
++    ("cube_sum", X[0] ** 3 + X[1] ** 3),
++    ("power_beyond_expansion_limit", X[0] ** 20),
+     ("reciprocal", 1 / X[0]),
+     ("sin", sp.sin(X[0])),
+     ("cos", sp.cos(X[0])),
+-- 
+2.45.2.windows.1
+

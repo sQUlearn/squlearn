@@ -3,10 +3,10 @@ from __future__ import annotations
 import numpy as np
 from typing import Union
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
+from squlearn.util.symbolic_math import arccos, arctan
 
 from ..encoding_circuit_base import EncodingCircuitBase
 
@@ -175,16 +175,16 @@ class ChebyshevTower(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray] = None,
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray] = None,
     ) -> QuantumCircuit:
         """
         Generates and returns the circuit of the Chebyshev encoding circuit.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+            features (Union[Parameters,np.ndarray]): Input vector of the features
                                                           from which the gate inputs are obtained
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            param_vec (Union[Parameters,np.ndarray]): Input vector of the parameters
                                                            from which the gate inputs are obtained
 
         Return:
@@ -213,13 +213,13 @@ class ChebyshevTower(EncodingCircuitBase):
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arccos(x)"""
-                return self._alpha * i * np.arccos(x)
+                return self._alpha * i * arccos(x)
 
         elif self._nonlinearity == "arctan":
 
             def mapping(x, i):
                 """Non-linear mapping for x: alpha*i*arctan(x)"""
-                return self._alpha * i * np.arctan(x)
+                return self._alpha * i * arctan(x)
 
         QC = QuantumCircuit(self.num_qubits)
 
@@ -244,18 +244,18 @@ class ChebyshevTower(EncodingCircuitBase):
                 for inner_ in range(inner):
                     if self._rotation_gate.lower() == "rx":
                         QC.rx(
-                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
+                            mapping(features[index_offset % num_features], icheb),
                         )
                     elif self._rotation_gate.lower() == "ry":
                         QC.ry(
-                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
+                            mapping(features[index_offset % num_features], icheb),
                         )
                     elif self._rotation_gate.lower() == "rz":
                         QC.rz(
-                            mapping(features[index_offset % num_features], icheb),
                             iqubit % self.num_qubits,
+                            mapping(features[index_offset % num_features], icheb),
                         )
                     else:
                         raise ValueError(
