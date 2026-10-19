@@ -15,7 +15,9 @@ class TestTranspiledEncodingCircuit:
 
     def test_get_circuit_symbolic_is_repeatable(self, circuit):
         for _ in range(2):
-            result = circuit.get_circuit(Parameters("x", 1), Parameters("p", circuit.num_parameters))
+            result = circuit.get_circuit(
+                Parameters("x", 1), Parameters("p", circuit.num_parameters)
+            )
             assert len(result.qiskit_circuit.parameters) == circuit.num_parameters + 1
 
     def test_get_circuit_numeric(self, circuit):

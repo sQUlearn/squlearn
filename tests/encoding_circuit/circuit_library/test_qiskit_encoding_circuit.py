@@ -136,7 +136,6 @@ class TestQiskitEncodingCircuit:
         assert "qiskit_circuit" in params
         assert params["qiskit_circuit"] is enc._qiskit_circuit
 
-
     def test_get_circuit_with_symbolic_parameters_is_repeatable(self):
         from qc_executor import Parameters
 

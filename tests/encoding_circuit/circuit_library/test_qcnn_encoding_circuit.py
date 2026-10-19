@@ -182,4 +182,6 @@ class TestQCNNQiskitInput:
         circuit.convolution(quantum_circuit=qiskit_circuit, share_params=True)
         circuit.pooling(measurement=True)
         assert circuit.num_parameters > 0
-        assert isinstance(circuit.get_circuit([], np.full(circuit.num_parameters, 0.1)), QuantumCircuit)
+        assert isinstance(
+            circuit.get_circuit([], np.full(circuit.num_parameters, 0.1)), QuantumCircuit
+        )
