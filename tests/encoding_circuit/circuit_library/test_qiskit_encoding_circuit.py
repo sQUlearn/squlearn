@@ -135,3 +135,17 @@ class TestQiskitEncodingCircuit:
         params = enc.get_params()
         assert "qiskit_circuit" in params
         assert params["qiskit_circuit"] is enc._qiskit_circuit
+
+
+    def test_get_circuit_with_symbolic_parameters_is_repeatable(self):
+        from qc_executor import Parameters
+
+        p = ParameterVector("p", 2)
+        qc = QiskitQuantumCircuit(2)
+        qc.rz(p[0], 0)
+        qc.rz(p[1], 1)
+        enc = QiskitEncodingCircuit(qc, mode="p", parameter_label="p")
+
+        for _ in range(2):
+            circ = enc.get_circuit(features=[], parameters=Parameters("t", 2))
+            assert [str(s) for s in circ.parameters] == ["t[0]", "t[1]"]

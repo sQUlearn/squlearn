@@ -4,6 +4,16 @@ from abc import ABC, abstractmethod
 
 from qc_executor import Parameters, QuantumOperator
 
+from ..util.operator_utils import multiply_operators
+
+
+def _simplify(operator: QuantumOperator) -> QuantumOperator:
+    """Simplify the operator, unless it has symbolic coefficients (unsupported by qc-executor)."""
+    try:
+        return operator.simplify()
+    except NotImplementedError:
+        return operator
+
 
 class ObservableBase(ABC):
     """Base class for observables.
@@ -176,7 +186,7 @@ class ObservableBase(ABC):
         """
 
         operator = self.get_pauli(parameters)
-        return operator.apply_layout(list(self._qubit_map))
+        return operator.apply_layout(list(self._qubit_map), self._num_all_qubits)
 
     def __str__(self):
         """Return a string representation of the ObservableBase."""
@@ -331,11 +341,11 @@ class ObservableBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return (paulis_op + paulis_op).simplify()
+                    return _simplify(paulis_op + paulis_op)
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return (paulis_op1 + paulis_op2).simplify()
+                    return _simplify(paulis_op1 + paulis_op2)
 
         return AddedObservable(self, x)
 
@@ -450,10 +460,10 @@ class ObservableBase(ABC):
                 """
                 if self._op1 == self._op2:
                     paulis_op = self._op1.get_pauli(parameters)
-                    return paulis_op.compose(paulis_op).simplify()
+                    return multiply_operators(paulis_op, paulis_op)
                 else:
                     paulis_op1 = self._op1.get_pauli(parameters[: self._op1.num_parameters])
                     paulis_op2 = self._op2.get_pauli(parameters[self._op1.num_parameters :])
-                    return (paulis_op1.compose(paulis_op2)).simplify()
+                    return multiply_operators(paulis_op1, paulis_op2)
 
         return MultipliedObservable(self, x)

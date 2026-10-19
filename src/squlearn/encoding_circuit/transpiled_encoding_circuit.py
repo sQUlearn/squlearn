@@ -3,6 +3,7 @@ from typing import Union, Callable
 
 from qc_executor import Parameters
 from qc_executor.qiskit import QiskitCircuit
+from qc_executor.qiskit._sympy_bridge import to_qiskit_expr
 from qiskit import QuantumCircuit as QiskitQuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
@@ -187,12 +188,12 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
             carries a layout the IR cannot express, so unlike other encoding circuits the
             result runs on the Qiskit executor only.
         """
-        exchange_dict_x = dict(zip(self._x, features))
-        exchange_dict_p = dict(zip(self._p, parameters))
-        exchange_both = exchange_dict_x
-        exchange_both.update(exchange_dict_p)
-        self._transpiled_circuit.assign_parameters(exchange_both, inplace=True)
-        return QiskitCircuit.from_qiskit(self._transpiled_circuit)
+        # The ISA circuit holds Qiskit parameters, so match them by name and convert the
+        # (possibly symbolic) values to Qiskit expressions.
+        values = {str(k): to_qiskit_expr(v) for k, v in zip(self._x, features)}
+        values.update({str(k): to_qiskit_expr(v) for k, v in zip(self._p, parameters)})
+        binding = {q: values[q.name] for q in self._transpiled_circuit.parameters}
+        return QiskitCircuit.from_qiskit(self._transpiled_circuit.assign_parameters(binding))
 
 
 def _gen_qubit_mapping(circuit: QiskitQuantumCircuit) -> dict:

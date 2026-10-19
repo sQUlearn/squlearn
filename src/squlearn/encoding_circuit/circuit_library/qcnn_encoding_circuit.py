@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Union
 from qc_executor import QuantumCircuit, Parameters
+from qiskit.circuit import QuantumCircuit as QiskitQuantumCircuit
 
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 
@@ -681,7 +682,9 @@ class QCNNEncodingCircuit(EncodingCircuitBase):
 
     def __convert_encoding_circuit(self, quantum_circuit) -> QuantumCircuit:
         """Internal function to allow also sQUlearn encoding circuits as input."""
-        if not isinstance(quantum_circuit, QuantumCircuit):
+        if isinstance(quantum_circuit, QiskitQuantumCircuit):
+            quantum_circuit = QuantumCircuit.from_qiskit(quantum_circuit)
+        elif not isinstance(quantum_circuit, QuantumCircuit):
             param = Parameters("p", quantum_circuit.num_parameters)
             if quantum_circuit.num_features > 0:
                 raise ValueError(

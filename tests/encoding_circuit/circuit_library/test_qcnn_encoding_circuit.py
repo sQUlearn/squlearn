@@ -166,3 +166,20 @@ class TestQCNNEncodingCircuit:
         # invalid string should raise ValueError
         with pytest.raises(ValueError):
             circuit.QCNNObservable("A")
+
+
+class TestQCNNQiskitInput:
+
+    def test_convolution_accepts_qiskit_circuit(self):
+        from qiskit.circuit import ParameterVector, QuantumCircuit as QiskitQuantumCircuit
+
+        params = ParameterVector("p", 2)
+        qiskit_circuit = QiskitQuantumCircuit(2)
+        qiskit_circuit.crx(params[0], 0, 1)
+        qiskit_circuit.rx(params[1], 0)
+
+        circuit = QCNNEncodingCircuit(4)
+        circuit.convolution(quantum_circuit=qiskit_circuit, share_params=True)
+        circuit.pooling(measurement=True)
+        assert circuit.num_parameters > 0
+        assert isinstance(circuit.get_circuit([], np.full(circuit.num_parameters, 0.1)), QuantumCircuit)

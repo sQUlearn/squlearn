@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from qc_executor import QuantumOperator
+from squlearn.observables import CustomObservable
 from squlearn.observables.observable_base import ObservableBase
 
 
@@ -62,6 +63,12 @@ class TestObservableBase:
         assert isinstance(mapped, QuantumOperator)
         assert mapped.num_qubits == 2
         assert list(zip(mapped.paulis, mapped.coeffs)) == [("ZZ", 1.0)]
+
+    def test_get_pauli_mapped_onto_more_qubits(self, ob: DummyOb):
+        ob.set_map(qubit_map=[1, 3], num_all_qubits=4)
+        mapped = ob.get_pauli_mapped([0, 1])
+        assert mapped.num_qubits == 4
+        assert list(mapped.paulis) == ["IZIZ"]
 
 
 class TestAddedObservable:
@@ -216,3 +223,27 @@ class TestMultipliedObservable:
         ob1 = DummyOb(num_qubits=2)
         ob_prod = ob1 * ob1
         assert ob_prod.get_params() == ob1.get_params()
+
+
+class TestSymbolicObservableArithmetic:
+    """Parametrized observables must be addable and multipliable without binding."""
+
+    def test_add_parametrized(self):
+        ob1 = CustomObservable(num_qubits=2, operator_string="IX", parameterized=True)
+        ob2 = CustomObservable(num_qubits=2, operator_string="ZY", parameterized=True)
+        assert str(ob1 + ob2) == "(p[0]) * IX + (p[1]) * ZY"
+
+    def test_multiply_parametrized(self):
+        ob1 = CustomObservable(num_qubits=2, operator_string="IX", parameterized=True)
+        ob2 = CustomObservable(num_qubits=2, operator_string="ZY", parameterized=True)
+        added = ob1 + ob2
+        squared = (added * added).get_pauli([1.0, 2.0])
+        assert list(squared.paulis) == ["II"]
+        assert complex(squared.coeffs[0]) == pytest.approx(5.0)
+
+    def test_multiply_different_parametrized(self):
+        ob1 = CustomObservable(num_qubits=1, operator_string="X", parameterized=True)
+        ob2 = CustomObservable(num_qubits=1, operator_string="Y", parameterized=True)
+        product = (ob1 * ob2).get_pauli([2.0, 3.0])
+        assert list(product.paulis) == ["Z"]
+        assert complex(product.coeffs[0]) == pytest.approx(6.0j)
