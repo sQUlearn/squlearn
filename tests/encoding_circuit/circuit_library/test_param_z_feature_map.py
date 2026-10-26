@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import ParamZFeatureMap
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
@@ -23,7 +23,7 @@ def _build_expected_paramz_circuit(
     for layer in range(num_layers):
         for i in range(num_qubits):
             circuit.h(i)
-            circuit.p(parameters[index_offset % num_params] * features[i % num_features], i)
+            circuit.p(i, parameters[index_offset % num_params] * features[i % num_features])
             index_offset += 1
 
         if entangling:

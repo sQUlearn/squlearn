@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.utils import gen_batches
 
 from ..loss.qnn_loss_base import QNNLossBase
-from ..lowlevel_qnn.lowlevel_qnn_base import LowLevelQNNBase
+from ..lowlevel_qnn import LowLevelQNN
 from ...optimizers.optimizer_base import OptimizerBase, SGDMixin, IterativeMixin
 from ...util import Executor
 
@@ -211,7 +211,7 @@ class ShotsFromRSTD(ShotControlBase):
 
 
 def train(
-    qnn: LowLevelQNNBase,
+    qnn: LowLevelQNN,
     input_values: Union[list, np.ndarray],
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
@@ -226,7 +226,7 @@ def train(
     Function for training a given QNN.
 
     Args:
-        QNN (LowLevelQNNBase): QNN instance that is trained
+        QNN (LowLevelQNN): QNN instance that is trained
         input_values (Union[list,np.ndarray]): List of input values, i.e. training data
         ground_truth (Union[list,np.ndarray]): List of ground truth values,
                                                e.g. labels of the training data
@@ -378,7 +378,7 @@ def train(
 
 
 def train_mini_batch(
-    qnn: LowLevelQNNBase,
+    qnn: LowLevelQNN,
     input_values: Union[list, np.ndarray],
     ground_truth: Union[list, np.ndarray],
     param_ini: Union[list, np.ndarray],
@@ -395,7 +395,7 @@ def train_mini_batch(
     """Minimize a loss function using mini-batch gradient descent.
 
     Args:
-        QNN (LowLevelQNNBase): QNN instance that is trained
+        QNN (LowLevelQNN): QNN instance that is trained
         input_values (Union[list,np.ndarray]): List of input values, i.e. training data
         ground_truth (Union[list,np.ndarray]): List of ground truth values,
                                                e.g. labels of the training data

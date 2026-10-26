@@ -62,6 +62,22 @@ class TestQRCRegressor:
 
         assert np.allclose(values, referece_values[ml_model], atol=1e-7)
 
+    def test_random_pauli_operators_keep_their_order(self):
+        """The seeded random Paulis are the same operators, in the same order, as before
+        observables read the leftmost character as qubit 0.
+
+        A model that is not invariant under a permutation of its features (an MLP with a
+        fixed seed) reproduces its results only if the order is kept, so this pins it
+        directly instead of through a trained model.
+        """
+        qrc_regressor = self.qrc_regressor("linear")
+        # random_pauli_list(2, 16, seed=0) draws these, rightmost character = qubit 0
+        drawn = ["YY", "IX", "XI", "ZI", "ZY", "XX", "IY", "II"]
+
+        operators = [obs.get_operator([]).paulis[0] for obs in qrc_regressor._operators[:8]]
+
+        assert operators == [label[::-1] for label in drawn]
+
     @pytest.mark.parametrize(
         "ml_model",
         [

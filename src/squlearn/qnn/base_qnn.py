@@ -57,11 +57,6 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
-        primitive : The Qiskit primitive that is utilized in the qnn, if a Qiskit backend
-                    is used in the executor (not supported for PennyLane backends)
-                    Default primitive is the one specified in the executor initialization,
-                    if nothing is specified, the estimator will used.
-                    Possible values are ``"estimator"`` or ``"sampler"``.
     """
 
     def __init__(
@@ -83,7 +78,6 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = None,
-        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -123,7 +117,6 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
         self.caching = caching
         self.pretrained = pretrained
 
-        self.primitive = primitive
         self.executor = executor
 
         self.shot_control = shot_control
@@ -309,12 +302,10 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
     def _maybe_disable_opt_param_op(self) -> None:
         """Force ``opt_param_op`` off when the observable has no trainable params.
 
-        Optimizing zero parameters is a no-op. Worse, for multi-output QNNs
-        (operator passed as a list), letting the training loop request
-        ``dfdop`` returns an empty (1, 0) sentinel from
-        ``LowLevelQNNPennyLane._evaluate_todo_all_x`` that downstream
-        ``_evaluate`` cannot reshape, crashing with
-        ``ValueError: cannot reshape array of size 0 into shape (k, 1)``.
+        Optimizing zero parameters is a no-op, letting the training loop request ``dfdop`` for a
+        zero-parameter observable could crash downstream reshaping with a shape mismatch.
+        ``LowLevelQNN`` itself already handles a zero-sized "p_op" trailing axis
+        gracefully, but this guard is kept as a cheap, framework-independent safety net.
 
         Only the ``True -> False`` direction is auto-applied; if the user
         explicitly disabled observable-parameter optimization, that choice is
@@ -381,7 +372,6 @@ class BaseQNN(BaseEstimator, SerializableModelMixin, ABC):
             num_features,
             self._post_processing,
             caching=self.caching,
-            primitive=self.primitive,
         )
 
         if self._is_fitted:

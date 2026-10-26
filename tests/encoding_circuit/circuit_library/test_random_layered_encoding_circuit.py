@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import RandomLayeredEncodingCircuit
-from qiskit.circuit import ParameterVector
 
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR

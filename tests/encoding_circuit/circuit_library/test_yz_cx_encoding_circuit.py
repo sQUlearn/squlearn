@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn.encoding_circuit import YZ_CX_EncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
 from squlearn.kernel.lowlevel_kernel import FidelityKernel
@@ -28,12 +28,12 @@ def _build_expected_yz_cx_circuit(
             angle_ry = (
                 parameters[index_offset % num_param] + c * features[feature_offset % num_features]
             )
-            QC.ry(angle_ry, i)
+            QC.ry(i, angle_ry)
             index_offset += 1
             angle_rz = (
                 parameters[index_offset % num_param] + c * features[feature_offset % num_features]
             )
-            QC.rz(angle_rz, i)
+            QC.rz(i, angle_rz)
             index_offset += 1
             feature_offset += 1
 

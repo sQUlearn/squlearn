@@ -41,7 +41,7 @@ def get_lowest_version(dependency_string: str) -> str:
         groups: Tuple[Optional[str], Optional[str]] = match.groups()
         if groups[1]:
             return "==".join(groups)
-        return groups[0]
+    # No lower bound: keep the full specifier, e.g. an upper bound such as "autograd<1.9"
     return dependency_string
 
 

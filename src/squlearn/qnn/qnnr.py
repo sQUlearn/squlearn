@@ -72,10 +72,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         callback (Union[Callable, str, None], default=None): A callback for the optimization loop.
             Can be either a Callable, "pbar" (which uses a :class:`tqdm.tqdm` process bar) or None.
             If None, the optimizers (default) callback will be used.
-        primitive (Union[str,None], default=None): The primitive that is utilized in the qnn.
-            Default primitive is the one specified in the executor initialization, if nothing is
-            specified, the estimator will used. Possible values are ``"estimator"`` or
-            ``"sampler"``.
 
     See Also:
         squlearn.qnn.QNNClassifier : Quantum Neural Network for Classification.
@@ -182,7 +178,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
         caching: bool = True,
         pretrained: bool = False,
         callback: Union[Callable, str, None] = "pbar",
-        primitive: Union[str, None] = None,
         **kwargs,
     ) -> None:
         self._post_processing = None
@@ -204,7 +199,6 @@ class QNNRegressor(BaseQNN, RegressorMixin):
             caching=caching,
             pretrained=pretrained,
             callback=callback,
-            primitive=primitive,
             **kwargs,
         )
 

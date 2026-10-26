@@ -100,11 +100,12 @@ in shot-based simulations or on real quantum hardware. It is important to note t
 autodiff and backpropagation are not applicable on real quantum computers, as the
 no-cloning theorem prevents copying quantum states for reuse in gradient computation.
 
-sQUlearn automatically exploits fast gradient evaluation through autodiff for both
-the PennyLane and Qulacs quantum frameworks. PennyLane is the default backend and
-additionally supports the computation of higher-order derivatives. Qulacs, on the other hand,
-is typically much faster than PennyLane for larger circuits, making it the recommended choice
-for most QNN applications. The tutorial below demonstrates how to use Qulacs within sQUlearn.
+sQUlearn automatically exploits fast gradient evaluation for the Qiskit, PennyLane, and Qulacs
+quantum frameworks through the qc_executor backend. PennyLane is the default backend and,
+together with Qiskit, additionally supports the computation of higher-order derivatives. Qulacs,
+on the other hand, is typically much faster than PennyLane for larger circuits, making it the
+recommended choice for most QNN applications. The tutorial below demonstrates how to use Qulacs
+within sQUlearn.
 
 
 High-level methods for QNNs

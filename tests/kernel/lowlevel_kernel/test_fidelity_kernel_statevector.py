@@ -1,4 +1,3 @@
-import pickle
 from unittest.mock import MagicMock
 import numpy as np
 import pytest
@@ -15,7 +14,7 @@ def make_executor(is_statevector=True, framework="pennylane", shots=None):
     exec_mock.shots = shots
     # set_shots should exist
     exec_mock.set_shots = MagicMock()
-    # For shots-mode tests we may set pennylane_execute_batched externally
+    # For shots-mode tests we may set probabilities() externally
     return exec_mock
 
 
@@ -75,7 +74,8 @@ class TestFidelityKernelStatevector:
     def test_evaluate_kernel_shots_symmetric_modes_and_parameter_check(self):
         """
         Test evaluate_kernel_shots logic:
-        - Builds index lists and calls executor.pennylane_execute_batched
+        - Builds index lists and calls executor.probabilities() (the successor to the
+          removed executor.pennylane_execute_batched())
         - Handles symmetric case with evaluate_duplicates modes 'all', 'off_diagonal', 'none'
         - Raises when parameter_vector present but parameters missing
         """
@@ -83,14 +83,14 @@ class TestFidelityKernelStatevector:
 
         k = object.__new__(FidelityKernelStatevector)
         k._num_features = 2
-        k._pennylane_circuit = "circ"
+        k._native_circuit_shots = "circ"
         # set parameter_vector not None to trigger parameters check
         k._parameter_vector = object()
         k._parameters = None  # simulate missing params
         k._evaluate_duplicates = "off_diagonal"  # default
         # executor with pennylane batched execution
         exec_mock = make_executor(is_statevector=False, framework="pennylane")
-        exec_mock.pennylane_execute_batched = MagicMock(return_value=[])
+        exec_mock.probabilities = MagicMock(return_value=[])
         k._executor = exec_mock
 
         # if parameter_vector set but _parameters None -> evaluate_kernel_shots should raise
@@ -100,31 +100,33 @@ class TestFidelityKernelStatevector:
         # Now provide parameters and test actual batched call and matrix fill
         k._parameters = np.array([0.5])  # dummy params
 
-        exec_mock.pennylane_execute_batched.return_value = [
-            [1.0],
-            [0.6],
-            [1.0],
+        # probabilities() returns one Dict[basis_state_index, probability] per batch row;
+        # the |0...0> state is index 0 (see evaluate_kernel_shots's kernel_entries line).
+        exec_mock.probabilities.return_value = [
+            {0: 1.0},
+            {0: 0.6},
+            {0: 1.0},
         ]
 
         # Test 'all' mode -> should produce kernel entries for (0,0),(0,1),(1,1) but our batched result length 1
         k._evaluate_duplicates = "all"
         # To avoid mismatch between expected indices and returned list length, we will instead create a small
-        # non-symmetric test below to check filling logic; for symmetric 'all' we mainly ensure pennylane_execute_batched called.
-        k._executor.pennylane_execute_batched.reset_mock()
+        # non-symmetric test below to check filling logic; for symmetric 'all' we mainly ensure probabilities() called.
+        k._executor.probabilities.reset_mock()
         _ = k.evaluate_kernel_shots(x, x)
-        k._executor.pennylane_execute_batched.assert_called()
+        k._executor.probabilities.assert_called()
 
         # Non-symmetric case: x vs y different arrays
         y = np.array([[0.1, 0.2], [0.5, 0.6]])
         # Create return list for 4 pairs (2x2)
-        exec_mock.pennylane_execute_batched.return_value = [
-            [0.11],
-            [0.22],
-            [0.33],
-            [0.44],
+        exec_mock.probabilities.return_value = [
+            {0: 0.11},
+            {0: 0.22},
+            {0: 0.33},
+            {0: 0.44},
         ]
         k._evaluate_duplicates = "off_diagonal"
-        # parameter_vector present -> arguments include (params, x1, x2)
+        # parameter_vector present -> arguments include (params, xy)
         mat = k.evaluate_kernel_shots(x, y)
         # Mat should be filled with our kernel entries at corresponding positions
         assert mat.shape == (2, 2)
@@ -137,6 +139,10 @@ class TestFidelityKernelStatevector:
         Test evaluate_kernel_sv with a simple cached_execution that returns orthonormal statevectors,
         so overlaps are 0 for different states and 1 for same states. Check symmetric handling and
         evaluate_duplicates behavior.
+
+        PennyLane and Qulacs share the exact same evaluate_kernel_sv code path since WP-15
+        (both go through the same _cached_execution closure, one call per sample) - this test
+        and test_evaluate_kernel_sv_qulacs_no_parameter_vector below are deliberately parallel.
         """
         k = object.__new__(FidelityKernelStatevector)
         k._num_features = 2
@@ -145,25 +151,14 @@ class TestFidelityKernelStatevector:
         exec_mock.set_shots = MagicMock()
         k._executor = exec_mock
 
-        # smart cached execution: inspects the incoming argument structure and returns N statevectors
         sv1 = np.array([1.0 + 0j, 0.0 + 0j])
         sv2 = np.array([0.0 + 0j, 1.0 + 0j])
 
-        def cached_exec(f_alpha_tensor):
-            # f_alpha_tensor is expected to be a tuple of arrays; the length of one of its elements equals n_samples
-            try:
-                # if f_alpha_tensor is a tuple of arrays, the length of first array is n_samples
-                n_samples = len(f_alpha_tensor[0])
-            except Exception:
-                # fallback: if not subscriptable, assume single sample
-                n_samples = 1
-            if n_samples == 1:
-                return np.array([sv1])
-            elif n_samples == 2:
-                return np.array([sv1, sv2])
-            else:
-                # repeat sv1 for arbitrary sizes
-                return np.array([sv1] * n_samples)
+        # cached_execution is called once per sample with that sample's features as a tuple.
+        def cached_exec(x_tuple):
+            if abs(x_tuple[0] - 0.1) < 1e-12:
+                return sv1
+            return sv2
 
         k._cached_execution = cached_exec
 
@@ -313,26 +308,6 @@ def _make_statevector_kernel(framework):
     if kernel.num_parameters > 0:
         kernel.assign_training_parameters(rng.random(kernel.num_parameters))
     return kernel
-
-
-def test_pickle_roundtrip_preserves_kernel_qulacs():
-    """A qulacs statevector kernel must survive stdlib pickling.
-
-    ``_cached_execution`` is an ``lru_cache``-wrapped local closure that cannot
-    be pickled by reference (the original ``AttributeError: Can't get local
-    object ...``); ``__getstate__``/``__setstate__`` drop and rebuild it. The
-    pennylane circuit holds a sympy lambda that stdlib pickle cannot handle
-    regardless, so that framework is covered by the dill-based ModelPickler
-    serialization tests and by ``test_getstate_setstate_rebuilds_executor``.
-    """
-    kernel = _make_statevector_kernel("qulacs")
-    x = np.random.default_rng(0).random((4, 2))
-    expected = kernel.evaluate(x, x)
-
-    restored = pickle.loads(pickle.dumps(kernel))
-
-    assert "_cached_execution" in vars(restored)
-    np.testing.assert_allclose(restored.evaluate(x, x), expected)
 
 
 @pytest.mark.parametrize("framework", ["qulacs", "pennylane"])

@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qc_executor import Parameters, QuantumCircuit
+
 from squlearn import Executor
 from squlearn.encoding_circuit import HighDimEncodingCircuit
-from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from squlearn.kernel import QGPR
+from squlearn.kernel.lowlevel_kernel import FidelityKernel
 from tests.qiskit_circuit_equivalence import assert_circuits_equal
 
 
@@ -22,7 +22,7 @@ def _build_expected_highdim_circuit(
     QC = QuantumCircuit(num_qubits)
     QC.h(range(num_qubits))
 
-    def build_layer(QC, feature_vec, index_offset):
+    def build_layer(QC: QuantumCircuit, feature_vec, index_offset):
         if layer_type == "rows":
             rows = True
         else:
@@ -48,40 +48,40 @@ def _build_expected_highdim_circuit(
             # Rz,Ry,Rz
             if rows:
                 if i % 3 == 0:
-                    QC.rz(feature_vec[ii], iqubit)
+                    QC.rz(iqubit, feature_vec[ii])
                 elif i % 3 == 1:
-                    QC.ry(feature_vec[ii], iqubit)
+                    QC.ry(iqubit, feature_vec[ii])
                 else:
-                    QC.rz(feature_vec[ii], iqubit)
+                    QC.rz(iqubit, feature_vec[ii])
             else:
                 if i // num_qubits == 0:
-                    QC.rz(feature_vec[ii], iqubit)
+                    QC.rz(iqubit, feature_vec[ii])
                 elif i // num_qubits == 1:
-                    QC.ry(feature_vec[ii], iqubit)
+                    QC.ry(iqubit, feature_vec[ii])
                 else:
-                    QC.rz(feature_vec[ii], iqubit)
+                    QC.rz(iqubit, feature_vec[ii])
         return QC
 
-    def entangle_layer_cx(QC):
+    def entangle_layer_cx(QC: QuantumCircuit):
         for i in range(0, num_qubits - 1, 2):
             QC.cx(i, i + 1)
         for i in range(1, num_qubits - 1, 2):
             QC.cx(i, i + 1)
         return QC
 
-    def entangle_layer_iswap(QC):
-        siswap = QuantumCircuit(2)
-        siswap.cx(0, 1)
-        siswap.cs(1, 0)
-        siswap.ch(1, 0)
-        siswap.cs(1, 0)
-        siswap.cx(0, 1)
-        siswap_gate = siswap.to_gate(label="siswap")
+    def entangle_layer_iswap(QC: QuantumCircuit):
+        """Creation of the entangling layer by iSWAP neighboring qubits
 
+        Implemented as RXX(-pi/4) followed by RYY(-pi/4), which is equivalent
+        to sqrt-iSWAP up to global phase. See verification below.
+        """
         for i in range(0, num_qubits - 1, 2):
-            QC.append(siswap_gate, [i, i + 1])
+            QC.rxx(i, i + 1, -np.pi / 4)
+            QC.ryy(i, i + 1, -np.pi / 4)
         for i in range(1, num_qubits - 1, 2):
-            QC.append(siswap_gate, [i, i + 1])
+            QC.rxx(i, i + 1, -np.pi / 4)
+            QC.ryy(i, i + 1, -np.pi / 4)
+
         return QC
 
     index_offset = 0
@@ -142,7 +142,7 @@ class TestHighDimEncodingCircuit:
         circuit = HighDimEncodingCircuit(
             num_qubits=4,
         )
-        features = ParameterVector("x", 12)
+        features = Parameters("x", 12)
         qc = circuit.get_circuit(features)
         assert circuit.num_layers == 2
 

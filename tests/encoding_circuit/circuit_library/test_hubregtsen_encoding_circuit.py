@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -30,20 +30,20 @@ def _build_expected_hubregtsen_circuit(
         n_feature_loop = int(np.ceil(num_features / num_qubits))
         for i in range(n_feature_loop * num_qubits):
             if (i // num_qubits) % 2 == 0:
-                QC.rz(features[i % num_features], i % num_qubits)
+                QC.rz(i % num_qubits, features[i % num_features])
             else:
-                QC.rx(features[i % num_features], i % num_qubits)
+                QC.rx(i % num_qubits, features[i % num_features])
 
         # single theta Ry
         for i in range(num_qubits):
-            QC.ry(parameters[index_offset % num_params], i)
+            QC.ry(i, parameters[index_offset % num_params])
             index_offset += 1
 
         # Entangled theta CRZ gates
         if num_qubits > 2:
             istop = num_qubits if closed else num_qubits - 1
             for i in range(istop):
-                QC.crz(parameters[index_offset % num_params], i, (i + 1) % num_qubits)
+                QC.crz(i, (i + 1) % num_qubits, parameters[index_offset % num_params])
                 index_offset += 1
 
     # final encoding
@@ -51,9 +51,9 @@ def _build_expected_hubregtsen_circuit(
         n_feature_loop = int(np.ceil(num_features / num_qubits))
         for i in range(n_feature_loop * num_qubits):
             if int(np.ceil(i / num_qubits)) % 2 == 0:
-                QC.rz(features[i % num_features], i % num_qubits)
+                QC.rz(i % num_qubits, features[i % num_features])
             else:
-                QC.rx(features[i % num_features], i % num_qubits)
+                QC.rx(i % num_qubits, features[i % num_features])
 
     return QC
 

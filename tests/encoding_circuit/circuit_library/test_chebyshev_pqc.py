@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import ChebyshevPQC
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -37,18 +37,18 @@ def _build_expected_chebyshev_circuit(
 
     # basis change at beginning
     for i in range(num_qubits):
-        QC.ry(parameters[index_offset % len(parameters)], i)
+        QC.ry(i, parameters[index_offset % len(parameters)])
         index_offset += 1
 
     for _ in range(num_layers):
         # chebyshev rx encodings
         for i in range(num_qubits):
             QC.rx(
+                i,
                 mapping(
                     parameters[index_offset % len(parameters)],
                     features[feature_offset % len(features)],
                 ),
-                i,
             )
             index_offset += 1
             feature_offset += 1
@@ -56,23 +56,23 @@ def _build_expected_chebyshev_circuit(
         # even pairs (0,1), (2,3), ...
         for i in range(0, num_qubits + (1 if closed else 0) - 1, 2):
             if entangling_gate == "crz":
-                QC.crz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                QC.crz(i, (i + 1) % num_qubits, parameters[index_offset % len(parameters)])
             else:
-                QC.rzz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                QC.rzz(i, (i + 1) % num_qubits, parameters[index_offset % len(parameters)])
             index_offset += 1
 
         # odd pairs (1,2), (3,4), ...
         if num_qubits > 2:
             for i in range(1, num_qubits + (1 if closed else 0) - 1, 2):
                 if entangling_gate == "crz":
-                    QC.crz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                    QC.crz(i, (i + 1) % num_qubits, parameters[index_offset % len(parameters)])
                 else:
-                    QC.rzz(parameters[index_offset % len(parameters)], i, (i + 1) % num_qubits)
+                    QC.rzz(i, (i + 1) % num_qubits, parameters[index_offset % len(parameters)])
                 index_offset += 1
 
     # final basis change
     for i in range(num_qubits):
-        QC.ry(parameters[index_offset % len(parameters)], i)
+        QC.ry(i, parameters[index_offset % len(parameters)])
         index_offset += 1
 
     return QC
@@ -174,7 +174,11 @@ class TestChebyshevPQC:
         assert isinstance(qc, QuantumCircuit)
         assert qc.num_qubits == 2
 
-        used_params = {param for instruction in qc.data for param in instruction.operation.params}
+        used_params = {
+            param
+            for instruction in qc.qiskit_circuit.data
+            for param in instruction.operation.params
+        }
         assert len(used_params) == len(params)
 
         with pytest.raises(EncodingSlotsMismatchError):

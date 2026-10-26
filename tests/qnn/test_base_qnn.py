@@ -37,7 +37,6 @@ class MockBaseQNN(BaseQNN):
         caching=True,
         pretrained=False,
         callback=None,
-        primitive=None,
         **kwargs,
     ):
         super().__init__(
@@ -58,7 +57,6 @@ class MockBaseQNN(BaseQNN):
             caching,
             pretrained,
             callback,
-            primitive,
             **kwargs,
         )
         super()._initialize_lowlevel_qnn(1)
