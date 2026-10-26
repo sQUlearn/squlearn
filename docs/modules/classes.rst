@@ -212,10 +212,6 @@ QNN Core
    :template: class.rst
 
    qnn.lowlevel_qnn.LowLevelQNN
-   qnn.lowlevel_qnn.lowlevel_qnn_pennylane.LowLevelQNNPennyLane
-   qnn.lowlevel_qnn.lowlevel_qnn_qiskit.LowLevelQNNQiskit
-   qnn.lowlevel_qnn.lowlevel_qnn_qulacs.LowLevelQNNQulacs
-   qnn.lowlevel_qnn.lowlevel_qnn_base.LowLevelQNNBase
    qnn.loss.SquaredLoss
    qnn.loss.MeanSquaredError
    qnn.loss.CrossEntropyLoss
@@ -256,51 +252,6 @@ Implemented optimizers
    optimizers.SLSQP
    optimizers.SPSA
    optimizers.SGLBO
-
-OpTree Data Structure
-------------------------------------
-
-.. currentmodule:: squlearn
-
-.. autosummary::
-   :nosignatures:
-   :toctree: generated/
-   :template: class.rst
-
-    util.OpTree
-    util.optree.OpTreeList
-    util.optree.OpTreeSum
-    util.optree.OpTreeCircuit
-    util.optree.OpTreeOperator
-    util.optree.OpTreeExpectationValue
-    util.optree.OpTreeMeasuredOperator
-    util.optree.OpTreeContainer
-    util.optree.OpTreeValue
-
-PennyLane interface
-------------------------------------
-
-.. currentmodule:: squlearn
-
-.. autosummary::
-   :nosignatures:
-   :toctree: generated/
-   :template: class.rst
-
-   util.pennylane.PennyLaneCircuit
-
-Qulacs interface
-------------------------------------
-
-.. currentmodule:: squlearn
-
-.. autosummary::
-   :nosignatures:
-   :toctree: generated/
-   :template: class.rst
-
-   util.qulacs.QulacsCircuit
-
 
 Base Classes
 ------------------------------------

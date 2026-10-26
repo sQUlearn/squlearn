@@ -1,5 +1,5 @@
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 
 
 def assert_circuits_equal(
@@ -8,16 +8,18 @@ def assert_circuits_equal(
     """Asserts that two Qiskit QuantumCircuits are equivalent in terms of their operations, qubits, and parameters."""
 
     assert qc_actual.num_qubits == qc_expected.num_qubits, "different number of qubits"
-    assert len(qc_actual.data) == len(
-        qc_expected.data
-    ), f"different number of instructions: {len(qc_actual.data)} vs {len(qc_expected.data)}"
+    assert len(qc_actual.qiskit_circuit.data) == len(
+        qc_expected.qiskit_circuit.data
+    ), f"different number of instructions: {len(qc_actual.qiskit_circuit.data)} vs {len(qc_expected.qiskit_circuit.data)}"
 
-    for i, (inst_act, inst_exp) in enumerate(zip(qc_actual.data, qc_expected.data)):
+    for i, (inst_act, inst_exp) in enumerate(
+        zip(qc_actual.qiskit_circuit.data, qc_expected.qiskit_circuit.data)
+    ):
         op_act = inst_act.operation
         op_exp = inst_exp.operation
 
-        qargs_act = tuple(qc_actual.qubits.index(q) for q in inst_act.qubits)
-        qargs_exp = tuple(qc_expected.qubits.index(q) for q in inst_exp.qubits)
+        qargs_act = tuple(qc_actual.qiskit_circuit.qubits.index(q) for q in inst_act.qubits)
+        qargs_exp = tuple(qc_expected.qiskit_circuit.qubits.index(q) for q in inst_exp.qubits)
         assert (
             qargs_act == qargs_exp
         ), f"Instruction {i}: qubit targets differ: {qargs_act} != {qargs_exp}"

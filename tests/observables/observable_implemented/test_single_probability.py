@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from qiskit import QuantumCircuit
 from squlearn.observables import SingleProbability
-from qiskit.quantum_info import SparsePauliOp, Pauli, Statevector
+from qiskit.quantum_info import Statevector
+from qc_executor import QuantumOperator
 
 
 class TestSingleProbability:
@@ -37,9 +38,9 @@ class TestSingleProbability:
 
     def test_get_pauli(self, ob: SingleProbability):
         pauli = ob.get_pauli(np.array([0.5]))
-        assert isinstance(pauli, SparsePauliOp)
+        assert isinstance(pauli, QuantumOperator)
         assert pauli.num_qubits == 3
-        assert pauli.paulis[0] == Pauli("III")
+        assert pauli.paulis[0] == "III"
 
     @pytest.mark.parametrize(
         "basis_state, one_state, expected_exp_val",
@@ -83,6 +84,6 @@ class TestSingleProbability:
         state = Statevector.from_instruction(qc)
 
         # Expectation value from qiskit
-        exp_val = state.expectation_value(pauli).real
+        exp_val = state.expectation_value(pauli.qiskit_operator).real
 
         assert np.isclose(exp_val, expected_exp_val)

@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn import Executor
 from squlearn.encoding_circuit import KyriienkoEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingSlotsMismatchError
@@ -35,9 +35,9 @@ def _variational_gate_block_expected(
             i = i_raw
             if i >= global_num_qubits:
                 i = i - global_num_qubits
-            QC.rz(parameters[index_offset], i)
-            QC.rx(parameters[index_offset + 1], i)
-            QC.rz(parameters[index_offset + 2], i)
+            QC.rz(i, parameters[index_offset])
+            QC.rx(i, parameters[index_offset + 1])
+            QC.rz(i, parameters[index_offset + 2])
             index_offset += 3
 
         if variational_arrangement == "HEA":
@@ -100,11 +100,11 @@ def _build_expected_kyriienko_circuit(
                     )
                     # pick rotation gate
                     if rotation_gate == "rx":
-                        QC.rx(angle, iqubit % num_qubits)
+                        QC.rx(iqubit % num_qubits, angle)
                     elif rotation_gate == "ry":
-                        QC.ry(angle, iqubit % num_qubits)
+                        QC.ry(iqubit % num_qubits, angle)
                     elif rotation_gate == "rz":
-                        QC.rz(angle, iqubit % num_qubits)
+                        QC.rz(iqubit % num_qubits, angle)
                     iqubit += 1
                     index_offset_encoding += 1
                 # tower: ncheb = 1 + icheb else stays 1 (sparse)

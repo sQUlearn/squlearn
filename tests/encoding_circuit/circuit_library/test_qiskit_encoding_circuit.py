@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit import ParameterVector
+from qiskit.circuit import QuantumCircuit as QiskitQuantumCircuit
+from qc_executor import QuantumCircuit
 
 from squlearn.encoding_circuit import QiskitEncodingCircuit
 
@@ -8,17 +10,19 @@ from squlearn.encoding_circuit import QiskitEncodingCircuit
 class TestQiskitEncodingCircuit:
     def test_init_with_callable_returns_empty_mode(self):
         def make_circ(n_qubits=2):
-            return QuantumCircuit(n_qubits)
+            return QiskitQuantumCircuit(n_qubits)
 
         circuit = QiskitEncodingCircuit(make_circ, mode="auto", decompose=False, feature_label="x")
         assert circuit._mode == "empty"
-        # get_circuit should return the underlying circuit unchanged for empty mode
+        # get_circuit should return the underlying circuit, imported into the IR
         qc_out = circuit.get_circuit([], [])
-        assert qc_out is circuit._qiskit_circuit
+        assert isinstance(qc_out, QuantumCircuit)
+        assert qc_out.num_qubits == circuit._qiskit_circuit.num_qubits
+        assert len(qc_out.qiskit_circuit.data) == len(circuit._qiskit_circuit.data)
 
     def test_mode_x_assigns_features_and_raises_on_wrong_length(self):
         params = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
+        qc = QiskitQuantumCircuit(2)
         qc.rz(params[0], 0)
         qc.rz(params[1], 1)
 
@@ -39,7 +43,7 @@ class TestQiskitEncodingCircuit:
 
     def test_mode_p_assigns_parameters_and_raises_on_wrong_length(self):
         params = ParameterVector("p", 3)
-        qc = QuantumCircuit(3)
+        qc = QiskitQuantumCircuit(3)
         qc.rz(params[0], 0)
         qc.rz(params[1], 1)
         qc.rz(params[2], 2)
@@ -60,7 +64,7 @@ class TestQiskitEncodingCircuit:
 
     def test_auto_mode_detects_only_features(self):
         x = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
+        qc = QiskitQuantumCircuit(2)
         qc.rz(x[0], 0)
         qc.rz(x[1], 1)
 
@@ -76,7 +80,7 @@ class TestQiskitEncodingCircuit:
 
     def test_auto_mode_detects_only_parameters(self):
         p = ParameterVector("p", 2)
-        qc = QuantumCircuit(2)
+        qc = QiskitQuantumCircuit(2)
         qc.rz(p[0], 0)
         qc.rz(p[1], 1)
 
@@ -93,7 +97,7 @@ class TestQiskitEncodingCircuit:
     def test_auto_mode_detects_features_and_parameters(self):
         p = ParameterVector("p", 1)
         x = ParameterVector("x", 1)
-        qc = QuantumCircuit(2)
+        qc = QiskitQuantumCircuit(2)
         qc.rz(p[0], 0)
         qc.rz(x[0], 1)
 
@@ -112,22 +116,35 @@ class TestQiskitEncodingCircuit:
     def test_auto_mode_raises_if_automatic_detection_fails(self):
         # create a circuit with parameters named 'a[0]' which won't match 'x' or 'p'
         a = ParameterVector("a", 1)
-        qc = QuantumCircuit(1)
+        qc = QiskitQuantumCircuit(1)
         qc.rz(a[0], 0)
 
         with pytest.raises(RuntimeError):
             QiskitEncodingCircuit(qc, mode="auto", parameter_label="p", feature_label="x")
 
     def test_invalid_mode_raises_value_error(self):
-        qc = QuantumCircuit(1)
+        qc = QiskitQuantumCircuit(1)
         with pytest.raises(ValueError):
             QiskitEncodingCircuit(qc, mode="not_a_mode")
 
     def test_get_params_returns_underlying_qiskit_circuit(self):
         p = ParameterVector("p", 1)
-        qc = QuantumCircuit(1)
+        qc = QiskitQuantumCircuit(1)
         qc.rz(p[0], 0)
         enc = QiskitEncodingCircuit(qc, mode="p", parameter_label="p")
         params = enc.get_params()
         assert "qiskit_circuit" in params
         assert params["qiskit_circuit"] is enc._qiskit_circuit
+
+    def test_get_circuit_with_symbolic_parameters_is_repeatable(self):
+        from qc_executor import Parameters
+
+        p = ParameterVector("p", 2)
+        qc = QiskitQuantumCircuit(2)
+        qc.rz(p[0], 0)
+        qc.rz(p[1], 1)
+        enc = QiskitEncodingCircuit(qc, mode="p", parameter_label="p")
+
+        for _ in range(2):
+            circ = enc.get_circuit(features=[], parameters=Parameters("t", 2))
+            assert [str(s) for s in circ.parameters] == ["t[0]", "t[1]"]

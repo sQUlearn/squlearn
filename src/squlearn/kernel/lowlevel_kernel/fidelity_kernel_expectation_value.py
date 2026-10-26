@@ -1,9 +1,9 @@
 """Fidelity Quantum Kernel class"""
 
+import itertools
 import numpy as np
 from typing import Union
 
-from qiskit.quantum_info import SparsePauliOp
 from squlearn.observables import CustomObservable
 
 from .kernel_matrix_base import KernelMatrixBase
@@ -104,12 +104,7 @@ class FidelityKernelExpectationValue(KernelMatrixBase):
             return:
                 CustomObservable: The P0 observable in the squlearn library format
             """
-            P0_single_qubit = SparsePauliOp.from_list([("Z", 0.5), ("I", 0.5)])
-            P0_temp = P0_single_qubit
-            for _ in range(1, num_qubits):
-                P0_temp = P0_temp.expand(P0_single_qubit)
-            observable_tuple_list = P0_temp.simplify().simplify().to_list()
-            pauli_str = [observable[0] for observable in observable_tuple_list]
+            pauli_str = ["".join(s) for s in itertools.product("ZI", repeat=num_qubits)]
             return CustomObservable(num_qubits, pauli_str, parameterized=True)
 
         def get_flattened_matrix_indices(n, part="lower"):

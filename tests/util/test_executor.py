@@ -1,6 +1,5 @@
 import gc
-import weakref
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 from packaging import version
@@ -78,12 +77,10 @@ from squlearn.util.executor import (
     BaseSamplerV2,
     SessionContextMisuseWarning,
 )
-from squlearn.util.pennylane import PennyLaneCircuit
-from squlearn.util.qulacs import QulacsCircuit
-from squlearn.util.qulacs.qulacs_execution import (
-    qulacs_evaluate,
-    qulacs_evaluate_statevector,
-    qulacs_evaluate_probabilities,
+from qc_executor import (
+    Parameters as QcExecutorParameters,
+    QuantumCircuit as QcExecutorQuantumCircuit,
+    QuantumOperator,
 )
 
 
@@ -248,22 +245,22 @@ class TestExecutorPennyLane:
     @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
-        qc = QuantumCircuit(2)
+        qc = QcExecutorQuantumCircuit(2)
         qc.x([0, 1])
         return qc
 
     @pytest.fixture(scope="module")
     def parameterized_circuit(self):
-        x = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
-        qc.ry(x[0], 0)
-        qc.ry(x[1], 1)
+        x = QcExecutorParameters("x", 2)
+        qc = QcExecutorQuantumCircuit(2)
+        qc.ry(0, x[0])
+        qc.ry(1, x[1])
         return qc
 
     @pytest.fixture(scope="module")
     def observable(self):
         """Creates a simple observable for testing."""
-        return SparsePauliOp("ZZ")
+        return QuantumOperator(["ZZ"], [1.0])
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -300,19 +297,12 @@ class TestExecutorPennyLane:
         ],
     )
     def test_pennylane_probs(self, executor_str, request, simple_circuit):
-        """Tests the PennyLane execution of a circuit with the probs return type."""
-
-        assert_dict = {
-            "ExecutorPennyLane": np.array([0.0, 0.0, 0.0, 1.0]),
-            "ExecutorPennyLaneShots": np.array([0.0, 0.0, 0.0, 1.0]),
-            "ExecutorPennyLaneDevice": np.array([0.0, 0.0, 0.0, 1.0]),
-        }
+        """Executor.probabilities() through the native qc_executor path - the
+        successor to the removed Executor.pennylane_execute()."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = PennyLaneCircuit(simple_circuit, "probs")
-
-        res = executor.pennylane_execute(circuit)
-        assert np.allclose(assert_dict[executor_str], res)
+        res = executor.probabilities(simple_circuit)
+        assert res == {3: 1.0}
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -323,19 +313,11 @@ class TestExecutorPennyLane:
         ],
     )
     def test_pennylane_observable(self, executor_str, request, simple_circuit, observable):
-        """Tests the PennyLane execution of a circuit with an observable return type."""
-
-        assert_dict = {
-            "ExecutorPennyLane": 1.0,
-            "ExecutorPennyLaneShots": 1.0,
-            "ExecutorPennyLaneDevice": 1.0,
-        }
+        """Executor.expectation_value() through the native qc_executor path."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = PennyLaneCircuit(simple_circuit, observable)
-
-        res = executor.pennylane_execute(circuit)
-        assert np.allclose(assert_dict[executor_str], res)
+        res = executor.expectation_value(simple_circuit, observable)
+        assert np.isclose(res, 1.0)
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -346,21 +328,15 @@ class TestExecutorPennyLane:
         ],
     )
     def test_pennylane_probs_batched(self, executor_str, request, parameterized_circuit):
-        """Tests the batched PennyLane execution of a circuit with the probs return type."""
-
-        assert_dict = {
-            "ExecutorPennyLane": np.array([0.0, 0.0, 0.0, 1.0]),
-            "ExecutorPennyLaneShots": np.array([0.0, 0.0, 0.0, 1.0]),
-            "ExecutorPennyLaneDevice": np.array([0.0, 0.0, 0.0, 1.0]),
-        }
+        """Executor.probabilities() batched over a parameter-set axis (WP-11) - the
+        successor to the removed Executor.pennylane_execute_batched()."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = [PennyLaneCircuit(parameterized_circuit, "probs")] * 4
-
-        res = executor.pennylane_execute_batched(
-            circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
-        )
-        assert np.allclose(assert_dict[executor_str], res)
+        # cutoff filters the floating-point residuals RY(pi) leaves on the other basis
+        # states (~1e-33), unlike the exact-X-gate case test_pennylane_probs compares
+        # against directly.
+        res = executor.probabilities(parameterized_circuit, x=[[np.pi, np.pi]] * 4, cutoff=1e-6)
+        assert res == [{3: 1.0}] * 4
 
     @pytest.mark.parametrize(
         "executor_str",
@@ -373,21 +349,11 @@ class TestExecutorPennyLane:
     def test_pennylane_observable_batched(
         self, executor_str, request, parameterized_circuit, observable
     ):
-        """Tests the batched PennyLane execution of a circuit with an observable return type."""
-
-        assert_dict = {
-            "ExecutorPennyLane": 1.0,
-            "ExecutorPennyLaneShots": 1.0,
-            "ExecutorPennyLaneDevice": 1.0,
-        }
+        """Executor.expectation_value() batched over a parameter-set axis (WP-11)."""
 
         executor = request.getfixturevalue(executor_str)
-        circuit = [PennyLaneCircuit(parameterized_circuit, observable)] * 4
-
-        res = executor.pennylane_execute_batched(
-            circuit, [([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],), ([np.pi, np.pi],)]
-        )
-        assert np.allclose(assert_dict[executor_str], res)
+        res = executor.expectation_value(parameterized_circuit, observable, x=[[np.pi, np.pi]] * 4)
+        assert np.allclose(res, [1.0] * 4)
 
 
 class TestExecutorQulacs:
@@ -400,22 +366,22 @@ class TestExecutorQulacs:
     @pytest.fixture(scope="module")
     def simple_circuit(self):
         """Creates a simple circuit for testing."""
-        qc = QuantumCircuit(2)
+        qc = QcExecutorQuantumCircuit(2)
         qc.x([0, 1])
         return qc
 
     @pytest.fixture(scope="module")
     def parameterized_circuit(self):
-        x = ParameterVector("x", 2)
-        qc = QuantumCircuit(2)
-        qc.ry(x[0], 0)
-        qc.ry(x[1], 1)
+        x = QcExecutorParameters("x", 2)
+        qc = QcExecutorQuantumCircuit(2)
+        qc.ry(0, x[0])
+        qc.ry(1, x[1])
         return qc
 
     @pytest.fixture(scope="module")
     def observable(self):
         """Creates a simple observable for testing."""
-        return SparsePauliOp("ZZ")
+        return QuantumOperator(["ZZ"], [1.0])
 
     def test_shots(self, ExecutorQulacs):
         """Tests of the default shots and the set_shots method work."""
@@ -423,55 +389,79 @@ class TestExecutorQulacs:
         executor = ExecutorQulacs
         assert executor.shots is None
 
-    @pytest.mark.parametrize(
-        "qulacs_execution_func",
-        [
-            qulacs_evaluate,
-            qulacs_evaluate_statevector,
-            qulacs_evaluate_probabilities,
-        ],
-    )
-    def test_qulacs_evaluate_simple(
-        self, qulacs_execution_func, ExecutorQulacs, simple_circuit, observable
-    ):
-        """Tests the Qulacs execution of a circuit with an observable return type."""
-
-        assert_dict = {
-            "qulacs_evaluate": 1.0,
-            "qulacs_evaluate_probabilities": np.array([0.0, 0.0, 0.0, 1.0]),
-            "qulacs_evaluate_statevector": np.array([0.0, 0.0, 0.0, 1.0]),
-        }
-
+    def test_expectation_value_simple(self, ExecutorQulacs, simple_circuit, observable):
+        """Executor.expectation_value() through the native qc_executor path -
+        the successor to the removed Executor.qulacs_execute()."""
         executor = ExecutorQulacs
-        circuit = QulacsCircuit(simple_circuit, observable)
+        result = executor.expectation_value(simple_circuit, observable)
 
-        res = executor.qulacs_execute(qulacs_execution_func, circuit)
-        assert np.allclose(assert_dict[qulacs_execution_func.__name__], res)
+        assert np.isclose(result, 1.0)
 
-    @pytest.mark.parametrize(
-        "qulacs_execution_func",
-        [
-            qulacs_evaluate,
-            qulacs_evaluate_statevector,
-            qulacs_evaluate_probabilities,
-        ],
-    )
-    def test_qulacs_evaluate_parameterized(
-        self, qulacs_execution_func, ExecutorQulacs, parameterized_circuit, observable
-    ):
-        """Tests the Qulacs execution of a circuit with an observable return type."""
-
-        assert_dict = {
-            "qulacs_evaluate": 1.0,
-            "qulacs_evaluate_probabilities": np.array([0.0, 0.0, 0.0, 1.0]),
-            "qulacs_evaluate_statevector": np.array([0.0, 0.0, 0.0, 1.0]),
-        }
-
+    def test_statevector_simple(self, ExecutorQulacs, simple_circuit):
+        """Executor.statevector() through the native qc_executor path."""
         executor = ExecutorQulacs
-        circuit = QulacsCircuit(parameterized_circuit, observable)
+        result = executor.statevector(simple_circuit)
 
-        res = executor.qulacs_execute(qulacs_execution_func, circuit, x=[np.pi, np.pi])
-        assert np.allclose(assert_dict[qulacs_execution_func.__name__], res)
+        assert np.allclose(result, [0.0, 0.0, 0.0, 1.0])
+
+    def test_probabilities_simple(self, ExecutorQulacs, simple_circuit):
+        """Executor.probabilities() through the native qc_executor path."""
+        executor = ExecutorQulacs
+        result = executor.probabilities(simple_circuit)
+
+        assert result == {3: 1.0}
+
+    def test_expectation_value_parameterized(
+        self, ExecutorQulacs, parameterized_circuit, observable
+    ):
+        executor = ExecutorQulacs
+        result = executor.expectation_value(parameterized_circuit, observable, x=[np.pi, np.pi])
+
+        assert np.isclose(result, 1.0)
+
+    def test_statevector_parameterized(self, ExecutorQulacs, parameterized_circuit):
+        executor = ExecutorQulacs
+        result = executor.statevector(parameterized_circuit, x=[np.pi, np.pi])
+
+        assert np.allclose(result, [0.0, 0.0, 0.0, 1.0])
+
+
+class _FakeQcExecutor:
+    """Stand-in for the qc_executor.QiskitExecutor instance an Executor owns
+    as self._qc_executor under the new architecture: qc_executor is the sole owner of
+    backend resolution, primitive construction, session lifecycle and
+    execution - sQUlearn no longer holds a session of its own, so cleanup is
+    entirely qc_executor's __del__ firing once the Executor (and therefore
+    its only reference to this instance) is garbage collected. Needs a real
+    __del__ - a MagicMock's is unreliable - so tests can verify that.
+    """
+
+    def __init__(self, mock_session=None, backend=None):
+        self._mock_session = mock_session
+        self.session = mock_session
+        self.backend = backend
+        self.remote = True
+        self.ibm_quantum = True
+        self.raw_estimator = MagicMock()
+        self.raw_sampler = MagicMock()
+        self.estimator = self.raw_estimator
+        self.sampler = self.raw_sampler
+        self.shots = None
+
+    def create_session(self):
+        self.session = self._mock_session
+
+    def close_session(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
+    def __del__(self):
+        if self.session is not None:
+            try:
+                self.session.close()
+            except Exception:  # pylint: disable=broad-except
+                pass
 
 
 class TestExecutorCleanup:
@@ -505,70 +495,59 @@ class TestExecutorCleanup:
 
     def test_non_ibm_no_cleanup(self):
         """
-        Verifies that no cleanup is performed when the backend is not an IBMBackend.
+        Verifies that construction/deletion for a non-Qiskit framework doesn't
+        raise - there is no session concept to clean up at all.
         """
         executor = Executor("pennylane")
-        assert not hasattr(executor, "_finalizer")
         del executor
         gc.collect()
 
-    @patch.object(Executor, "_cleanup_session")
-    def test_finalizer_triggers_cleanup(self, mock_cleanup, ibm_backend, mock_session):
+    def test_preexisting_session_cleanup(self, mock_session):
         """
-        Verifies that the finalizer triggers the cleanup of the session.
+        Verifies that the cleanup of the session is performed even if it was
+        created before the Executor object (a directly injected Session).
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            executor = Executor(ibm_backend)
-            with pytest.warns(SessionContextMisuseWarning):
-                executor.create_session()
-            del executor
-            gc.collect()
-            mock_cleanup.assert_called_once()
-
-    @patch.object(Executor, "_cleanup_session")
-    def test_preexisting_session_cleanup(self, mock_cleanup, mock_session):
-        """
-        Verifies that the cleanup of the session is performed even if it was created before the Executor object.
-        """
-        executor = Executor(mock_session)
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session),
+        ):
+            executor = Executor(mock_session)
+        # Exiting the patch drops its own return_value reference; the only
+        # remaining reference to the fake qc_executor is executor's own, so
+        # deleting executor is what triggers its __del__.
         del executor
         gc.collect()
-        mock_cleanup.assert_called_once()
-
-    def test_cleanup_logic(self, mock_session, ibm_backend):
-        """
-        Verifies that _cleanup_session calls close_session.
-        """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            executor = Executor(ibm_backend)
-            with pytest.warns(SessionContextMisuseWarning):
-                executor.create_session()
-            # pylint: disable=protected-access
-            session_ref = weakref.ref(executor._session)
-            Executor._cleanup_session(session_ref)  # Direct call
-            mock_session.close.assert_called_once()
-            executor = None
-            Executor._cleanup_session(session_ref)
+        mock_session.close.assert_called_once()
 
     def test_normal_creation_deletion_closes_session(self, ibm_backend, mock_session):
         """
         Verifies that the session is closed after normal creation and deletion of the Executor object.
         """
         mock_session.reset_mock()
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
-            mock_session.close.assert_not_called()
+        mock_session.close.assert_not_called()
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             executor = Executor(ibm_backend)
             with pytest.warns(SessionContextMisuseWarning):
                 executor.create_session()
-            del executor
-            gc.collect()
-            mock_session.close.assert_called_once()
+        # Exiting the patch drops its own return_value reference; the only
+        # remaining reference to the fake qc_executor is executor's own,
+        # so deleting executor is what triggers its __del__.
+        del executor
+        gc.collect()
+        mock_session.close.assert_called_once()
 
     def test_preexisting_session_is_closed_on_deletion(self, mock_session):
         """
         Verifies that the session is closed after deletion of the Executor object when a pre-existing session is provided.
         """
-        executor = Executor(mock_session)
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session),
+        ):
+            executor = Executor(mock_session)
         del executor
         gc.collect()
         mock_session.close.assert_called_once()
@@ -577,7 +556,10 @@ class TestExecutorCleanup:
         """
         Verifies that the context manager closes the session.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             with Executor(ibm_backend) as executor:
                 executor.create_session()
             mock_session.close.assert_called_once()
@@ -588,7 +570,10 @@ class TestExecutorCleanup:
         """
         Verifies that the context manager closes the session even when an exception is raised.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             try:
                 with Executor(ibm_backend) as executor:
                     executor.create_session()
@@ -604,7 +589,10 @@ class TestExecutorCleanup:
         """
         Verifies that the session is closed even when a Python-side failure (e.g. OOM failure) occurs.
         """
-        with patch("squlearn.util.executor.Session", return_value=mock_session):
+        with patch(
+            "squlearn.util.executor.QcExecutorFactory.create",
+            return_value=_FakeQcExecutor(mock_session, backend=ibm_backend),
+        ):
             try:
                 executor = Executor(ibm_backend)
                 with pytest.warns(SessionContextMisuseWarning):
@@ -614,5 +602,7 @@ class TestExecutorCleanup:
                 pass
             finally:
                 del executor
-            gc.collect()
-            mock_session.close.assert_called_once()
+        # Exiting the patch drops its own return_value reference before we
+        # collect, so executor's was the only strong reference left.
+        gc.collect()
+        mock_session.close.assert_called_once()

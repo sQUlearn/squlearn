@@ -1,7 +1,6 @@
 import numpy as np
 from typing import Union
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qc_executor import QuantumCircuit, Parameters
 
 from squlearn.util.data_preprocessing import extract_num_features
 
@@ -92,16 +91,16 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Return the circuit of the YZ-CX encoding circuit.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+            features (Union[Parameters,np.ndarray]): Input vector of the features
                                                           from which the gate inputs are obtained.
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            param_vec (Union[Parameters,np.ndarray]): Input vector of the parameters
                                                            from which the gate inputs are obtained.
 
         Return:
@@ -119,15 +118,15 @@ class YZ_CX_EncodingCircuit(EncodingCircuitBase):
         for layer in range(self.num_layers):
             for i in range(self.num_qubits):
                 QC.ry(
+                    i,
                     parameters[index_offset % num_param]
                     + self.c * features[feature_offset % num_features],
-                    i,
                 )
                 index_offset += 1
                 QC.rz(
+                    i,
                     parameters[index_offset % num_param]
                     + self.c * features[feature_offset % num_features],
-                    i,
                 )
                 index_offset += 1
                 feature_offset += 1

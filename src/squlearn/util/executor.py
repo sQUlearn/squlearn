@@ -13,7 +13,6 @@ from typing import Any, List, Union
 from types import MethodType
 from collections.abc import Iterable
 import warnings
-import weakref
 
 import dill as pickle
 import numpy as np
@@ -34,6 +33,8 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime import Session
 from qiskit_ibm_runtime import __version__ as ibm_runtime_version
 from qiskit_ibm_runtime.exceptions import IBMRuntimeError, RuntimeJobFailureError
+
+from qc_executor import Executor as QcExecutorFactory
 
 if version.parse(pennylane_version) < version.parse("0.39.0"):
     from pennylane import QubitDevice
@@ -154,8 +155,6 @@ else:
 from .execution import AutomaticBackendSelection, ParallelEstimator, ParallelSampler
 from .execution.parallel_estimator import ParallelEstimatorV1, ParallelEstimatorV2
 from .execution.parallel_sampler import ParallelSamplerV1, ParallelSamplerV2
-from .pennylane import PennyLaneCircuit
-from .qulacs import QulacsCircuit
 
 
 class SessionContextMisuseWarning(UserWarning):
@@ -453,9 +452,23 @@ class Executor:
     ) -> None:
         # Default values for internal variables
         self._backend = None
-        self._session = None
-        self._estimator = None
-        self._sampler = None
+        # The raw Estimator/Sampler/Session the caller passed directly as
+        # execution= (not a backend). Only qc_executor's own primitive/
+        # session-injection branches understand these objects, so they are
+        # handed to it unchanged rather than introspected here.
+        self._injected_primitive = None
+        # The single qc_executor instance that owns backend resolution,
+        # primitive construction, session lifecycle and execution for this
+        # Executor - see _build_qc(). None until a concrete backend is
+        # available (deferred for automatic backend selection).
+        self._qc_executor = None
+        # The current execution target for estimator_run_v1/v2 /
+        # sampler_run_v1/v2 - the raw primitive qc_executor built, wrapped in
+        # ParallelEstimator/ParallelSampler if qpu_parallelization is set.
+        # Refreshed by _decorate_primitive() on every (re)build qc_executor
+        # performs, including an IBM Quantum session renewal.
+        self._inner_estimator = None
+        self._inner_sampler = None
         self._execution_origin = ""
         self._context_managed = False
 
@@ -503,7 +516,6 @@ class Executor:
                 "auto_backend_mode must be one of 'quality_hqaa', 'speed_hqaa', 'quality' or"
                 " 'speed'"
             )
-        self._ibm_quantum_backend = False
 
         self._backend_list = None
 
@@ -543,7 +555,7 @@ class Executor:
                 )
             elif execution in ["pennylane", "default.qubit"]:
                 self._quantum_framework = "pennylane"
-                self._pennylane_device = qml.device("default.qubit")
+                self._pennylane_device = qml.device("default.qubit", seed=self._pennylane_seed)
                 if shots is None:
                     shots = self._pennylane_device.shots.total_shots
             elif execution in ["qulacs"]:
@@ -576,11 +588,6 @@ class Executor:
             # Execution is a backend class
             self._backend = execution
             self._execution_origin = "Backend"
-            if shots is None:
-                if hasattr(self._backend.options, "shots"):
-                    shots = self._backend.options.shots
-                    if self.is_statevector:
-                        shots = None
         elif isinstance(execution, list):
             # Execution is a list of backends -> backands will be automatically selected
             if all(isinstance(exec, Backend) for exec in execution):
@@ -592,169 +599,59 @@ class Executor:
         elif isinstance(execution, QiskitRuntimeService):
             self._backend = None
             self._backend_list = execution.backends()
-            if shots is None and self._backend is not None:
-                shots = self._backend.options.shots
-                if self.is_statevector:
-                    shots = None
             self._execution_origin = "QiskitRuntimeService"
         elif isinstance(execution, Session):
-            # Execution is a active? session
-            self._session = execution
-            self._backend = self._session.service.backend(self._session.backend())
+            self._injected_primitive = execution
             self._execution_origin = "Session"
-            if shots is None:
-                shots = self._backend.options.shots
-                if self.is_statevector:
-                    shots = None
         elif isinstance(execution, BaseEstimatorV1):
-            self._estimator = execution
-            if isinstance(self._estimator, PrimitiveEstimatorV1):
-                # this is only a hack, there is no real backend in the Primitive Estimator class
-                self._backend = Aer.get_backend("aer_simulator_statevector")
-            elif isinstance(self._estimator, BackendEstimatorV1):
-                self._backend = self._estimator._backend
-                # TODO: check if this is duplicate
-                if not shots:
-                    shots_estimator = self._estimator.options.get("shots", 0)
-                    if not shots_estimator:
-                        shots = 1024
-                        self._estimator.set_options(shots=shots)
-                    else:
-                        shots = shots_estimator
-            # Real Backend
-            elif isinstance(self._estimator, RuntimeEstimatorV1):
-                self._session = self._estimator._session
-                self._backend = self._estimator._backend
-                # TODO: check if this is duplicate
-                if not shots:
-                    shots = self._estimator.options["execution"]["shots"]
-
-            # Set options for the estimator
-            if self._options_estimator is not None:
-                self._estimator.set_options(**self._options_estimator)
+            self._injected_primitive = execution
             self._execution_origin = "Estimator"
         elif isinstance(execution, BaseSamplerV1):
-            self._sampler = execution
-
-            if isinstance(self._sampler, PrimitiveSamplerV1):
-                # this is only a hack, there is no real backend in the Primitive Sampler class
-                self._backend = Aer.get_backend("aer_simulator_statevector")
-            elif isinstance(self._sampler, BackendSamplerV1):
-                self._backend = self._sampler._backend
-                shots_sampler = self._sampler.options.get("shots", 0)
-                # TODO: check if this is duplicate
-                if not shots:
-                    if not shots_sampler:
-                        shots = 1024
-                        self._sampler.set_options(shots=shots)
-                    else:
-                        shots = shots_sampler
-            elif isinstance(self._sampler, RuntimeSamplerV1):
-                self._session = self._sampler._session
-                self._backend = self._sampler._backend
-                # TODO: check if this is duplicate
-                if not shots:
-                    shots = self._sampler.options["execution"]["shots"]
-
-            # Set options for the sampler
-            if self._options_sampler is not None:
-                self._sampler.set_options(**self._options_sampler)
-
+            self._injected_primitive = execution
             self._execution_origin = "Sampler"
         elif isinstance(execution, BaseEstimatorV2):
-            self._estimator = execution
-            if isinstance(self._estimator, StatevectorEstimator):
-                self._backend = Aer.get_backend("aer_simulator_statevector")
-                if shots is None and self._estimator.default_precision:
-                    shots = int((1.0 / self._estimator.default_precision) ** 2)
-                self._estimator._seed = self._set_seed_for_primitive
-            elif isinstance(self._estimator, BackendEstimatorV2):
-                self._backend = self._estimator.backend
-                if shots is None:
-                    if self._estimator.options.default_precision <= 0.0:
-                        shots = 1024
-                        self._estimator._options.default_precision = 1.0 / shots**0.5
-                    else:
-                        shots = int((1.0 / self._estimator.options.default_precision) ** 2)
-                self._estimator._options.seed_simulator = self._set_seed_for_primitive
-            elif isinstance(self._estimator, RuntimeEstimatorV2):
-                if hasattr(self._estimator, "_session"):
-                    self._session = self._estimator._session
-                elif hasattr(self._estimator, "_mode"):
-                    self._session = self._estimator._mode
-                self._backend = self._estimator._backend
-                if shots is None:
-                    if self._estimator.options.default_shots:
-                        shots = self._estimator.options.default_shots
-                    elif self._estimator.options.default_precision:
-                        shots = int((1.0 / self._estimator.options.default_precision) ** 2)
-                    else:
-                        shots = 1024
-                        self._estimator.options.default_shots = 1024
-                if self._set_seed_for_primitive:
-                    self._estimator.options.update(
-                        simulator={"seed_simulator": self._set_seed_for_primitive}
-                    )
-
+            self._injected_primitive = execution
+            self._execution_origin = "Estimator"
         elif isinstance(execution, BaseSamplerV2):
-            self._sampler = execution
-            if isinstance(self._sampler, StatevectorSampler):
-                self._backend = Aer.get_backend("aer_simulator_statevector")
-                if shots is None:
-                    shots = self._sampler.default_shots
-                self._sampler._seed = self._set_seed_for_primitive
-            elif isinstance(self._sampler, BackendSamplerV2):
-                self._backend = self._sampler.backend
-                if shots is None:
-                    shots = self._sampler.options.default_shots
-                self._sampler._options.seed_simulator = self._set_seed_for_primitive
-            elif isinstance(self._sampler, RuntimeSamplerV2):
-                if hasattr(self._sampler, "_session"):
-                    self._session = self._sampler._session
-                elif hasattr(self._sampler, "_mode"):
-                    self._session = self._sampler._mode
-                self._backend = self._sampler._backend
-                if shots is None:
-                    if self._sampler.options.default_shots:
-                        shots = self._sampler.options.default_shots
-                    else:
-                        shots = 1024
-                        self._sampler.options.default_shots = 1024
-                if self._set_seed_for_primitive:
-                    self._sampler.options.update(
-                        simulator={"seed_simulator": self._set_seed_for_primitive}
-                    )
+            self._injected_primitive = execution
+            self._execution_origin = "Sampler"
         else:
             raise ValueError("Unknown execution type: " + str(type(execution)))
 
-        if self._session is not None:
-            self._finalizer = weakref.finalize(
-                self, Executor._cleanup_session, weakref.ref(self._session)
-            )
-
-        # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
-            if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-                # Sort out fake backends
-                isfake = (
-                    "fake" in str(self._backend).lower()
-                    or "fake" in str(self._backend_list).lower()
-                )
-                self._remote_backend = not isfake
-                self._ibm_quantum_backend = not isfake
+            if self._injected_primitive is not None:
+                qc_target = self._injected_primitive
+            elif self._backend is not None:
+                if self.is_statevector and shots is None:
+                    # Exact simulation: qc_executor's "statevector" alias uses
+                    # Qiskit's reference primitives (StatevectorEstimator/
+                    # StatevectorSampler), which are genuinely exact. A real
+                    # Aer backend object here (even with .options.shots =
+                    # None) does not give exact results - verified
+                    # empirically against the analytic expectation value.
+                    qc_target = "statevector"
+                else:
+                    qc_target = self._backend
             else:
-                self._ibm_quantum_backend = False
-                # Check if backend is a simulator
-                self._remote_backend = not any(
-                    str(substring) in str(self._backend) for substring in Aer.backends()
-                )
+                # No concrete backend yet (a backend list / QiskitRuntimeService) -
+                # set_backend() builds self._qc_executor once automatic selection picks one.
+                qc_target = None
+
+            if qc_target is not None:
+                self._build_qc_executor(qc_target, shots)
+                # For an injected primitive, sQUlearn never resolves shots
+                # itself - qc_executor reads it back from the primitive (see
+                # QiskitExecutor.__init__). Re-sync the local variable so the
+                # set_shots() call below doesn't clobber that with the still-
+                # unresolved None it started as.
+                shots = self._qc_executor.shots
 
             if self._backend_list is None:
-                self._backend_list = [self._backend]
+                if self._backend is not None:
+                    self._backend_list = [self._backend]
             else:
-                if not self._ibm_quantum_backend:
-                    # If fake backends are given
-                    # automatic backend selection is supported
+                if not self.IBMQuantum:
+                    # If fake backends are given, automatic backend selection is supported
                     if (
                         "fake" not in str(self._backend).lower()
                         and "fake" not in str(self._backend_list).lower()
@@ -771,30 +668,30 @@ class Executor:
                 )
             if self.qpu_parallelization:
                 raise ValueError("QPU parallelization is not supported for PennyLane devices!")
-            self._remote_backend = not any(
-                substring in self._pennylane_device.name.lower()
-                for substring in [
-                    "default.qubit",
-                    "default.mixed",
-                    "default.clifford",
-                    "lightning.qubit",
-                    "lightning.gpu",
-                ]
-            )
+            # self._pennylane_device is always an already-constructed Device by this point,
+            # and PennyLaneExecutor rejects shots=/seed= together with a Device instance (it
+            # insists those be configured on the device itself beforehand) - so shots is
+            # applied via the setter right after construction instead of passed here. This
+            # was previously skipped entirely (unlike the qulacs branch below, which already
+            # passes shots= at construction) - Executor("pennylane", shots=N) silently never
+            # configured qc_executor's own shots at all, found while working on WP-15.
+            self._qc_executor = QcExecutorFactory.create(self._pennylane_device)
+            self._qc_executor.shots = shots
         elif self.quantum_framework == "qulacs":
-            self._remote_backend = False
-            self._ibm_quantum_backend = False
+            self._qc_executor = QcExecutorFactory.create(
+                "qulacs", shots=shots, seed=self._set_seed_for_primitive
+            )
         else:
             raise RuntimeError("Unknown quantum framework!")
+
+        if self._injected_primitive is not None and self._options_estimator is not None:
+            self.set_options_estimator(**self._options_estimator)
+        if self._injected_primitive is not None and self._options_sampler is not None:
+            self.set_options_sampler(**self._options_sampler)
 
         # set initial shots
         self.set_shots(shots)
         self._inital_num_shots = self.get_shots()
-
-        if self._estimator is not None and self._options_estimator is not None:
-            self.set_options_estimator(**self._options_estimator)
-        if self._sampler is not None and self._options_sampler is not None:
-            self.set_options_sampler(**self._options_sampler)
 
         if self._caching is None:
             self._caching = self.remote
@@ -810,15 +707,89 @@ class Executor:
                 self._logger.info(
                     f"Executor initialized with backend list: {{}}".format(self._backend_list)
                 )
-        if self._session is not None:
+        if self.quantum_framework == "qiskit" and self.session is not None:
             self._logger.info(
-                f"Executor initialized with session: {{}}".format(self._session.session_id)
+                f"Executor initialized with session: {{}}".format(self.session.session_id)
             )
-        if self._estimator is not None:
-            self._logger.info(f"Executor initialized with estimator: {{}}".format(self._estimator))
-        if self._sampler is not None:
-            self._logger.info(f"Executor initialized with sampler: {{}}".format(self._sampler))
+        if self._injected_primitive is not None:
+            self._logger.info(
+                f"Executor initialized with injected primitive: {{}}".format(
+                    self._injected_primitive
+                )
+            )
         self._logger.info(f"Executor intial shots: {{}}".format(self._inital_num_shots))
+
+    def _build_qc_executor(self, target, shots) -> None:
+        """Build (or rebuild) the single qc_executor instance that owns
+        backend resolution, primitive construction, session lifecycle and
+        execution for this Executor's qiskit framework - called from
+        __init__ and set_backend().
+
+        ``execution_mode="session"`` is passed unconditionally for
+        backend-object/string targets: qc_executor only actually manages a
+        session when it also recognizes real IBM Quantum hardware
+        internally, so this is a no-op for local simulators and fake
+        backends. It must be omitted for an injected primitive or
+        Session, which qc_executor only accepts with the default "job" mode.
+        """
+        kwargs = {"shots": shots, "primitive_wrapper": self._decorate_primitive}
+        if not isinstance(
+            target, (BaseEstimatorV1, BaseSamplerV1, BaseEstimatorV2, BaseSamplerV2, Session)
+        ):
+            kwargs["execution_mode"] = "session"
+        self._qc_executor = QcExecutorFactory.create(target, **kwargs)
+        if self._backend is None:
+            # Only for the injected-primitive/Session case: sQUlearn didn't
+            # already resolve a concrete backend object itself. (The exact
+            # statevector case intentionally keeps its own real Aer object
+            # instead of qc_executor's - which is None there by design.)
+            self._backend = self._qc_executor.backend
+
+    def _decorate_primitive(self, raw, kind: str):
+        """Registered as qc_executor's ``primitive_wrapper`` (see
+        ``QiskitExecutor.__init__``): invoked for every primitive qc_executor
+        (re)builds - initial construction, an IBM Quantum session renewal, or
+        a deferred session's first real use.
+
+        Wraps the raw primitive for QPU parallelization if requested
+        (stored as ``self._inner_estimator``/``self._inner_sampler``, the
+        target ``estimator_run_v1/v2``/``sampler_run_v1/v2`` actually call),
+        and returns this Executor's own ``Executor*V1/V2`` wrapper. Its
+        ``run()`` always resolves back through those methods to whatever is
+        currently the correct execution target, so a caller holding it
+        (qiskit-ml's ``ComputeUncompute``, qiskit-algorithms' QFI, sQUlearn's
+        own OpTree fallback engine) survives future rebuilds transparently -
+        it never holds a primitive itself.
+        """
+        inner = raw
+        if self._qpu_parallelization is not None:
+            if isinstance(self._qpu_parallelization, str):
+                if self._qpu_parallelization != "auto":
+                    raise ValueError(
+                        "Unknown qpu_parallelization value: " + self._qpu_parallelization
+                    )
+                num_parallel = None
+            elif isinstance(self._qpu_parallelization, int):
+                num_parallel = self._qpu_parallelization
+            else:
+                raise TypeError(
+                    "Unknown qpu_parallelization type: " + str(type(self._qpu_parallelization))
+                )
+            if kind == "estimator":
+                inner = ParallelEstimator(raw, num_parallel=num_parallel)
+            else:
+                inner = ParallelSampler(raw, num_parallel=num_parallel)
+
+        if kind == "estimator":
+            self._inner_estimator = inner
+            if isinstance(raw, BaseEstimatorV1):
+                return ExecutorEstimatorV1(executor=self, options=self._options_estimator)
+            return ExecutorEstimatorV2(executor=self)
+
+        self._inner_sampler = inner
+        if isinstance(raw, BaseSamplerV1):
+            return ExecutorSamplerV1(executor=self, options=self._options_sampler)
+        return ExecutorSamplerV2(executor=self)
 
     def __enter__(self):
         self._context_managed = True
@@ -833,270 +804,10 @@ class Executor:
 
         self._context_managed = False
 
-    @staticmethod
-    def _cleanup_session(session_ref):
-        """Clean up session when executor is garbage collected."""
-        try:
-            session = session_ref()
-            if session is None:
-                return
-            session.close()
-            del session
-        except Exception:
-            pass
-
     @property
     def quantum_framework(self) -> str:
         """Return the quantum framework that is used in the executor."""
         return self._quantum_framework
-
-    def qulacs_execute(
-        self, qulacs_execution: callable, qulacs_circuit: QulacsCircuit, **kwargs
-    ) -> np.ndarray:
-        """
-        Function for executing of Qulacs circuits with the Executor with caching
-
-        Args:
-            qulacs_execution (callable): The Qulacs execution function from qulacs_execution
-            qulacs_circuit (QulacsCircuit): The Qulacs circuit data structure
-            **kwargs: Parameter values of the qulacs circuit and observable, name must match
-                the parameter names in the circuit and observable
-
-        Returns:
-            Numpy array: The result of the circuit execution
-        """
-
-        result = None
-        cached = True
-        hash_value = None
-
-        # Check if the result of the qulacs execution is already cached
-        if self._caching:
-
-            # Get hash value of the circuit
-            if hasattr(qulacs_execution, "__name__"):
-                func_name = qulacs_execution.__name__
-            else:
-                raise ValueError("Unknown function specified as qulacs execution")
-            hash_value = self._cache.hash_variable(
-                ["qulacs", func_name, qulacs_circuit.hash, kwargs]
-            )
-
-            # Check if the result is already cached
-            result = self._cache.get_file(hash_value)
-
-        # If the result is not cached, execute the circuit
-        if result is None:
-            if self._caching:
-                self._logger.info(
-                    f"Execution of qulacs circuit with hash value: {{}}".format(hash_value)
-                )
-            else:
-                self._logger.info(f"Execution of qulacs circuit")
-            result = qulacs_execution(qulacs_circuit, **kwargs)
-            cached = False
-            self._logger.info(f"Execution of qulacs successful")
-        elif self._caching:
-            self._logger.info(f"Cached result found with hash value: {{}}".format(hash_value))
-
-        # Store the result in the cache if caching is enabled and not already cached
-        if self._caching and not cached:
-            self._cache.store_file(hash_value, copy.copy(result))
-
-        return result
-
-    def pennylane_execute(self, pennylane_circuit: callable, *args, **kwargs):
-        """
-        Function for executing of PennyLane circuits with the Executor with caching and restarts
-
-        Args:
-            pennylane_circuit (callable): The PennyLane circuit function
-            args: Arguments for the circuit
-            kwargs: Keyword arguments for the circuit
-
-        Returns:
-            The result of the circuit
-        """
-        # Get hash value of the circuit
-        if hasattr(pennylane_circuit, "hash"):
-            hash_value = [pennylane_circuit.hash, args]
-        else:
-            hash_value = [hash(pennylane_circuit), args]
-
-        # Helper function for execution
-        if isinstance(pennylane_circuit, PennyLaneCircuit):
-            pennylane_circuit = pennylane_circuit.pennylane_circuit
-            pennylane_circuit = qml.QNode(pennylane_circuit, self.backend, diff_method="best")
-        if isinstance(pennylane_circuit, qml.QNode) and version.parse(
-            pennylane_version
-        ) >= version.parse("0.42.0"):
-            pennylane_circuit = qml.set_shots(pennylane_circuit, shots=self.shots)
-
-        def execute_circuit():
-            return pennylane_circuit(*args, **kwargs)
-
-        # Call function for cached execution
-        return self._pennylane_execute_cached(execute_circuit, hash_value)
-
-    def pennylane_execute_batched(
-        self, pennylane_circuit: callable, arg_tuples: Union[list, tuple], **kwargs
-    ) -> Union[np.array, list]:
-        """
-        Function for batched execution of PennyLane circuits.
-
-        Args:
-            pennylane_circuit (callable): The PennyLane circuit function
-            arg_tuples (Union[list,tuple]): List of tuples with arguments for the circuit
-
-        Returns
-            Union[np.array,list]: List of results of the circuits
-        """
-        input_list = True
-        if not isinstance(pennylane_circuit, list):
-            pennylane_circuit = [pennylane_circuit]
-            input_list = False
-
-        if not isinstance(arg_tuples, list):
-            arg_tuples = [arg_tuples]
-            input_list = False
-
-        if len(pennylane_circuit) != len(arg_tuples):
-            raise ValueError("Length of pennylane_circuit and arg_tuples does not match")
-
-        # Build tapes for batched execution and get the hash value of the circuits
-        hash_value = ""
-        batched_tapes = []
-        for i, arg_tuple in enumerate(arg_tuples):
-            circuit = pennylane_circuit[i]
-            if isinstance(circuit, PennyLaneCircuit):
-                circuit = circuit.pennylane_circuit
-
-            circuit = qml.QNode(circuit, self.backend, diff_method="best")
-            if version.parse(pennylane_version) >= version.parse("0.42.0"):
-                circuit = qml.set_shots(circuit, shots=self.shots)
-            circuit.construct(arg_tuple, kwargs)
-
-            if hasattr(circuit, "hash"):
-                hash_value += str(circuit.hash)
-            else:
-                hash_value += str(hash(circuit))
-
-            batched_tapes.append(circuit._tape)
-
-        hash_value = [hash_value, arg_tuples]
-
-        # Helper function for execution
-        def execute_tapes():
-            return qml.execute(batched_tapes, self.backend)
-
-        # Call function for cached execution
-        if input_list:
-            return self._pennylane_execute_cached(execute_tapes, hash_value)
-        else:
-            return self._pennylane_execute_cached(execute_tapes, hash_value)[0]
-
-    def _pennylane_execute_cached(self, function: callable, hash_value: Union[str, int]):
-        """
-        Function for cached execution of PennyLane circuits with the Executor
-
-        Args:
-            function (callable): The function that is executed
-            hash_value (Union[str,int]): Hash value for the caching
-
-        Returns:
-            The result of the circuit
-        """
-        success = False
-        critical_error = False
-        critical_error_message = None
-        for repeat in range(self._max_jobs_retries):
-
-            try:
-                result = None
-                cached = False
-                if self._caching:
-
-                    # Generate hash value for caching
-                    hash_value_adjusted = self._cache.hash_variable(
-                        [
-                            "pennylane_execute",
-                            hash_value,
-                            self._pennylane_device.name,
-                            self.shots,
-                        ]
-                    )
-
-                    result = self._cache.get_file(hash_value_adjusted)
-                    cached = True
-                else:
-                    hash_value_adjusted = None
-
-                if result is None:
-                    cached = False
-                    if self._caching:
-                        self._logger.info(
-                            f"Execution of pennylane circuit function with hash value: {{}}".format(
-                                hash_value_adjusted
-                            )
-                        )
-                    else:
-                        self._logger.info(f"Execution of pennylane circuit function")
-                    # Execution of pennylane circuit function
-                    result = function()
-                    self._logger.info(f"Execution of pennylane circuit successful")
-                elif self._caching:
-                    self._logger.info(
-                        f"Cached result found with hash value: {{}}".format(hash_value_adjusted)
-                    )
-
-                success = True
-
-            except (
-                NotImplementedError,
-                RuntimeError,
-                ValueError,
-                NotImplementedError,
-                TypeError,
-                qml.numpy.NonDifferentiableError,
-            ) as e:
-                critical_error = True
-                critical_error_message = e
-
-            except Exception as e:
-                if repeat == self._max_jobs_retries - 1:
-                    critical_error = True
-                    critical_error_message = e
-                else:
-                    self._logger.info(
-                        f"Executor failed to run pennylane_execute because of unknown error!"
-                    )
-                    self._logger.info("Error message: {}".format(str(e)))
-                    self._logger.info("Traceback: {}".format(str(traceback.format_exc())))
-                    print("Executor failed to run pennylane_execute because of unknown error!")
-                    print("Error message: {}".format(str(e)))
-                    print("Traceback: {}".format(str(traceback.format_exc())))
-                    print("Execution will be restarted")
-                    success = False
-
-            if success:
-                break
-            elif not critical_error:
-                self._logger.info(f"Restarting PennyLane execution")
-                success = False
-
-            if critical_error:
-                self._logger.info(f"Critical error detected; abort execution")
-                raise critical_error_message
-
-        if success is not True:
-            raise RuntimeError(
-                f"Could not run job successfully after {{}} retries".format(self._max_jobs_retries)
-            )
-
-        if self._caching and not cached:
-            self._cache.store_file(hash_value_adjusted, copy.copy(result))
-
-        return result
 
     @property
     def execution(self) -> str:
@@ -1119,12 +830,37 @@ class Executor:
     @property
     def remote(self) -> bool:
         """Returns a boolean if the execution is on a remote backend."""
-        return self._remote_backend
+        if self.quantum_framework == "qiskit":
+            if self._qc_executor is not None:
+                return self._qc_executor.remote
+            # No concrete backend chosen yet (a backend list / QiskitRuntimeService) -
+            # automatic backend selection is offered only for real/fake IBM backends.
+            return self._backend_list is not None
+        elif self.quantum_framework == "pennylane":
+            return not any(
+                substring in self._pennylane_device.name.lower()
+                for substring in [
+                    "default.qubit",
+                    "default.mixed",
+                    "default.clifford",
+                    "lightning.qubit",
+                    "lightning.gpu",
+                ]
+            )
+        elif self.quantum_framework == "qulacs":
+            return False
+        else:
+            raise RuntimeError("Unknown quantum framework!")
 
     @property
     def IBMQuantum(self) -> bool:
         """Returns a boolean if the execution is on a IBM Quantum backend."""
-        return self._ibm_quantum_backend
+        if self.quantum_framework != "qiskit":
+            return False
+        if self._qc_executor is not None:
+            return self._qc_executor.ibm_quantum
+        isfake = "fake" in str(self._backend_list).lower()
+        return self._backend_list is not None and not isfake
 
     @property
     def backend_list(self) -> List[Backend]:
@@ -1147,466 +883,55 @@ class Executor:
     @property
     def session(self) -> Session:
         """Returns the session that is used in the executor."""
-        return self._session
-
-    def _estimator_v1(self) -> BaseEstimatorV1:
-        """Returns the Estimator V1 primitive that is used for the execution.
-
-        This function created automatically estimators and checks for an expired session and
-        creates a new one if necessary.
-        Note that the run function is the same as in the Qiskit primitives, and
-        does not support caching and restarts
-        For this use :meth:`estimator_v1_run` or :meth:`get_estimator`.
-
-        The estimator that is created depends on the backend that is used for the execution.
-        """
-
-        if self._estimator is not None:
-            if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new session and a new estimator
-                self.create_session()
-                self._estimator = RuntimeEstimatorV1(
-                    session=self._session, options=self._options_estimator
-                )
-            estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV1)
-        else:
-            # Create a new Estimator
-            shots = self.get_shots()
-            initialize_parallel_estimator = True
-            if self.IBMQuantum:
-                if self._session is not None:
-                    if not self._session._active:
-                        self.create_session()
-                    self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=self._options_estimator
-                    )
-                else:
-                    # No session -> create a new session
-                    self.create_session()
-                    self._estimator = RuntimeEstimatorV1(
-                        session=self._session, options=self._options_estimator
-                    )
-
-            else:
-                if self.is_statevector:
-                    # No session, but state_vector simulator -> Estimator
-                    self._estimator = PrimitiveEstimatorV1(options=self._options_estimator)
-                    self._estimator.set_options(shots=self._shots)
-                elif self._backend is None:
-                    raise RuntimeError("Backend missing for Estimator initialization!")
-                else:
-                    # No session and no state_vector simulator -> BackendEstimator
-                    self._estimator = BackendEstimatorV1(
-                        backend=self._backend, options=self._options_estimator
-                    )
-                    if shots is None:
-                        shots = 1024
-
-            if not self._options_estimator:
-                self.set_shots(shots)
-
-        # Generate a in-QPU parallelized estimator
-        if self._qpu_parallelization is not None:
-            if initialize_parallel_estimator:
-                if isinstance(self._qpu_parallelization, str):
-                    if self._qpu_parallelization == "auto":
-                        self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
-                    else:
-                        raise ValueError(
-                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                        )
-                elif isinstance(self._qpu_parallelization, int):
-                    self._estimator = ParallelEstimator(
-                        self._estimator, num_parallel=self._qpu_parallelization
-                    )
-                else:
-                    raise TypeError(
-                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
-                    )
-
-        estimator = self._estimator
-
-        return estimator
-
-    def _estimator_v2(self) -> BaseEstimatorV2:
-        """Returns the Estimator V2 primitive that is used for the execution.
-
-        This function created automatically estimators and checks for an expired session and
-        creates a new one if necessary.
-        Note that the run function is the same as in the Qiskit primitives, and
-        does not support caching and restarts
-        For this use :meth:`estimator_v2_run` or :meth:`get_estimator`.
-
-        The estimator that is created depends on the backend that is used for the execution.
-        """
-
-        if self._estimator is not None:
-            # Store already exisiting options
-            if isinstance(self._estimator, RuntimeEstimatorV2):
-                self._options_estimator = _convert_options_to_dict(self._estimator.options)
-            if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new session and a new estimator
-                self.create_session()
-                if QISKIT_RUNTIME_SMALLER_0_28:
-                    self._estimator = RuntimeEstimatorV2(
-                        session=self._session, options=self._options_estimator
-                    )
-                else:
-                    self._estimator = RuntimeEstimatorV2(
-                        mode=self._session, options=self._options_estimator
-                    )
-            estimator = self._estimator
-            initialize_parallel_estimator = not isinstance(estimator, ParallelEstimatorV2)
-        else:
-            # Create a new Estimator
-            shots = self.get_shots()
-            initialize_parallel_estimator = True
-            if self.IBMQuantum:
-                if shots:
-                    if not self._options_estimator:
-                        self._options_estimator = {"default_shots": shots}
-                    else:
-                        self._options_estimator["default_shots"] = shots
-                if self._session is not None:
-                    if not self._session._active:
-                        self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._estimator = RuntimeEstimatorV2(
-                            session=self._session, options=self._options_estimator
-                        )
-                    else:
-                        self._estimator = RuntimeEstimatorV2(
-                            mode=self._session, options=self._options_estimator
-                        )
-                else:
-                    # No session -> create a new session
-                    self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._estimator = RuntimeEstimatorV2(
-                            session=self._session, options=self._options_estimator
-                        )
-                    else:
-                        self._estimator = RuntimeEstimatorV2(
-                            mode=self._session, options=self._options_estimator
-                        )
-            else:
-                if "fake" in str(self._backend):
-                    if shots:
-                        if not self._options_estimator:
-                            self._options_estimator = {"default_shots": shots}
-                        else:
-                            self._options_estimator["default_shots"] = shots
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._estimator = RuntimeEstimatorV2(
-                            backend=self._backend, options=self._options_estimator
-                        )
-                    else:
-                        self._estimator = RuntimeEstimatorV2(
-                            mode=self._backend, options=self._options_estimator
-                        )
-                elif self.is_statevector:
-                    # No session, but state_vector simulator -> Estimator
-                    self._estimator = StatevectorEstimator(
-                        default_precision=1 / shots**0.5 if shots else 0.0
-                    )
-                elif self._backend is None:
-                    raise RuntimeError("Backend missing for Estimator initialization!")
-                else:
-                    if shots:
-                        if not self._options_estimator:
-                            self._options_estimator = {"default_precision": 1 / shots**0.5}
-                        else:
-                            self._options_estimator["default_precision"] = 1 / shots**0.5
-                    # No session and no state_vector simulator -> BackendEstimator
-                    self._estimator = BackendEstimatorV2(
-                        backend=self._backend, options=self._options_estimator
-                    )
-                    if shots is None:
-                        shots = 1024
-
-            if not self._options_estimator:
-                self.set_shots(shots)
-
-        # Generate a in-QPU parallelized estimator
-        if self._qpu_parallelization and initialize_parallel_estimator:
-            if isinstance(self._qpu_parallelization, str):
-                if self._qpu_parallelization == "auto":
-                    self._estimator = ParallelEstimator(self._estimator, num_parallel=None)
-                else:
-                    raise ValueError(
-                        "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                    )
-            elif isinstance(self._qpu_parallelization, int):
-                self._estimator = ParallelEstimator(
-                    self._estimator, num_parallel=self._qpu_parallelization
-                )
-            else:
-                raise TypeError(
-                    "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
-                )
-
-        estimator = self._estimator
-
-        return estimator
+        if self.quantum_framework != "qiskit" or self._qc_executor is None:
+            return None
+        return self._qc_executor.session
 
     @property
     def estimator(self) -> Union[BaseEstimatorV1, BaseEstimatorV2]:
-        """Returns the estimator primitive that is used for the execution.
-
-        For Qiskit >= 1.2 the Estimator V2 is used, for Qiskit < 1.2 the Estimator V1 is returned.
+        """Returns the raw Qiskit estimator primitive this Executor currently
+        executes through - undecorated (no retry/caching/parallelization).
+        Use :meth:`get_estimator` for a stable, fully-decorated Estimator
+        suitable for handing to third-party code.
         """
-
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Estimator is only available for Qiskit backends")
-
-        if self._estimator is not None:
-            if isinstance(self._estimator, BaseEstimatorV1):
-                return self._estimator_v1()
-            return self._estimator_v2()
-
-        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
-            return self._estimator_v1()
-
-        return self._estimator_v2()
+        return self._qc_executor.raw_estimator
 
     def clear_estimator_cache(self) -> None:
         """Function for clearing the cache of the EstimatorV1 primitive to avoid memory overflow."""
-        if self._estimator is not None and (
-            isinstance(self._estimator, PrimitiveEstimatorV1)
-            or isinstance(self._estimator, BackendEstimatorV1)
+        estimator = self.estimator
+        if estimator is not None and (
+            isinstance(estimator, PrimitiveEstimatorV1)
+            or isinstance(estimator, BackendEstimatorV1)
         ):
-            self._estimator._circuits = []
-            self._estimator._observables = []
-            self._estimator._parameters = []
-            self._estimator._circuit_ids = {}
-            self._estimator._observable_ids = {}
-
-    def _sampler_v1(self) -> BaseSamplerV1:
-        """Returns the Sampler V1 primitive that is used for the execution.
-
-        This function created automatically estimators and checks for an expired session and
-        creates a new one if necessary.
-
-        Note that the run function is the same as in the Qiskit primitives, and
-        does not support caching, session handing, etc.
-        For this use :meth:`sampler_run_v1` or :meth:`get_sampler`.
-
-        The sampler that is created depends on the backend that is used for the execution.
-        """
-
-        if self._sampler is not None:
-            if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new one and a new estimator
-                self.create_session()
-                self._sampler = RuntimeSamplerV1(
-                    session=self._session, options=self._options_sampler
-                )
-            sampler = self._sampler
-            initialize_parallel_sampler = not isinstance(sampler, ParallelSamplerV1)
-        else:
-            # Create a new Sampler
-            shots = self.get_shots()
-            initialize_parallel_sampler = True
-
-            if self.IBMQuantum:
-                if self._session is not None:
-                    if not self._session._active:
-                        self.create_session()
-                    self._sampler = RuntimeSamplerV1(
-                        session=self._session, options=self._options_sampler
-                    )
-
-                else:
-                    # No session -> create a new session
-                    self.create_session()
-                    self._sampler = RuntimeSamplerV1(
-                        session=self._session,
-                        options=self._options_sampler,
-                    )
-            else:
-                if self.is_statevector:
-                    # No session, but state_vector simulator -> Sampler
-                    self._sampler = PrimitiveSamplerV1(options=self._options_sampler)
-                    self._sampler.set_options(shots=self._shots)
-                elif self._backend is None:
-                    raise RuntimeError("Backend missing for Sampler initialization!")
-                else:
-                    # No session and no state_vector simulator -> BackendSampler
-                    self._sampler = BackendSamplerV1(
-                        backend=self._backend, options=self._options_sampler
-                    )
-                    if shots is None:
-                        shots = 1024
-
-            if not self._options_sampler:
-                self.set_shots(shots)
-
-        # Generate a in-QPU parallelized sampler
-        if self._qpu_parallelization is not None:
-            if initialize_parallel_sampler:
-                if isinstance(self._qpu_parallelization, str):
-                    if self._qpu_parallelization == "auto":
-                        self._sampler = ParallelSampler(self._sampler, num_parallel=None)
-                    else:
-                        raise ValueError(
-                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                        )
-                elif isinstance(self._qpu_parallelization, int):
-                    self._sampler = ParallelSampler(
-                        self._sampler, num_parallel=self._qpu_parallelization
-                    )
-                else:
-                    raise TypeError(
-                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
-                    )
-
-        sampler = self._sampler
-
-        return sampler
-
-    def _sampler_v2(self) -> BaseSamplerV2:
-        """Returns the Sampler V2 primitive that is used for the execution.
-
-        This function created automatically estimators and checks for an expired session and
-        creates a new one if necessary.
-
-        Note that the run function is the same as in the Qiskit primitives, and
-        does not support caching, session handing, etc.
-        For this use :meth:`sampler_run_v2` or :meth:`get_sampler`.
-
-        The sampler that is created depends on the backend that is used for the execution.
-        """
-
-        if self._sampler is not None:
-            # Store already exisiting options
-            if isinstance(self._sampler, RuntimeSamplerV2):
-                self._options_sampler = _convert_options_to_dict(self._sampler.options)
-            if self.IBMQuantum and self._session is not None and not self._session._active:
-                # Session is expired, create a new session and a new estimator
-                self.create_session()
-                self._sampler = RuntimeSamplerV2(mode=self._session, options=self._options_sampler)
-            sampler = self._sampler
-            initialize_parallel_sampler = not isinstance(sampler, ParallelSamplerV2)
-        else:
-            # Create a new Sampler
-            shots = self.get_shots()
-            if shots:
-                if not self._options_sampler:
-                    self._options_sampler = {"default_shots": shots}
-                else:
-                    self._options_sampler["default_shots"] = shots
-            initialize_parallel_sampler = True
-
-            if self.IBMQuantum:
-                if self._session is not None:
-                    if not self._session._active:
-                        self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._sampler = RuntimeSamplerV2(
-                            session=self._session, options=self._options_sampler
-                        )
-                    else:
-                        self._sampler = RuntimeSamplerV2(
-                            mode=self._session, options=self._options_sampler
-                        )
-
-                else:
-                    # No session  -> create a new session
-                    self.create_session()
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._sampler = RuntimeSamplerV2(
-                            session=self._session,
-                            options=self._options_sampler,
-                        )
-                    else:
-                        self._sampler = RuntimeSamplerV2(
-                            mode=self._session,
-                            options=self._options_sampler,
-                        )
-            else:
-                if "fake" in str(self._backend).lower():
-                    if QISKIT_RUNTIME_SMALLER_0_23:
-                        self._sampler = RuntimeSamplerV2(
-                            backend=self._backend, options=self._options_sampler
-                        )
-                    else:
-                        self._sampler = RuntimeSamplerV2(
-                            mode=self._backend, options=self._options_sampler
-                        )
-                elif self.is_statevector:
-                    # No session, but state_vector simulator -> Sampler
-                    if shots:
-                        self._sampler = StatevectorSampler(default_shots=shots)
-                    else:
-                        self._sampler = StatevectorSampler()
-                        shots = self._sampler.default_shots
-                elif self._backend is None:
-                    raise RuntimeError("Backend missing for Sampler initialization!")
-                else:
-                    # No session and no state_vector simulator -> BackendSampler
-                    self._sampler = BackendSamplerV2(
-                        backend=self._backend, options=self._options_sampler
-                    )
-                    if shots is None:
-                        shots = 1024
-
-            if not self._options_sampler:
-                self.set_shots(shots)
-
-        # Generate a in-QPU parallelized sampler
-        if self._qpu_parallelization is not None:
-            if initialize_parallel_sampler:
-                if isinstance(self._qpu_parallelization, str):
-                    if self._qpu_parallelization == "auto":
-                        self._sampler = ParallelSampler(self._sampler, num_parallel=None)
-                    else:
-                        raise ValueError(
-                            "Unknown qpu_parallelization value: " + self._qpu_parallelization
-                        )
-                elif isinstance(self._qpu_parallelization, int):
-                    self._sampler = ParallelSampler(
-                        self._sampler, num_parallel=self._qpu_parallelization
-                    )
-                else:
-                    raise TypeError(
-                        "Unknown qpu_parallelization type: " + type(self._qpu_parallelization)
-                    )
-
-        sampler = self._sampler
-
-        return sampler
+            estimator._circuits = []
+            estimator._observables = []
+            estimator._parameters = []
+            estimator._circuit_ids = {}
+            estimator._observable_ids = {}
 
     @property
     def sampler(self) -> Union[BaseSamplerV1, BaseSamplerV2]:
-        """Returns the sampler primitive that is used for the execution.
-
-        For Qiskit >= 1.2 the Sampler V2 is used, for Qiskit < 1.2 the Sampler V1 is returned.
+        """Returns the raw Qiskit sampler primitive this Executor currently
+        executes through - undecorated (no retry/caching/parallelization).
+        Use :meth:`get_sampler` for a stable, fully-decorated Sampler
+        suitable for handing to third-party code.
         """
-
         if self.quantum_framework != "qiskit":
-            raise RuntimeError("Estimator is only available for Qiskit backends")
-
-        if self._sampler is not None:
-            if isinstance(self._sampler, BaseSamplerV1):
-                return self._sampler_v1()
-            return self._sampler_v2()
-
-        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
-            return self._sampler_v1()
-
-        return self._sampler_v2()
+            raise RuntimeError("Sampler is only available for Qiskit backends")
+        return self._qc_executor.raw_sampler
 
     def clear_sampler_cache(self) -> None:
         """Function for clearing the cache of the SamplerV1 primitive to avoid memory overflow."""
-        if self._sampler is not None and (
-            isinstance(self._sampler, PrimitiveSamplerV1)
-            or isinstance(self._sampler, BackendSamplerV1)
+        sampler = self.sampler
+        if sampler is not None and (
+            isinstance(sampler, PrimitiveSamplerV1) or isinstance(sampler, BackendSamplerV1)
         ):
-            self._sampler._circuits = []
-            self._sampler._parameters = []
-            self._sampler._circuit_ids = {}
-            self._sampler._qargs_list = []
+            sampler._circuits = []
+            sampler._parameters = []
+            sampler._circuit_ids = {}
+            sampler._qargs_list = []
 
     def _primitive_run(
         self, run: callable, label: str, hash_value: Union[str, None] = None
@@ -1852,33 +1177,31 @@ class Executor:
                     or check_for_incircuit_measurements(circuit, mode="clbits")
                 )
 
-        if containes_incircuit_measurement:
-            if self.shots is None:
-                raise ValueError(
-                    "In-circuit measurements with the Estimator are only possible with shots."
-                )
-            else:
-                if self.is_statevector:
-                    self._switch_to_backend_primitive("estimator_v1")
+        # No primitive swap needed when shots is set: is_statevector with shots
+        # already constructs a real BackendEstimator/Sampler (see __init__),
+        # which natively supports in-circuit measurements.
+        if containes_incircuit_measurement and self.shots is None:
+            raise ValueError(
+                "In-circuit measurements with the Estimator are only possible with shots."
+            )
 
         # Set seed for the primitive
         instance_estimator = self.estimator
         if isinstance(instance_estimator, BaseEstimatorV2):
             raise RuntimeError("Estimator is a BaseEstimatorV2, please use estimator_run_v2.")
 
-        if isinstance(instance_estimator, ParallelEstimatorV1):
-            instance_estimator = instance_estimator._estimator
         if isinstance(instance_estimator, BackendEstimatorV1):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
         elif isinstance(instance_estimator, PrimitiveEstimatorV1):
             if self._set_seed_for_primitive is not None:
-                self._estimator.set_options(seed=self._set_seed_for_primitive)
+                instance_estimator.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
-            return self.estimator.run(circuits, observables, parameter_values, **kwargs)
+            self.estimator  # refresh trigger for an IBM Quantum session, incl. on retries
+            return self._inner_estimator.run(circuits, observables, parameter_values, **kwargs)
 
         if self._caching:
             # Generate hash value for caching
@@ -1898,56 +1221,6 @@ class Executor:
             hash_value = None
 
         return self._primitive_run(run, "estimator", hash_value)
-
-    def _switch_to_backend_primitive(self, primitive: str):
-        """Helperfunction for swapping to the BackendPrimitive for the Executor.
-
-        Args:
-            primitive (str): The primitive to swap to. Either "estimator" or "sampler"
-        """
-        if self.is_statevector and self._shots is not None:
-
-            if primitive == "estimator_v1":
-                self._estimator = BackendEstimatorV1(
-                    backend=self._backend, options=self._options_estimator
-                )
-                self._logger.info(
-                    "Changed from the EstimatorV1() to the BackendEstimatorV1() primitive"
-                )
-
-            elif primitive == "sampler_v1":
-                self._sampler = BackendSamplerV1(
-                    backend=self._backend, options=self._options_sampler
-                )
-                self._logger.info(
-                    "Changed from the SamplerV1() to the BackendSamplerV1() " "primitive"
-                )
-
-            elif primitive == "estimator_v2":
-                self._estimator = BackendEstimatorV2(
-                    backend=self._backend, options=self._options_estimator
-                )
-                self._logger.info(
-                    "Changed from the StatevectorEstimator() to the BackendEstimatorV2() primitive"
-                )
-
-            elif primitive == "sampler_v2":
-                self._sampler = BackendSamplerV2(
-                    backend=self._backend, options=self._options_sampler
-                )
-                self._logger.info(
-                    "Changed from the StatevectorSampler() to the BackendSamplerV2()" " primitive"
-                )
-            else:
-                raise ValueError("Unknown primitive type: " + primitive)
-
-            self.set_shots(self._shots)
-
-        else:
-            raise ValueError(
-                "Swapping to BackendPrimitive is only possible for "
-                + "statevector simulator with shots"
-            )
 
     def estimator_run_v2(
         self, pubs: Iterable[EstimatorPubLike], precision: Union[float, None] = None
@@ -1977,22 +1250,19 @@ class Executor:
                 or check_for_incircuit_measurements(pub.circuit, mode="clbits")
             )
 
-        if containes_incircuit_measurement:
-            if self.shots is None:
-                raise ValueError(
-                    "In-circuit measurements with the Estimator are only possible with shots."
-                )
-            else:
-                if self.is_statevector:
-                    self._switch_to_backend_primitive("estimator_v2")
+        # No primitive swap needed when shots is set: is_statevector with shots
+        # already constructs a real BackendEstimator/Sampler (see __init__),
+        # which natively supports in-circuit measurements.
+        if containes_incircuit_measurement and self.shots is None:
+            raise ValueError(
+                "In-circuit measurements with the Estimator are only possible with shots."
+            )
 
         # Set seed for the primitive
         instance_estimator = self.estimator
         if isinstance(instance_estimator, BaseEstimatorV1):
             raise RuntimeError("Estimator is a BaseEstimatorV1, please use estimator_run_v1.")
 
-        if isinstance(instance_estimator, ParallelEstimatorV2):
-            instance_estimator = instance_estimator._estimator
         if self._set_seed_for_primitive is not None:
             if isinstance(instance_estimator, StatevectorEstimator):
                 instance_estimator._seed = self._set_seed_for_primitive
@@ -2021,7 +1291,8 @@ class Executor:
             hash_value = None
 
         def run():
-            return self.estimator.run(pubs=pubs, precision=precision)
+            self.estimator  # refresh trigger for an IBM Quantum session, incl. on retries
+            return self._inner_estimator.run(pubs=pubs, precision=precision)
 
         return self._primitive_run(run, "estimator_v2", hash_value)
 
@@ -2051,31 +1322,29 @@ class Executor:
                     circuits_contains_conditions
                     or check_for_incircuit_measurements(circuit, mode="condition")
                 )
-        if circuits_contains_conditions:
-            if self.shots is None:
-                raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
-            else:
-                if self.is_statevector:
-                    self._switch_to_backend_primitive("sampler_v1")
+        # No primitive swap needed when shots is set: is_statevector with shots
+        # already constructs a real BackendEstimator/Sampler (see __init__),
+        # which natively supports conditioned gates.
+        if circuits_contains_conditions and self.shots is None:
+            raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
 
         # Set seed for the primitive
         instance_sampler = self.sampler
         if isinstance(instance_sampler, BaseSamplerV2):
             raise RuntimeError("Sampler is a BaseSamplerV2, please use sampler_run_v2.")
 
-        if isinstance(instance_sampler, ParallelSamplerV1):
-            instance_sampler = instance_sampler._sampler
         if isinstance(instance_sampler, BackendSamplerV1):
             if self._set_seed_for_primitive is not None:
                 kwargs["seed_simulator"] = self._set_seed_for_primitive
                 self._set_seed_for_primitive += 1
         elif isinstance(instance_sampler, PrimitiveSamplerV1):
             if self._set_seed_for_primitive is not None:
-                self.sampler.set_options(seed=self._set_seed_for_primitive)
+                instance_sampler.set_options(seed=self._set_seed_for_primitive)
                 self._set_seed_for_primitive += 1
 
         def run():
-            return self.sampler.run(circuits, parameter_values, **kwargs)
+            self.sampler  # refresh trigger for an IBM Quantum session, incl. on retries
+            return self._inner_sampler.run(circuits, parameter_values, **kwargs)
 
         if self._caching:
             # Generate hash value for caching
@@ -2122,19 +1391,17 @@ class Executor:
                 or check_for_incircuit_measurements(pub.circuit, mode="condition")
             )
 
-        if circuits_contains_conditions:
-            if self.shots is None and shots is None:
-                raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
-            if self.is_statevector:
-                self._switch_to_backend_primitive("sampler_v2")
+        # No primitive swap needed when shots is set: is_statevector with shots
+        # already constructs a real BackendEstimator/Sampler (see __init__),
+        # which natively supports conditioned gates.
+        if circuits_contains_conditions and self.shots is None and shots is None:
+            raise ValueError("Conditioned gates on the Sampler are only possible with shots!")
 
         # Set seed for the primitive
         instance_sampler = self.sampler
         if isinstance(instance_sampler, BaseSamplerV1):
             raise RuntimeError("Sampler is a BaseSamplerV1, please use sampler_run_v1.")
 
-        if isinstance(instance_sampler, ParallelSamplerV2):
-            instance_sampler = instance_sampler._sampler
         if self._set_seed_for_primitive is not None:
             if isinstance(instance_sampler, StatevectorSampler):
                 instance_sampler._seed = self._set_seed_for_primitive
@@ -2160,7 +1427,8 @@ class Executor:
             hash_value = None
 
         def run():
-            return self.sampler.run(pubs=pubs, shots=shots)
+            self.sampler  # refresh trigger for an IBM Quantum session, incl. on retries
+            return self._inner_sampler.run(pubs=pubs, shots=shots)
 
         return self._primitive_run(run, "sampler_v2", hash_value)
 
@@ -2174,15 +1442,9 @@ class Executor:
         For Qiskit >= 1.2 the Estimator V2 is used, for Qiskit < 1.2 the Estimator V1 is returned.
         """
 
-        if self._estimator is not None:
-            if isinstance(self._estimator, BaseEstimatorV1):
-                return ExecutorEstimatorV1(executor=self, options=self._options_estimator)
-            return ExecutorEstimatorV2(executor=self)
-
-        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
-            return ExecutorEstimatorV1(executor=self, options=self._options_estimator)
-
-        return ExecutorEstimatorV2(executor=self)
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Estimator is only available for Qiskit backends")
+        return self._qc_executor.estimator
 
     def get_sampler(self):
         """
@@ -2193,37 +1455,38 @@ class Executor:
 
         For Qiskit >= 1.2 the Sampler V2 is used, for Qiskit < 1.2 the Sampler V1 is returned.
         """
+        if self.quantum_framework != "qiskit":
+            raise RuntimeError("Sampler is only available for Qiskit backends")
+        return self._qc_executor.sampler
 
-        if self._sampler is not None:
-            if isinstance(self._sampler, BaseSamplerV1):
-                return ExecutorSamplerV1(executor=self, options=self._options_estimator)
-            return ExecutorSamplerV2(executor=self)
-
-        if QISKIT_SMALLER_1_2 or "Braket" in str(self._backend):
-            return ExecutorSamplerV1(executor=self, options=self._options_sampler)
-
-        return ExecutorSamplerV2(executor=self)
-
-    @property
-    def optree_executor(self) -> str:
-        """A string that indicates which executor is used for OpTree execution."""
-        if self._estimator is not None:
-            return "estimator"
-        if self._sampler is not None:
-            return "sampler"
-        return "estimator"
-
-    def qiskit_execute(self, run_input, **options):
-        """Routine that runs the given circuits on the backend.
-
-        Args:
-            run_input: An object to run on the backend (typically a circuit).
-            options: Additional arguments that are passed to the backend.
-
-        Return:
-            The Qiskit job object from the run.
+    def expectation_value(self, circuit, observable, **parameters):
+        """Evaluate the expectation value of *observable* on *circuit*
+        directly through the underlying ``qc_executor`` instance - the
+        native execution path used by ``LowLevelQNN``. Supported for
+        ``quantum_framework in ("qiskit", "pennylane", "qulacs")``.
         """
-        return self.backend.run(run_input, **options)
+        return self._qc_executor.expectation_value(circuit, observable, **parameters)
+
+    def expectation_value_derivatives(self, circuit, observable, *derivative, **parameters):
+        """Evaluate derivatives of the expectation value of *observable* on
+        *circuit* directly through the underlying ``qc_executor`` instance -
+        see :meth:`expectation_value`.
+        """
+        return self._qc_executor.expectation_value_derivatives(
+            circuit, observable, *derivative, **parameters
+        )
+
+    def statevector(self, circuit, **parameters):
+        """Compute the statevector of *circuit* directly through the
+        underlying ``qc_executor`` instance.
+        """
+        return self._qc_executor.statevector(circuit, **parameters)
+
+    def probabilities(self, circuit, *, cutoff: float = 0.0, **parameters):
+        """Compute the measurement probabilities of *circuit* directly
+        through the underlying ``qc_executor`` instance.
+        """
+        return self._qc_executor.probabilities(circuit, cutoff=cutoff, **parameters)
 
     def set_shots(self, num_shots: Union[int, None]) -> None:
         """Sets the number shots for the next evaluations.
@@ -2246,92 +1509,34 @@ class Executor:
                     "Qulacs does not support shot-based sampling;"
                     " it only supports statevector simulation."
                 )
+            if self._qc_executor is not None:
+                self._qc_executor.shots = None
 
         elif self.quantum_framework == "pennylane":
 
-            if (
-                version.parse(pennylane_version) < version.parse("0.42.0")
-                and self._pennylane_device is not None
-            ):
-                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
-                    if num_shots == 0:
-                        self._pennylane_device._shots = qml.measurements.Shots(None)
-                    else:
-                        self._pennylane_device._shots = qml.measurements.Shots(num_shots)
-                elif (
-                    isinstance(self._pennylane_device.shots, int)
-                    or self._pennylane_device.shots is None
-                ):
-                    if num_shots == 0:
-                        self._pennylane_device._shots = None
-                    else:
-                        self._pennylane_device._shots = num_shots
+            if self._qc_executor is not None:
+                self._qc_executor.shots = self._shots
 
         elif self.quantum_framework == "qiskit":
 
-            # Update shots in backend
+            # Update shots on the backend object itself, for the shot-based
+            # statevector case (kept manual, see __init__).
             if self._backend is not None and self.is_statevector:
                 self._backend.options.shots = num_shots
 
-            # Update shots in estimator primitive
-            if self._estimator is not None:
-                if isinstance(self._estimator, PrimitiveEstimatorV1):
-                    if num_shots == 0:
-                        self._estimator.set_options(shots=None)
-                    else:
-                        self._estimator.set_options(shots=num_shots)
-                    if self._options_estimator:
-                        self._options_estimator["shots"] = num_shots
-                elif isinstance(self._estimator, BackendEstimatorV1):
-                    self._estimator.set_options(shots=num_shots)
-                    if self._options_estimator:
-                        self._options_estimator["shots"] = num_shots
-                elif isinstance(self._estimator, RuntimeEstimatorV1):
-                    execution = self._estimator.options.get("execution")
-                    execution["shots"] = num_shots
-                    self._estimator.set_options(execution=execution)
-                    try:
-                        self._options_estimator["execution"]["shots"] = num_shots
-                    except (TypeError, KeyError):
-                        pass  # no options_estimator or no execution in options_estimator
-                elif isinstance(self._estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
-                    self._estimator.shots = num_shots
-                elif isinstance(self._estimator, BaseEstimatorV2):
-                    self._shots = num_shots
-                else:
-                    raise RuntimeError("Unknown estimator type!")
+            # Reconfigure the current raw primitives in place (mutates the
+            # SAME object self._inner_estimator/sampler still hold - the
+            # qc_executor shots setter now actually does this, see WP-3).
+            if self._qc_executor is not None:
+                self._qc_executor.shots = self._shots
 
-            # Update shots in sampler primitive
-            if self._sampler is not None:
-                if isinstance(self._sampler, PrimitiveSamplerV1):
-                    if num_shots == 0:
-                        self._sampler.set_options(shots=None)
-                    else:
-                        self._sampler.set_options(shots=num_shots)
-                    try:
-                        self._options_sampler["shots"] = num_shots
-                    except:
-                        pass  # no option available
-                elif isinstance(self._sampler, BackendSamplerV1):
-                    self._sampler.set_options(shots=num_shots)
-                    try:
-                        self._options_sampler["shots"] = num_shots
-                    except:
-                        pass  # no option available
-                elif isinstance(self._sampler, RuntimeSamplerV1):
-                    execution = self._sampler.options.get("execution")
-                    execution["shots"] = num_shots
-                    self._sampler.set_options(execution=execution)
-                    try:
-                        self._options_sampler["execution"]["shots"] = num_shots
-                    except:
-                        pass  # no options_sampler or no execution in options_sampler
-                elif isinstance(self._sampler, (ParallelSamplerV1, ParallelSamplerV2)):
-                    self._sampler.shots = num_shots
-                elif isinstance(self._sampler, BaseSamplerV2):
-                    self._shots = num_shots
-                else:
-                    raise RuntimeError("Unknown sampler type!")
+            # ParallelEstimator/ParallelSampler track shots as their own
+            # bookkeeping (used to compute per-call precision), independent
+            # of the raw primitive's own options - update explicitly.
+            if isinstance(self._inner_estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
+                self._inner_estimator.shots = self._shots
+            if isinstance(self._inner_sampler, (ParallelSamplerV1, ParallelSamplerV2)):
+                self._inner_sampler.shots = self._shots
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -2345,72 +1550,32 @@ class Executor:
 
         if self.quantum_framework == "qulacs":
 
-            return None
+            # Always None: set_shots() rejects any non-zero value for qulacs
+            # (statevector simulation only), so this is the single source of
+            # truth rather than a hardcoded assumption of that fact.
+            shots = self._qc_executor.shots if self._qc_executor is not None else None
 
         elif self.quantum_framework == "pennylane":
 
-            if (
-                version.parse(pennylane_version) < version.parse("0.42.0")
-                and self._pennylane_device is not None
-            ):
-                if isinstance(self._pennylane_device.shots, qml.measurements.Shots):
-                    shots = self._pennylane_device.shots.total_shots
-                elif (
-                    isinstance(self._pennylane_device.shots, int)
-                    or self._pennylane_device.shots is None
-                ):
-                    shots = self._pennylane_device.shots
+            shots = self._qc_executor.shots if self._qc_executor is not None else None
 
         elif self.quantum_framework == "qiskit":
 
-            if self._estimator is not None or self._sampler is not None:
-                shots_estimator = 0
-                shots_sampler = 0
-                if self._estimator is not None:
-                    if isinstance(self._estimator, PrimitiveEstimatorV1):
-                        shots_estimator = self._estimator.options.get("shots", 0)
-                    elif isinstance(self._estimator, BackendEstimatorV1):
-                        shots_estimator = self._estimator.options.get("shots", 0)
-                    elif isinstance(self._estimator, RuntimeEstimatorV1):
-                        execution = self._estimator.options.get("execution")
-                        shots_estimator = execution["shots"]
-                    elif isinstance(self._estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
-                        shots_estimator = self._estimator.shots
-                    elif isinstance(self._estimator, BaseEstimatorV2):
-                        shots_estimator = self._shots
-                    else:
-                        raise RuntimeError("Unknown estimator type!")
-
-                if self._sampler is not None:
-                    if isinstance(self._sampler, PrimitiveSamplerV1):
-                        shots_sampler = self._sampler.options.get("shots", 0)
-                    elif isinstance(self._sampler, BackendSamplerV1):
-                        shots_sampler = self._sampler.options.get("shots", 0)
-                    elif isinstance(self._sampler, RuntimeSamplerV1):
-                        execution = self._sampler.options.get("execution")
-                        shots_sampler = execution["shots"]
-                    elif isinstance(self._sampler, (ParallelSamplerV1, ParallelSamplerV2)):
-                        shots_sampler = self._sampler.shots
-                    elif isinstance(self._sampler, BaseSamplerV2):
-                        shots_sampler = self._shots
-                    else:
-                        raise RuntimeError("Unknown sampler type!")
-
-                if self._estimator is not None and self._sampler is not None:
-                    if shots_estimator != shots_sampler:
-                        raise ValueError("The number of shots of the given \
-                                        Estimator and Sampler is not equal!")
-                if shots_estimator is None:
-                    shots_estimator = 0
-                if shots_sampler is None:
-                    shots_sampler = 0
-
-                shots = max(shots_estimator, shots_sampler)
-            elif self._backend is not None:
-                if self.is_statevector:
-                    shots = self._backend.options.shots
-            else:
-                return None  # No shots available
+            # ParallelEstimator/ParallelSampler track shots as their own
+            # bookkeeping (used to compute per-call precision), independent
+            # of the raw primitive's own options - read from there first.
+            if isinstance(self._inner_estimator, (ParallelEstimatorV1, ParallelEstimatorV2)):
+                shots = self._inner_estimator.shots
+            elif isinstance(self._inner_sampler, (ParallelSamplerV1, ParallelSamplerV2)):
+                shots = self._inner_sampler.shots
+            elif self._qc_executor is not None:
+                shots = self._qc_executor.shots
+            elif self._backend is not None and self.is_statevector:
+                shots = self._backend.options.shots
+            # else: no qc_executor instance and no (statevector) backend to read
+            # from yet - e.g. a not-yet-chosen backend list, or set_backend()
+            # calling this before _build_qc() runs. Fall back to the already-
+            # initialized self._shots above rather than discarding it.
         else:
             raise RuntimeError("Unknown quantum framework!")
 
@@ -2459,14 +1624,13 @@ class Executor:
                 SessionContextMisuseWarning,
             )
 
-        if self._backend is not None:
-            self._session = Session(backend=self._backend, max_time=self._max_session_time)
-            if not hasattr(self, "_finalizer"):
-                self._finalizer = weakref.finalize(
-                    self, Executor._cleanup_session, weakref.ref(self._session)
-                )
-        else:
+        if self._backend is None:
             raise RuntimeError("Session can not started because of missing backend!")
+
+        # Session creation, expiry detection and renewal are handed entirely
+        # to self._qc_executor; its own lifetime (tied to this Executor) closes
+        # the session on garbage collection, so no separate finalizer is needed.
+        self._qc_executor.create_session()
         self._logger.info("Executor created a new session.")
 
     def close_session(self):
@@ -2486,16 +1650,10 @@ class Executor:
         if self.quantum_framework != "qiskit":
             raise RuntimeError("Session can only be closed for Qiskit framework!")
 
-        if self._session is not None:
-            self._logger.info("Executor closed session: %s", self._session.session_id)
-            self._session.close()
-            self._session = None
-        else:
+        if self._qc_executor is None or self._qc_executor.session is None:
             raise RuntimeError("No session found!")
-
-        if hasattr(self, "_finalizer"):
-            self._finalizer.detach()
-            del self._finalizer
+        self._logger.info("Executor closed session: %s", self._qc_executor.session.session_id)
+        self._qc_executor.close_session()
 
     @property
     def estimator_options(self):
@@ -2707,22 +1865,8 @@ class Executor:
 
         self._logger.info("Executor uses the backend: %s", str(self._backend))
 
-        # Check if execution is on a remote backend
         if self.quantum_framework == "qiskit":
-            if "ibm" in str(self._backend).lower() or "ibm" in str(self._backend_list).lower():
-                # Sort out fake backends
-                isfake = (
-                    "fake" in str(self._backend).lower()
-                    or "fake" in str(self._backend_list).lower()
-                )
-                self._remote_backend = not isfake
-                self._ibm_quantum_backend = not isfake
-            else:
-                self._ibm_quantum_backend = False
-                # Check if backend is a simulator
-                self._remote_backend = not any(
-                    str(substring) in str(self._backend) for substring in Aer.backends()
-                )
+            self._build_qc_executor(backend, shots)
 
     def unset_backend(self):
         """Unsets the backend that is used for the execution."""
@@ -2808,6 +1952,11 @@ class ExecutorEstimatorV2(BaseEstimatorV2):
             return self._executor.estimator.options
         return None
 
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
+
 
 class ExecutorSamplerV2(BaseSamplerV2):
     """
@@ -2851,6 +2000,11 @@ class ExecutorSamplerV2(BaseSamplerV2):
         if hasattr(self._executor.sampler, "options"):
             return self._executor.sampler.options
         return None
+
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
 
 
 class ExecutorEstimatorV1(BaseEstimatorV1):
@@ -2977,6 +2131,11 @@ class ExecutorEstimatorV1(BaseEstimatorV1):
         self._executor.estimator.set_options(**fields)
         self._executor._options_estimator = self._executor.estimator.options
 
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
+
 
 class ExecutorSamplerV1(BaseSamplerV1):
     """
@@ -3084,6 +2243,11 @@ class ExecutorSamplerV1(BaseSamplerV1):
         This method will be called automatically if a session is restarted.
         """
         self._executor.clear_sampler_cache()
+
+    @property
+    def backend(self):
+        """The backend this primitive executes on."""
+        return self._executor.backend
 
 
 class ExecutorEstimator:

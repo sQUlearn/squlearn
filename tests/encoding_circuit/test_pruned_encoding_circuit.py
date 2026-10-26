@@ -1,5 +1,5 @@
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn.encoding_circuit import HubregtsenEncodingCircuit
 from squlearn.encoding_circuit.encoding_circuit_base import EncodingCircuitBase
 from squlearn.encoding_circuit.layered_encoding_circuit import LayeredEncodingCircuit
@@ -67,7 +67,7 @@ class TestPrunedEncodingCircuit:
                 num_features = len(features) if hasattr(features, "__len__") else 1
                 qc = QuantumCircuit(self.num_qubits)
                 for i in range(min(self.num_qubits, num_features)):
-                    qc.rz(features[i], i)
+                    qc.rz(i, features[i])
                 return qc
 
         class ParamOnlyCircuit(EncodingCircuitBase):
@@ -89,7 +89,7 @@ class TestPrunedEncodingCircuit:
                 num_params = len(parameters)
                 qc = QuantumCircuit(self.num_qubits)
                 for i in range(min(self.num_qubits, num_params)):
-                    qc.ry(parameters[i], i)
+                    qc.ry(i, parameters[i])
                 return qc
 
         n_qubits = 3

@@ -1,6 +1,6 @@
 import numpy as np
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import QuantumCircuit as QiskitQuantumCircuit
+from qc_executor import QuantumCircuit, Parameters
 from qiskit.circuit.library import BlueprintCircuit
 from typing import Union, Callable
 
@@ -50,7 +50,7 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
 
     def __init__(
         self,
-        qiskit_circuit: Union[BlueprintCircuit, Callable, QuantumCircuit],
+        qiskit_circuit: Union[BlueprintCircuit, Callable, QiskitQuantumCircuit],
         mode: str = "auto",
         decompose: bool = False,
         feature_label: str = "x",
@@ -162,20 +162,21 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Returns the circuit of the Qiskit Encoding Circuit
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+            features (Union[Parameters,np.ndarray]): Input vector of the features
                 from which the gate inputs are obtained.
-            parameters (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            parameters (Union[Parameters,np.ndarray]): Input vector of the parameters
                 from which the gate inputs are obtained.
 
         Return:
-            The circuit of the Qiskit Encoding Circuit with the assigned parameters.
+            The circuit of the Qiskit Encoding Circuit with the assigned parameters,
+            imported into a framework-independent ``qc_executor.QuantumCircuit``.
         """
 
         if self._mode.lower() == "both":
@@ -202,8 +203,11 @@ class QiskitEncodingCircuit(EncodingCircuitBase):
                     "The number of parameters {} does not match!".format(len(parameters))
                 )
         elif self._mode.lower() == "empty":
-            return self._qiskit_circuit
+            return QuantumCircuit.from_qiskit(self._qiskit_circuit)
         else:
             raise ValueError("The type {} is not supported!".format(self._mode))
 
-        return self._qiskit_circuit.assign_parameters(dictionary, inplace=False)
+        # Qiskit cannot bind qc_executor's symbolic parameters, so bind on the imported circuit.
+        values = {str(param): value for param, value in dictionary.items()}
+        circuit = QuantumCircuit.from_qiskit(self._qiskit_circuit)
+        return circuit.assign_parameters({p: values[str(p)] for p in circuit.parameters})

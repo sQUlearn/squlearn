@@ -1,11 +1,10 @@
 import numpy as np
-from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.circuit.parameterexpression import ParameterExpression
+import sympy as sp
+from qc_executor import Parameters, QuantumCircuit
+from qc_executor.base.circuit_ir import CircuitIR
 
 import warnings
 from typing import Union, Tuple
-from qiskit.circuit import QuantumCircuit
 
 from .encoding_circuit_base import EncodingCircuitBase
 
@@ -68,7 +67,7 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
     @property
     def num_encoding_slots(self) -> int:
-        if getattr(self, "_pruned_circuit", None) is not None:
+        if getattr(self, "_removed_feature_gate_count", None) is not None:
             return self._encoding_circuit.num_encoding_slots - self._removed_feature_gate_count
         else:
             return self._encoding_circuit.num_encoding_slots
@@ -96,83 +95,68 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
     ) -> QuantumCircuit:
         """
         Generates and returns the circuit of the pruned encoding circuit.
 
         Args:
-            features (Union[ParameterVector,np.ndarray]): Input vector of the features
+            features (Union[Parameters,np.ndarray]): Input vector of the features
                                                           from which the gate inputs are obtained
-            param_vec (Union[ParameterVector,np.ndarray]): Input vector of the parameters
+            param_vec (Union[Parameters,np.ndarray]): Input vector of the parameters
                                                            from which the gate inputs are obtained
 
         Return:
-            The circuit in Qiskit's QuantumCircuit format of the pruned encoding circuit.
+            The pruned circuit as a framework-independent ``qc_executor.QuantumCircuit``.
         """
         num_features = extract_num_features(features)
         # Read in the original pqc
-        self._x_base = ParameterVector("x_base", num_features)
-        self._p_base = ParameterVector("p_base", self._encoding_circuit.num_parameters)
-        self._base_circuit = self._encoding_circuit.get_circuit(self._x_base, self._p_base)
+        self._x_base = Parameters("x_base", num_features)
+        self._p_base = Parameters("p_base", self._encoding_circuit.num_parameters)
+        base_ir = self._encoding_circuit.get_circuit(self._x_base, self._p_base).ir
 
-        del_list = [self._p_base[i] for i in self._pruned_parameters]
+        del_set = {self._p_base[i] for i in self._pruned_parameters}
+        x_base_set = set(self._x_base)
 
-        # Create circuit from the base circuit, but empty
-        self._pruned_circuit = self._base_circuit.copy()
-        self._pruned_circuit.clear()
-
+        pruned_ir = CircuitIR(base_ir.num_qubits, base_ir.num_clbits)
         removed_feature_gate_count = 0
 
         # Loop through all instructions and copy those not pruned
-        for inst in self._base_circuit._data:
-            op = inst.operation
-            params = op.params
+        for instruction in base_ir:
             # skip single-param gates if parameter to delete
-            if len(params) == 1 and isinstance(
-                params[0], (ParameterExpression, ParameterVectorElement)
-            ):
-                expr = params[0]
+            if len(instruction.params) == 1 and instruction.is_parameterized:
+                symbols = instruction.params[0].free_symbols
                 # is this gate pruned because of a removed p_base parameter?
-                if expr in del_list or any(p in del_list for p in expr.parameters):
+                if symbols & del_set:
                     # count only if gate encodes a feature (x_base)
-                    feature_syms = []
-                    # direct vector element -> check membership in x_base
-                    if isinstance(expr, ParameterVectorElement) and expr in self._x_base:
-                        feature_syms.append(expr)
-                    # within expression
-                    for p in expr.parameters:
-                        if isinstance(p, ParameterVectorElement) and p in self._x_base:
-                            feature_syms.append(p)
-                    if feature_syms:
+                    if symbols & x_base_set:
                         removed_feature_gate_count += 1
                     continue
             # otherwise, keep the instruction
-            self._pruned_circuit.append(inst)
+            pruned_ir.append(
+                instruction.opcode,
+                instruction.qubits,
+                instruction.params,
+                instruction.clbits,
+                instruction.condition,
+            )
 
         self._removed_feature_gate_count = removed_feature_gate_count
 
         # Parameter indexing is not the same, since ordering can change -> renumber variables
         # Get all used parameters in the pruned circuit
-        used_param = self._pruned_circuit.parameters
+        used_param = pruned_ir.free_parameters
 
         # Renumber parameters
         used_old_param = [p for p in self._p_base if p in used_param]
-        self._p = ParameterVector("p_", len(used_old_param))
-        exchange_dict_p = dict(zip(used_old_param, self._p))
+        self._p = Parameters("p_", len(used_old_param))
 
         # Renumber x vector
         used_old_x = [x for x in self._x_base if x in used_param]
-        self._pruned_features = [x.index for x in self._x_base if x not in used_param].sort()
+        self._pruned_features = sorted(x.index for x in self._x_base if x not in used_param)
+        self._x = Parameters("x_", len(used_old_x))
 
-        self._x = ParameterVector("x_", len(used_old_x))
-        exchange_dict_x = dict(zip(used_old_x, self._x))
-
-        # Replace variables by the relabeled ones
-        exchange_both = exchange_dict_x
-        exchange_both.update(exchange_dict_p)
-        self._pruned_circuit.assign_parameters(exchange_both, inplace=True)
         self._num_qubits = self._encoding_circuit.num_qubits
         self._num_features = len(self._x)
         if (
@@ -186,15 +170,16 @@ class PrunedEncodingCircuit(EncodingCircuitBase):
         if len(parameters) != len(self._p):
             raise ValueError("Number of parameters does not match the number of input parameters!")
 
-        exchange_dict_x = dict(zip(self._x, features))
-        exchange_dict_p = dict(zip(self._p, parameters))
-        exchange_both = exchange_dict_x
-        exchange_both.update(exchange_dict_p)
-        return self._pruned_circuit.assign_parameters(exchange_both)
+        # The surviving base symbols map straight onto the caller's values; renumbering
+        # through self._x/self._p first and binding afterwards would give the same circuit.
+        binding = dict(zip(used_old_x, features))
+        binding.update(zip(used_old_param, parameters))
+        pruned = QuantumCircuit(pruned_ir.num_qubits, pruned_ir.num_clbits, _ir=pruned_ir)
+        return pruned.assign_parameters({k: sp.sympify(v) for k, v in binding.items()})
 
     def get_feature_bounds(self, num_features: int) -> np.ndarray:
         """Returns the feature bounds expanded for a given number of features."""
-        if getattr(self, "_pruned_circuit", None) is not None:
+        if getattr(self, "_removed_feature_gate_count", None) is not None:
             bounds = np.tile(self.feature_bounds, (num_features, 1))
             return np.delete(bounds, self._pruned_features, 0)
         else:

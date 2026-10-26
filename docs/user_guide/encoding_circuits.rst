@@ -177,7 +177,7 @@ to obtain the derivative. There are several options to specify the derivative yo
 3. Provide a list of ParameterVector elements to obtain the derivatives of the specified elements.
    This can also be placed in the tuple.
 
-The derivatives are stored in sQUlearn's proprietary OpTree structure, which
+The derivatives are stored in an OpTree structure provided by the qc_executor library, which
 is utilized for the arithmetic operations of the derivatives.
 
 **Example: Obtain the derivative of a Hubregtsen encoding circuit**

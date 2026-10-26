@@ -1,19 +1,27 @@
 import numpy as np
 from typing import Union, Callable
 
-from qiskit.circuit import ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qc_executor import Parameters
+from qc_executor.qiskit import QiskitCircuit
+from qc_executor.qiskit._sympy_bridge import to_qiskit_expr
+from qiskit import QuantumCircuit as QiskitQuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.backend import Backend
 
 from .encoding_circuit_base import EncodingCircuitBase
 
-from ..util.decompose_to_std import decompose_to_std
-
 
 class TranspiledEncodingCircuit(EncodingCircuitBase):
     """
     Class for generated a Encoding Circuit with a transpiled circuit.
+
+    .. note::
+        This is the one encoding circuit that is bound to a backend.
+        :meth:`get_circuit` returns a :class:`qc_executor.qiskit.QiskitCircuit` holding the
+        ISA circuit, which carries a transpile layout the framework-independent IR cannot
+        express. It therefore runs on the Qiskit executor only, unlike every other encoding
+        circuit, whose ``get_circuit`` returns a backend-independent
+        ``qc_executor.QuantumCircuit``.
 
     **Example:**
 
@@ -56,10 +64,10 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
         self._transpile_func = transpile_func
         self._num_features = num_features
 
-        self._x = ParameterVector("x_", self.num_features)
-        self._p = ParameterVector("p_", self._encoding_circuit.num_parameters)
+        self._x = Parameters("x_", self.num_features)
+        self._p = Parameters("p_", self._encoding_circuit.num_parameters)
 
-        self._circuit = decompose_to_std(self._encoding_circuit.get_circuit(self._x, self._p))
+        self._circuit = self._encoding_circuit.get_circuit(self._x, self._p).qiskit_circuit
 
         if self._transpile_func is not None:
             self._transpiled_circuit = self._transpile_func(self._circuit, self._backend)
@@ -163,34 +171,37 @@ class TranspiledEncodingCircuit(EncodingCircuitBase):
 
     def get_circuit(
         self,
-        features: Union[ParameterVector, np.ndarray],
-        parameters: Union[ParameterVector, np.ndarray],
-    ) -> QuantumCircuit:
+        features: Union[Parameters, np.ndarray],
+        parameters: Union[Parameters, np.ndarray],
+    ) -> QiskitCircuit:
         """
         Return the circuit of the transpiled encoding circuit
 
         Args:
-            features Union[ParameterVector,np.ndarray]: Input vector of the features
+            features Union[Parameters,np.ndarray]: Input vector of the features
                                                         from which the gate inputs are obtained
-            param_vec Union[ParameterVector,np.ndarray]: Input vector of the parameters
+            param_vec Union[Parameters,np.ndarray]: Input vector of the parameters
                                                          from which the gate inputs are obtained
 
         Return:
-            Returns the transpiled circuit in Qiskit's QuantumCircuit format
+            The transpiled circuit, adopted into a ``QiskitCircuit``. The ISA circuit
+            carries a layout the IR cannot express, so unlike other encoding circuits the
+            result runs on the Qiskit executor only.
         """
-        exchange_dict_x = dict(zip(self._x, features))
-        exchange_dict_p = dict(zip(self._p, parameters))
-        exchange_both = exchange_dict_x
-        exchange_both.update(exchange_dict_p)
-        return self._transpiled_circuit.assign_parameters(exchange_both)
+        # The ISA circuit holds Qiskit parameters, so match them by name and convert the
+        # (possibly symbolic) values to Qiskit expressions.
+        values = {str(k): to_qiskit_expr(v) for k, v in zip(self._x, features)}
+        values.update({str(k): to_qiskit_expr(v) for k, v in zip(self._p, parameters)})
+        binding = {q: values[q.name] for q in self._transpiled_circuit.parameters}
+        return QiskitCircuit.from_qiskit(self._transpiled_circuit.assign_parameters(binding))
 
 
-def _gen_qubit_mapping(circuit: QuantumCircuit) -> dict:
+def _gen_qubit_mapping(circuit: QiskitQuantumCircuit) -> dict:
     """
     Returns dictionary that maps virtual qubits to the physical ones
 
     Args:
-        circuit (QuantumCircuit): quantum circuit (ideally transpiled)
+        circuit (QiskitQuantumCircuit): Qiskit circuit (ideally transpiled)
 
     Returns:
         Dictionary which maps virtual to physical qubits

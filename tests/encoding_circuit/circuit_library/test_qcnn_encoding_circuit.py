@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qiskit import QuantumCircuit
+from qc_executor import QuantumCircuit
 from squlearn.encoding_circuit import QCNNEncodingCircuit
 from squlearn.observables.observable_base import ObservableBase
 
@@ -66,7 +66,7 @@ class TestQCNNEncodingCircuit:
         assert qc.num_qubits == 2
 
         # circuit should contain some gates (count_ops gives a dict of operations)
-        ops = qc.count_ops()
+        ops = qc.qiskit_circuit.count_ops()
         total_ops = sum(ops.values()) if ops else 0
         assert total_ops > 0, "Returned circuit appears empty (no gates found)."
 
@@ -166,3 +166,22 @@ class TestQCNNEncodingCircuit:
         # invalid string should raise ValueError
         with pytest.raises(ValueError):
             circuit.QCNNObservable("A")
+
+
+class TestQCNNQiskitInput:
+
+    def test_convolution_accepts_qiskit_circuit(self):
+        from qiskit.circuit import ParameterVector, QuantumCircuit as QiskitQuantumCircuit
+
+        params = ParameterVector("p", 2)
+        qiskit_circuit = QiskitQuantumCircuit(2)
+        qiskit_circuit.crx(params[0], 0, 1)
+        qiskit_circuit.rx(params[1], 0)
+
+        circuit = QCNNEncodingCircuit(4)
+        circuit.convolution(quantum_circuit=qiskit_circuit, share_params=True)
+        circuit.pooling(measurement=True)
+        assert circuit.num_parameters > 0
+        assert isinstance(
+            circuit.get_circuit([], np.full(circuit.num_parameters, 0.1)), QuantumCircuit
+        )
