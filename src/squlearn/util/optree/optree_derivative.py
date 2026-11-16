@@ -386,18 +386,20 @@ class OpTreeDerivative:
         unique_ops = set(circuit.count_ops())
         if not unique_ops.issubset(supported_gates):
             if backend is not None:
-                try:
-                    from iqm.qiskit_iqm import  transpile_to_IQM
-                    from qaas.client.backend_iqm import QBackendIQM
-                    from iqm.iqm_client.transpile import ExistingMoveHandlingOptions
-                    if isinstance(backend, QBackendIQM):
-                        # circuit = transpile_to_IQM(circuit,
-                        #                            backend,
-                        #                            existing_moves_handling=ExistingMoveHandlingOptions('remove'))
-                        pass
-                except ImportError:
-                    # print('QaaS/IQM not supported')
-                    circuit = transpile(circuit, backend=backend, optimization_level=0, layout_method="trivial")
+                # try:
+                #     from iqm.qiskit_iqm import  transpile_to_IQM
+                #     from qaas.client.backend_iqm import QBackendIQM
+                #     from iqm.iqm_client.transpile import ExistingMoveHandlingOptions
+                #     if isinstance(backend, QBackendIQM):
+                #         # circuit = transpile_to_IQM(circuit,
+                #         #                            backend,
+                #         #                            existing_moves_handling=ExistingMoveHandlingOptions('remove'))
+                #         pass
+                # except ImportError:
+                #     # circuit = transpile(circuit, backend=backend, optimization_level=0, layout_method="trivial")
+                #     # circuit.draw()
+                # circuit = backend.transpile(circuit, optimization_level=0, layout_method="trivial")
+                pass
             else:
                 circuit = transpile(circuit, basis_gates=list(supported_gates), optimization_level=0, layout_method="trivial")
         return circuit

@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Union, List, Tuple
-
+from tqdm import tqdm
 import time
 from packaging import version
 
@@ -1403,7 +1403,7 @@ class OpTreeEvaluate:
         Returns:
             The expectation value of the expectation values as a numpy array.
         """
-
+        
         def adjust_tree_operators(
             circuit_tree: Union[OpTreeNodeBase, OpTreeContainer],
             operator_tree: Union[OpTreeNodeBase, OpTreeContainer],
@@ -1479,7 +1479,6 @@ class OpTreeEvaluate:
                 operator_list, operator_tree = _build_operator_list(
                     operator, dictionary_operator__, detect_duplicates
                 )
-
                 # Combine the operator tree and the circuit tree into a single tree
                 # Adjust the offset to match the operator list and the parameter list
                 tree_operator.append(
@@ -1514,6 +1513,17 @@ class OpTreeEvaluate:
         if len(total_circuit_list) == 0:
             return _evaluate_index_tree(evaluation_tree, [])
 
+        # apply the layout to the total operator list
+        for iq in range(len(total_circuit_list)):
+            # print('operator:', total_operator_list[iq])
+            # print('circuit layout:', total_circuit_list[iq].layout)
+            if total_circuit_list[iq].layout is not None:
+                num_active_qubit = total_circuit_list[iq].layout._input_qubit_count
+                pauli_string = total_operator_list[iq].paulis.to_labels()[0][-num_active_qubit:]
+                pauli_string = SparsePauliOp(pauli_string)
+                total_operator_list[iq] = pauli_string.apply_layout(total_circuit_list[iq].layout)
+
+
         if isinstance(estimator, BaseEstimatorV1):
             estimator_result = (
                 estimator.run(total_circuit_list, total_operator_list, total_parameter_list)
@@ -1527,7 +1537,7 @@ class OpTreeEvaluate:
                 estimator_result = np.array([r.data.evs for r in estimator.run(pubs).result()])
             else:
                 estimator_result = []
-                for _pub in pubs:
+                for _pub in tqdm(pubs):
                     r = estimator.run([_pub]).result()
                     estimator_result.append(r[0].data.evs)
                 estimator_result = np.array(estimator_result)
